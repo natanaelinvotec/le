@@ -9,7 +9,6 @@
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Nunito', sans-serif; }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; } }
 
 body { background-color: var(--bg-light); color: var(--text-dark); padding-bottom: 50px; }
 
