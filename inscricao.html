@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscrição - Capoeira Liberdade e Expressão</title>
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@600;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="inscricao.css">
+</head>
+<body>
+
+    <div class="header">
+        <img src="logo-liberdade.jpg" alt="Logo Capoeira" class="logo-esfera">
+        <h1>Ficha de Inscrição Oficial</h1>
+        <p>Grupo de Capoeira Liberdade e Expressão</p>
+    </div>
+
+    <div class="container">
+        <div class="progress-bar" role="progressbar" aria-valuemin="1" aria-valuemax="4" aria-valuenow="1">
+            <div class="step-indicator active">1</div>
+            <div class="step-indicator">2</div>
+            <div class="step-indicator">3</div>
+            <div class="step-indicator">4</div>
+        </div>
+
+        <form id="formInscricao">
+
+            <!-- PASSO 1: DADOS PESSOAIS, CREDENCIAIS E CÂMERA -->
+            <div class="form-step active" id="step1">
+                <h2><i class="fas fa-camera"></i> Foto do Aluno</h2>
+                <div class="camera-container">
+                    <p>Tire uma foto para o seu perfil e carteirinha.</p>
+                    <div class="cam-controls">
+                        <button type="button" class="btn-cam" id="startCam"><i class="fas fa-video"></i> Iniciar Câmera</button>
+                        <button type="button" class="btn-cam btn-flip" id="flipCam" style="display:none;"><i class="fas fa-sync-alt"></i> Virar Câmera</button>
+                    </div>
+                    <video id="video" autoplay playsinline muted></video>
+                    <button type="button" class="btn-cam" id="snapBtn" style="display:none; background:var(--accent-green); width:100%; margin-top:10px;"><i class="fas fa-camera"></i> Capturar Foto</button>
+                    <canvas id="canvas"></canvas>
+                    <input type="hidden" id="fotoDataUrl" name="fotoDataUrl">
+                </div>
+
+                <h2>Dados Pessoais e Acesso ao Painel</h2>
+                <div class="form-group">
+                    <label for="localTreinoSelect">Local de Treinamento:</label>
+                    <select name="localTreino" id="localTreinoSelect" required>
+                        <option value="">Selecione...</option>
+                        <option value="Mestre Profeta">Mestre Profeta</option>
+                        <option value="Professora Taynara">Professora Taynara</option>
+                        <option value="Mestre Abraão">Mestre Abraão</option>
+                        <option value="Mestre Omar">Mestre Omar</option>
+                        <option value="Mestre Carlinhos">Mestre Carlinhos</option>
+                        <option value="Professor Maick">Professor Maick</option>
+                        <option value="Professor Tigoy">Professor Tigoy</option>
+                        <option value="Professor Rafinha">Professor Rafinha</option>
+                        <option value="Instrutor Leiliano">Instrutor Leiliano</option>
+                        <option value="Professor Lebrinha">Professor Lebrinha</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="inputNome">Nome completo:</label>
+                    <input type="text" name="nome" id="inputNome" autocomplete="name" required>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="dataNasc">Nascimento:</label>
+                        <input type="date" name="dataNasc" id="dataNasc" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="campoIdade">Idade:</label>
+                        <input type="number" name="idade" id="campoIdade" readonly required>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="documento">CPF ou RG:</label>
+                        <input type="text" name="documento" id="documento" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="celularAluno">Telefone / WhatsApp (Login por Celular):</label>
+                        <input type="text" name="telefone" id="celularAluno" placeholder="(00) 00000-0000" autocomplete="tel" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="emailAluno">E-mail (Login por E-mail):</label>
+                    <input type="email" name="email" id="emailAluno" placeholder="seuemail@exemplo.com" autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="senhaAluno">Senha de Acesso ao Painel:</label>
+                    <input type="password" name="senha" id="senhaAluno" required placeholder="Crie uma senha para acessar seu painel" autocomplete="new-password" minlength="6">
+                </div>
+                <div class="form-group">
+                    <label for="endereco">Endereço Completo:</label>
+                    <input type="text" name="endereco" id="endereco" autocomplete="street-address" required>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="bairro">Bairro:</label>
+                        <input type="text" name="bairro" id="bairro" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cidade">Cidade:</label>
+                        <input type="text" name="cidade" id="cidade" autocomplete="address-level2" required>
+                    </div>
+                </div>
+
+                <div id="secaoResponsavel" style="display:none; background:#f8fbfb; padding:15px; border-radius:10px; border:1px solid #e0e6e5; margin-top:20px;">
+                    <h2 style="font-size:1.2rem; color:var(--primary-blue);"><i class="fas fa-shield-alt"></i> Dados do Responsável (Obrigatório para menores de 12 anos)</h2>
+                    <div class="form-group">
+                        <label for="inputResponsavel">Nome do Responsável:</label>
+                        <input type="text" name="emergenciaNome" id="inputResponsavel">
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="celularResponsavel">Telefone do Responsável (Login por Celular):</label>
+                            <input type="text" name="emergenciaTel" id="celularResponsavel" placeholder="(00) 00000-0000">
+                        </div>
+                        <div class="form-group">
+                            <label for="parentesco">Parentesco:</label>
+                            <input type="text" name="parentesco" id="parentesco">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="emailResponsavel">E-mail do Responsável (Login por E-mail):</label>
+                        <input type="email" name="emailResponsavel" id="emailResponsavel" placeholder="responsavel@exemplo.com">
+                    </div>
+                </div>
+            </div>
+
+            <!-- PASSO 2: SAÚDE E EXPERIÊNCIA -->
+            <div class="form-step" id="step2">
+                <h2>Informações de Saúde</h2>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>1. Doença crônica?</label>
+                        <select name="doencaCronica"><option value="Não">Não</option><option value="Sim">Sim</option></select>
+                        <input type="text" name="qualDoenca" placeholder="Qual?" style="margin-top:5px;">
+                    </div>
+                    <div class="form-group">
+                        <label>2. Problemas cardíacos?</label>
+                        <select name="cardiaco"><option value="Não">Não</option><option value="Sim">Sim</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label>3. Asma/Problemas respiratórios?</label>
+                        <select name="asma"><option value="Não">Não</option><option value="Sim">Sim</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label>4. Lesões (joelho, coluna, etc.)?</label>
+                        <select name="lesoes"><option value="Não">Não</option><option value="Sim">Sim</option></select>
+                        <input type="text" name="qualLesao" placeholder="Qual?" style="margin-top:5px;">
+                    </div>
+                    <div class="form-group">
+                        <label>5. Já realizou cirurgia?</label>
+                        <select name="cirurgia"><option value="Não">Não</option><option value="Sim">Sim</option></select>
+                        <input type="text" name="qualCirurgia" placeholder="Qual?" style="margin-top:5px;">
+                    </div>
+                    <div class="form-group">
+                        <label>6. Uso contínuo de medicamentos?</label>
+                        <select name="medicamentos"><option value="Não">Não</option><option value="Sim">Sim</option></select>
+                        <input type="text" name="qualMedicamento" placeholder="Qual?" style="margin-top:5px;">
+                    </div>
+                    <div class="form-group">
+                        <label>7. Alergia a medicamentos?</label>
+                        <select name="alergia"><option value="Não">Não</option><option value="Sim">Sim</option></select>
+                        <input type="text" name="qualAlergia" placeholder="Qual?" style="margin-top:5px;">
+                    </div>
+                    <div class="form-group">
+                        <label>8. Apto(a) para atividades físicas?</label>
+                        <select name="apto" required><option value="Sim">Sim</option><option value="Não">Não</option></select>
+                    </div>
+                </div>
+
+                <h2>Experiência & Uniforme</h2>
+                <div class="form-group">
+                    <label>Já praticou capoeira antes?</label>
+                    <select name="jaPraticou"><option value="Não">Não</option><option value="Sim">Sim</option></select>
+                    <div class="grid-2" style="margin-top:5px;">
+                        <input type="text" name="ondePraticou" placeholder="Onde?">
+                        <input type="text" name="tempoPratica" placeholder="Tempo de prática?">
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Tamanho da Camiseta:</label>
+                        <select name="tamCamiseta"><option value="P">P</option><option value="M">M</option><option value="G">G</option><option value="GG">GG</option><option value="Infantil">Infantil</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Tamanho da Calça:</label>
+                        <select name="tamCalca"><option value="P">P</option><option value="M">M</option><option value="G">G</option><option value="GG">GG</option><option value="Infantil">Infantil</option></select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PASSO 3: REGRAS E ORIENTAÇÕES -->
+            <div class="form-step document-text" id="step3">
+                <h2>Primeiras Orientações ao Aluno e Responsável</h2>
+
+                <div class="rule-box">
+                    <h3>Horários</h3>
+                    <ul>
+                        <li>Chegar com 10 a 15 minutos de antecedência.</li>
+                        <li>Após 15 minutos de atraso, o aluno poderá aguardar autorização para entrar.</li>
+                        <li>Evitar faltas sem justificativa. Em caso de ausência, avisar com antecedência.</li>
+                    </ul>
+                </div>
+
+                <div class="rule-box">
+                    <h3>Uniforme e Apresentação</h3>
+                    <p><strong>É obrigatório o uso do uniforme oficial do grupo:</strong></p>
+                    <ul>
+                        <li><strong>Treino:</strong> Camiseta oficial, calça branca, cordão, descalço.</li>
+                        <li><strong>Passeio/Eventos:</strong> Camiseta oficial de passeio, calça branca, cordão.</li>
+                    </ul>
+                    <p class="warning">⚠️ Não é permitido treinar de boné, chinelo, relógio, correntes ou acessórios que possam causar acidentes. Utilizar roupas apertadas ou inadequadas (legging, top, shorts curtos).</p>
+                    <p><strong>Manter sempre:</strong> Unha cortada, boa higiene pessoal e uniforme limpo.</p>
+                </div>
+
+                <div class="rule-box">
+                    <h3>Disciplina e Conduta</h3>
+                    <p>A capoeira é baseada em: Respeito aos mestres, professores e colegas; Obediência às orientações; Boa convivência e Linguagem adequada.</p>
+                    <h4 style="color: red; margin-top: 10px;">NÃO SERÁ PERMITIDO:</h4>
+                    <ul>
+                        <li>Brigas e Desrespeito.</li>
+                        <li>Palavrões.</li>
+                        <li>Uso de celular durante a aula.</li>
+                    </ul>
+                    <p><em>O aluno que não cumprir as regras poderá ser advertido.</em></p>
+                </div>
+
+                <div class="rule-box">
+                    <h3>Sistema de Cordões e Pagamentos</h3>
+                    <p>Os cordões representam evolução, disciplina e tempo de dedicação, trocados mediante frequência e evolução técnica.</p>
+                    <ul>
+                        <li><strong>Mensalidade:</strong> R$ 50,00 por mês.</li>
+                    </ul>
+                    <div class="grid-2" style="margin-top: 10px;">
+                        <div class="form-group">
+                            <label>Melhor data para pagamento:</label>
+                            <select name="dataPagamento" required>
+                                <option value="">Selecione o dia...</option>
+                                <option value="Dia 5">Dia 5</option>
+                                <option value="Dia 10">Dia 10</option>
+                                <option value="Dia 15">Dia 15</option>
+                                <option value="Dia 20">Dia 20</option>
+                                <option value="Dia 25">Dia 25</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Forma de pagamento:</label>
+                            <select name="formaPagamento" required>
+                                <option value="">Selecione a forma...</option>
+                                <option value="Dinheiro">Dinheiro</option>
+                                <option value="PIX">PIX</option>
+                                <option value="Cartão de Crédito">Cartão de Crédito</option>
+                                <option value="Cartão de Débito">Cartão de Débito</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PASSO 4: TERMOS E FINALIZAÇÃO -->
+            <div class="form-step document-text" id="step4">
+                <h2>Autorização e Termos</h2>
+
+                <div class="rule-box">
+                    <h3>Autorização de Uso de Imagem</h3>
+                    <p>Eu autorizo o Grupo de Capoeira Liberdade e Expressão a utilizar minha imagem (ou do menor sob minha responsabilidade) em fotos e vídeos realizados durante aulas, treinos, eventos e apresentações, para fins de divulgação em redes sociais e materiais institucionais, sem qualquer ônus financeiro. Declaro estar ciente de que as imagens serão utilizadas de forma respeitosa e ética.</p>
+
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label>Escolha uma opção:</label>
+                        <select name="usoImagem" required style="font-weight: bold; color: var(--primary-blue);">
+                            <option value="">Selecione...</option>
+                            <option value="AUTORIZO">AUTORIZO</option>
+                            <option value="NÃO AUTORIZO">NÃO AUTORIZO</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="rule-box">
+                    <h3>Termo de Responsabilidade</h3>
+                    <p>Declaro que as informações preenchidas são verdadeiras e que estou ciente das atividades físicas desenvolvidas pelo Grupo de Capoeira Liberdade e Expressão, assumindo total responsabilidade por minha participação (ou do menor sob minha responsabilidade).</p>
+                    <label style="display: flex; gap: 10px; align-items: start; margin-top: 15px;">
+                        <input type="checkbox" required>
+                        <strong>Li e concordo com as regras de disciplina, uniforme, pagamentos e assumo a responsabilidade descrita acima.</strong>
+                    </label>
+                </div>
+
+                <div class="assinatura-print" style="display: none; margin-top: 50px; text-align: center;">
+                    <div class="linha-assinatura">
+                        <span id="assinaturaNomeFicha"></span>
+                    </div>
+                    <div style="margin-top: 2px; font-size: 0.9rem; font-weight: bold;">
+                        Assinatura do Aluno ou Responsável
+                    </div>
+                    <div style="margin-top: 8px; font-size: 0.85rem; color: #444;" id="dataHoraImpressaoFicha">
+                        Data e Hora: ___/___/______ --:--
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-navigation">
+                <button type="button" class="btn-nav" id="btnPrev" style="display: none;"><i class="fas fa-arrow-left"></i> Voltar</button>
+                <button type="button" class="btn-nav" id="btnNext" style="margin-left: auto;">Próximo <i class="fas fa-arrow-right"></i></button>
+                <button type="submit" class="btn-submit" id="btnSubmit" style="display: none;"><i class="fas fa-check-circle"></i> Enviar e Gerar PDF</button>
+            </div>
+        </form>
+    </div>
+
+    <script type="module" src="inscricao.js"></script>
+</body>
+</html>

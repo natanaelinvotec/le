@@ -1,0 +1,76 @@
+<!-- login.html — v2 -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Capoeira Liberdade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --primary-teal: #389E92; --primary-blue: #002D72; --bg-app: #EAF2F1; --text-dark: #2C3E50; --accent-green: #00E676; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Nunito', sans-serif; }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } }
+
+        body { background: linear-gradient(135deg, var(--primary-blue), var(--primary-teal)); min-height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 20px; }
+        .shape { position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.55; z-index: 1; }
+        .shape-1 { background: #00E676; width: 300px; height: 300px; top: -60px; left: -60px; animation: float 7s cubic-bezier(0.45,0,0.55,1) infinite; }
+        .shape-2 { background: #389E92; width: 400px; height: 400px; bottom: -110px; right: -60px; animation: float 9s cubic-bezier(0.45,0,0.55,1) infinite reverse; }
+        @keyframes float { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-22px) scale(1.04); } }
+
+        .login-container { background: rgba(255, 255, 255, 0.97); padding: 40px; border-radius: 22px; box-shadow: 0 25px 60px rgba(0,0,0,0.25); width: 100%; max-width: 400px; z-index: 10; position: relative; animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes rise { from { opacity: 0; transform: translateY(36px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+        .header-login { text-align: center; margin-bottom: 30px; }
+        .header-login img { width: 84px; margin-bottom: 15px; border-radius: 50%; box-shadow: 0 6px 18px rgba(0,45,114,0.2); }
+        .header-login h2 { color: var(--primary-blue); font-family: 'Montserrat', sans-serif; font-size: 1.5rem; }
+        .header-login p { color: #7F8C8D; font-size: 0.9rem; margin-top: 5px; }
+
+        .input-group { position: relative; margin-bottom: 20px; }
+        .input-group i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--primary-teal); }
+        .input-group input { width: 100%; padding: 15px 15px 15px 45px; border: 2px solid #E0E6E5; border-radius: 12px; font-size: 1rem; outline: none; transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1); background: #F8FBFB; color: var(--text-dark); }
+        .input-group input:focus { border-color: var(--primary-teal); box-shadow: 0 0 0 4px rgba(56, 158, 146, 0.12); background: #FFF; }
+
+        .btn-login { width: 100%; padding: 15px; background: var(--primary-teal); color: white; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; font-family: 'Montserrat', sans-serif; cursor: pointer; transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1); display: flex; justify-content: center; align-items: center; gap: 10px; }
+        .btn-login:hover:not(:disabled) { background: var(--primary-blue); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,45,114,0.3); }
+        .btn-login:disabled { opacity: 0.75; cursor: progress; }
+
+        .error-msg { color: #E74C3C; background: #FDEDEC; border: 1px solid #F5B7B1; font-size: 0.85rem; text-align: center; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: none; font-weight: 700; }
+        #loginForm.shake { animation: shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+        @keyframes shake { 10%, 90% { transform: translateX(-2px); } 20%, 80% { transform: translateX(4px); } 30%, 50%, 70% { transform: translateX(-8px); } 40%, 60% { transform: translateX(8px); } }
+
+        .link-inscricao { text-align: center; margin-top: 15px; font-size: 0.9rem; }
+        .link-inscricao a { color: var(--primary-teal); text-decoration: none; font-weight: bold; transition: color 0.2s; }
+        .link-inscricao a:hover { color: var(--primary-blue); text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="login-container">
+        <div class="header-login">
+            <img src="logo-liberdade150.png" alt="Logo Capoeira Liberdade e Expressão">
+            <h2>Portal Capoeira Liberdade</h2>
+            <p>Acesse com E-mail ou Celular e Senha</p>
+        </div>
+        <div class="error-msg" id="errorMsg" role="alert"><i class="fas fa-exclamation-circle"></i> <span id="errorMsgText">Credenciais incorretas.</span></div>
+        <form id="loginForm" autocomplete="on" novalidate>
+            <div class="input-group">
+                <i class="fas fa-user"></i>
+                <input type="text" id="loginIdentificador" name="username" placeholder="E-mail ou Celular" autocomplete="username" required>
+            </div>
+            <div class="input-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="senha" name="password" placeholder="Sua Senha" autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="btn-login" id="btnAcessar">
+                Acessar Painel <i class="fas fa-arrow-right"></i>
+            </button>
+        </form>
+        <div class="link-inscricao">
+            Não tem cadastro? <a href="inscricao.html">Inscreva-se aqui</a>
+        </div>
+    </div>
+    <script type="module" src="login.js"></script>
+</body>
+</html>

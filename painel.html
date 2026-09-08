@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Página descontinuada - Capoeira Liberdade</title>
+    <meta http-equiv="refresh" content="4;url=login.html">
+    <style>
+        :root { --primary-blue: #002D72; --primary-teal: #389E92; --bg-app: #EAF2F1; }
+        * { margin:0; padding:0; box-sizing:border-box; font-family: 'Nunito', Arial, sans-serif; }
+        body { background: var(--bg-app); min-height: 100vh; display:flex; align-items:center; justify-content:center; padding: 20px; }
+        .box { background:white; max-width: 480px; padding: 40px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.12); text-align:center; }
+        .box i { font-size: 2.4rem; color: #F39C12; margin-bottom: 16px; }
+        h1 { color: var(--primary-blue); font-size: 1.3rem; margin-bottom: 12px; }
+        p { color: #555; font-size: 0.95rem; line-height: 1.6; margin-bottom: 10px; }
+        a { color: var(--primary-teal); font-weight: bold; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>⚠ Esta página foi descontinuada</h1>
+        <p>
+            O <code>painel.html</code> antigo usava uma senha mestra fixa no próprio código-fonte
+            (visível a qualquer pessoa via "Ver código-fonte"), sem nenhum controle real de acesso.
+            Isso permitia que qualquer visitante lesse ou apagasse a lista completa de alunos.
+        </p>
+        <p>
+            Todo o acesso de professores e administradores agora passa por
+            <strong>login.html</strong>, com senha em hash e papéis reais por academia, redirecionando
+            para <strong>admin.html</strong>.
+        </p>
+        <p>Você será redirecionado automaticamente em instantes, ou <a href="login.html">clique aqui</a>.</p>
+    </div>
+</body>
+</html>
