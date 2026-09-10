@@ -70,22 +70,69 @@ service cloud.firestore {
 
       // Atualização: qualquer chamada direta à API só pode alterar campos
       // esperados — impede, por exemplo, que alguém injete um campo "role":"admin".
+      // responsavelId/titular fazem parte da conta família (ver PARTE 4 das
+      // instruções): responsavelId é o UID do responsável (vazio para quem
+      // treina sozinho), titular marca quem faz login por essa conta.
       allow update: if request.resource.data.diff(resource.data).affectedKeys()
                         .hasOnly(['nome','idade','fotoUrl','statusAtual','cordaoAtual',
-                                  'notas','localTreino','senhaHash']);
+                                  'notas','localTreino','senhaHash',
+                                  'responsavelId','titular']);
 
       allow delete: if true; // ⚠ ver README — idealmente restrito a admin/professor autenticado
+    }
+
+    // ---------------------------------------------------------------------
+    // SITECONTEUDO: conteúdo público da landing page, editado pelo
+    // gerenciar.html. Documento único "landing" — mesma limitação estrutural
+    // das coleções acima (sem Firebase Auth, só validamos a FORMA).
+    // ---------------------------------------------------------------------
+    match /siteConteudo/{docId} {
+      allow get: if true;
+      allow list: if true;
+      allow create, update: if docId == 'landing'
+                    && request.resource.data.keys().hasAny(
+                         ['textos','imagens','academias','mestres',
+                          'eventos','produtos','loja','schemaVersion']);
+      allow delete: if false; // nunca apagar o documento de conteúdo do site
+    }
+
+    // ---------------------------------------------------------------------
+    // Coleções legadas do site (site_agenda/site_equipe/site_locais/site_loja)
+    // — mantidas enquanto gerenciar.html/index.html não migram 100% para ler
+    // só siteConteudo/landing (ver PARTE 4.4 das instruções). Mesmo nível de
+    // exposição que já existia antes desta atualização.
+    // ---------------------------------------------------------------------
+    match /site_agenda/{doc} {
+      allow get, list: if true;
+      allow write: if true;
+    }
+    match /site_equipe/{doc} {
+      allow get, list: if true;
+      allow write: if true;
+    }
+    match /site_locais/{doc} {
+      allow get, list: if true;
+      allow write: if true;
+    }
+    match /site_loja/{doc} {
+      allow get, list: if true;
+      allow write: if true;
     }
   }
 }
 
 // ----------------------------------------------------------------------------
-// Storage (fotos dos alunos) — regras equivalentes sugeridas para
-// firebase.storage.rules:
+// Storage (fotos dos alunos + imagens do site) — regras equivalentes sugeridas
+// para firebase.storage.rules:
 //
 // service firebase.storage {
 //   match /b/{bucket}/o {
 //     match /fotos_alunos/{arquivo} {
+//       allow read: if true;
+//       allow write: if request.resource.size < 5 * 1024 * 1024
+//                    && request.resource.contentType.matches('image/.*');
+//     }
+//     match /site/{arquivo=**} {
 //       allow read: if true;
 //       allow write: if request.resource.size < 5 * 1024 * 1024
 //                    && request.resource.contentType.matches('image/.*');
