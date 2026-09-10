@@ -1,0 +1,5 @@
+body{font-family:var(--font-body);color:var(--text-body);background:var(--surface-app)}
+h1,h2,h3,h4{font-family:var(--font-display)}
+:focus-visible{outline:3px solid var(--focus-ring);outline-offset:2px}
+a{color:var(--action-primary);text-decoration:none;font-weight:var(--weight-bold)}
+a:hover{color:var(--blue-900);text-decoration:underline}

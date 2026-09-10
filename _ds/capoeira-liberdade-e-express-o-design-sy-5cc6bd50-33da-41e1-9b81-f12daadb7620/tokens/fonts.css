@@ -1,0 +1,4 @@
+/* Webfonts are served from Google Fonts, exactly as the source app loads them.
+   Montserrat = headings/UI titles, Nunito = body/everything else,
+   Great Vibes = printed signature line on the enrollment form only. */
+@import url("https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@600;700;800&family=Nunito:wght@400;600;700&display=swap");

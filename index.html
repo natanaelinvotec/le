@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/tokens/fonts.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/tokens/colors.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/tokens/typography.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/tokens/spacing.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/tokens/radius.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/tokens/elevation.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/tokens/motion.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/patterns/base.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/patterns/components.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/styles.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<script src="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/_ds_bundle.js"></script>
+<style>
+:root{ --ink:#05070C; --navy:#002D72; --teal:#389E92; --verde:#00E676; --nevoa:#EAF2F1; --ease:cubic-bezier(0.16,1,0.3,1); }
+html{ scroll-behavior:smooth; }
+body{ margin:0; background:#05070C; color:#2C3E50; font-family:'Nunito',sans-serif; overflow-x:hidden; -webkit-font-smoothing:antialiased; }
+*{ box-sizing:border-box; }
+a{ color:#00E676; text-decoration:none; }
+a:hover{ color:#389E92; }
+img{ display:block; max-width:100%; }
+::selection{ background:#00E676; color:#05070C; }
+:focus-visible{ outline:3px solid #389E92; outline-offset:2px; }
+@keyframes leMarquee{ from{ transform:translate3d(0,0,0);} to{ transform:translate3d(-50%,0,0);} }
+@keyframes leKen{ 0%{ transform:scale(1.06) translate3d(0,0,0);} 100%{ transform:scale(1.22) translate3d(0,-2%,0);} }
+@keyframes leSpin{ from{ transform:rotate(0deg);} to{ transform:rotate(360deg);} }
+@keyframes leTranca{ 0%{ background-position:0 0;} 100%{ background-position:60px 0;} }
+@keyframes leFlutua{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-14px);} }
+@keyframes lePulso{ 0%{ box-shadow:0 0 0 0 rgba(0,230,118,.5);} 70%{ box-shadow:0 0 0 22px rgba(0,230,118,0);} 100%{ box-shadow:0 0 0 0 rgba(0,230,118,0);} }
+@keyframes leDesce{ 0%,100%{ transform:translateY(0); opacity:.5;} 50%{ transform:translateY(10px); opacity:1;} }
+</style>
+</helmet>
+
+<div style="position:fixed; top:0; left:0; height:3px; width:100%; z-index:200; background:rgba(255,255,255,.06);">
+  <div data-progresso="1" style="height:100%; width:0%; background:linear-gradient(90deg,#00E676,#389E92); box-shadow:0 0 12px rgba(0,230,118,.8);"></div>
+</div>
+
+<header data-nav="1" style="position:fixed; top:3px; left:0; right:0; z-index:190; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px clamp(16px,4vw,44px); background:linear-gradient(180deg,rgba(5,7,12,.72),rgba(5,7,12,0)); backdrop-filter:blur(0px); transition:background .45s var(--ease), backdrop-filter .45s var(--ease), padding .45s var(--ease);">
+  <a href="#topo" style="display:flex; align-items:center; gap:12px; min-width:0;">
+    <img src="assets/logo.png" alt="Brasão Capoeira Liberdade e Expressão" style="width:46px; height:46px; border-radius:50%; object-fit:cover; background:#fff; border:2px solid rgba(0,230,118,.9); flex:none;" />
+    <span style="display:flex; flex-direction:column; line-height:1.05; min-width:0;">
+      <span style="font-family:'Montserrat',sans-serif; font-weight:800; font-size:.98rem; letter-spacing:.06em; color:#fff; white-space:nowrap;">LIBERDADE E EXPRESSÃO</span>
+      <span style="font-size:.72rem; letter-spacing:.22em; color:#00E676; font-weight:700;">CAPOEIRA · MS</span>
+    </span>
+  </a>
+
+  <nav data-navlinks="1" style="display:flex; align-items:center; gap:4px;">
+    <a href="#arte" style="padding:9px 14px; border-radius:20px; color:rgba(255,255,255,.86); font-weight:700; font-size:.9rem; transition:.25s var(--ease);" style-hover="background:rgba(255,255,255,.1); color:#00E676;">A Arte</a>
+    <a href="#cordoes" style="padding:9px 14px; border-radius:20px; color:rgba(255,255,255,.86); font-weight:700; font-size:.9rem; transition:.25s var(--ease);" style-hover="background:rgba(255,255,255,.1); color:#00E676;">Cordões</a>
+    <a href="#academias" style="padding:9px 14px; border-radius:20px; color:rgba(255,255,255,.86); font-weight:700; font-size:.9rem; transition:.25s var(--ease);" style-hover="background:rgba(255,255,255,.1); color:#00E676;">Academias</a>
+    <a href="#mestres" style="padding:9px 14px; border-radius:20px; color:rgba(255,255,255,.86); font-weight:700; font-size:.9rem; transition:.25s var(--ease);" style-hover="background:rgba(255,255,255,.1); color:#00E676;">Mestres</a>
+    <a href="#agenda" style="padding:9px 14px; border-radius:20px; color:rgba(255,255,255,.86); font-weight:700; font-size:.9rem; transition:.25s var(--ease);" style-hover="background:rgba(255,255,255,.1); color:#00E676;">Agenda</a>
+  </nav>
+
+  <div style="display:flex; align-items:center; gap:10px; flex:none;">
+    <a data-portal="1" href="login.html" style="padding:10px 16px; border-radius:22px; border:1px solid rgba(255,255,255,.28); color:#fff; font-weight:700; font-size:.85rem; transition:.25s var(--ease);" style-hover="border-color:#00E676; color:#00E676;">Portal do Aluno</a>
+    <a href="https://wa.me/5567991293269?text=Ol%C3%A1!%20Quero%20agendar%20minha%20primeira%20aula%20gr%C3%A1tis%20de%20capoeira." target="_blank" rel="noopener" style="padding:11px 20px; border-radius:22px; background:#00E676; color:#05070C; font-weight:800; font-size:.86rem; font-family:'Montserrat',sans-serif; letter-spacing:.02em; box-shadow:0 8px 24px rgba(0,230,118,.32); transition:.25s var(--ease);" style-hover="transform:translateY(-2px); box-shadow:0 12px 30px rgba(0,230,118,.45);">Aula grátis</a>
+    <button data-menubtn="1" onClick="{{ alternarMenu }}" aria-label="Abrir menu" style="display:none; width:44px; height:44px; border-radius:50%; border:1px solid rgba(255,255,255,.28); background:rgba(255,255,255,.06); color:#fff; font-size:1.15rem; cursor:pointer;"><i class="fas fa-bars"></i></button>
+  </div>
+</header>
+
+<div data-drawer="1" style="position:fixed; inset:0; z-index:195; display:none; flex-direction:column; gap:6px; padding:96px 24px 32px; background:rgba(5,7,12,.97); backdrop-filter:blur(8px);">
+  <button onClick="{{ alternarMenu }}" aria-label="Fechar menu" style="position:absolute; top:22px; right:22px; width:46px; height:46px; border-radius:50%; border:1px solid rgba(255,255,255,.25); background:none; color:#fff; font-size:1.3rem; cursor:pointer;"><i class="fas fa-times"></i></button>
+  <a href="#arte" onClick="{{ fecharMenu }}" style="padding:16px 4px; border-bottom:1px solid rgba(255,255,255,.08); color:#fff; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.5rem;">A Arte</a>
+  <a href="#cordoes" onClick="{{ fecharMenu }}" style="padding:16px 4px; border-bottom:1px solid rgba(255,255,255,.08); color:#fff; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.5rem;">Cordões</a>
+  <a href="#academias" onClick="{{ fecharMenu }}" style="padding:16px 4px; border-bottom:1px solid rgba(255,255,255,.08); color:#fff; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.5rem;">Academias</a>
+  <a href="#mestres" onClick="{{ fecharMenu }}" style="padding:16px 4px; border-bottom:1px solid rgba(255,255,255,.08); color:#fff; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.5rem;">Mestres</a>
+  <a href="#agenda" onClick="{{ fecharMenu }}" style="padding:16px 4px; border-bottom:1px solid rgba(255,255,255,.08); color:#fff; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.5rem;">Agenda</a>
+  <a href="#loja" onClick="{{ fecharMenu }}" style="padding:16px 4px; border-bottom:1px solid rgba(255,255,255,.08); color:#fff; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.5rem;">Loja</a>
+  <a href="login.html" style="margin-top:20px; padding:16px; border-radius:24px; border:1px solid rgba(255,255,255,.3); color:#fff; text-align:center; font-weight:800;">Portal do Aluno</a>
+  <a href="https://wa.me/5567991293269?text=Ol%C3%A1!%20Quero%20agendar%20minha%20primeira%20aula%20gr%C3%A1tis%20de%20capoeira." target="_blank" rel="noopener" style="padding:18px; border-radius:24px; background:#00E676; color:#05070C; text-align:center; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.05rem;">Agende sua aula grátis</a>
+</div>
+
+<section id="topo" style="position:relative; background:#05070C;">
+
+  <sc-if value="{{ heroUm }}" hint-placeholder-val="{{ true }}">
+    <div style="position:relative; min-height:100svh; display:flex; align-items:flex-end; overflow:hidden; padding-top:clamp(96px,14vh,140px);">
+      <div data-parallax="1" style="position:absolute; inset:-6%; z-index:0;">
+        <img data-edit-img="heroFundo" src="assets/grupo-buriti.jpg" alt="Grupo de capoeira Liberdade e Expressão reunido na roda em Campo Grande" style="width:100%; height:100%; object-fit:cover; object-position:50% 42%; animation:leKen 26s ease-in-out infinite alternate;" />
+      </div>
+      <div style="position:absolute; inset:0; z-index:1; background:linear-gradient(180deg,rgba(5,7,12,.86) 0%,rgba(5,7,12,.34) 34%,rgba(5,7,12,.78) 72%,#05070C 100%);"></div>
+      <div style="position:absolute; inset:0; z-index:1; background:radial-gradient(120% 80% at 50% 100%, rgba(0,45,114,.55), transparent 60%);"></div>
+
+      <div style="position:relative; z-index:2; width:100%; max-width:1400px; margin:0 auto; padding:0 clamp(20px,5vw,56px) clamp(40px,7vh,84px);">
+        <div data-reveal="1" style="display:inline-flex; align-items:center; gap:10px; padding:8px 16px; border-radius:999px; border:1px solid rgba(0,230,118,.45); background:rgba(0,230,118,.08); color:#00E676; font-weight:800; font-size:.76rem; letter-spacing:.2em; margin-bottom:22px;">
+          <span style="width:7px; height:7px; border-radius:50%; background:#00E676; box-shadow:0 0 10px #00E676;"></span><span data-edit="heroKicker">CAMPO GRANDE · ROCHEDO · MS</span>
+        </div>
+        <h1 data-reveal="1" data-delay="80" style="margin:0; font-family:'Montserrat',sans-serif; font-weight:800; color:#fff; font-size:clamp(3rem,11vw,9.5rem); line-height:.86; letter-spacing:-.035em; text-transform:uppercase; text-wrap:balance;">
+          <span data-edit="heroT1">A roda</span><br /><span data-edit="heroT2" style="color:#00E676;">não para</span>
+        </h1>
+        <p data-reveal="1" data-delay="160" data-edit="heroSub" style="margin:26px 0 0; max-width:560px; color:rgba(255,255,255,.86); font-size:clamp(1.02rem,2.1vw,1.32rem); line-height:1.55;">
+          Capoeira é cultura, disciplina e transformação. Dezoito núcleos, quatro países, um só grupo — e uma vaga esperando por você na próxima roda.
+        </p>
+        <div data-reveal="1" data-delay="240" style="display:flex; flex-wrap:wrap; gap:14px; margin-top:34px;">
+          <a href="https://wa.me/5567991293269?text=Ol%C3%A1!%20Quero%20agendar%20minha%20primeira%20aula%20gr%C3%A1tis%20de%20capoeira." target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:12px; padding:20px 34px; border-radius:999px; background:#00E676; color:#05070C; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.02rem; box-shadow:0 16px 40px rgba(0,230,118,.34); transition:.3s var(--ease);" style-hover="transform:translateY(-3px) scale(1.02); box-shadow:0 22px 52px rgba(0,230,118,.5);"><i class="fab fa-whatsapp" style="font-size:1.3rem;"></i>Agende sua primeira aula grátis!</a>
+          <a href="#academias" style="display:inline-flex; align-items:center; gap:12px; padding:20px 30px; border-radius:999px; border:1px solid rgba(255,255,255,.34); color:#fff; font-family:'Montserrat',sans-serif; font-weight:700; font-size:1rem; transition:.3s var(--ease);" style-hover="border-color:#fff; background:rgba(255,255,255,.08);"><i class="fas fa-map-marker-alt"></i>Ache o núcleo mais perto</a>
+        </div>
+        <div data-reveal="1" data-delay="320" style="display:flex; flex-wrap:wrap; gap:clamp(24px,5vw,64px); margin-top:clamp(38px,6vh,64px); padding-top:26px; border-top:1px solid rgba(255,255,255,.14);">
+          <div><div data-edit="stat1v" style="font-family:'Montserrat',sans-serif; font-weight:800; font-size:clamp(1.8rem,4vw,2.6rem); color:#fff; line-height:1;">18</div><div data-edit="stat1r" style="color:rgba(255,255,255,.6); font-size:.82rem; letter-spacing:.14em; font-weight:700; margin-top:6px;">NÚCLEOS</div></div>
+          <div><div data-edit="stat2v" style="font-family:'Montserrat',sans-serif; font-weight:800; font-size:clamp(1.8rem,4vw,2.6rem); color:#fff; line-height:1;">30+</div><div data-edit="stat2r" style="color:rgba(255,255,255,.6); font-size:.82rem; letter-spacing:.14em; font-weight:700; margin-top:6px;">ANOS DE HISTÓRIA</div></div>
+          <div><div data-edit="stat3v" style="font-family:'Montserrat',sans-serif; font-weight:800; font-size:clamp(1.8rem,4vw,2.6rem); color:#fff; line-height:1;">4</div><div data-edit="stat3r" style="color:rgba(255,255,255,.6); font-size:.82rem; letter-spacing:.14em; font-weight:700; margin-top:6px;">PAÍSES</div></div>
+          <div><div data-edit="stat4v" style="font-family:'Montserrat',sans-serif; font-weight:800; font-size:clamp(1.8rem,4vw,2.6rem); color:#00E676; line-height:1;">R$0</div><div data-edit="stat4r" style="color:rgba(255,255,255,.6); font-size:.82rem; letter-spacing:.14em; font-weight:700; margin-top:6px;">AULA EXPERIMENTAL</div></div>
+        </div>
+      </div>
+
+      <div style="position:absolute; right:clamp(20px,5vw,56px); bottom:clamp(40px,7vh,84px); z-index:2; display:flex; flex-direction:column; align-items:center; gap:10px; color:rgba(255,255,255,.55);">
+        <span style="writing-mode:vertical-rl; letter-spacing:.28em; font-size:.7rem; font-weight:700;">ROLE</span>
+        <i class="fas fa-chevron-down" style="animation:leDesce 1.8s ease-in-out infinite;"></i>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ heroDois }}" hint-placeholder-val="{{ false }}">
+    <div style="position:relative; min-height:100svh; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr)); background:#05070C;">
+      <div style="position:relative; display:flex; flex-direction:column; justify-content:center; padding:clamp(110px,14vh,150px) clamp(24px,5vw,72px) clamp(48px,8vh,80px); overflow:hidden;">
+        <div style="position:absolute; top:0; left:0; width:6px; height:100%; background:linear-gradient(180deg,#00E676,#002D72);"></div>
+        <div style="position:absolute; right:-160px; top:-120px; width:420px; height:420px; border-radius:50%; background:rgba(0,45,114,.5); filter:blur(70px);"></div>
+        <div data-reveal="1" style="position:relative; color:#00E676; font-weight:800; letter-spacing:.24em; font-size:.76rem; margin-bottom:18px;">GRUPO DE CAPOEIRA · MESTRE PROFETA</div>
+        <h1 data-reveal="1" data-delay="80" style="position:relative; margin:0; font-family:'Montserrat',sans-serif; font-weight:800; color:#fff; font-size:clamp(2.7rem,7.2vw,5.6rem); line-height:.92; letter-spacing:-.03em; text-transform:uppercase;">
+          Ginga,<br />respeito<br />e <span style="color:#00E676;">liberdade</span>
+        </h1>
+        <p data-reveal="1" data-delay="150" style="position:relative; margin:24px 0 0; max-width:480px; color:rgba(255,255,255,.82); font-size:1.12rem; line-height:1.6;">
+          Um grupo de Campo Grande que atravessa gerações: dez núcleos, mestres titulados e uma roda aberta para quem chega hoje.
+        </p>
+        <div data-reveal="1" data-delay="220" style="display:flex; flex-wrap:wrap; gap:14px; margin-top:34px;">
+          <a href="https://wa.me/5567991293269?text=Ol%C3%A1!%20Quero%20agendar%20minha%20primeira%20aula%20gr%C3%A1tis%20de%20capoeira." target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:12px; padding:19px 32px; border-radius:999px; background:#00E676; color:#05070C; font-family:'Montserrat',sans-serif; font-weight:800; box-shadow:0 16px 40px rgba(0,230,118,.32); transition:.3s var(--ease);" style-hover="transform:translateY(-3px);"><i class="fab fa-whatsapp" style="font-size:1.25rem;"></i>Agende sua primeira aula grátis!</a>
+          <a href="#academias" style="display:inline-flex; align-items:center; gap:10px; padding:19px 28px; border-radius:999px; border:1px solid rgba(255,255,255,.3); color:#fff; font-weight:700; transition:.3s var(--ease);" style-hover="background:rgba(255,255,255,.08);"><i class="fas fa-map-marker-alt"></i>Academias</a>
+        </div>
+      </div>
+      <div style="position:relative; min-height:52svh; overflow:hidden;">
+        <img src="assets/profeta-roda.jpg" alt="Mestre Profeta na roda de capoeira" style="width:100%; height:100%; object-fit:cover; object-position:50% 30%; animation:leKen 30s ease-in-out infinite alternate;" />
+        <div style="position:absolute; inset:0; background:linear-gradient(90deg,#05070C 0%,rgba(5,7,12,.15) 38%,rgba(5,7,12,.35) 100%);"></div>
+        <div style="position:absolute; left:0; right:0; bottom:0; height:14px; background:repeating-linear-gradient(90deg,#4F4F4F 0 26px,#F5DEB3 26px 52px,#DAA520 52px 78px,#D2691E 78px 104px,#D32F2F 104px 130px,#F5F5F5 130px 156px);"></div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ heroTres }}" hint-placeholder-val="{{ false }}">
+    <div style="position:relative; min-height:100svh; display:flex; align-items:center; justify-content:center; overflow:hidden; background:#05070C; text-align:center;">
+      <img src="assets/bateria-externa.jpg" alt="Bateria de capoeira tocando berimbau e pandeiro" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.26; filter:grayscale(.35);" />
+      <div style="position:absolute; inset:0; background:radial-gradient(70% 60% at 50% 45%, rgba(0,45,114,.55), rgba(5,7,12,.94) 70%);"></div>
+      <img src="assets/logo.png" alt="" aria-hidden="true" style="position:absolute; width:min(78vw,720px); height:min(78vw,720px); border-radius:50%; opacity:.1; animation:leSpin 90s linear infinite;" />
+      <div style="position:relative; z-index:2; padding:clamp(120px,16vh,170px) clamp(20px,5vw,40px) clamp(60px,9vh,90px); max-width:1180px;">
+        <div data-reveal="1" style="color:#00E676; font-weight:800; letter-spacing:.3em; font-size:.76rem; margin-bottom:26px;">DESDE OS ANOS 90 · MATO GROSSO DO SUL</div>
+        <h1 data-reveal="1" data-delay="80" style="margin:0; font-family:'Montserrat',sans-serif; font-weight:800; color:#fff; font-size:clamp(2.4rem,7.4vw,6.4rem); line-height:.94; letter-spacing:-.035em; text-transform:uppercase; text-wrap:balance;">
+          Capoeira é cultura,<br />disciplina e <span style="color:#00E676;">transformação</span>
+        </h1>
+        <p data-reveal="1" data-delay="160" style="margin:28px auto 0; max-width:640px; color:rgba(255,255,255,.82); font-size:clamp(1rem,2vw,1.25rem); line-height:1.6;">
+          Do primeiro passo de ginga ao cordão de mestre — o Grupo Liberdade e Expressão forma capoeiristas em dez núcleos de Campo Grande e Rochedo.
+        </p>
+        <div data-reveal="1" data-delay="240" style="display:flex; flex-wrap:wrap; justify-content:center; gap:14px; margin-top:36px;">
+          <a href="https://wa.me/5567991293269?text=Ol%C3%A1!%20Quero%20agendar%20minha%20primeira%20aula%20gr%C3%A1tis%20de%20capoeira." target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:12px; padding:20px 34px; border-radius:999px; background:#00E676; color:#05070C; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.02rem; animation:lePulso 3s infinite; transition:.3s var(--ease);" style-hover="transform:translateY(-3px);"><i class="fab fa-whatsapp" style="font-size:1.3rem;"></i>Agende sua primeira aula grátis!</a>
+          <a href="#arte" style="display:inline-flex; align-items:center; gap:10px; padding:20px 30px; border-radius:999px; border:1px solid rgba(255,255,255,.3); color:#fff; font-weight:700; transition:.3s var(--ease);" style-hover="background:rgba(255,255,255,.08);">Conheça a arte</a>
+        </div>
+      </div>
+      <div style="position:absolute; left:0; right:0; bottom:0; height:12px; background:repeating-linear-gradient(90deg,#4F4F4F 0 22px,#F5DEB3 22px 44px,#DAA520 44px 66px,#D2691E 66px 88px,#D32F2F 88px 110px,#F5F5F5 110px 132px);"></div>
+    </div>
+  </sc-if>
+</section>
+
+<div style="position:relative; z-index:3; background:#00E676; color:#05070C; padding:16px 0; overflow:hidden; border-top:1px solid rgba(5,7,12,.08);">
+  <div style="display:flex; width:max-content; animation:leMarquee 34s linear infinite;">
+    <div style="display:flex; align-items:center; gap:34px; padding-right:34px; font-family:'Montserrat',sans-serif; font-weight:800; font-size:clamp(1rem,2.4vw,1.5rem); letter-spacing:.02em; text-transform:uppercase; white-space:nowrap;">
+      <span>Aula experimental grátis</span><span>★</span><span>Infantil, juvenil e adulto</span><span>★</span><span>Berimbau, pandeiro e atabaque</span><span>★</span><span>Batizado e troca de cordas</span><span>★</span><span>Campo Grande / MS</span><span>★</span><span>Rochedo / MS</span><span>★</span>
+    </div>
+    <div aria-hidden="true" style="display:flex; align-items:center; gap:34px; padding-right:34px; font-family:'Montserrat',sans-serif; font-weight:800; font-size:clamp(1rem,2.4vw,1.5rem); letter-spacing:.02em; text-transform:uppercase; white-space:nowrap;">
+      <span>Aula experimental grátis</span><span>★</span><span>Infantil, juvenil e adulto</span><span>★</span><span>Berimbau, pandeiro e atabaque</span><span>★</span><span>Batizado e troca de cordas</span><span>★</span><span>Campo Grande / MS</span><span>★</span><span>Rochedo / MS</span><span>★</span>
+    </div>
+  </div>
+</div>
+
+<section id="arte" style="background:#EAF2F1; padding:clamp(70px,11vh,130px) clamp(20px,5vw,56px);">
+  <div style="max-width:1280px; margin:0 auto;">
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr)); gap:clamp(24px,4vw,56px); align-items:end; margin-bottom:clamp(38px,6vh,64px);">
+      <div>
+        <div data-reveal="1" style="color:#389E92; font-weight:800; letter-spacing:.22em; font-size:.76rem; margin-bottom:14px;">A ARTE</div>
+        <h2 data-reveal="1" data-delay="60" style="margin:0; font-family:'Montserrat',sans-serif; font-weight:800; color:#002D72; font-size:clamp(2rem,5vw,3.6rem); line-height:1; letter-spacing:-.025em;">Três coisas acontecem<br />ao mesmo tempo</h2>
+      </div>
+      <p data-reveal="1" data-delay="120" style="margin:0; color:#5A6B72; font-size:1.05rem; line-height:1.65; max-width:460px;">Na roda ninguém é só atleta. Se joga com o corpo, se canta com o grupo e se toca a bateria que comanda o ritmo — e é essa combinação que ensina respeito, disciplina e malícia.</p>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:20px;">
+      <article data-reveal="1" style="position:relative; border-radius:20px; overflow:hidden; background:#fff; border:1px solid #E0E6E5; box-shadow:0 4px 15px rgba(0,0,0,.03); transition:.4s var(--ease);" style-hover="transform:translateY(-6px); box-shadow:0 18px 40px rgba(0,0,0,.12);">
+        <div style="height:260px; overflow:hidden;"><img src="assets/grupo-buriti.jpg" alt="Alunos em aula de capoeira no núcleo Buriti" style="width:100%; height:100%; object-fit:cover; object-position:50% 40%;" /></div>
+        <div style="padding:26px;">
+          <h3 style="margin:0 0 10px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.35rem;">A ginga</h3>
+          <p style="margin:0; color:#5A6B72; line-height:1.6; font-size:.98rem;">Base, esquiva e movimento contínuo. É o primeiro fundamento que todo aluno aprende — e o que nunca se para de treinar.</p>
+        </div>
+      </article>
+      <article data-reveal="1" data-delay="90" style="position:relative; border-radius:20px; overflow:hidden; background:#fff; border:1px solid #E0E6E5; box-shadow:0 4px 15px rgba(0,0,0,.03); transition:.4s var(--ease);" style-hover="transform:translateY(-6px); box-shadow:0 18px 40px rgba(0,0,0,.12);">
+        <div style="height:260px; overflow:hidden;"><img src="assets/roda-plateia.jpg" alt="Roda de capoeira cercada pela comunidade" style="width:100%; height:100%; object-fit:cover;" /></div>
+        <div style="padding:26px;">
+          <h3 style="margin:0 0 10px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.35rem;">A roda</h3>
+          <p style="margin:0; color:#5A6B72; line-height:1.6; font-size:.98rem;">O jogo acontece no centro, mas a roda é feita por todos: quem canta, quem bate palma e quem espera a vez de entrar.</p>
+        </div>
+      </article>
+      <article data-reveal="1" data-delay="180" style="position:relative; border-radius:20px; overflow:hidden; background:#fff; border:1px solid #E0E6E5; box-shadow:0 4px 15px rgba(0,0,0,.03); transition:.4s var(--ease);" style-hover="transform:translateY(-6px); box-shadow:0 18px 40px rgba(0,0,0,.12);">
+        <div style="height:260px; overflow:hidden;"><img src="assets/bateria.jpg" alt="Bateria de capoeira com berimbau, pandeiro e atabaque" style="width:100%; height:100%; object-fit:cover;" /></div>
+        <div style="padding:26px;">
+          <h3 style="margin:0 0 10px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.35rem;">A bateria</h3>
+          <p style="margin:0; color:#5A6B72; line-height:1.6; font-size:.98rem;">Berimbau, pandeiro e atabaque ditam o toque. Musicalidade é critério avaliado — o capoeirista também canta e responde.</p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="cordoes" style="position:relative; background:linear-gradient(180deg,#002D72 0%,#05070C 60%); padding:clamp(70px,11vh,130px) clamp(20px,5vw,56px); overflow:hidden;">
+  <div style="max-width:1180px; margin:0 auto; position:relative;">
+    <div data-reveal="1" style="color:#00E676; font-weight:800; letter-spacing:.22em; font-size:.76rem; margin-bottom:14px;">GRADUAÇÃO</div>
+    <h2 data-reveal="1" data-delay="60" style="margin:0 0 16px; font-family:'Montserrat',sans-serif; font-weight:800; color:#fff; font-size:clamp(2rem,5vw,3.6rem); line-height:1; letter-spacing:-.025em;">O caminho do cordão</h2>
+    <p data-reveal="1" data-delay="120" style="margin:0 0 40px; max-width:620px; color:rgba(255,255,255,.75); font-size:1.05rem; line-height:1.65;">A troca de corda acontece no batizado. Para estar apto à nova fase, o aluno precisa atingir <strong style="color:#00E676;">70% ou mais</strong> nos 15 critérios avaliados pelo seu mestre ou professor.</p>
+
+    <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:34px;">
+      <sc-for list="{{ cordoes }}" as="c" hint-placeholder-count="9">
+        <button onClick="{{ c.selecionar }}" style="{{ c.estilo }}">{{ c.nome }}</button>
+      </sc-for>
+    </div>
+
+    <div style="background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); border-radius:22px; padding:clamp(22px,4vw,36px); backdrop-filter:blur(6px);">
+      <div style="display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:18px;">
+        <div style="font-family:'Montserrat',sans-serif; font-weight:800; color:#fff; font-size:clamp(1.4rem,3.4vw,2.1rem);">{{ cordaoAtual }}</div>
+        <div style="color:rgba(255,255,255,.6); font-size:.9rem; font-weight:700;">Etapa {{ etapaAtual }} de 9 · trilha adulto</div>
+      </div>
+      <div style="width:100%; height:26px; background:rgba(255,255,255,.1); border-radius:20px; overflow:hidden; box-shadow:inset 0 2px 6px rgba(0,0,0,.25);">
+        <div data-barra="1" style="height:100%; border-radius:20px; width:0%; transition:width 1s cubic-bezier(.1,1,.1,1); animation:leTranca 2s linear infinite; background:repeating-linear-gradient(45deg,#ccc 0,#ccc 10px,#ccc 10px,#ccc 20px,#ccc 20px,#ccc 30px);"></div>
+      </div>
+      <div style="margin-top:26px; display:flex; flex-wrap:wrap; gap:8px;">
+        <sc-for list="{{ criterios }}" as="k" hint-placeholder-count="15">
+          <span style="padding:9px 15px; border-radius:12px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12); color:rgba(255,255,255,.9); font-size:.86rem; font-weight:700;">{{ k }}</span>
+        </sc-for>
+      </div>
+      <p style="margin:22px 0 0; color:rgba(255,255,255,.5); font-size:.86rem;">Trilha infantil (até 11 anos): Iniciante · Cinza Claro · Cinza e Bege · Bege.</p>
+    </div>
+  </div>
+</section>
+
+<section id="academias" style="background:#EAF2F1; padding:clamp(70px,11vh,130px) clamp(20px,5vw,56px);">
+  <div style="max-width:1320px; margin:0 auto;">
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr)); gap:24px; align-items:end; margin-bottom:clamp(34px,5vh,54px);">
+      <div>
+        <div data-reveal="1" style="color:#389E92; font-weight:800; letter-spacing:.22em; font-size:.76rem; margin-bottom:14px;">ONDE TREINAR</div>
+        <h2 data-reveal="1" data-delay="60" style="margin:0; font-family:'Montserrat',sans-serif; font-weight:800; color:#002D72; font-size:clamp(2rem,5vw,3.6rem); line-height:1; letter-spacing:-.025em;">Ache o núcleo<br />mais perto de você</h2>
+      </div>
+      <p data-reveal="1" data-delay="120" style="margin:0; color:#5A6B72; font-size:1.05rem; line-height:1.65; max-width:440px;">Cada núcleo tem seu mestre, professor ou instrutor responsável. Chame no WhatsApp e apareça na próxima aula — a experimental é gratuita.</p>
+    </div>
+
+    <sc-if value="{{ dadosProntos }}" hint-placeholder-val="{{ false }}">
+    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr)); gap:18px;">
+      <sc-for list="{{ academias }}" as="a" hint-placeholder-count="0">
+        <article style="display:flex; flex-direction:column; background:#fff; border:1px solid #E0E6E5; border-radius:18px; overflow:hidden; box-shadow:0 4px 15px rgba(0,0,0,.03); transition:.35s var(--ease);" style-hover="transform:translateY(-4px); box-shadow:0 12px 30px rgba(0,0,0,.1);">
+          <div style="display:flex; gap:14px; align-items:center; padding:18px 18px 14px; border-bottom:1px solid #EEF3F2;">
+            <img src="{{ a.foto }}" alt="{{ a.nome }}" style="width:62px; height:62px; border-radius:50%; object-fit:cover; border:3px solid #389E92; flex:none;" />
+            <div style="min-width:0;">
+              <h3 style="margin:0; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.08rem;">{{ a.nome }}</h3>
+              <div style="color:#389E92; font-weight:700; font-size:.84rem; margin-top:3px;">{{ a.bairro }}</div>
+            </div>
+          </div>
+          <div style="padding:18px; display:flex; flex-direction:column; gap:10px; flex:1;">
+            <div style="display:flex; gap:10px; color:#5A6B72; font-size:.92rem; line-height:1.45;"><i class="fas fa-calendar-day" style="color:#389E92; margin-top:3px;"></i><span>{{ a.dias }}</span></div>
+            <div style="display:flex; gap:10px; color:#5A6B72; font-size:.92rem; line-height:1.45;"><i class="fas fa-clock" style="color:#389E92; margin-top:3px;"></i><span>{{ a.horario }}</span></div>
+            <div style="display:flex; gap:10px; color:#5A6B72; font-size:.92rem; line-height:1.45;"><i class="fas fa-map-marker-alt" style="color:#389E92; margin-top:3px;"></i><span>{{ a.endereco }}</span></div>
+          </div>
+          <div style="display:flex; gap:10px; padding:0 18px 18px;">
+            <a href="{{ a.whatsapp }}" target="_blank" rel="noopener" style="flex:1; display:inline-flex; align-items:center; justify-content:center; gap:9px; padding:13px; border-radius:14px; background:#00E676; color:#05070C; font-weight:800; font-size:.92rem; box-shadow:0 4px 12px rgba(0,230,118,.3); transition:.25s var(--ease);" style-hover="filter:brightness(.94); transform:translateY(-1px);"><i class="fab fa-whatsapp"></i>{{ a.telefone }}</a>
+            <a href="{{ a.instagramUrl }}" target="_blank" rel="noopener" aria-label="Instagram do núcleo" style="width:48px; display:inline-flex; align-items:center; justify-content:center; border-radius:14px; border:1px solid #E0E6E5; color:#002D72; font-size:1.1rem; transition:.25s var(--ease);" style-hover="border-color:#389E92; color:#389E92;"><i class="fab fa-instagram"></i></a>
+          </div>
+        </article>
+      </sc-for>
+    </div>
+    </sc-if>
+
+    <div data-reveal="1" style="margin-top:22px; display:flex; flex-wrap:wrap; align-items:center; gap:14px; padding:22px 26px; background:#F8FBFB; border:1px solid #E0E6E5; border-left:4px solid #002D72; border-radius:14px;">
+      <i class="fas fa-school" style="color:#002D72; font-size:1.3rem;"></i>
+      <p style="margin:0; color:#5A6B72; font-size:.98rem; line-height:1.5;">O grupo também tem núcleos com <strong style="color:#002D72;">Professor Maick (Rochedo/MS)</strong>, Mestre Abraão, Mestre Carlinhos e Professor Lebrinha. Fale com a secretaria para horários e endereços.</p>
+    </div>
+  </div>
+</section>
+
+<section id="mestres" style="background:#05070C; padding:clamp(70px,11vh,130px) clamp(20px,5vw,56px);">
+  <div style="max-width:1320px; margin:0 auto;">
+    <div data-reveal="1" style="color:#00E676; font-weight:800; letter-spacing:.22em; font-size:.76rem; margin-bottom:14px;">CORPO DOCENTE</div>
+    <h2 data-reveal="1" data-delay="60" style="margin:0 0 14px; font-family:'Montserrat',sans-serif; font-weight:800; color:#fff; font-size:clamp(2rem,5vw,3.6rem); line-height:1; letter-spacing:-.025em;">Quem ensina na roda</h2>
+    <p data-reveal="1" data-delay="120" style="margin:0 0 40px; max-width:600px; color:rgba(255,255,255,.7); font-size:1.05rem; line-height:1.65;">Mestres titulados, professores e instrutores formados dentro do próprio grupo.</p>
+
+    <sc-if value="{{ dadosProntos }}" hint-placeholder-val="{{ false }}">
+    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr)); gap:18px;">
+      <sc-for list="{{ mestres }}" as="m" hint-placeholder-count="0">
+        <article style="position:relative; border-radius:20px; overflow:hidden; background:#0C1018; border:1px solid rgba(255,255,255,.1); transition:.4s var(--ease);" style-hover="transform:translateY(-6px); border-color:rgba(0,230,118,.5);">
+          <div style="height:300px; overflow:hidden; background:#111;">
+            <img src="{{ m.foto }}" alt="{{ m.nome }}" style="width:100%; height:100%; object-fit:cover; transition:transform .6s var(--ease);" style-hover="transform:scale(1.06);" />
+          </div>
+          <div style="padding:20px;">
+            <h3 style="margin:0; font-family:'Montserrat',sans-serif; color:#fff; font-size:1.12rem;">{{ m.nome }}</h3>
+            <div style="color:#00E676; font-weight:700; font-size:.84rem; margin:6px 0 12px;">{{ m.formacao }}</div>
+            <p style="margin:0; color:rgba(255,255,255,.62); font-size:.9rem; line-height:1.55;">{{ m.historia }}</p>
+          </div>
+        </article>
+      </sc-for>
+    </div>
+    </sc-if>
+  </div>
+</section>
+
+<section id="agenda" style="background:#EAF2F1; padding:clamp(70px,11vh,130px) clamp(20px,5vw,56px);">
+  <div style="max-width:1180px; margin:0 auto;">
+    <div data-reveal="1" style="color:#389E92; font-weight:800; letter-spacing:.22em; font-size:.76rem; margin-bottom:14px;">AGENDA DO SEMESTRE</div>
+    <h2 data-reveal="1" data-delay="60" style="margin:0 0 14px; font-family:'Montserrat',sans-serif; font-weight:800; color:#002D72; font-size:clamp(2rem,5vw,3.6rem); line-height:1; letter-spacing:-.025em;">Batizados, rodas<br />e apresentações</h2>
+    <p data-reveal="1" data-delay="120" style="margin:0 0 36px; max-width:560px; color:#5A6B72; font-size:1.05rem; line-height:1.65;">A agenda pode sofrer alterações. Qualquer mudança é comunicada previamente pelos canais oficiais do grupo.</p>
+
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <sc-for list="{{ eventos }}" as="e" hint-placeholder-count="7">
+        <article style="{{ e.cartao }}" style-hover="transform:translateX(6px); border-color:#389E92; box-shadow:0 10px 26px rgba(0,0,0,.08);">
+          <div style="{{ e.faixa }}"></div>
+          <div style="flex:1; min-width:210px;">
+            <h3 style="{{ e.tituloEstilo }}">{{ e.titulo }}</h3>
+            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:14px; color:#7F8C8D; font-size:.9rem; margin-top:8px;">
+              <span style="display:inline-flex; align-items:center; gap:8px;"><i class="fas fa-map-marker-alt" style="color:#389E92;"></i>{{ e.local }}</span>
+              <span style="display:inline-flex; align-items:center; gap:8px;"><i class="fas fa-clock" style="color:#389E92;"></i>{{ e.horario }}</span>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:14px;">
+              <a href="{{ e.mapa }}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:8px; padding:10px 16px; border-radius:12px; border:1px solid #E0E6E5; background:#fff; color:#002D72; font-weight:700; font-size:.86rem; transition:.25s var(--ease);" style-hover="border-color:#389E92; color:#389E92; transform:translateY(-1px);"><i class="fas fa-map-marked-alt"></i>Como chegar</a>
+              <sc-if value="{{ e.passou }}" hint-placeholder-val="{{ false }}">
+                <a href="{{ e.drive }}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:8px; padding:10px 16px; border-radius:12px; border:1px solid #C9D3D1; background:#E7EDEC; color:#5A6B72; font-weight:700; font-size:.86rem; transition:.25s var(--ease);" style-hover="border-color:#389E92; color:#389E92;"><i class="fas fa-images"></i>Veja as fotos e vídeos</a>
+              </sc-if>
+            </div>
+          </div>
+          <div style="{{ e.dataEstilo }}">
+            <i class="far fa-calendar-alt" style="font-size:1.2rem; opacity:.7;"></i>
+            <div>
+              <div style="font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.02rem; line-height:1.1;">{{ e.data }}</div>
+              <div style="{{ e.anoEstilo }}">{{ e.ano }}</div>
+            </div>
+          </div>
+        </article>
+      </sc-for>
+    </div>
+  </div>
+</section>
+
+<section style="background:#05070C; padding:clamp(60px,9vh,110px) 0;">
+  <div style="max-width:1320px; margin:0 auto; padding:0 clamp(20px,5vw,56px);">
+    <div data-reveal="1" style="color:#00E676; font-weight:800; letter-spacing:.22em; font-size:.76rem; margin-bottom:14px;">A RODA POR DENTRO</div>
+    <h2 data-reveal="1" data-delay="60" style="margin:0 0 36px; font-family:'Montserrat',sans-serif; font-weight:800; color:#fff; font-size:clamp(2rem,5vw,3.6rem); line-height:1; letter-spacing:-.025em;">Nossa gente</h2>
+  </div>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); gap:10px; padding:0 clamp(10px,2vw,20px);">
+    <div style="position:relative; height:clamp(240px,34vw,420px); overflow:hidden; border-radius:16px;"><img src="assets/equipe.jpg" alt="Mestres, professores e instrutores do grupo reunidos" style="width:100%; height:100%; object-fit:cover; transition:transform .8s var(--ease);" style-hover="transform:scale(1.07);" /></div>
+    <div style="position:relative; height:clamp(240px,34vw,420px); overflow:hidden; border-radius:16px;"><img src="assets/batizado.jpg" alt="Batizado de capoeira do grupo" style="width:100%; height:100%; object-fit:cover; object-position:50% 35%; transition:transform .8s var(--ease);" style-hover="transform:scale(1.07);" /></div>
+    <div style="position:relative; height:clamp(240px,34vw,420px); overflow:hidden; border-radius:16px;"><img src="assets/omar-microfone.jpg" alt="Mestre Omar cantando no microfone durante a roda" style="width:100%; height:100%; object-fit:cover; object-position:50% 30%; transition:transform .8s var(--ease);" style-hover="transform:scale(1.07);" /></div>
+    <div style="position:relative; height:clamp(240px,34vw,420px); overflow:hidden; border-radius:16px;"><img src="assets/bateria-externa.jpg" alt="Bateria tocando em apresentação ao ar livre" style="width:100%; height:100%; object-fit:cover; object-position:50% 40%; transition:transform .8s var(--ease);" style-hover="transform:scale(1.07);" /></div>
+  </div>
+</section>
+
+<section id="loja" style="background:#EAF2F1; padding:clamp(70px,11vh,130px) clamp(20px,5vw,56px);">
+  <div style="max-width:1180px; margin:0 auto;">
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:24px; align-items:end; margin-bottom:clamp(30px,5vh,48px);">
+      <div>
+        <div data-reveal="1" style="color:#389E92; font-weight:800; letter-spacing:.22em; font-size:.76rem; margin-bottom:14px;">LOJA OFICIAL</div>
+        <h2 data-reveal="1" data-delay="60" style="margin:0; font-family:'Montserrat',sans-serif; font-weight:800; color:#002D72; font-size:clamp(2rem,5vw,3.6rem); line-height:1; letter-spacing:-.025em;">O uniforme e<br />os instrumentos</h2>
+      </div>
+      <p data-reveal="1" data-delay="120" style="margin:0; color:#5A6B72; font-size:1.05rem; line-height:1.65; max-width:420px;">Abadá bordado com o brasão do grupo e instrumentos selecionados. A compra também pode ser feita pelo Portal do Aluno.</p>
+    </div>
+
+    <sc-if value="{{ dadosProntos }}" hint-placeholder-val="{{ false }}">
+    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr)); gap:20px;">
+      <sc-for list="{{ produtos }}" as="p" hint-placeholder-count="0">
+        <article style="display:flex; flex-direction:column; background:#fff; border:1px solid #E0E6E5; border-radius:18px; padding:20px; box-shadow:0 6px 20px rgba(0,0,0,.03); text-align:center; transition:.35s var(--ease);" style-hover="transform:translateY(-5px); box-shadow:0 12px 30px rgba(0,0,0,.08);">
+          <img src="{{ p.img }}" alt="{{ p.nome }}" style="width:100%; height:180px; object-fit:cover; border-radius:12px; margin-bottom:16px;" />
+          <h3 style="margin:0 0 8px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.1rem;">{{ p.nome }}</h3>
+          <p style="margin:0 0 14px; color:#666; font-size:.88rem; line-height:1.45; flex:1;">{{ p.desc }}</p>
+          <div style="font-size:1.3rem; font-weight:800; color:#389E92; margin-bottom:14px;">{{ p.preco }}</div>
+          <a href="{{ p.link }}" target="_blank" rel="noopener" style="display:block; padding:13px; border-radius:12px; background:#00E676; color:#05070C; font-weight:800; box-shadow:0 4px 12px rgba(0,230,118,.3); transition:.25s var(--ease);" style-hover="filter:brightness(.94); transform:scale(1.02);"><i class="fas fa-cart-plus"></i> Comprar agora</a>
+        </article>
+      </sc-for>
+    </div>
+    </sc-if>
+  </div>
+</section>
+
+<section style="position:relative; overflow:hidden; background:#002D72; padding:clamp(70px,12vh,140px) clamp(20px,5vw,56px); text-align:center;">
+  <img src="assets/roda-plateia.jpg" alt="" aria-hidden="true" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.16;" />
+  <div style="position:absolute; inset:0; background:radial-gradient(80% 70% at 50% 50%, rgba(0,45,114,.55), rgba(0,45,114,.92));"></div>
+  <div style="position:relative; z-index:2; max-width:860px; margin:0 auto;">
+    <h2 data-reveal="1" style="margin:0; font-family:'Montserrat',sans-serif; font-weight:800; color:#fff; font-size:clamp(2.1rem,6vw,4.4rem); line-height:.98; letter-spacing:-.03em; text-transform:uppercase;">Sua vaga na roda<br />já está aberta</h2>
+    <p data-reveal="1" data-delay="80" style="margin:22px auto 0; max-width:560px; color:rgba(255,255,255,.85); font-size:1.1rem; line-height:1.6;">Traga roupa leve, venha descalço e chegue 10 minutos antes. O resto o grupo ensina.</p>
+    <div data-reveal="1" data-delay="160" style="display:flex; flex-wrap:wrap; justify-content:center; gap:14px; margin-top:34px;">
+      <a href="https://wa.me/5567991293269?text=Ol%C3%A1!%20Quero%20agendar%20minha%20primeira%20aula%20gr%C3%A1tis%20de%20capoeira." target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:12px; padding:21px 36px; border-radius:999px; background:#00E676; color:#05070C; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.05rem; box-shadow:0 16px 44px rgba(0,230,118,.4); transition:.3s var(--ease);" style-hover="transform:translateY(-3px) scale(1.02);"><i class="fab fa-whatsapp" style="font-size:1.35rem;"></i>Agende sua primeira aula grátis!</a>
+      <a href="inscricao.html" style="display:inline-flex; align-items:center; gap:10px; padding:21px 32px; border-radius:999px; border:1px solid rgba(255,255,255,.4); color:#fff; font-weight:700; transition:.3s var(--ease);" style-hover="background:rgba(255,255,255,.12);"><i class="fas fa-file-signature"></i>Preencher ficha de inscrição</a>
+    </div>
+  </div>
+</section>
+
+<footer style="background:#05070C; color:rgba(255,255,255,.7); padding:clamp(56px,8vh,90px) clamp(20px,5vw,56px) 32px;">
+  <div style="max-width:1280px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); gap:40px;">
+    <div>
+      <div style="display:flex; align-items:center; gap:14px; margin-bottom:18px;">
+        <img src="assets/logo.png" alt="Brasão do grupo" style="width:64px; height:64px; border-radius:50%; background:#fff; border:2px solid rgba(0,230,118,.8);" />
+        <div style="font-family:'Montserrat',sans-serif; font-weight:800; color:#fff; font-size:1.05rem; line-height:1.2;">Capoeira<br />Liberdade e Expressão</div>
+      </div>
+      <p style="margin:0; font-size:.93rem; line-height:1.6; max-width:280px;">Grupo Mestre Profeta · Campo Grande / MS · Brasil. Capoeira é cultura, disciplina e transformação.</p>
+    </div>
+    <div>
+      <h4 style="margin:0 0 16px; font-family:'Montserrat',sans-serif; color:#fff; font-size:.86rem; letter-spacing:.16em;">CONTATO</h4>
+      <a href="https://wa.me/5567991293269" target="_blank" rel="noopener" style="display:flex; align-items:center; gap:10px; margin-bottom:12px; color:rgba(255,255,255,.75); font-size:.95rem;" style-hover="color:#00E676;"><i class="fab fa-whatsapp" style="color:#00E676;"></i>(67) 99129-3269</a>
+      <div style="display:flex; align-items:flex-start; gap:10px; font-size:.95rem; line-height:1.5;"><i class="fas fa-map-marker-alt" style="color:#00E676; margin-top:4px;"></i><span>R. Jaime Costa, 589<br />Núcleo Hab. Buriti — Campo Grande/MS</span></div>
+    </div>
+    <div>
+      <h4 style="margin:0 0 16px; font-family:'Montserrat',sans-serif; color:#fff; font-size:.86rem; letter-spacing:.16em;">REDES</h4>
+      <a href="https://www.instagram.com/capoeiraliberdadeeexpressao/" target="_blank" rel="noopener" style="display:flex; align-items:center; gap:10px; margin-bottom:12px; color:rgba(255,255,255,.75); font-size:.95rem;" style-hover="color:#00E676;"><i class="fab fa-instagram" style="color:#00E676;"></i>@capoeiraliberdadeeexpressao</a>
+      <a href="https://www.facebook.com/capoeiraliberdadeeexpressaooficial/" target="_blank" rel="noopener" style="display:flex; align-items:center; gap:10px; color:rgba(255,255,255,.75); font-size:.95rem;" style-hover="color:#00E676;"><i class="fab fa-facebook" style="color:#00E676;"></i>capoeiraliberdadeeexpressaooficial</a>
+    </div>
+    <div>
+      <h4 style="margin:0 0 16px; font-family:'Montserrat',sans-serif; color:#fff; font-size:.86rem; letter-spacing:.16em;">SISTEMA</h4>
+      <a href="login.html" style="display:block; margin-bottom:12px; color:rgba(255,255,255,.75); font-size:.95rem;" style-hover="color:#00E676;">Portal do Aluno</a>
+      <a href="inscricao.html" style="display:block; margin-bottom:12px; color:rgba(255,255,255,.75); font-size:.95rem;" style-hover="color:#00E676;">Ficha de Inscrição</a>
+      <a href="login.html" style="display:block; margin-bottom:12px; color:rgba(255,255,255,.75); font-size:.95rem;" style-hover="color:#00E676;">Painel do Professor</a>
+      <a href="gerenciar.html" style="display:block; color:rgba(255,255,255,.45); font-size:.9rem;" style-hover="color:#00E676;">Gerenciar o Site</a>
+    </div>
+  </div>
+  <div style="max-width:1280px; margin:44px auto 0; padding-top:22px; border-top:1px solid rgba(255,255,255,.1); display:flex; flex-wrap:wrap; gap:12px; justify-content:space-between; font-size:.82rem; color:rgba(255,255,255,.45);">
+    <span>© 2026 Grupo de Capoeira Liberdade e Expressão. Todos os direitos reservados.</span>
+    <span>Campo Grande · Rochedo · Mato Grosso do Sul</span>
+  </div>
+</footer>
+
+<a href="https://wa.me/5567991293269?text=Ol%C3%A1!%20Quero%20agendar%20minha%20primeira%20aula%20gr%C3%A1tis%20de%20capoeira." target="_blank" rel="noopener" aria-label="Falar no WhatsApp" style="position:fixed; right:20px; bottom:20px; z-index:180; width:60px; height:60px; border-radius:50%; background:#00E676; color:#05070C; display:flex; align-items:center; justify-content:center; font-size:1.8rem; box-shadow:0 10px 30px rgba(0,230,118,.45); animation:leFlutua 4s ease-in-out infinite; transition:.3s var(--ease);" style-hover="transform:scale(1.08);"><i class="fab fa-whatsapp"></i></a>
+
+
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;hero&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;roda&quot;,&quot;split&quot;,&quot;emblema&quot;],&quot;default&quot;:&quot;roda&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Hero&quot;}}">
+const CORDOES = [
+  { nome: 'Iniciante', cor: ['#CCCCCC','#CCCCCC','#CCCCCC'] },
+  { nome: 'Escravo', cor: ['#4F4F4F','#4F4F4F','#4F4F4F'] },
+  { nome: 'Fugitivo', cor: ['#4F4F4F','#F5DEB3','#4F4F4F'] },
+  { nome: 'Quilombola', cor: ['#DAA520','#DAA520','#DAA520'] },
+  { nome: 'Vagante', cor: ['#D2691E','#D32F2F','#D2691E'] },
+  { nome: 'Liberto', cor: ['#D32F2F','#D32F2F','#D32F2F'] },
+  { nome: 'Instrutor', cor: ['#4F4F4F','#F5DEB3','#D32F2F'] },
+  { nome: 'Professor', cor: ['#D32F2F','#FFFFFF','#D32F2F'] },
+  { nome: 'Mestre', cor: ['#F5F5F5','#F5F5F5','#F5F5F5'] }
+];
+
+const CRITERIOS = ['Ginga e Base','Acrobacias','Respeito','Disciplina','Pontualidade','Freq. Aulas','Freq. Rodas','Eventos','Pandeiro','Atabaque','Berimbau','Canta/Responde','Higiene','Aprendizado','Fundamentos'];
+
+const wa = (num, texto) => 'https://wa.me/55' + num + '?text=' + encodeURIComponent(texto);
+const CONVITE = 'Olá! Quero agendar minha primeira aula grátis de capoeira.';
+
+const ACADEMIAS = [
+  { nome:'Mestre Profeta', bairro:'Núcleo Hab. Buriti', dias:'Segunda, quarta e sexta', horario:'19h00 às 20h30', endereco:'R. Jaime Costa, 589 — Núcleo Hab. Buriti', telefone:'(67) 99129-3269', whatsapp: wa('67991293269', CONVITE), instagramUrl:'https://www.instagram.com/mestreprofeta/', foto:'assets/retrato-profeta.jpg' },
+  { nome:'Professora Taynara', bairro:'Núcleo Hab. Buriti', dias:'Segunda, quarta e sexta', horario:'18h00 às 19h00', endereco:'R. Jaime Costa, 589 — Núcleo Hab. Buriti', telefone:'(67) 99313-7318', whatsapp: wa('67993137318', CONVITE), instagramUrl:'https://www.instagram.com/proftaynaracapoeira/', foto:'assets/retrato-taynara.jpg' },
+  { nome:'Mestre Omar', bairro:'Bairro Guanandi', dias:'Segunda a sábado', horario:'Consulte os horários no WhatsApp', endereco:'Rua Arapuã, 650 — Bairro Guanandi', telefone:'(67) 99223-9955', whatsapp: wa('67992239955', CONVITE), instagramUrl:'https://www.instagram.com/mestreomarcapoeira/', foto:'assets/retrato-omar.jpg' },
+  { nome:'Professor Rafinha', bairro:'Bairro Rancho Alegre', dias:'Segunda, quarta e sexta', horario:'19h30 às 21h00', endereco:'R. Cajarana, 389 — Bairro Rancho Alegre', telefone:'(67) 98211-8190', whatsapp: wa('67982118190', CONVITE), instagramUrl:'https://www.instagram.com/profrafinhacapoeira/', foto:'assets/retrato-rafinha.jpg' },
+  { nome:'Professor Tigoy', bairro:'Nova Campo Grande', dias:'Segunda, quarta e sexta', horario:'Consulte os horários no WhatsApp', endereco:'Avenida 02 — Escola Municipal Fauze Scaff Gattass Filho', telefone:'(67) 98454-8273', whatsapp: wa('67984548273', CONVITE), instagramUrl:'https://www.instagram.com/proftigoycapoeira/', foto:'assets/retrato-tigoy.jpg' },
+  { nome:'Instrutor Leiliano', bairro:'Bairro Bonança', dias:'Terça e quinta', horario:'19h00 às 20h30', endereco:'R. Jardim Silvera — Associação de Moradores, Bonança', telefone:'(67) 9192-3888', whatsapp: wa('6791923888', CONVITE), instagramUrl:'https://www.instagram.com/liberdadeeexpressaobonanca/', foto:'assets/retrato-leiliano.jpg' }
+];
+
+const MESTRES = [
+  { nome:'Mestre Profeta', formacao:'Mestre de Capoeira — Fundador', historia:'Pioneiro do grupo com mais de 30 anos dedicados à capoeira, formando centenas de alunos e disseminando a cultura e disciplina por onde passa.', foto:'assets/retrato-profeta.jpg' },
+  { nome:'Mestre Omar', formacao:'Mestre de Capoeira', historia:'Dedicado à preservação das raízes tradicionais da capoeira angola e regional, mentor de várias gerações.', foto:'assets/retrato-omar.jpg' },
+  { nome:'Professora Taynara', formacao:'Educadora Física e Professora Responsável', historia:'Especialista em pedagogia da capoeira e capacitação motora infantil, unindo rigor técnico, alegria e respeito às tradições.', foto:'assets/retrato-taynara.jpg' },
+  { nome:'Professor Rafinha', formacao:'Professor de Capoeira', historia:'Atua na formação de base e infantil com foco em disciplina, cidadania e alegria através do esporte.', foto:'assets/retrato-rafinha.jpg' },
+  { nome:'Professor Tigoy', formacao:'Professor de Capoeira', historia:'Especialista em acrobacias, floreios e expressão corporal dinâmica dentro da roda.', foto:'assets/retrato-tigoy.jpg' },
+  { nome:'Professor Maick', formacao:'Professor Responsável — Rochedo/MS', historia:'Focado no desenvolvimento físico de alto rendimento e na técnica apurada dos golpes e esquivas.', foto:'assets/retrato-maick.jpg' },
+  { nome:'Instrutor Leiliano', formacao:'Instrutor Graduado', historia:'Excelência técnica e dedicação diária no apoio pedagógico aos treinos e eventos do grupo.', foto:'assets/retrato-leiliano.jpg' }
+];
+
+const DRIVE = 'https://drive.google.com/drive/folders/';
+const maps = (q) => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q);
+
+const EVENTOS = [
+  { titulo:'Apresentação na Festa Julina', local:'Bairro Bonança', data:'10 de julho', ano:'2026', quando:'2026-07-10', horario:'19:00h', mapa: maps('Bairro Bonança, Campo Grande - MS'), drive: DRIVE },
+  { titulo:'Apresentação na Festa Julina', local:'Camapoã — MS', data:'11 de julho', ano:'2026', quando:'2026-07-11', horario:'19:00h', mapa: maps('Camapuã - MS'), drive: DRIVE },
+  { titulo:'Batizado de Capoeira', local:'Rochedo — MS', data:'25 de julho', ano:'2026', quando:'2026-07-25', horario:'19:00h', mapa: maps('Rochedo - MS'), drive: DRIVE },
+  { titulo:'Batizado do Mestre Profeta', local:'Bairro Buriti', data:'22 de agosto', ano:'2026', quando:'2026-08-22', horario:'19:00h', mapa: maps('R. Jaime Costa, 589 - Núcleo Habitacional Buriti, Campo Grande - MS'), drive: DRIVE },
+  { titulo:'Roda de Capoeira do Profº Rafinha', local:'Bairro Rancho Alegre', data:'29 de agosto', ano:'2026', quando:'2026-08-29', horario:'19:00h', mapa: maps('R. Cajarana, 389 - Rancho Alegre, Campo Grande - MS'), drive: DRIVE },
+  { titulo:'Batizado do Profº Rafinha', local:'Bairro Rancho Alegre', data:'19 de setembro', ano:'2026', quando:'2026-09-19', horario:'19:00h', mapa: maps('R. Cajarana, 389 - Rancho Alegre, Campo Grande - MS'), drive: DRIVE },
+  { titulo:'Batizado de Capoeira do Mestre Omar', local:'Bairro Guanandi', data:'Novembro', ano:'2026', quando:'2026-11-15', horario:'19:00h', mapa: maps('Rua Arapuã, 650 - Guanandi, Campo Grande - MS'), drive: DRIVE }
+];
+
+const PRODUTOS = [
+  { nome:'Abadá Oficial', desc:'Tecido leve, altamente resistente e bordado com o brasão oficial do grupo.', preco:'R$ 90,00', img:'assets/equipe.jpg' },
+  { nome:'Berimbau Profissional', desc:'Verga de biriba selecionada, cabaça perfeitamente afinada e arame importado.', preco:'R$ 220,00', img:'assets/bateria-externa.jpg' },
+  { nome:'Pandeiro Profissional', desc:'Pele animal natural, tarraxas reforçadas e excelente projeção sonora.', preco:'R$ 180,00', img:'assets/bateria.jpg' }
+];
+
+class Component extends DCLogic {
+  state = { hero: null, cordao: 5, menu: false };
+
+  get heroAtivo() { return this.state.hero || this.props.hero || 'roda'; }
+
+  lerConteudo() {
+    try { return JSON.parse(window.localStorage.getItem('leSiteConteudo') || 'null') || {}; } catch (e) { return {}; }
+  }
+
+  aplicarTextos() {
+    const c = this.lerConteudo();
+    const textos = c.textos || {};
+    Object.keys(textos).forEach((chave) => {
+      const el = document.querySelector('[data-edit="' + chave + '"]');
+      if (el && String(textos[chave]).trim()) el.textContent = textos[chave];
+    });
+    const imagens = c.imagens || {};
+    Object.keys(imagens).forEach((chave) => {
+      const el = document.querySelector('[data-edit-img="' + chave + '"]');
+      if (el && imagens[chave]) el.src = imagens[chave];
+    });
+  }
+
+  componentDidMount() {
+    this.aplicarTextos();
+    this._onConteudo = () => { this.forceUpdate(); this.aplicarTextos(); };
+    window.addEventListener('storage', this._onConteudo);
+    this.aplicarCordao();
+    this.responsivo();
+    this._onResize = () => this.responsivo();
+    window.addEventListener('resize', this._onResize);
+
+    const alvos = Array.from(document.querySelectorAll('[data-reveal]'));
+    alvos.forEach((el) => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(26px)';
+      el.style.transition = 'opacity .8s cubic-bezier(.16,1,.3,1), transform .8s cubic-bezier(.16,1,.3,1)';
+      el.style.transitionDelay = (Number(el.dataset.delay) || 0) + 'ms';
+    });
+    const mostrar = (el) => { el.style.opacity = '1'; el.style.transform = 'none'; };
+    if ('IntersectionObserver' in window) {
+      this._io = new IntersectionObserver((entradas) => {
+        entradas.forEach((e) => { if (e.isIntersecting) { mostrar(e.target); this._io.unobserve(e.target); } });
+      }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+      alvos.forEach((el) => this._io.observe(el));
+    }
+    this._fallback = setTimeout(() => alvos.forEach(mostrar), 2600);
+
+    this._onScroll = () => {
+      const y = window.scrollY || 0;
+      const alt = document.documentElement.scrollHeight - window.innerHeight;
+      const barra = document.querySelector('[data-progresso]');
+      if (barra) barra.style.width = (alt > 0 ? Math.min(100, (y / alt) * 100) : 0) + '%';
+      const nav = document.querySelector('[data-nav]');
+      if (nav) {
+        const solido = y > 60;
+        nav.style.background = solido ? 'rgba(5,7,12,.9)' : 'linear-gradient(180deg,rgba(5,7,12,.72),rgba(5,7,12,0))';
+        nav.style.backdropFilter = solido ? 'blur(14px)' : 'blur(0px)';
+        nav.style.borderBottom = solido ? '1px solid rgba(255,255,255,.09)' : '1px solid transparent';
+      }
+      const par = document.querySelector('[data-parallax]');
+      if (par && y < window.innerHeight * 1.2) par.style.transform = 'translate3d(0,' + (y * 0.22) + 'px,0)';
+    };
+    window.addEventListener('scroll', this._onScroll, { passive: true });
+    this._onScroll();
+  }
+
+  componentDidUpdate() { this.aplicarCordao(); this.responsivo(); this.aplicarTextos(); }
+
+  componentWillUnmount() {
+    window.removeEventListener('resize', this._onResize);
+    window.removeEventListener('scroll', this._onScroll);
+    if (this._io) this._io.disconnect();
+    clearTimeout(this._fallback);
+  }
+
+  responsivo() {
+    const estreito = window.innerWidth < 1080;
+    const links = document.querySelector('[data-navlinks]');
+    const btn = document.querySelector('[data-menubtn]');
+    const portal = document.querySelector('[data-portal]');
+    const drawer = document.querySelector('[data-drawer]');
+    if (links) links.style.display = estreito ? 'none' : 'flex';
+    if (btn) btn.style.display = estreito ? 'inline-flex' : 'none';
+    if (portal) portal.style.display = estreito ? 'none' : 'inline-flex';
+    if (drawer) drawer.style.display = (estreito && this.state.menu) ? 'flex' : 'none';
+    const chip = document.querySelector('[data-heroswitch]');
+    if (chip) chip.style.display = window.innerWidth < 760 ? 'none' : 'flex';
+  }
+
+  aplicarCordao() {
+    const barra = document.querySelector('[data-barra]');
+    if (!barra) return;
+    const c = CORDOES[this.state.cordao];
+    const pct = Math.round(((this.state.cordao + 1) / CORDOES.length) * 100);
+    barra.style.width = pct + '%';
+    barra.style.background = 'repeating-linear-gradient(45deg,' + c.cor[0] + ' 0,' + c.cor[0] + ' 10px,' + c.cor[1] + ' 10px,' + c.cor[1] + ' 20px,' + c.cor[2] + ' 20px,' + c.cor[2] + ' 30px)';
+    barra.style.boxShadow = pct >= 70 ? '0 0 18px rgba(0,230,118,.6)' : 'none';
+  }
+
+  renderVals() {
+    const salvo = this.lerConteudo();
+    const ACAD = (salvo.academias && salvo.academias.length) ? salvo.academias : ACADEMIAS;
+    const MEST = (salvo.mestres && salvo.mestres.length) ? salvo.mestres : MESTRES;
+    const EVEN = (salvo.eventos && salvo.eventos.length) ? salvo.eventos : EVENTOS;
+    const PROD = (salvo.produtos && salvo.produtos.length) ? salvo.produtos : PRODUTOS;
+    const hero = this.heroAtivo;
+    const pillBase = 'padding:11px 18px; border-radius:999px; cursor:pointer; font-weight:800; font-size:.88rem; font-family:Montserrat,sans-serif; transition:.25s cubic-bezier(.16,1,.3,1);';
+
+    return {
+      heroUm: hero === 'roda',
+      heroDois: hero === 'split',
+      heroTres: hero === 'emblema',
+      alternarMenu: () => this.setState((s) => ({ menu: !s.menu })),
+      fecharMenu: () => this.setState({ menu: false }),
+      dadosProntos: true,
+      criterios: CRITERIOS,
+      academias: ACAD,
+      mestres: MEST,
+      eventos: (() => {
+        const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+        const marcados = EVEN.map((e) => Object.assign({}, e, { passou: new Date(e.quando + 'T00:00:00') < hoje }));
+        const futuros = marcados.filter((e) => !e.passou).sort((a, b) => a.quando.localeCompare(b.quando));
+        const passados = marcados.filter((e) => e.passou).sort((a, b) => b.quando.localeCompare(a.quando));
+        return futuros.concat(passados).map((e) => Object.assign({}, e, {
+          cartao: e.passou
+            ? 'display:flex; flex-wrap:wrap; align-items:center; gap:clamp(14px,3vw,28px); background:#F1F5F4; border:1px solid #E0E6E5; border-radius:16px; padding:18px 22px; transition:.3s cubic-bezier(.16,1,.3,1);'
+            : 'display:flex; flex-wrap:wrap; align-items:center; gap:clamp(14px,3vw,28px); background:#fff; border:1px solid #E0E6E5; border-radius:16px; padding:18px 22px; box-shadow:0 4px 15px rgba(0,0,0,.03); transition:.3s cubic-bezier(.16,1,.3,1);',
+          faixa: e.passou ? 'width:6px; align-self:stretch; min-height:52px; border-radius:6px; background:#C9D3D1; flex:none;' : 'width:6px; align-self:stretch; min-height:52px; border-radius:6px; background:linear-gradient(180deg,#00E676,#002D72); flex:none;',
+          tituloEstilo: e.passou ? "margin:0; font-family:'Montserrat',sans-serif; color:#8795A0; font-size:1.15rem; line-height:1.25;" : "margin:0; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.15rem; line-height:1.25;",
+          dataEstilo: e.passou ? 'display:flex; align-items:center; gap:12px; background:#DDE5E4; color:#6B7A80; padding:12px 20px; border-radius:14px; flex:none;' : 'display:flex; align-items:center; gap:12px; background:#002D72; color:#fff; padding:12px 20px; border-radius:14px; flex:none;',
+          anoEstilo: e.passou ? 'color:#8795A0; font-size:.76rem; font-weight:700; letter-spacing:.1em;' : 'color:#00E676; font-size:.76rem; font-weight:700; letter-spacing:.1em;'
+        }));
+      })(),
+      produtos: PROD.map((p) => Object.assign({}, p, {
+        link: p.link || ('https://wa.me/' + (((salvo.loja || {}).whatsapp) || '5567991293269') + '?text=' + encodeURIComponent('Olá! Quero adquirir o seguinte item "' + p.nome + '".'))
+      })),
+      cordaoAtual: CORDOES[this.state.cordao].nome,
+      etapaAtual: this.state.cordao + 1,
+      cordoes: CORDOES.map((c, i) => ({
+        nome: c.nome,
+        selecionar: () => this.setState({ cordao: i }),
+        estilo: i === this.state.cordao
+          ? pillBase + 'background:#00E676; color:#05070C; border:1px solid #00E676; box-shadow:0 8px 22px rgba(0,230,118,.3);'
+          : pillBase + 'background:rgba(255,255,255,.06); color:rgba(255,255,255,.85); border:1px solid rgba(255,255,255,.16);'
+      })),
+      variantes: [
+        { chave: 'roda', rotulo: '01' },
+        { chave: 'split', rotulo: '02' },
+        { chave: 'emblema', rotulo: '03' }
+      ].map((v) => ({
+        rotulo: v.rotulo,
+        escolher: () => { this.setState({ hero: v.chave }); window.scrollTo({ top: 0, behavior: 'smooth' }); },
+        estilo: hero === v.chave
+          ? 'width:34px; height:30px; border-radius:999px; border:none; cursor:pointer; font-weight:800; font-size:.76rem; background:#00E676; color:#05070C;'
+          : 'width:34px; height:30px; border-radius:999px; border:none; cursor:pointer; font-weight:800; font-size:.76rem; background:rgba(255,255,255,.1); color:rgba(255,255,255,.7);'
+      }))
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+:root{
+/* Brand core */
+--blue-900:#002D72;--blue-600:#0056D2;--teal-500:#389E92;--green-400:#00E676;--green-600:#00B140;
+/* Neutrals & surfaces */
+--white:#FFFFFF;--app-bg-teal:#EAF2F1;--app-bg-light:#F4F7F6;--surface-subtle:#F8FBFB;--surface-grey:#f8f9fa;--surface-input:#fafafa;--surface-readonly:#eee;--skeleton:#E7EEED;
+--ink-900:#2C3E50;--ink-600:#555555;--ink-500:#666666;--ink-muted:#7F8C8D;--line:#E0E6E5;--line-soft:#eeeeee;--line-input:#cccccc;
+/* Status */
+--danger:#E74C3C;--danger-dark:#C0392B;--danger-bg:#FDEDEC;--danger-line:#F5B7B1;
+--warn:#F39C12;--warn-bg:#fff3cd;--warn-ink:#856404;
+--neutral-btn:#95a5a6;--neutral-btn-dark:#7f8c8d;--slate:#34495E;
+--star-empty:#E0E0E0;--star-filled:#F5B041;
+/* Cordão (belt) palette — used by the graduation progress bar */
+--cordao-iniciante:#CCCCCC;--cordao-cinza-claro:#D3D3D3;--cordao-escravo:#4F4F4F;--cordao-bege:#F5DEB3;
+--cordao-quilombola:#DAA520;--cordao-vagante:#D2691E;--cordao-liberto:#D32F2F;--cordao-mestre:#F5F5F5;
+
+/* Semantic aliases */
+--text-body:var(--ink-900);--text-muted:var(--ink-muted);--text-heading:var(--blue-900);--text-accent:var(--teal-500);--text-on-brand:var(--white);
+--surface-app:var(--app-bg-teal);--surface-page:var(--app-bg-light);--surface-card:var(--white);--surface-inset:var(--surface-subtle);
+--border-card:var(--line);--border-field:var(--line-input);
+--action-primary:var(--teal-500);--action-primary-hover:var(--blue-900);--action-secondary:var(--blue-600);--action-confirm:var(--green-400);--action-confirm-hover:var(--green-600);--action-destructive:var(--danger);--action-neutral:var(--neutral-btn);
+--focus-ring:var(--teal-500);
+--brand-gradient:linear-gradient(135deg,var(--blue-900),var(--teal-500));
+--brand-gradient-dark:linear-gradient(135deg,var(--blue-900),#000000);
+}

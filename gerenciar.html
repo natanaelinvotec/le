@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/tokens/fonts.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/tokens/colors.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/tokens/typography.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/tokens/spacing.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/tokens/radius.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/tokens/elevation.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/tokens/motion.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/patterns/base.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/patterns/components.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/styles.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<script src="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/_ds_bundle.js"></script>
+<style>
+body{ margin:0; background:#EAF2F1; color:#2C3E50; font-family:'Nunito',sans-serif; }
+*{ box-sizing:border-box; }
+a{ color:#389E92; text-decoration:none; }
+a:hover{ color:#002D72; }
+input,textarea,select{ font-family:'Nunito',sans-serif; }
+:focus-visible{ outline:3px solid #389E92; outline-offset:2px; }
+@keyframes leSobe{ from{ opacity:0; transform:translateY(18px);} to{ opacity:1; transform:none;} }
+@keyframes leShake{ 0%,100%{ transform:translateX(0);} 20%{ transform:translateX(-8px);} 40%{ transform:translateX(8px);} 60%{ transform:translateX(-5px);} 80%{ transform:translateX(5px);} }
+</style>
+</helmet>
+
+<sc-if value="{{ deslogado }}" hint-placeholder-val="{{ true }}">
+  <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; background:linear-gradient(135deg,#002D72,#389E92);">
+    <div data-cartao="1" style="width:100%; max-width:400px; background:rgba(255,255,255,.97); border-radius:22px; padding:36px 30px; box-shadow:0 24px 60px rgba(0,0,0,.25); animation:leSobe .45s cubic-bezier(.16,1,.3,1) both; text-align:center;">
+      <img src="assets/logo.png" alt="Brasão do grupo" style="width:84px; height:84px; border-radius:50%; margin:0 auto 18px; border:3px solid #00E676;" />
+      <h1 style="margin:0 0 6px; font-family:'Montserrat',sans-serif; font-size:1.25rem; color:#002D72;">Gerenciar o Site</h1>
+      <p style="margin:0 0 24px; color:#7F8C8D; font-size:.92rem;">Área restrita da diretoria do grupo.</p>
+      <div style="text-align:left; margin-bottom:16px;">
+        <label for="senhaAdmin" style="display:block; font-weight:700; font-size:.88rem; margin-bottom:6px; color:#2C3E50;">Senha de acesso:</label>
+        <div style="position:relative;">
+          <i class="fas fa-lock" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#7F8C8D;"></i>
+          <input id="senhaAdmin" data-senha="1" type="password" autocomplete="current-password" onKeyDown="{{ aoTeclar }}" placeholder="Digite a senha" style="width:100%; padding:14px 14px 14px 40px; border:1px solid #ccc; border-radius:10px; font-size:1rem;" />
+        </div>
+      </div>
+      <sc-if value="{{ erroSenha }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; align-items:center; gap:8px; background:#FDECEA; border:1px solid #F5C6C0; color:#C0392B; padding:11px 14px; border-radius:10px; font-size:.88rem; font-weight:700; margin-bottom:16px; text-align:left;"><i class="fas fa-exclamation-circle"></i>Senha incorreta. Tente novamente.</div>
+      </sc-if>
+      <button onClick="{{ entrar }}" style="width:100%; padding:15px; border:none; border-radius:20px; background:#002D72; color:#fff; font-family:'Montserrat',sans-serif; font-weight:700; font-size:1rem; cursor:pointer; box-shadow:0 8px 22px rgba(0,45,114,.3); transition:.25s cubic-bezier(.16,1,.3,1);" style-hover="transform:translateY(-1px);">Acessar Painel</button>
+      <p style="margin:20px 0 0; color:#7F8C8D; font-size:.8rem; line-height:1.5;">Senha inicial: <strong>liberdade2026</strong> — troque em Configurações assim que entrar.</p>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ logado }}" hint-placeholder-val="{{ false }}">
+  <div style="min-height:100vh;">
+    <header style="position:sticky; top:0; z-index:60; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; background:#fff; padding:12px clamp(16px,3vw,30px); box-shadow:0 4px 20px rgba(0,0,0,.05);">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <img src="assets/logo.png" alt="" style="width:45px; height:45px; border-radius:50%; border:2px solid #389E92;" />
+        <span style="font-family:'Montserrat',sans-serif; font-weight:800; color:#002D72; font-size:1.05rem;">Gerenciar o Site</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <a href="index.html" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:8px; padding:10px 16px; border-radius:20px; border:1px solid #E0E6E5; color:#002D72; font-weight:700; font-size:.9rem;" style-hover="border-color:#389E92;"><i class="fas fa-eye"></i>Ver o site</a>
+        <button onClick="{{ salvar }}" style="display:inline-flex; align-items:center; gap:8px; padding:11px 20px; border:none; border-radius:20px; background:#00E676; color:#05070C; font-weight:800; font-size:.92rem; cursor:pointer; box-shadow:0 4px 12px rgba(0,230,118,.3);" style-hover="filter:brightness(.94);"><i class="fas fa-save"></i>Salvar Alterações</button>
+        <button onClick="{{ sair }}" aria-label="Sair" style="width:42px; height:42px; border:none; border-radius:50%; background:#E74C3C; color:#fff; cursor:pointer; box-shadow:0 4px 12px rgba(231,76,60,.25);"><i class="fas fa-sign-out-alt"></i></button>
+      </div>
+    </header>
+
+    <div data-grade="1" style="max-width:1600px; margin:0 auto; padding:26px clamp(16px,3vw,30px) 90px; display:grid; grid-template-columns:260px minmax(0,1fr); gap:26px; align-items:start;">
+      <aside data-lateral="1" style="position:sticky; top:92px; background:#fff; border:1px solid #E0E6E5; border-radius:18px; padding:14px;">
+        <div style="font-family:'Montserrat',sans-serif; font-weight:800; font-size:.76rem; letter-spacing:.14em; color:#7F8C8D; padding:8px 10px;">SEÇÕES DO SITE</div>
+        <sc-for list="{{ secoes }}" as="s" hint-placeholder-count="0">
+          <button onClick="{{ s.abrir }}" style="{{ s.estilo }}"><i class="{{ s.icone }}"></i>{{ s.rotulo }}</button>
+        </sc-for>
+      </aside>
+
+      <main data-principal="1" style="min-width:0; display:flex; flex-direction:column; gap:18px;">
+        <sc-if value="{{ ehTextos }}" hint-placeholder-val="{{ false }}">
+          <section style="background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:clamp(18px,3vw,28px); animation:leSobe .35s cubic-bezier(.16,1,.3,1) both;">
+            <h2 style="margin:0 0 6px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.3rem;">Topo do Site (Hero)</h2>
+            <p style="margin:0 0 22px; color:#7F8C8D; font-size:.92rem;">Ao alterar a foto de fundo, ela é guardada no navegador e aparece imediatamente no site.</p>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:16px;">
+              <sc-for list="{{ camposTexto }}" as="c" hint-placeholder-count="0">
+                <div>
+                  <label style="display:block; font-weight:700; font-size:.88rem; margin-bottom:6px;">{{ c.rotulo }}</label>
+                  <input value="{{ c.valor }}" onInput="{{ c.mudar }}" style="width:100%; padding:12px 14px; border:1px solid #ccc; border-radius:10px; font-size:.95rem;" />
+                </div>
+              </sc-for>
+            </div>
+            <div style="margin-top:22px; padding:18px; background:#F8FBFB; border:1px solid #E0E6E5; border-radius:12px; display:flex; flex-wrap:wrap; gap:16px; align-items:center;">
+              <img data-preview="heroFundo" src="assets/logo.png" alt="Prévia da foto de fundo" style="width:150px; height:96px; object-fit:cover; border-radius:10px; border:1px solid #E0E6E5; background:#fff;" />
+              <div style="flex:1; min-width:220px;">
+                <div style="font-weight:700; margin-bottom:4px;">Foto de fundo do topo</div>
+                <div style="color:#7F8C8D; font-size:.85rem; margin-bottom:10px;">Use uma imagem larga (paisagem), de preferência acima de 1600px.</div>
+                <input type="file" accept="image/*" onChange="{{ trocarFotoHero }}" style="font-size:.88rem;" />
+              </div>
+            </div>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{ ehLista }}" hint-placeholder-val="{{ false }}">
+          <section style="background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:clamp(18px,3vw,28px); animation:leSobe .35s cubic-bezier(.16,1,.3,1) both;">
+            <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; margin-bottom:6px;">
+              <h2 style="margin:0; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.3rem;">{{ tituloLista }}</h2>
+              <button onClick="{{ adicionar }}" style="display:inline-flex; align-items:center; gap:8px; padding:10px 18px; border:none; border-radius:20px; background:#389E92; color:#fff; font-weight:700; font-size:.9rem; cursor:pointer; box-shadow:0 4px 12px rgba(56,158,146,.3);" style-hover="background:#002D72;"><i class="fas fa-plus"></i>{{ rotuloAdicionar }}</button>
+            </div>
+            <p style="margin:0 0 22px; color:#7F8C8D; font-size:.92rem;">{{ ajudaLista }}</p>
+
+            <div style="display:flex; flex-direction:column; gap:16px;">
+              <sc-for list="{{ itens }}" as="it" hint-placeholder-count="0">
+                <article style="border:1px solid #E0E6E5; border-radius:16px; padding:18px; background:#F8FBFB;">
+                  <div style="display:flex; flex-wrap:wrap; gap:14px; align-items:center; justify-content:space-between; margin-bottom:14px;">
+                    <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+                      <img data-mini="{{ it.indice }}" src="assets/logo.png" alt="" style="width:52px; height:52px; border-radius:12px; object-fit:cover; border:1px solid #E0E6E5; background:#fff;" />
+                      <strong style="font-family:'Montserrat',sans-serif; color:#002D72; font-size:1rem;">{{ it.titulo }}</strong>
+                    </div>
+                    <button onClick="{{ it.remover }}" aria-label="Excluir item" style="width:40px; height:40px; border:1px solid #F5C6C0; border-radius:12px; background:#FDECEA; color:#E74C3C; cursor:pointer;" style-hover="background:#E74C3C; color:#fff;"><i class="fas fa-trash"></i></button>
+                  </div>
+                  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)); gap:14px;">
+                    <sc-for list="{{ it.campos }}" as="f" hint-placeholder-count="0">
+                      <div>
+                        <label style="display:block; font-weight:700; font-size:.84rem; margin-bottom:6px;">{{ f.rotulo }}</label>
+                        <input value="{{ f.valor }}" onInput="{{ f.mudar }}" placeholder="{{ f.dica }}" style="width:100%; padding:11px 13px; border:1px solid #ccc; border-radius:10px; font-size:.92rem;" />
+                      </div>
+                    </sc-for>
+                  </div>
+                  <sc-if value="{{ it.temFoto }}" hint-placeholder-val="{{ false }}">
+                    <div style="margin-top:14px; padding-top:14px; border-top:1px solid #eee; display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+                      <span style="font-weight:700; font-size:.84rem;">Trocar imagem:</span>
+                      <input type="file" accept="image/*" onChange="{{ it.trocarFoto }}" style="font-size:.86rem;" />
+                    </div>
+                  </sc-if>
+                </article>
+              </sc-for>
+            </div>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{ ehLoja }}" hint-placeholder-val="{{ false }}">
+          <section style="background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:clamp(18px,3vw,28px); animation:leSobe .35s cubic-bezier(.16,1,.3,1) both;">
+            <h2 style="margin:0 0 6px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.3rem;">Pagamentos da Loja</h2>
+            <p style="margin:0 0 20px; color:#7F8C8D; font-size:.92rem;">Hoje cada botão "Comprar Agora" abre o WhatsApp com a mensagem: <em>Olá! Quero adquirir o seguinte item "nome do item".</em></p>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:16px;">
+              <div>
+                <label style="display:block; font-weight:700; font-size:.88rem; margin-bottom:6px;">WhatsApp que recebe os pedidos:</label>
+                <input value="{{ zapLoja }}" onInput="{{ mudarZapLoja }}" placeholder="5567991293269" style="width:100%; padding:12px 14px; border:1px solid #ccc; border-radius:10px; font-size:.95rem;" />
+              </div>
+              <div>
+                <label style="display:block; font-weight:700; font-size:.88rem; margin-bottom:6px;">Chave PIX do grupo (opcional):</label>
+                <input value="{{ pixLoja }}" onInput="{{ mudarPixLoja }}" placeholder="CNPJ, e-mail ou telefone" style="width:100%; padding:12px 14px; border:1px solid #ccc; border-radius:10px; font-size:.95rem;" />
+              </div>
+            </div>
+            <div style="margin-top:20px; padding:20px; background:#F8FBFB; border:1px solid #E0E6E5; border-left:4px solid #002D72; border-radius:12px;">
+              <div style="display:flex; align-items:center; gap:10px; font-family:'Montserrat',sans-serif; font-weight:800; color:#002D72; margin-bottom:8px;"><i class="fas fa-credit-card"></i>Gateway de pagamento (futuro)</div>
+              <p style="margin:0 0 14px; color:#5A6B72; font-size:.9rem; line-height:1.55;">Quando o grupo contratar um provedor (Mercado Pago, Pagar.me, Stripe), basta colar a chave aqui: o botão da loja passa a abrir o checkout no lugar do WhatsApp, sem mexer no site.</p>
+              <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); gap:14px;">
+                <div>
+                  <label style="display:block; font-weight:700; font-size:.84rem; margin-bottom:6px;">Provedor:</label>
+                  <select value="{{ provedor }}" onChange="{{ mudarProvedor }}" style="width:100%; padding:12px; border:1px solid #ccc; border-radius:6px; font-size:.92rem; background:#fff;">
+                    <option value="whatsapp">WhatsApp (ativo hoje)</option>
+                    <option value="mercadopago">Mercado Pago</option>
+                    <option value="pagarme">Pagar.me</option>
+                    <option value="stripe">Stripe</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="display:block; font-weight:700; font-size:.84rem; margin-bottom:6px;">Chave da API:</label>
+                  <input value="{{ chaveApi }}" onInput="{{ mudarChaveApi }}" placeholder="Cole a chave quando tiver a conta" style="width:100%; padding:12px 13px; border:1px solid #ccc; border-radius:10px; font-size:.92rem;" />
+                </div>
+              </div>
+            </div>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{ ehConfig }}" hint-placeholder-val="{{ false }}">
+          <section style="background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:clamp(18px,3vw,28px); animation:leSobe .35s cubic-bezier(.16,1,.3,1) both;">
+            <h2 style="margin:0 0 6px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.3rem;">Configurações</h2>
+            <p style="margin:0 0 22px; color:#7F8C8D; font-size:.92rem;">A senha e o conteúdo ficam guardados neste navegador. Ao publicar o site de verdade, isso migra para o Firestore junto com o resto do sistema.</p>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); gap:16px;">
+              <div>
+                <label style="display:block; font-weight:700; font-size:.88rem; margin-bottom:6px;">Nova senha de acesso:</label>
+                <input data-novasenha="1" type="password" autocomplete="new-password" placeholder="Mínimo de 6 caracteres" style="width:100%; padding:12px 14px; border:1px solid #ccc; border-radius:10px; font-size:.95rem;" />
+              </div>
+              <div style="display:flex; align-items:flex-end;">
+                <button onClick="{{ trocarSenha }}" style="padding:13px 22px; border:none; border-radius:20px; background:#389E92; color:#fff; font-weight:700; cursor:pointer; box-shadow:0 4px 12px rgba(56,158,146,.3);" style-hover="background:#002D72;">Atualizar Senha</button>
+              </div>
+            </div>
+            <div style="margin-top:24px; padding-top:20px; border-top:1px solid #eee; display:flex; flex-wrap:wrap; gap:12px;">
+              <button onClick="{{ exportar }}" style="display:inline-flex; align-items:center; gap:8px; padding:12px 20px; border:1px solid #E0E6E5; border-radius:20px; background:#fff; color:#002D72; font-weight:700; cursor:pointer;" style-hover="border-color:#389E92;"><i class="fas fa-download"></i>Baixar cópia do conteúdo</button>
+              <button onClick="{{ restaurar }}" style="display:inline-flex; align-items:center; gap:8px; padding:12px 20px; border:1px solid #F5C6C0; border-radius:20px; background:#FDECEA; color:#E74C3C; font-weight:700; cursor:pointer;" style-hover="background:#E74C3C; color:#fff;"><i class="fas fa-rotate-left"></i>Restaurar conteúdo original</button>
+            </div>
+          </section>
+        </sc-if>
+      </main>
+    </div>
+
+    <sc-if value="{{ aviso }}" hint-placeholder-val="{{ false }}">
+      <div style="position:fixed; right:20px; bottom:20px; z-index:120; display:flex; align-items:center; gap:10px; background:#002D72; color:#fff; padding:15px 22px; border-radius:14px; box-shadow:0 12px 30px rgba(0,0,0,.25); font-weight:700; animation:leSobe .3s cubic-bezier(.16,1,.3,1) both;">
+        <i class="fas fa-check-circle" style="color:#00E676;"></i>{{ aviso }}
+      </div>
+    </sc-if>
+  </div>
+</sc-if>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+const CHAVE = 'leSiteConteudo';
+const CHAVE_SENHA = 'leSiteSenha';
+const SENHA_PADRAO = 'liberdade2026';
+
+const PADRAO = {
+  textos: {
+    heroKicker: 'CAMPO GRANDE · ROCHEDO · MS',
+    heroT1: 'A roda',
+    heroT2: 'não para',
+    heroSub: 'Capoeira é cultura, disciplina e transformação. Dezoito núcleos, quatro países, um só grupo — e uma vaga esperando por você na próxima roda.',
+    stat1v: '18', stat1r: 'NÚCLEOS',
+    stat2v: '30+', stat2r: 'ANOS DE HISTÓRIA',
+    stat3v: '4', stat3r: 'PAÍSES',
+    stat4v: 'R$0', stat4r: 'AULA EXPERIMENTAL'
+  },
+  imagens: { heroFundo: 'assets/grupo-buriti.jpg' },
+  academias: [
+    { nome:'Mestre Profeta', bairro:'Núcleo Hab. Buriti', dias:'Segunda, quarta e sexta', horario:'19h00 às 20h30', endereco:'R. Jaime Costa, 589 — Núcleo Hab. Buriti', telefone:'(67) 99129-3269', whatsapp:'https://wa.me/5567991293269', instagramUrl:'https://www.instagram.com/mestreprofeta/', foto:'assets/retrato-profeta.jpg' },
+    { nome:'Professora Taynara', bairro:'Núcleo Hab. Buriti', dias:'Segunda, quarta e sexta', horario:'18h00 às 19h00', endereco:'R. Jaime Costa, 589 — Núcleo Hab. Buriti', telefone:'(67) 99313-7318', whatsapp:'https://wa.me/5567993137318', instagramUrl:'https://www.instagram.com/proftaynaracapoeira/', foto:'assets/retrato-taynara.jpg' },
+    { nome:'Mestre Omar', bairro:'Bairro Guanandi', dias:'Segunda a sábado', horario:'Consulte os horários no WhatsApp', endereco:'Rua Arapuã, 650 — Bairro Guanandi', telefone:'(67) 99223-9955', whatsapp:'https://wa.me/5567992239955', instagramUrl:'https://www.instagram.com/mestreomarcapoeira/', foto:'assets/retrato-omar.jpg' },
+    { nome:'Professor Rafinha', bairro:'Bairro Rancho Alegre', dias:'Segunda, quarta e sexta', horario:'19h30 às 21h00', endereco:'R. Cajarana, 389 — Bairro Rancho Alegre', telefone:'(67) 98211-8190', whatsapp:'https://wa.me/5567982118190', instagramUrl:'https://www.instagram.com/profrafinhacapoeira/', foto:'assets/retrato-rafinha.jpg' },
+    { nome:'Professor Tigoy', bairro:'Nova Campo Grande', dias:'Segunda, quarta e sexta', horario:'Consulte os horários no WhatsApp', endereco:'Avenida 02 — Escola Municipal Fauze Scaff Gattass Filho', telefone:'(67) 98454-8273', whatsapp:'https://wa.me/5567984548273', instagramUrl:'https://www.instagram.com/proftigoycapoeira/', foto:'assets/retrato-tigoy.jpg' },
+    { nome:'Instrutor Leiliano', bairro:'Bairro Bonança', dias:'Terça e quinta', horario:'19h00 às 20h30', endereco:'R. Jardim Silvera — Associação de Moradores, Bonança', telefone:'(67) 9192-3888', whatsapp:'https://wa.me/556791923888', instagramUrl:'https://www.instagram.com/liberdadeeexpressaobonanca/', foto:'assets/retrato-leiliano.jpg' }
+  ],
+  mestres: [
+    { nome:'Mestre Profeta', formacao:'Mestre de Capoeira — Fundador', historia:'Pioneiro do grupo com mais de 30 anos dedicados à capoeira, formando centenas de alunos e disseminando a cultura e disciplina por onde passa.', foto:'assets/retrato-profeta.jpg' },
+    { nome:'Mestre Omar', formacao:'Mestre de Capoeira', historia:'Dedicado à preservação das raízes tradicionais da capoeira angola e regional, mentor de várias gerações.', foto:'assets/retrato-omar.jpg' },
+    { nome:'Professora Taynara', formacao:'Educadora Física e Professora Responsável', historia:'Especialista em pedagogia da capoeira e capacitação motora infantil, unindo rigor técnico, alegria e respeito às tradições.', foto:'assets/retrato-taynara.jpg' },
+    { nome:'Professor Rafinha', formacao:'Professor de Capoeira', historia:'Atua na formação de base e infantil com foco em disciplina, cidadania e alegria através do esporte.', foto:'assets/retrato-rafinha.jpg' },
+    { nome:'Professor Tigoy', formacao:'Professor de Capoeira', historia:'Especialista em acrobacias, floreios e expressão corporal dinâmica dentro da roda.', foto:'assets/retrato-tigoy.jpg' },
+    { nome:'Professor Maick', formacao:'Professor Responsável — Rochedo/MS', historia:'Focado no desenvolvimento físico de alto rendimento e na técnica apurada dos golpes e esquivas.', foto:'assets/retrato-maick.jpg' },
+    { nome:'Instrutor Leiliano', formacao:'Instrutor Graduado', historia:'Excelência técnica e dedicação diária no apoio pedagógico aos treinos e eventos do grupo.', foto:'assets/retrato-leiliano.jpg' }
+  ],
+  eventos: [
+    { titulo:'Apresentação na Festa Julina', local:'Bairro Bonança', data:'10 de julho', ano:'2026', quando:'2026-07-10', horario:'19:00h', mapa:'https://www.google.com/maps/search/?api=1&query=Bairro%20Bonan%C3%A7a%2C%20Campo%20Grande%20-%20MS', drive:'https://drive.google.com/drive/folders/' },
+    { titulo:'Apresentação na Festa Julina', local:'Camapoã — MS', data:'11 de julho', ano:'2026', quando:'2026-07-11', horario:'19:00h', mapa:'https://www.google.com/maps/search/?api=1&query=Camapu%C3%A3%20-%20MS', drive:'https://drive.google.com/drive/folders/' },
+    { titulo:'Batizado de Capoeira', local:'Rochedo — MS', data:'25 de julho', ano:'2026', quando:'2026-07-25', horario:'19:00h', mapa:'https://www.google.com/maps/search/?api=1&query=Rochedo%20-%20MS', drive:'https://drive.google.com/drive/folders/' },
+    { titulo:'Batizado do Mestre Profeta', local:'Bairro Buriti', data:'22 de agosto', ano:'2026', quando:'2026-08-22', horario:'19:00h', mapa:'https://www.google.com/maps/search/?api=1&query=R.%20Jaime%20Costa%2C%20589%20-%20Buriti%2C%20Campo%20Grande%20-%20MS', drive:'https://drive.google.com/drive/folders/' },
+    { titulo:'Roda de Capoeira do Profº Rafinha', local:'Bairro Rancho Alegre', data:'29 de agosto', ano:'2026', quando:'2026-08-29', horario:'19:00h', mapa:'https://www.google.com/maps/search/?api=1&query=R.%20Cajarana%2C%20389%20-%20Rancho%20Alegre%2C%20Campo%20Grande%20-%20MS', drive:'https://drive.google.com/drive/folders/' },
+    { titulo:'Batizado do Profº Rafinha', local:'Bairro Rancho Alegre', data:'19 de setembro', ano:'2026', quando:'2026-09-19', horario:'19:00h', mapa:'https://www.google.com/maps/search/?api=1&query=R.%20Cajarana%2C%20389%20-%20Rancho%20Alegre%2C%20Campo%20Grande%20-%20MS', drive:'https://drive.google.com/drive/folders/' },
+    { titulo:'Batizado de Capoeira do Mestre Omar', local:'Bairro Guanandi', data:'Novembro', ano:'2026', quando:'2026-11-15', horario:'19:00h', mapa:'https://www.google.com/maps/search/?api=1&query=Rua%20Arapu%C3%A3%2C%20650%20-%20Guanandi%2C%20Campo%20Grande%20-%20MS', drive:'https://drive.google.com/drive/folders/' }
+  ],
+  produtos: [
+    { nome:'Abadá Oficial', desc:'Tecido leve, altamente resistente e bordado com o brasão oficial do grupo.', preco:'R$ 90,00', img:'assets/equipe.jpg' },
+    { nome:'Berimbau Profissional', desc:'Verga de biriba selecionada, cabaça perfeitamente afinada e arame importado.', preco:'R$ 220,00', img:'assets/bateria-externa.jpg' },
+    { nome:'Pandeiro Profissional', desc:'Pele animal natural, tarraxas reforçadas e excelente projeção sonora.', preco:'R$ 180,00', img:'assets/bateria.jpg' }
+  ],
+  loja: { whatsapp: '5567991293269', pix: '', provedor: 'whatsapp', chaveApi: '' }
+};
+
+const ROTULOS = {
+  heroKicker: 'Linha de cima (localidades)',
+  heroT1: 'Título — 1ª linha',
+  heroT2: 'Título — 2ª linha (verde)',
+  heroSub: 'Texto de apoio',
+  stat1v: 'Número 1', stat1r: 'Legenda 1',
+  stat2v: 'Número 2', stat2r: 'Legenda 2',
+  stat3v: 'Número 3', stat3r: 'Legenda 3',
+  stat4v: 'Número 4', stat4r: 'Legenda 4'
+};
+
+const SECOES = [
+  { id: 'hero', rotulo: 'Topo do Site', icone: 'fas fa-image' },
+  { id: 'academias', rotulo: 'Academias', icone: 'fas fa-map-marker-alt' },
+  { id: 'mestres', rotulo: 'Mestres e Professores', icone: 'fas fa-chalkboard-teacher' },
+  { id: 'eventos', rotulo: 'Agenda do Semestre', icone: 'far fa-calendar-alt' },
+  { id: 'produtos', rotulo: 'Loja Oficial', icone: 'fas fa-store' },
+  { id: 'loja', rotulo: 'Pagamentos', icone: 'fas fa-credit-card' },
+  { id: 'config', rotulo: 'Configurações', icone: 'fas fa-gear' }
+];
+
+const MODELOS = {
+  academias: { nome: 'Novo núcleo', bairro: '', dias: '', horario: '', endereco: '', telefone: '', whatsapp: '', instagramUrl: '', foto: 'assets/logo.png' },
+  mestres: { nome: 'Novo professor', formacao: '', historia: '', foto: 'assets/logo.png' },
+  eventos: { titulo: 'Novo evento', local: '', data: '', ano: '2026', quando: '2026-12-01', horario: '19:00h', mapa: '', drive: 'https://drive.google.com/drive/folders/' },
+  produtos: { nome: 'Novo produto', desc: '', preco: 'R$ 0,00', img: 'assets/logo.png' }
+};
+
+const CAMPOS = {
+  academias: [['nome', 'Nome do núcleo'], ['bairro', 'Bairro'], ['dias', 'Dias de aula'], ['horario', 'Horário'], ['endereco', 'Endereço'], ['telefone', 'Telefone exibido'], ['whatsapp', 'Link do WhatsApp'], ['instagramUrl', 'Link do Instagram']],
+  mestres: [['nome', 'Nome'], ['formacao', 'Titulação'], ['historia', 'História']],
+  eventos: [['titulo', 'Nome do evento'], ['local', 'Cidade / bairro'], ['data', 'Data exibida'], ['ano', 'Ano'], ['quando', 'Data real (AAAA-MM-DD)'], ['horario', 'Horário'], ['mapa', 'Link do Google Maps'], ['drive', 'Pasta do Google Drive']],
+  produtos: [['nome', 'Nome do produto'], ['desc', 'Descrição'], ['preco', 'Preço']]
+};
+
+const clonar = (o) => JSON.parse(JSON.stringify(o));
+
+class Component extends DCLogic {
+  state = { logado: false, erro: false, secao: 'hero', dados: clonar(PADRAO), aviso: '' };
+
+  componentDidMount() {
+    let salvo = {};
+    try { salvo = JSON.parse(window.localStorage.getItem(CHAVE) || '{}'); } catch (e) { salvo = {}; }
+    const dados = Object.assign(clonar(PADRAO), salvo);
+    dados.textos = Object.assign({}, PADRAO.textos, salvo.textos || {});
+    dados.imagens = Object.assign({}, PADRAO.imagens, salvo.imagens || {});
+    dados.loja = Object.assign({}, PADRAO.loja, salvo.loja || {});
+    const sessao = window.sessionStorage.getItem('leSiteAdmin') === 'ok';
+    this.setState({ dados: dados, logado: sessao });
+    this.responsivo();
+    setTimeout(() => this.aplicarPreviews(), 0);
+    this._onResize = () => this.responsivo();
+    window.addEventListener('resize', this._onResize);
+  }
+
+  componentDidUpdate() { this.responsivo(); this.aplicarPreviews(); }
+
+  aplicarPreviews() {
+    const d = this.state.dados;
+    const hero = document.querySelector('[data-preview="heroFundo"]');
+    if (hero && d.imagens && d.imagens.heroFundo) hero.src = d.imagens.heroFundo;
+    const sec = this.state.secao;
+    const lista = d[sec];
+    if (!Array.isArray(lista)) return;
+    document.querySelectorAll('[data-mini]').forEach((el) => {
+      const item = lista[Number(el.dataset.mini)];
+      if (item) el.src = item.foto || item.img || 'assets/logo.png';
+    });
+  }
+
+  componentWillUnmount() { window.removeEventListener('resize', this._onResize); }
+
+  responsivo() {
+    const grade = document.querySelector('[data-grade]');
+    const lateral = document.querySelector('[data-lateral]');
+    if (!grade) return;
+    const estreito = window.innerWidth < 900;
+    grade.style.gridTemplateColumns = estreito ? 'minmax(0,1fr)' : '260px minmax(0,1fr)';
+    if (lateral) lateral.style.position = estreito ? 'static' : 'sticky';
+  }
+
+  senhaAtual() { return window.localStorage.getItem(CHAVE_SENHA) || SENHA_PADRAO; }
+
+  toast(msg) {
+    this.setState({ aviso: msg });
+    clearTimeout(this._t);
+    this._t = setTimeout(() => this.setState({ aviso: '' }), 2600);
+  }
+
+  entrar = () => {
+    const campo = document.querySelector('[data-senha]');
+    const valor = campo ? campo.value : '';
+    if (valor === this.senhaAtual()) {
+      window.sessionStorage.setItem('leSiteAdmin', 'ok');
+      this.setState({ logado: true, erro: false });
+    } else {
+      this.setState({ erro: true });
+      const cartao = document.querySelector('[data-cartao]');
+      if (cartao) { cartao.style.animation = 'none'; void cartao.offsetWidth; cartao.style.animation = 'leShake .45s'; }
+    }
+  };
+
+  atualizar(caminho, valor) {
+    const dados = clonar(this.state.dados);
+    caminho(dados, valor);
+    this.setState({ dados: dados });
+  }
+
+  lerArquivo(arquivo, aoLer) {
+    if (!arquivo) return;
+    const leitor = new FileReader();
+    leitor.onload = () => aoLer(leitor.result);
+    leitor.readAsDataURL(arquivo);
+  }
+
+  renderVals() {
+    const d = this.state.dados;
+    const sec = this.state.secao;
+    const listaAtiva = ['academias', 'mestres', 'eventos', 'produtos'].indexOf(sec) >= 0;
+    const itens = listaAtiva ? (d[sec] || []) : [];
+
+    const titulos = { academias: 'Academias e Núcleos', mestres: 'Mestres e Professores', eventos: 'Agenda do Semestre', produtos: 'Loja Oficial' };
+    const ajudas = {
+      academias: 'Esta é a lista que aparece hoje no site. Edite, adicione ou exclua e clique em Salvar Alterações.',
+      mestres: 'Ordem da lista é a ordem que aparece no site.',
+      eventos: 'A "Data real" controla a ordem e se o evento já passou (fica cinza com o botão de fotos e vídeos).',
+      produtos: 'O botão de compra abre o WhatsApp com: Olá! Quero adquirir o seguinte item "nome do produto".'
+    };
+    const adicionar = { academias: 'Cadastrar Academia', mestres: 'Cadastrar Professor', eventos: 'Cadastrar Evento', produtos: 'Cadastrar Produto' };
+
+    return {
+      dadosProntos: true,
+      logado: this.state.logado,
+      deslogado: !this.state.logado,
+      erroSenha: this.state.erro,
+      aviso: this.state.aviso,
+      entrar: this.entrar,
+      aoTeclar: (ev) => { if (ev.key === 'Enter') this.entrar(); },
+      sair: () => { window.sessionStorage.removeItem('leSiteAdmin'); this.setState({ logado: false, erro: false }); },
+
+      ehTextos: sec === 'hero',
+      ehLista: listaAtiva,
+      ehLoja: sec === 'loja',
+      ehConfig: sec === 'config',
+
+      secoes: SECOES.map((s) => ({
+        rotulo: s.rotulo,
+        icone: s.icone,
+        abrir: () => this.setState({ secao: s.id }),
+        estilo: (s.id === sec)
+          ? "display:flex; align-items:center; gap:11px; width:100%; text-align:left; padding:12px 14px; margin-bottom:4px; border:none; border-radius:14px; background:rgba(56,158,146,.12); color:#389E92; font-family:'Nunito',sans-serif; font-weight:700; font-size:.95rem; cursor:pointer;"
+          : "display:flex; align-items:center; gap:11px; width:100%; text-align:left; padding:12px 14px; margin-bottom:4px; border:none; border-radius:14px; background:none; color:#2C3E50; font-family:'Nunito',sans-serif; font-weight:700; font-size:.95rem; cursor:pointer;"
+      })),
+
+      camposTexto: Object.keys(ROTULOS).map((k) => ({
+        rotulo: ROTULOS[k],
+        valor: d.textos[k] || '',
+        mudar: (ev) => { const v = ev.target.value; this.atualizar((dd) => { dd.textos[k] = v; }); }
+      })),
+      fotoHero: d.imagens.heroFundo,
+      trocarFotoHero: (ev) => this.lerArquivo(ev.target.files[0], (url) => this.atualizar((dd) => { dd.imagens.heroFundo = url; })),
+
+      tituloLista: titulos[sec] || '',
+      ajudaLista: ajudas[sec] || '',
+      rotuloAdicionar: adicionar[sec] || 'Adicionar',
+      adicionar: () => this.atualizar((dd) => { dd[sec] = (dd[sec] || []).concat([clonar(MODELOS[sec])]); }),
+
+      itens: itens.map((item, i) => ({
+        titulo: item.nome || item.titulo || 'Item',
+        indice: i,
+        temFoto: sec !== 'eventos',
+        remover: () => this.atualizar((dd) => { dd[sec].splice(i, 1); }),
+        trocarFoto: (ev) => this.lerArquivo(ev.target.files[0], (url) => this.atualizar((dd) => { if (sec === 'produtos') dd[sec][i].img = url; else dd[sec][i].foto = url; })),
+        campos: (CAMPOS[sec] || []).map((par) => ({
+          rotulo: par[1],
+          dica: par[1],
+          valor: item[par[0]] || '',
+          mudar: (ev) => { const v = ev.target.value; this.atualizar((dd) => { dd[sec][i][par[0]] = v; }); }
+        }))
+      })),
+
+      zapLoja: d.loja.whatsapp,
+      pixLoja: d.loja.pix,
+      provedor: d.loja.provedor,
+      chaveApi: d.loja.chaveApi,
+      mudarZapLoja: (ev) => { const v = ev.target.value; this.atualizar((dd) => { dd.loja.whatsapp = v; }); },
+      mudarPixLoja: (ev) => { const v = ev.target.value; this.atualizar((dd) => { dd.loja.pix = v; }); },
+      mudarProvedor: (ev) => { const v = ev.target.value; this.atualizar((dd) => { dd.loja.provedor = v; }); },
+      mudarChaveApi: (ev) => { const v = ev.target.value; this.atualizar((dd) => { dd.loja.chaveApi = v; }); },
+
+      salvar: () => {
+        try {
+          window.localStorage.setItem(CHAVE, JSON.stringify(this.state.dados));
+          this.toast('Conteúdo salvo com sucesso!');
+        } catch (e) {
+          this.toast('Não foi possível salvar (imagens muito grandes).');
+        }
+      },
+      trocarSenha: () => {
+        const campo = document.querySelector('[data-novasenha]');
+        const nova = campo ? campo.value.trim() : '';
+        if (nova.length < 6) { this.toast('A senha precisa ter ao menos 6 caracteres.'); return; }
+        window.localStorage.setItem(CHAVE_SENHA, nova);
+        if (campo) campo.value = '';
+        this.toast('Senha atualizada!');
+      },
+      exportar: () => {
+        const blob = new Blob([JSON.stringify(this.state.dados, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'conteudo-site-capoeira.json';
+        a.click();
+        URL.revokeObjectURL(a.href);
+      },
+      restaurar: () => {
+        if (!window.confirm('Deseja REALMENTE restaurar o conteúdo original? As alterações salvas serão perdidas.')) return;
+        window.localStorage.removeItem(CHAVE);
+        this.setState({ dados: clonar(PADRAO) });
+        this.toast('Conteúdo original restaurado.');
+      }
+    };
+  }
+}
+
+</script>
+</body>
+</html>
