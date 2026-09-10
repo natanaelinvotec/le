@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/tokens/fonts.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/tokens/colors.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/tokens/typography.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/tokens/spacing.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/tokens/radius.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/tokens/elevation.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/tokens/motion.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/patterns/base.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/patterns/components.css" />
+<link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/styles.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<script src="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/_ds_bundle.js"></script>
+<style>
+body{ margin:0; background:#0A1020; color:#2C3E50; font-family:'Nunito',sans-serif; }
+*{ box-sizing:border-box; }
+a{ color:#00E676; text-decoration:none; }
+a:hover{ color:#389E92; }
+:focus-visible{ outline:3px solid #389E92; outline-offset:2px; }
+@keyframes apEntra{ from{ opacity:0; transform:translateY(14px);} to{ opacity:1; transform:none;} }
+@keyframes apBlob{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-22px);} }
+@keyframes apTranca{ 0%{ background-position:0 0;} 100%{ background-position:60px 0;} }
+@keyframes apPulso{ 0%{ box-shadow:0 0 0 0 rgba(0,230,118,.45);} 70%{ box-shadow:0 0 0 18px rgba(0,230,118,0);} 100%{ box-shadow:0 0 0 0 rgba(0,230,118,0);} }
+@keyframes apShake{ 0%,100%{ transform:translateX(0);} 20%{ transform:translateX(-7px);} 40%{ transform:translateX(7px);} 60%{ transform:translateX(-4px);} 80%{ transform:translateX(4px);} }
+@keyframes apGira{ from{ transform:rotate(0);} to{ transform:rotate(360deg);} }
+@keyframes apSobe{ 0%{ transform:translate3d(0,0,0) scale(.85); opacity:0;} 12%{ opacity:1;} 50%{ transform:translate3d(16px,-130px,0) scale(1);} 88%{ opacity:1;} 100%{ transform:translate3d(-10px,-260px,0) scale(1.1); opacity:0;} }
+</style>
+</helmet>
+
+<div style="min-height:100vh; display:flex; flex-direction:column; align-items:center; gap:22px; padding:34px 16px 48px; background:radial-gradient(120% 80% at 50% 0%, #10203F 0%, #0A1020 60%);">
+
+  <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:10px; text-align:center;">
+    <img src="assets/logo.png" alt="" style="width:40px; height:40px; border-radius:50%; background:#fff;" />
+    <div style="text-align:left;">
+      <div style="font-family:'Montserrat',sans-serif; font-weight:800; color:#fff; font-size:1.05rem; line-height:1.1;">App Capoeira Liberdade e Expressão</div>
+      <div style="color:rgba(255,255,255,.5); font-size:.8rem;">Protótipo navegável · toque nos botões</div>
+    </div>
+  </div>
+
+  <div style="display:flex; gap:8px; padding:6px; border-radius:999px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12);">
+    <sc-for list="{{ papeis }}" as="p" hint-placeholder-count="0">
+      <button onClick="{{ p.trocar }}" style="{{ p.estilo }}">{{ p.rotulo }}</button>
+    </sc-for>
+  </div>
+
+  <div style="position:relative; width:390px; max-width:100%; height:844px; border-radius:46px; background:#0B0F18; padding:10px; box-shadow:0 40px 90px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.08);">
+    <div style="position:relative; width:100%; height:100%; border-radius:38px; overflow:hidden; background:#EAF2F1; display:flex; flex-direction:column;">
+
+      <div style="position:absolute; top:0; left:0; right:0; z-index:40; display:flex; align-items:center; justify-content:space-between; padding:14px 26px 0; font-size:.8rem; font-weight:800; color:{{ corStatus }}; pointer-events:none;">
+        <span>9:41</span>
+        <span style="display:flex; gap:6px; align-items:center;"><i class="fas fa-signal"></i><i class="fas fa-wifi"></i><i class="fas fa-battery-three-quarters"></i></span>
+      </div>
+
+      <sc-if value="{{ telaLogin }}" hint-placeholder-val="{{ true }}">
+        <div style="flex:1; position:relative; display:flex; flex-direction:column; justify-content:center; padding:60px 26px 40px; background:linear-gradient(160deg,#002D72 0%,#0B1C3C 55%,#05070C 100%); overflow:hidden;">
+          <div style="position:absolute; top:-60px; left:-70px; width:320px; height:320px; border-radius:50%; background:#389E92; filter:blur(60px); opacity:.5; animation:apBlob 8s ease-in-out infinite;"></div>
+          <div style="position:absolute; bottom:-90px; right:-80px; width:300px; height:300px; border-radius:50%; background:#00E676; filter:blur(64px); opacity:.32; animation:apBlob 9s ease-in-out infinite reverse;"></div>
+
+          <div data-cartaologin="1" style="position:relative; background:rgba(255,255,255,.97); border-radius:26px; padding:30px 24px; box-shadow:0 24px 60px rgba(0,0,0,.4); animation:apEntra .5s cubic-bezier(.16,1,.3,1) both;">
+            <img src="assets/logo.png" alt="Brasão do grupo" style="width:84px; height:84px; border-radius:50%; margin:0 auto 16px; border:3px solid #00E676;" />
+            <h1 style="margin:0 0 4px; text-align:center; font-family:'Montserrat',sans-serif; font-size:1.3rem; color:#002D72;">Portal do Aluno</h1>
+            <p style="margin:0 0 24px; text-align:center; color:#7F8C8D; font-size:.9rem;">Entre com o e-mail ou celular cadastrado.</p>
+
+            <label for="appUsuario" style="display:block; font-weight:700; font-size:.85rem; margin-bottom:6px;">E-mail ou celular:</label>
+            <div style="position:relative; margin-bottom:16px;">
+              <i class="fas fa-user" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#7F8C8D;"></i>
+              <input id="appUsuario" value="natanael@liberdade.com" style="width:100%; padding:15px 14px 15px 42px; border:1px solid #ccc; border-radius:12px; font-size:1rem; font-family:'Nunito',sans-serif;" />
+            </div>
+
+            <label for="appSenha" style="display:block; font-weight:700; font-size:.85rem; margin-bottom:6px;">Senha:</label>
+            <div style="position:relative; margin-bottom:8px;">
+              <i class="fas fa-lock" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#7F8C8D;"></i>
+              <input id="appSenha" data-senha="1" type="{{ tipoSenha }}" value="capoeira" style="width:100%; padding:15px 46px 15px 42px; border:1px solid #ccc; border-radius:12px; font-size:1rem; font-family:'Nunito',sans-serif;" />
+              <button onClick="{{ verSenha }}" aria-label="Mostrar ou ocultar a senha" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:34px; height:34px; border:none; border-radius:50%; background:none; color:#7F8C8D; cursor:pointer;"><i class="{{ iconeOlho }}"></i></button>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; margin-bottom:20px;"><a href="#recuperar" style="color:#389E92; font-size:.84rem; font-weight:700;">Esqueci minha senha</a></div>
+
+            <button onClick="{{ acessar }}" style="{{ botaoEntrar }}">{{ rotuloEntrar }}</button>
+
+            <div style="display:flex; align-items:center; gap:12px; margin:22px 0 16px;">
+              <div style="flex:1; height:1px; background:#eee;"></div><span style="color:#95A5A6; font-size:.78rem; font-weight:700;">AINDA NÃO TREINA?</span><div style="flex:1; height:1px; background:#eee;"></div>
+            </div>
+            <a href="inscricao.html" style="display:block; padding:15px; border-radius:20px; border:1px solid #E0E6E5; text-align:center; color:#002D72; font-weight:800; font-size:.95rem;">Fazer minha inscrição</a>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ telaEscolha }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1; display:flex; flex-direction:column; justify-content:center; padding:60px 22px 40px; background:linear-gradient(160deg,#002D72 0%,#0B1C3C 60%,#05070C 100%); animation:apEntra .4s cubic-bezier(.16,1,.3,1) both;">
+          <div style="text-align:center; margin-bottom:26px;">
+            <div style="color:#00E676; font-size:.72rem; font-weight:800; letter-spacing:.18em; margin-bottom:8px;">CONTA FAMÍLIA</div>
+            <h1 style="margin:0 0 6px; color:#fff; font-family:'Montserrat',sans-serif; font-size:1.5rem;">Quem vai treinar?</h1>
+            <p style="margin:0; color:rgba(255,255,255,.68); font-size:.88rem;">Escolha o atleta para ver o prontuário dele.</p>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <sc-for list="{{ atletasProntos }}" as="a" hint-placeholder-count="0">
+              <button onClick="{{ a.selecionar }}" style="{{ a.cartao }}">
+                <img src="{{ a.foto }}" alt="" style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid #389E92; flex:none;" />
+                <span style="flex:1; min-width:0;">
+                  <span style="display:block; font-family:'Montserrat',sans-serif; font-weight:800; color:#002D72; font-size:1rem;">{{ a.curto }}</span>
+                  <span style="display:block; color:#7F8C8D; font-size:.8rem; margin-top:3px;">{{ a.papelFamilia }} · {{ a.cordao }}</span>
+                </span>
+                <span style="{{ a.chip }}">{{ a.mensalidade }}</span>
+              </button>
+            </sc-for>
+          </div>
+          <p style="margin:26px 0 0; text-align:center; color:rgba(255,255,255,.45); font-size:.78rem; line-height:1.5;">Cada atleta vê apenas o próprio prontuário.<br />Quem treina sozinho entra direto, sem esta tela.</p>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ telaApp }}" hint-placeholder-val="{{ false }}">
+        <div data-rolagem="1" style="flex:1; overflow-y:auto; overflow-x:hidden; padding-bottom:130px; background:#EAF2F1;">
+
+          <sc-if value="{{ ehInicio }}" hint-placeholder-val="{{ false }}">
+            <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
+              <div style="background:linear-gradient(158deg,#0B5C52 0%,#12796B 42%,#002D72 100%); padding:52px 20px 74px; border-radius:0 0 30px 30px; position:relative; overflow:hidden;">
+                <div style="position:absolute; right:-40px; top:-30px; width:180px; height:180px; border-radius:50%; background:rgba(255,255,255,.06);"></div>
+                <div style="position:absolute; top:-70px; left:-50px; width:220px; height:220px; border-radius:50%; background:#00E676; filter:blur(58px); opacity:.3; animation:apBlob 9s ease-in-out infinite;"></div>
+                <div style="position:absolute; bottom:-80px; right:-40px; width:200px; height:200px; border-radius:50%; background:#389E92; filter:blur(52px); opacity:.4; animation:apBlob 11s ease-in-out infinite reverse;"></div>
+                <div style="position:absolute; width:54px; height:54px; left:16%; bottom:-54px; border-radius:50%; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.22); animation:apSobe 15s linear infinite;"></div>
+                <div style="position:absolute; width:26px; height:26px; left:46%; bottom:-26px; border-radius:50%; background:rgba(0,230,118,.14); border:1px solid rgba(0,230,118,.3); animation:apSobe 11s linear infinite 1.6s;"></div>
+                <div style="position:absolute; width:38px; height:38px; left:72%; bottom:-38px; border-radius:50%; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); animation:apSobe 13s linear infinite 3.4s;"></div>
+                <div style="position:absolute; width:16px; height:16px; left:88%; bottom:-16px; border-radius:50%; background:rgba(255,255,255,.16); animation:apSobe 9s linear infinite 5s;"></div>
+                <div style="position:relative; display:flex; align-items:center; gap:12px;">
+                  <button onClick="{{ abrirTrocador }}" aria-label="Trocar de atleta" style="position:relative; width:48px; height:48px; padding:0; border:2px solid rgba(255,255,255,.7); border-radius:50%; background:none; cursor:pointer; flex:none;">
+                    <sc-for list="{{ fotoAtletaLista }}" as="f" hint-placeholder-count="0">
+                      <img src="{{ f.url }}" alt="Foto do atleta" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" />
+                    </sc-for>
+                    <sc-if value="{{ ehFamilia }}" hint-placeholder-val="{{ false }}">
+                      <span style="position:absolute; right:-3px; bottom:-3px; width:20px; height:20px; border-radius:50%; background:#00E676; color:#05070C; font-size:.6rem; display:flex; align-items:center; justify-content:center; border:2px solid #1E5A7F;"><i class="fas fa-repeat"></i></span>
+                    </sc-if>
+                  </button>
+                  <div style="flex:1; min-width:0;">
+                    <div style="color:#fff; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.08rem; line-height:1.1;">Olá, {{ atletaNome }}</div>
+                    <div style="color:rgba(255,255,255,.72); font-size:.82rem;">{{ atletaAcademia }}</div>
+                  </div>
+                  <button onClick="{{ irPerfil }}" aria-label="Notificações" style="position:relative; width:42px; height:42px; border-radius:50%; border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.12); color:#fff; cursor:pointer;">
+                    <i class="far fa-bell"></i>
+                    <span style="position:absolute; top:9px; right:11px; width:8px; height:8px; border-radius:50%; background:#00E676; border:2px solid #1E5A7F;"></span>
+                  </button>
+                </div>
+              </div>
+
+              <div style="margin:-56px 16px 0; background:#fff; border-radius:22px; padding:20px; box-shadow:0 14px 34px rgba(0,45,114,.14);">
+                <div style="display:flex; align-items:center; gap:16px;">
+                  <div style="position:relative; width:78px; height:78px; flex:none;">
+                    <div style="width:78px; height:78px; border-radius:50%; background:conic-gradient(#00E676 0turn {{ voltaProgresso }}, #E6EDEC {{ voltaProgresso }} 1turn);"></div>
+                    <div style="position:absolute; inset:8px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; font-family:'Montserrat',sans-serif; font-weight:800; color:#002D72; font-size:1.05rem;">{{ progresso }}%</div>
+                  </div>
+                  <div style="min-width:0;">
+                    <div style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; background:rgba(0,230,118,.14); color:#00A854; font-size:.72rem; font-weight:800; letter-spacing:.08em; margin-bottom:6px;"><span style="width:6px; height:6px; border-radius:50%; background:#00E676;"></span>APTO À TROCA</div>
+                    <div style="font-family:'Montserrat',sans-serif; font-weight:800; color:#002D72; font-size:1.12rem; line-height:1.15;">{{ atletaCordao }}</div>
+                    <div style="color:#7F8C8D; font-size:.86rem; margin-top:3px;">Próximo: <strong style="color:#389E92;">Liberto</strong> no batizado de 22/08</div>
+                  </div>
+                </div>
+                <div style="margin-top:16px; width:100%; height:18px; border-radius:20px; background:#E6EDEC; overflow:hidden; box-shadow:inset 0 2px 5px rgba(0,0,0,.06);">
+                  <div style="height:100%; width:{{ progresso }}%; border-radius:20px; animation:apTranca 2s linear infinite; box-shadow:0 0 14px rgba(0,230,118,.6); background:repeating-linear-gradient(45deg,#D2691E 0,#D2691E 10px,#D32F2F 10px,#D32F2F 20px,#D2691E 20px,#D2691E 30px);"></div>
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:16px 16px 0;">
+                <sc-for list="{{ atalhos }}" as="a" hint-placeholder-count="0">
+                  <button onClick="{{ a.abrir }}" style="display:flex; flex-direction:column; align-items:center; gap:7px; padding:14px 4px; border:1px solid #E0E6E5; border-radius:16px; background:#fff; cursor:pointer; font-family:'Nunito',sans-serif; transition:.25s cubic-bezier(.16,1,.3,1);" style-hover="transform:translateY(-3px); box-shadow:0 10px 22px rgba(0,0,0,.08);">
+                    <span style="width:38px; height:38px; border-radius:50%; background:rgba(56,158,146,.12); color:#389E92; display:flex; align-items:center; justify-content:center; font-size:1rem;"><i class="{{ a.icone }}"></i></span>
+                    <span style="font-size:.72rem; font-weight:700; color:#2C3E50; text-align:center; line-height:1.2;">{{ a.rotulo }}</span>
+                  </button>
+                </sc-for>
+              </div>
+
+              <div style="margin:22px 16px 0;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                  <h2 style="margin:0; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.02rem;">Próxima roda</h2>
+                  <button onClick="{{ irAulas }}" style="border:none; background:none; color:#389E92; font-weight:800; font-size:.82rem; cursor:pointer; font-family:'Nunito',sans-serif;">Ver agenda</button>
+                </div>
+                <div style="position:relative; border-radius:20px; overflow:hidden; height:150px;">
+                  <img src="assets/roda-plateia.jpg" alt="Roda de capoeira" style="width:100%; height:100%; object-fit:cover;" />
+                  <div style="position:absolute; inset:0; background:linear-gradient(180deg,rgba(5,7,12,.1),rgba(5,7,12,.86));"></div>
+                  <div style="position:absolute; left:16px; right:16px; bottom:14px;">
+                    <div style="color:#00E676; font-size:.72rem; font-weight:800; letter-spacing:.12em; margin-bottom:4px;">22 DE AGOSTO · 19:00H</div>
+                    <div style="color:#fff; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.05rem;">Batizado do Mestre Profeta</div>
+                    <div style="color:rgba(255,255,255,.75); font-size:.82rem; margin-top:2px;">R. Jaime Costa, 589 — Buriti</div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="margin:22px 16px 0; background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:18px; display:flex; gap:14px; align-items:center;">
+                <img src="assets/retrato-profeta.jpg" alt="Mestre Profeta" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:3px solid #389E92; flex:none;" />
+                <div style="min-width:0;">
+                  <div style="font-family:'Montserrat',sans-serif; color:#002D72; font-weight:800; font-size:1rem;">Mestre Profeta</div>
+                  <div style="color:#389E92; font-weight:700; font-size:.8rem; margin:2px 0 5px;">Seu mestre responsável</div>
+                  <div style="color:#7F8C8D; font-size:.82rem; line-height:1.4;">Aulas segunda, quarta e sexta · 19h00 às 20h30</div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ ehEvolucao }}" hint-placeholder-val="{{ false }}">
+            <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
+              <div style="background:#002D72; padding:52px 20px 24px; border-radius:0 0 26px 26px;">
+                <h1 style="margin:0 0 4px; color:#fff; font-family:'Montserrat',sans-serif; font-size:1.35rem;">Minha Evolução</h1>
+                <p style="margin:0; color:rgba(255,255,255,.7); font-size:.87rem;">Atinja 70% ou mais nos critérios avaliados pelo seu mestre para estar apto à nova fase!</p>
+              </div>
+              <div style="margin:16px;">
+                <div style="background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:18px;">
+                  <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:12px;">
+                    <span style="font-weight:800; color:#2C3E50; font-size:.92rem;">Termômetro de prontidão</span>
+                    <span style="font-family:'Montserrat',sans-serif; font-weight:800; color:#389E92; font-size:1.4rem;">{{ progresso }}%</span>
+                  </div>
+                  <div style="width:100%; height:22px; border-radius:20px; background:#E6EDEC; overflow:hidden;">
+                    <div style="height:100%; width:{{ progresso }}%; border-radius:20px; animation:apTranca 2s linear infinite; box-shadow:0 0 14px rgba(0,230,118,.55); background:repeating-linear-gradient(45deg,#D32F2F 0,#D32F2F 10px,#D32F2F 10px,#D32F2F 20px,#D32F2F 20px,#D32F2F 30px);"></div>
+                  </div>
+                </div>
+
+                <h2 style="margin:22px 0 10px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.02rem;">Notas por fundamento</h2>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:9px;">
+                  <sc-for list="{{ criterios }}" as="c" hint-placeholder-count="0">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; background:#fff; border:1px solid #E0E6E5; border-radius:14px; padding:12px 13px;">
+                      <span style="font-weight:700; font-size:.8rem; color:#2C3E50; min-width:0;">{{ c.nome }}</span>
+                      <span style="{{ c.chip }}">{{ c.nota }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+
+                <h2 style="margin:22px 0 10px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.02rem;">Caminho do cordão</h2>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                  <sc-for list="{{ trilha }}" as="t" hint-placeholder-count="0">
+                    <div style="{{ t.linha }}">
+                      <span style="{{ t.faixa }}"></span>
+                      <span style="{{ t.texto }}">{{ t.nome }}</span>
+                      <span style="{{ t.tag }}">{{ t.estado }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ ehLoja }}" hint-placeholder-val="{{ false }}">
+            <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
+              <div style="background:#002D72; padding:52px 20px 24px; border-radius:0 0 26px 26px;">
+                <h1 style="margin:0 0 4px; color:#fff; font-family:'Montserrat',sans-serif; font-size:1.35rem;">Financeiro e Loja</h1>
+                <p style="margin:0; color:rgba(255,255,255,.7); font-size:.87rem;">Mantenha sua contribuição em dia para garantir suporte nas rodas e eventos oficiais.</p>
+              </div>
+              <div style="margin:16px;">
+                <div style="background:linear-gradient(140deg,#389E92,#002D72); border-radius:22px; padding:22px; color:#fff; box-shadow:0 14px 32px rgba(0,45,114,.24);">
+                  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                    <span style="font-size:.78rem; font-weight:800; letter-spacing:.12em; opacity:.8;">MENSALIDADE DE SETEMBRO</span>
+                    <span style="padding:5px 11px; border-radius:999px; background:rgba(255,255,255,.16); font-size:.72rem; font-weight:800;">EM ABERTO</span>
+                  </div>
+                  <div style="font-family:'Montserrat',sans-serif; font-weight:800; font-size:2.2rem; line-height:1.1;">R$ 50,00</div>
+                  <div style="opacity:.78; font-size:.85rem; margin-top:2px;">Vencimento todo dia 10 de cada mês</div>
+                  <button onClick="{{ pagarPix }}" style="margin-top:18px; width:100%; padding:15px; border:none; border-radius:18px; background:#00E676; color:#05070C; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1rem; cursor:pointer; animation:apPulso 3s infinite;"><i class="fas fa-qrcode"></i> Pagar com PIX</button>
+                </div>
+
+                <sc-if value="{{ ehFamilia }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:16px; background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:18px;">
+                    <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:4px;">
+                      <h2 style="margin:0; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1rem;">Mensalidades da família</h2>
+                      <span style="font-family:'Montserrat',sans-serif; font-weight:800; color:#389E92; font-size:1.15rem;">{{ totalFamilia }}</span>
+                    </div>
+                    <p style="margin:0 0 14px; color:#7F8C8D; font-size:.82rem;">{{ emAberto }} atleta(s) com mensalidade em aberto. Pague tudo de uma vez em um único PIX.</p>
+                    <div style="display:flex; flex-direction:column; gap:9px;">
+                      <sc-for list="{{ atletasProntos }}" as="a" hint-placeholder-count="0">
+                        <div style="display:flex; align-items:center; gap:11px; padding:11px 12px; background:#F8FBFB; border:1px solid #E0E6E5; border-radius:13px;">
+                          <img src="{{ a.foto }}" alt="" style="width:34px; height:34px; border-radius:50%; object-fit:cover; flex:none;" />
+                          <span style="flex:1; min-width:0; font-weight:700; color:#2C3E50; font-size:.88rem;">{{ a.curto }}</span>
+                          <span style="{{ a.chip }}">{{ a.mensalidade }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                    <button onClick="{{ pagarPix }}" style="margin-top:14px; width:100%; padding:14px; border:none; border-radius:18px; background:#002D72; color:#fff; font-weight:800; cursor:pointer; font-family:'Nunito',sans-serif;"><i class="fas fa-qrcode"></i> Pagar tudo em um PIX</button>
+                  </div>
+                </sc-if>
+
+                <h2 style="margin:24px 0 10px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.02rem;">Loja oficial</h2>
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                  <sc-for list="{{ produtosProntos }}" as="p" hint-placeholder-count="0">
+                    <article style="display:flex; gap:14px; align-items:center; background:#fff; border:1px solid #E0E6E5; border-radius:18px; padding:12px;">
+                      <img src="{{ p.img }}" alt="{{ p.nome }}" style="width:74px; height:74px; border-radius:14px; object-fit:cover; flex:none;" />
+                      <div style="flex:1; min-width:0;">
+                        <div style="font-family:'Montserrat',sans-serif; color:#002D72; font-weight:800; font-size:.98rem;">{{ p.nome }}</div>
+                        <div style="color:#7F8C8D; font-size:.8rem; line-height:1.35; margin:3px 0 6px;">{{ p.desc }}</div>
+                        <div style="font-weight:800; color:#389E92; font-size:1.05rem;">{{ p.preco }}</div>
+                      </div>
+                      <a href="{{ p.link }}" target="_blank" rel="noopener" aria-label="Comprar" style="width:46px; height:46px; border-radius:14px; background:#00E676; color:#05070C; display:flex; align-items:center; justify-content:center; font-size:1.05rem; flex:none;"><i class="fas fa-cart-plus"></i></a>
+                    </article>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ ehAulas }}" hint-placeholder-val="{{ false }}">
+            <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
+              <div style="background:#002D72; padding:52px 20px 24px; border-radius:0 0 26px 26px;">
+                <h1 style="margin:0 0 4px; color:#fff; font-family:'Montserrat',sans-serif; font-size:1.35rem;">Aulas e Agenda</h1>
+                <p style="margin:0; color:rgba(255,255,255,.7); font-size:.87rem;">Videoaulas do grupo e os próximos eventos do semestre.</p>
+              </div>
+              <div style="margin:16px;">
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                  <sc-for list="{{ aulasProntas }}" as="v" hint-placeholder-count="0">
+                    <article style="border:1px solid #E0E6E5; border-radius:18px; overflow:hidden; background:#fff;">
+                      <div style="position:relative; height:130px;">
+                        <img src="{{ v.capa }}" alt="{{ v.titulo }}" style="width:100%; height:100%; object-fit:cover;" />
+                        <div style="position:absolute; inset:0; background:rgba(5,7,12,.34); display:flex; align-items:center; justify-content:center;">
+                          <span style="width:52px; height:52px; border-radius:50%; background:rgba(255,255,255,.92); color:#002D72; display:flex; align-items:center; justify-content:center; font-size:1.1rem;"><i class="fas fa-play"></i></span>
+                        </div>
+                      </div>
+                      <div style="padding:14px 16px;">
+                        <div style="font-family:'Montserrat',sans-serif; color:#002D72; font-weight:800; font-size:.98rem;">{{ v.titulo }}</div>
+                        <div style="color:#7F8C8D; font-size:.83rem; margin-top:4px; line-height:1.4;">{{ v.desc }}</div>
+                      </div>
+                    </article>
+                  </sc-for>
+                </div>
+
+                <h2 style="margin:24px 0 10px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.02rem;">Agenda do semestre</h2>
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                  <sc-for list="{{ agenda }}" as="e" hint-placeholder-count="0">
+                    <div style="{{ e.cartao }}">
+                      <div style="{{ e.dataBox }}">
+                        <div style="font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.1rem; line-height:1;">{{ e.dia }}</div>
+                        <div style="font-size:.68rem; font-weight:800; letter-spacing:.1em; opacity:.8;">{{ e.mes }}</div>
+                      </div>
+                      <div style="flex:1; min-width:0;">
+                        <div style="{{ e.tituloEstilo }}">{{ e.titulo }}</div>
+                        <div style="color:#7F8C8D; font-size:.79rem; margin-top:3px;">{{ e.local }} · {{ e.horario }}</div>
+                      </div>
+                      <a href="{{ e.acaoLink }}" target="_blank" rel="noopener" aria-label="{{ e.acaoRotulo }}" style="width:42px; height:42px; border-radius:13px; border:1px solid #E0E6E5; background:#fff; color:#002D72; display:flex; align-items:center; justify-content:center; flex:none;"><i class="{{ e.acaoIcone }}"></i></a>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ ehPerfil }}" hint-placeholder-val="{{ false }}">
+            <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
+              <div style="position:relative; overflow:hidden; background:linear-gradient(158deg,#0B5C52 0%,#12796B 42%,#002D72 100%); padding:56px 20px 30px; border-radius:0 0 26px 26px; text-align:center;">
+                <div style="position:absolute; top:-70px; left:-50px; width:220px; height:220px; border-radius:50%; background:#00E676; filter:blur(58px); opacity:.3; animation:apBlob 9s ease-in-out infinite;"></div>
+                <div style="position:absolute; bottom:-80px; right:-40px; width:200px; height:200px; border-radius:50%; background:#389E92; filter:blur(52px); opacity:.4; animation:apBlob 11s ease-in-out infinite reverse;"></div>
+                <div style="position:absolute; width:44px; height:44px; left:12%; bottom:-44px; border-radius:50%; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2); animation:apSobe 14s linear infinite;"></div>
+                <div style="position:absolute; width:22px; height:22px; left:80%; bottom:-22px; border-radius:50%; background:rgba(0,230,118,.14); border:1px solid rgba(0,230,118,.3); animation:apSobe 10s linear infinite 2.2s;"></div>
+                <sc-for list="{{ fotoAtletaLista }}" as="f" hint-placeholder-count="0">
+                  <img src="{{ f.url }}" alt="Foto do atleta" style="position:relative; width:92px; height:92px; border-radius:50%; object-fit:cover; border:4px solid #fff; margin:0 auto 12px; box-shadow:0 10px 24px rgba(0,0,0,.3);" />
+                </sc-for>
+                <div style="position:relative; color:#fff; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.3rem;">{{ atletaNomeCompleto }}</div>
+                <div style="position:relative; color:rgba(255,255,255,.78); font-size:.88rem; margin-top:4px;">{{ atletaCordao }} · {{ atletaAcademia }}</div>
+              </div>
+              <div style="margin:16px; display:flex; flex-direction:column; gap:10px;">
+                <sc-for list="{{ opcoesPerfil }}" as="o" hint-placeholder-count="0">
+                  <button onClick="{{ o.acao }}" style="display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:#fff; border:1px solid #E0E6E5; border-radius:16px; padding:16px; cursor:pointer; font-family:'Nunito',sans-serif; transition:.25s cubic-bezier(.16,1,.3,1);" style-hover="transform:translateY(-2px); box-shadow:0 10px 22px rgba(0,0,0,.07);">
+                    <span style="width:40px; height:40px; border-radius:12px; background:rgba(56,158,146,.12); color:#389E92; display:flex; align-items:center; justify-content:center;"><i class="{{ o.icone }}"></i></span>
+                    <span style="flex:1; min-width:0;">
+                      <span style="display:block; font-weight:800; color:#2C3E50; font-size:.95rem;">{{ o.rotulo }}</span>
+                      <span style="display:block; color:#7F8C8D; font-size:.8rem; margin-top:2px;">{{ o.ajuda }}</span>
+                    </span>
+                    <i class="fas fa-chevron-right" style="color:#C4CFCD;"></i>
+                  </button>
+                </sc-for>
+                <button onClick="{{ sair }}" style="margin-top:6px; display:flex; align-items:center; justify-content:center; gap:10px; padding:16px; border:none; border-radius:20px; background:#E74C3C; color:#fff; font-weight:800; cursor:pointer; font-family:'Nunito',sans-serif; box-shadow:0 8px 20px rgba(231,76,60,.25);"><i class="fas fa-sign-out-alt"></i>Sair da conta</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ ehMestre }}" hint-placeholder-val="{{ false }}">
+            <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
+              <div style="position:relative; background:linear-gradient(158deg,#0B5C52 0%,#12796B 42%,#002D72 100%); padding:52px 20px 26px; border-radius:0 0 26px 26px; overflow:hidden;">
+                <div style="position:absolute; top:-70px; left:-50px; width:220px; height:220px; border-radius:50%; background:#00E676; filter:blur(58px); opacity:.34; animation:apBlob 9s ease-in-out infinite;"></div>
+                <div style="position:absolute; bottom:-80px; right:-40px; width:200px; height:200px; border-radius:50%; background:#389E92; filter:blur(52px); opacity:.42; animation:apBlob 11s ease-in-out infinite reverse;"></div>
+                <div style="position:absolute; width:54px; height:54px; left:18%; bottom:-54px; border-radius:50%; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.22); animation:apSobe 15s linear infinite;"></div>
+                <div style="position:absolute; width:26px; height:26px; left:44%; bottom:-26px; border-radius:50%; background:rgba(0,230,118,.14); border:1px solid rgba(0,230,118,.3); animation:apSobe 11s linear infinite 1.6s;"></div>
+                <div style="position:absolute; width:38px; height:38px; left:70%; bottom:-38px; border-radius:50%; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); animation:apSobe 13s linear infinite 3.4s;"></div>
+                <div style="position:absolute; width:16px; height:16px; left:88%; bottom:-16px; border-radius:50%; background:rgba(255,255,255,.16); animation:apSobe 9s linear infinite 5s;"></div>
+                <div style="position:relative; color:#00E676; font-size:.72rem; font-weight:800; letter-spacing:.16em; margin-bottom:6px;">PAINEL DO MESTRE</div>
+                <h1 style="position:relative; margin:0 0 16px; color:#fff; font-family:'Montserrat',sans-serif; font-size:1.35rem;">Academia Mestre Profeta</h1>
+                <div style="position:relative; display:grid; grid-template-columns:repeat(3,1fr); gap:9px;">
+                  <sc-for list="{{ indicadores }}" as="i" hint-placeholder-count="0">
+                    <div style="background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:13px;">
+                      <div style="font-family:'Montserrat',sans-serif; font-weight:800; color:{{ i.cor }}; font-size:1.35rem; line-height:1;">{{ i.valor }}</div>
+                      <div style="color:rgba(255,255,255,.6); font-size:.68rem; font-weight:700; letter-spacing:.06em; margin-top:5px;">{{ i.rotulo }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="margin:16px;">
+                <div style="position:relative; margin-bottom:12px;">
+                  <i class="fas fa-search" style="position:absolute; left:15px; top:50%; transform:translateY(-50%); color:#7F8C8D;"></i>
+                  <input value="{{ busca }}" onInput="{{ mudarBusca }}" placeholder="Buscar aluno pelo nome" style="width:100%; padding:14px 14px 14px 42px; border:1px solid #E0E6E5; border-radius:16px; background:#fff; font-size:.95rem; font-family:'Nunito',sans-serif;" />
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px; padding-bottom:12px;">
+                  <sc-for list="{{ filtros }}" as="f" hint-placeholder-count="0">
+                    <button onClick="{{ f.aplicar }}" style="{{ f.estilo }}">{{ f.rotulo }}</button>
+                  </sc-for>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                  <sc-for list="{{ alunos }}" as="al" hint-placeholder-count="0">
+                    <article style="display:flex; align-items:center; gap:13px; background:#fff; border:1px solid #E0E6E5; border-radius:18px; padding:14px;">
+                      <span style="{{ al.avatar }}">{{ al.inicial }}</span>
+                      <div style="flex:1; min-width:0;">
+                        <div style="font-family:'Montserrat',sans-serif; color:#002D72; font-weight:800; font-size:.95rem;">{{ al.nome }}</div>
+                        <div style="color:#7F8C8D; font-size:.79rem; margin:2px 0 7px;">{{ al.cordao }} · {{ al.idade }} anos</div>
+                        <div style="width:100%; height:7px; border-radius:6px; background:#E6EDEC; overflow:hidden;">
+                          <div style="{{ al.barra }}"></div>
+                        </div>
+                      </div>
+                      <div style="text-align:right; flex:none;">
+                        <div style="{{ al.chip }}">{{ al.percentual }}%</div>
+                        <button onClick="{{ al.avaliar }}" style="margin-top:7px; border:none; background:none; color:#389E92; font-weight:800; font-size:.76rem; cursor:pointer; font-family:'Nunito',sans-serif;">Avaliar</button>
+                      </div>
+                    </article>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="position:absolute; left:14px; right:14px; bottom:16px; z-index:30;">
+          <div style="position:relative; display:flex; align-items:flex-end; justify-content:space-between; gap:2px; background:linear-gradient(158deg,#0B5C52 0%,#12796B 42%,#002D72 100%); border-radius:26px; padding:10px 8px 12px; box-shadow:0 16px 34px rgba(0,45,114,.35);">
+            <div style="{{ pilulaEstilo }}"></div>
+            <sc-for list="{{ abas }}" as="t" hint-placeholder-count="0">
+              <button onClick="{{ t.abrir }}" style="{{ t.botao }}">
+                <i class="{{ t.icone }}" style="{{ t.iconeEstilo }}"></i>
+                <span style="{{ t.rotuloEstilo }}">{{ t.rotulo }}</span>
+              </button>
+            </sc-for>
+          </div>
+          <button onClick="{{ marcarPresenca }}" aria-label="Marcar presença na roda" style="position:absolute; left:50%; top:-24px; transform:translateX(-50%); width:58px; height:58px; border-radius:50%; border:4px solid #EAF2F1; background:linear-gradient(140deg,#00E676,#389E92); color:#05070C; font-size:1.2rem; cursor:pointer; box-shadow:0 12px 26px rgba(0,230,118,.42); transition:.25s cubic-bezier(.16,1,.3,1);" style-hover="transform:translateX(-50%) scale(1.06);"><i class="fas fa-qrcode"></i></button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ trocadorAberto }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute; inset:0; z-index:60; display:flex; flex-direction:column; justify-content:flex-end; background:rgba(5,7,12,.6); backdrop-filter:blur(5px); animation:apEntra .25s cubic-bezier(.16,1,.3,1) both;">
+          <button onClick="{{ fecharTrocador }}" aria-label="Fechar" style="position:absolute; inset:0; border:none; background:none; cursor:pointer;"></button>
+          <div style="position:relative; background:#fff; border-radius:26px 26px 0 0; padding:20px 18px 26px;">
+            <div style="width:44px; height:5px; border-radius:3px; background:#DCE5E3; margin:0 auto 18px;"></div>
+            <h2 style="margin:0 0 4px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.1rem;">Trocar de atleta</h2>
+            <p style="margin:0 0 16px; color:#7F8C8D; font-size:.85rem;">Os prontuários são separados — cada atleta só vê o próprio.</p>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <sc-for list="{{ atletasProntos }}" as="a" hint-placeholder-count="0">
+                <button onClick="{{ a.selecionar }}" style="{{ a.cartao }}">
+                  <img src="{{ a.foto }}" alt="" style="width:46px; height:46px; border-radius:50%; object-fit:cover; border:2px solid #389E92; flex:none;" />
+                  <span style="flex:1; min-width:0;">
+                    <span style="display:block; font-weight:800; color:#002D72; font-size:.95rem;">{{ a.curto }}</span>
+                    <span style="display:block; color:#7F8C8D; font-size:.78rem; margin-top:2px;">{{ a.papelFamilia }} · {{ a.academia }}</span>
+                  </span>
+                  <span style="{{ a.chip }}">{{ a.mensalidade }}</span>
+                </button>
+              </sc-for>
+            </div>
+            <button onClick="{{ irEscolha }}" style="margin-top:14px; width:100%; padding:14px; border:1px dashed #C4CFCD; border-radius:18px; background:#F8FBFB; color:#389E92; font-weight:800; cursor:pointer; font-family:'Nunito',sans-serif;"><i class="fas fa-users"></i> Ver tela de seleção</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ aviso }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute; left:20px; right:20px; bottom:104px; z-index:50; display:flex; align-items:center; gap:10px; background:#002D72; color:#fff; padding:14px 18px; border-radius:16px; box-shadow:0 14px 30px rgba(0,0,0,.35); font-weight:700; font-size:.88rem; animation:apEntra .3s cubic-bezier(.16,1,.3,1) both;">
+          <i class="fas fa-check-circle" style="color:#00E676;"></i>{{ aviso }}
+        </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <p style="max-width:390px; text-align:center; color:rgba(255,255,255,.45); font-size:.82rem; line-height:1.5;">Senha do protótipo: qualquer valor. O botão verde central marca presença na roda por QR.</p>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+const NOTAS = [['Ginga e Base',9],['Acrobacias',6],['Respeito',10],['Disciplina',9],['Pontualidade',8],['Freq. Aulas',9],['Freq. Rodas',7],['Eventos',6],['Pandeiro',5],['Atabaque',6],['Berimbau',6],['Canta/Responde',7],['Higiene',10],['Aprendizado',8],['Fundamentos',8]];
+
+const CORDOES = ['Iniciante','Escravo','Fugitivo','Quilombola','Vagante','Liberto','Instrutor','Professor','Mestre'];
+const ATUAL = 4;
+
+const PRODUTOS = [
+  { nome:'Abadá Oficial', desc:'Tecido leve e resistente, bordado com o brasão do grupo.', preco:'R$ 90,00', img:'assets/equipe.jpg' },
+  { nome:'Berimbau Profissional', desc:'Verga de biriba, cabaça afinada e arame importado.', preco:'R$ 220,00', img:'assets/bateria-externa.jpg' },
+  { nome:'Pandeiro Profissional', desc:'Pele natural, tarraxas reforçadas e ótima projeção.', preco:'R$ 180,00', img:'assets/bateria.jpg' }
+];
+
+const AULAS = [
+  { titulo:'Módulo 1: Ginga e base perfeita', desc:'Fundamentos da movimentação e postura na roda.', capa:'assets/grupo-buriti.jpg' },
+  { titulo:'Módulo 2: Toques de berimbau', desc:'Ritmo, afinação e os toques que comandam a roda.', capa:'assets/bateria.jpg' },
+  { titulo:'Módulo 3: Floreios e avançados', desc:'Segurança, saltos e floreios para enriquecer o jogo.', capa:'assets/bateria-externa.jpg' }
+];
+
+const AGENDA = [
+  { titulo:'Batizado do Profº Rafinha', local:'Rancho Alegre', horario:'19:00h', dia:'19', mes:'SET', quando:'2026-09-19' },
+  { titulo:'Batizado do Mestre Omar', local:'Guanandi', horario:'19:00h', dia:'15', mes:'NOV', quando:'2026-11-15' },
+  { titulo:'Batizado do Mestre Profeta', local:'Buriti', horario:'19:00h', dia:'22', mes:'AGO', quando:'2026-08-22' },
+  { titulo:'Roda do Profº Rafinha', local:'Rancho Alegre', horario:'19:00h', dia:'29', mes:'AGO', quando:'2026-08-29' }
+];
+
+const ALUNOS = [
+  { nome:'Ana Beatriz Rocha', cordao:'Fugitivo', idade:17, percentual:82 },
+  { nome:'Lucas Moreira', cordao:'Quilombola', idade:11, percentual:64 },
+  { nome:'Natanael Silva', cordao:'Vagante', idade:24, percentual:72 },
+  { nome:'Sofia Lima', cordao:'Escravo', idade:9, percentual:55 },
+  { nome:'Rafael Duarte', cordao:'Liberto', idade:19, percentual:91 },
+  { nome:'Camila Reis', cordao:'Vagante', idade:28, percentual:47 }
+];
+
+const ATLETAS = [
+  { nome:'Natanael Silva', curto:'Natanael', foto:'assets/retrato-leiliano.jpg', cordao:'Vagante', idxCordao:4, idade:24, academia:'Mestre Profeta · Buriti', fator:1, papelFamilia:'Responsável', mensalidade:'Em aberto' },
+  { nome:'Helena Silva', curto:'Helena', foto:'assets/retrato-taynara.jpg', cordao:'Cinza e Bege', idxCordao:2, idade:9, academia:'Profª Taynara · Buriti', fator:0.82, papelFamilia:'Filha', mensalidade:'Paga' },
+  { nome:'Théo Silva', curto:'Théo', foto:'assets/retrato-maick.jpg', cordao:'Escravo', idxCordao:1, idade:12, academia:'Mestre Profeta · Buriti', fator:0.63, papelFamilia:'Filho', mensalidade:'Em aberto' }
+];
+
+const ABAS = [
+  { id:'inicio', rotulo:'Início', icone:'fas fa-house' },
+  { id:'evolucao', rotulo:'Evolução', icone:'fas fa-chart-line' },
+  { id:'vazio', rotulo:'', icone:'' },
+  { id:'loja', rotulo:'Loja', icone:'fas fa-wallet' },
+  { id:'perfil', rotulo:'Perfil', icone:'fas fa-user' }
+];
+
+class Component extends DCLogic {
+  state = { logado: false, entrando: false, verSenha: false, aba: 'inicio', papel: 'aluno', conta: 'solo', escolhendo: false, atleta: 0, trocador: false, busca: '', filtro: 'Todos', aviso: '' };
+
+  toast(msg) {
+    this.setState({ aviso: msg });
+    clearTimeout(this._t);
+    this._t = setTimeout(() => this.setState({ aviso: '' }), 2400);
+  }
+
+  irPara(aba) {
+    this.setState({ aba: aba });
+    const cx = document.querySelector('[data-rolagem]');
+    if (cx) cx.scrollTop = 0;
+  }
+
+  renderVals() {
+    const familia = this.state.conta === 'familia';
+    const atleta = familia ? ATLETAS[this.state.atleta] : ATLETAS[0];
+    const notas = NOTAS.map((n) => [n[0], Math.max(1, Math.round(n[1] * atleta.fator))]);
+    const total = notas.reduce((s, n) => s + n[1], 0);
+    const progresso = Math.floor((total / (notas.length * 10)) * 100);
+    const abaAtiva = this.state.papel === 'mestre' ? 'mestre' : this.state.aba;
+    const idx = Math.max(0, ABAS.findIndex((a) => a.id === this.state.aba));
+    const hoje = new Date('2026-09-10T00:00:00');
+
+    const termo = this.state.busca.trim().toLowerCase();
+    const listaAlunos = ALUNOS.filter((a) => {
+      if (termo && a.nome.toLowerCase().indexOf(termo) < 0) return false;
+      if (this.state.filtro === 'Aptos (70%+)') return a.percentual >= 70;
+      if (this.state.filtro === 'Kids (sub-12)') return a.idade < 12;
+      if (this.state.filtro === 'Adultos') return a.idade >= 12;
+      return true;
+    });
+
+    return {
+      dadosProntos: true,
+      telaLogin: !this.state.logado,
+      telaApp: this.state.logado && !(this.state.escolhendo && familia),
+      corStatus: this.state.logado ? (this.state.papel === 'mestre' ? '#fff' : '#fff') : '#fff',
+      progresso: progresso,
+      voltaProgresso: (progresso / 100) + 'turn',
+      aviso: this.state.aviso,
+
+      tipoSenha: this.state.verSenha ? 'text' : 'password',
+      iconeOlho: this.state.verSenha ? 'fas fa-eye-slash' : 'fas fa-eye',
+      verSenha: () => this.setState((s) => ({ verSenha: !s.verSenha })),
+      rotuloEntrar: this.state.entrando ? 'Entrando…' : 'Acessar Painel',
+      botaoEntrar: this.state.entrando
+        ? "width:100%; padding:16px; border:none; border-radius:22px; background:#002D72; color:#fff; font-family:'Montserrat',sans-serif; font-weight:700; font-size:1rem; opacity:.7; cursor:progress;"
+        : "width:100%; padding:16px; border:none; border-radius:22px; background:#002D72; color:#fff; font-family:'Montserrat',sans-serif; font-weight:700; font-size:1rem; cursor:pointer; box-shadow:0 10px 24px rgba(0,45,114,.3);",
+      acessar: () => {
+        if (this.state.entrando) return;
+        this.setState({ entrando: true });
+        setTimeout(() => this.setState({ entrando: false, logado: true, aba: 'inicio', escolhendo: this.state.conta === 'familia' }), 900);
+      },
+      sair: () => this.setState({ logado: false, papel: 'aluno', aba: 'inicio', trocador: false, escolhendo: false }),
+
+      papeis: [
+        { id: 'solo', rotulo: 'Aluno sozinho' },
+        { id: 'familia', rotulo: 'Conta família' },
+        { id: 'mestre', rotulo: 'Painel do Mestre' }
+      ].map((p) => ({
+        rotulo: p.rotulo,
+        trocar: () => {
+          if (p.id === 'mestre') { this.setState({ papel: 'mestre', logado: true, escolhendo: false, trocador: false }); return; }
+          this.setState({ papel: 'aluno', conta: p.id, atleta: 0, logado: true, aba: 'inicio', trocador: false, escolhendo: p.id === 'familia' });
+        },
+        estilo: ((p.id === 'mestre' && this.state.papel === 'mestre') || (p.id !== 'mestre' && this.state.papel === 'aluno' && this.state.conta === p.id))
+          ? "padding:9px 16px; border:none; border-radius:999px; background:#00E676; color:#05070C; font-family:'Montserrat',sans-serif; font-weight:800; font-size:.78rem; cursor:pointer;"
+          : "padding:9px 16px; border:none; border-radius:999px; background:none; color:rgba(255,255,255,.7); font-family:'Montserrat',sans-serif; font-weight:800; font-size:.78rem; cursor:pointer;"
+      })),
+
+      ehFamilia: familia,
+      telaEscolha: this.state.logado && this.state.escolhendo && familia,
+      atletaNome: atleta.curto,
+      atletaNomeCompleto: atleta.nome,
+      atletaFoto: atleta.foto,
+      atletaAcademia: atleta.academia,
+      atletaCordao: 'Cordão ' + atleta.cordao,
+      trocadorAberto: this.state.trocador,
+      abrirTrocador: () => { if (familia) this.setState({ trocador: true }); else this.irPara('perfil'); },
+      fecharTrocador: () => this.setState({ trocador: false }),
+      irEscolha: () => this.setState({ escolhendo: true, trocador: false }),
+      atletasProntos: ATLETAS.map((a, i) => ({
+        nome: a.nome,
+        curto: a.curto,
+        foto: a.foto,
+        papelFamilia: a.papelFamilia,
+        academia: a.academia,
+        cordao: 'Cordão ' + a.cordao,
+        mensalidade: a.mensalidade,
+        selecionar: () => { this.setState({ atleta: i, escolhendo: false, trocador: false, aba: 'inicio' }); const cx = document.querySelector('[data-rolagem]'); if (cx) cx.scrollTop = 0; },
+        cartao: i === this.state.atleta
+          ? 'display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:#fff; border:2px solid #00E676; border-radius:18px; padding:14px; cursor:pointer;'
+          : 'display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:#fff; border:1px solid #E0E6E5; border-radius:18px; padding:14px; cursor:pointer;',
+        chip: a.mensalidade === 'Paga'
+          ? 'font-size:.7rem; font-weight:800; color:#00A854; background:rgba(0,230,118,.14); padding:4px 9px; border-radius:8px;'
+          : 'font-size:.7rem; font-weight:800; color:#C0700C; background:rgba(243,156,18,.14); padding:4px 9px; border-radius:8px;'
+      })),
+      atletas: ATLETAS.map((a, i) => ({
+        nome: a.nome,
+        curto: a.curto,
+        foto: a.foto,
+        papelFamilia: a.papelFamilia,
+        academia: a.academia,
+        cordao: 'Cordão ' + a.cordao,
+        mensalidade: a.mensalidade,
+        selecionar: () => { this.setState({ atleta: i, escolhendo: false, trocador: false, aba: 'inicio' }); const cx = document.querySelector('[data-rolagem]'); if (cx) cx.scrollTop = 0; },
+        cartao: i === this.state.atleta
+          ? 'display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:#fff; border:2px solid #00E676; border-radius:18px; padding:14px; cursor:pointer;'
+          : 'display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:#fff; border:1px solid #E0E6E5; border-radius:18px; padding:14px; cursor:pointer;',
+        chip: a.mensalidade === 'Paga'
+          ? 'font-size:.7rem; font-weight:800; color:#00A854; background:rgba(0,230,118,.14); padding:4px 9px; border-radius:8px;'
+          : 'font-size:.7rem; font-weight:800; color:#C0700C; background:rgba(243,156,18,.14); padding:4px 9px; border-radius:8px;'
+      })),
+      totalFamilia: 'R$ ' + (ATLETAS.filter((a) => a.mensalidade !== 'Paga').length * 50) + ',00',
+      emAberto: ATLETAS.filter((a) => a.mensalidade !== 'Paga').length,
+
+      ehInicio: abaAtiva === 'inicio',
+      ehEvolucao: abaAtiva === 'evolucao',
+      ehLoja: abaAtiva === 'loja',
+      ehAulas: abaAtiva === 'aulas',
+      ehPerfil: abaAtiva === 'perfil',
+      ehMestre: abaAtiva === 'mestre',
+
+      irPerfil: () => this.irPara('perfil'),
+      irAulas: () => this.irPara('aulas'),
+      marcarPresenca: () => this.toast('Presença registrada na roda de hoje!'),
+      pagarPix: () => this.toast('QR Code PIX gerado — R$ 50,00.'),
+
+      atalhos: [
+        { rotulo: 'Presença', icone: 'fas fa-qrcode', abrir: () => this.toast('Presença registrada na roda de hoje!') },
+        { rotulo: 'Aulas', icone: 'fas fa-play-circle', abrir: () => this.irPara('aulas') },
+        { rotulo: 'Mensalidade', icone: 'fas fa-wallet', abrir: () => this.irPara('loja') },
+        { rotulo: 'Evolução', icone: 'fas fa-award', abrir: () => this.irPara('evolucao') }
+      ],
+
+      criterios: notas.map((n) => ({
+        nome: n[0],
+        nota: n[1] + '/10',
+        chip: n[1] >= 7
+          ? 'font-weight:800; color:#00A854; background:rgba(0,230,118,.14); padding:5px 10px; border-radius:9px; font-size:.78rem; flex:none;'
+          : 'font-weight:800; color:#C0700C; background:rgba(243,156,18,.14); padding:5px 10px; border-radius:9px; font-size:.78rem; flex:none;'
+      })),
+
+      trilha: CORDOES.map((c, i) => ({
+        nome: c,
+        estado: i < atleta.idxCordao ? 'Conquistado' : (i === atleta.idxCordao ? 'Atual' : 'A conquistar'),
+        linha: i === atleta.idxCordao
+          ? 'display:flex; align-items:center; gap:12px; background:#fff; border:2px solid #00E676; border-radius:14px; padding:12px 14px;'
+          : 'display:flex; align-items:center; gap:12px; background:#fff; border:1px solid #E0E6E5; border-radius:14px; padding:12px 14px;',
+        faixa: 'width:10px; height:26px; border-radius:4px; flex:none; background:' + (i <= atleta.idxCordao ? '#389E92' : '#DCE5E3') + ';',
+        texto: i <= atleta.idxCordao ? 'flex:1; font-weight:800; color:#002D72; font-size:.9rem;' : 'flex:1; font-weight:700; color:#95A5A6; font-size:.9rem;',
+        tag: i === atleta.idxCordao
+          ? 'font-size:.72rem; font-weight:800; color:#00A854; background:rgba(0,230,118,.14); padding:4px 10px; border-radius:8px;'
+          : 'font-size:.72rem; font-weight:700; color:#95A5A6;'
+      })),
+
+      fotoAtletaLista: [{ url: atleta.foto }],
+      aulasProntas: AULAS,
+      produtosProntos: PRODUTOS.map((p) => Object.assign({}, p, {
+        link: 'https://wa.me/5567991293269?text=' + encodeURIComponent('Olá! Quero adquirir o seguinte item "' + p.nome + '".')
+      })),
+      produtos: PRODUTOS.map((p) => Object.assign({}, p, {
+        link: 'https://wa.me/5567991293269?text=' + encodeURIComponent('Olá! Quero adquirir o seguinte item "' + p.nome + '".')
+      })),
+      aulas: AULAS,
+
+      agenda: AGENDA.map((e) => {
+        const passou = new Date(e.quando + 'T00:00:00') < hoje;
+        return Object.assign({}, e, {
+          cartao: passou
+            ? 'display:flex; align-items:center; gap:12px; background:#F1F5F4; border:1px solid #E0E6E5; border-radius:16px; padding:12px;'
+            : 'display:flex; align-items:center; gap:12px; background:#fff; border:1px solid #E0E6E5; border-radius:16px; padding:12px;',
+          dataBox: passou
+            ? 'width:52px; height:52px; border-radius:14px; background:#DDE5E4; color:#6B7A80; display:flex; flex-direction:column; align-items:center; justify-content:center; flex:none;'
+            : 'width:52px; height:52px; border-radius:14px; background:#002D72; color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; flex:none;',
+          tituloEstilo: passou
+            ? "font-family:'Montserrat',sans-serif; color:#8795A0; font-weight:800; font-size:.92rem; line-height:1.2;"
+            : "font-family:'Montserrat',sans-serif; color:#002D72; font-weight:800; font-size:.92rem; line-height:1.2;",
+          acaoIcone: passou ? 'fas fa-images' : 'fas fa-map-marked-alt',
+          acaoRotulo: passou ? 'Veja as fotos e vídeos' : 'Como chegar',
+          acaoLink: passou ? 'https://drive.google.com/drive/folders/' : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(e.local + ', Campo Grande - MS')
+        });
+      }),
+
+      opcoesPerfil: [
+        { rotulo: 'Meus dados', ajuda: 'Nome, contato e foto do prontuário', icone: 'fas fa-id-card', acao: () => this.toast('Abrindo seus dados…') },
+        { rotulo: 'Minha academia', ajuda: atleta.academia, icone: 'fas fa-map-marker-alt', acao: () => this.toast(atleta.academia) },
+        { rotulo: familia ? 'Atletas da conta' : 'Vincular um familiar', ajuda: familia ? 'Trocar entre os atletas da família' : 'Um filho ou parente que também treina', icone: 'fas fa-users', acao: () => familia ? this.setState({ trocador: true }) : this.toast('Peça à secretaria para vincular o atleta.') },
+        { rotulo: 'Painel do Mestre', ajuda: 'Somente para professores e mestres', icone: 'fas fa-chalkboard-teacher', acao: () => this.setState({ papel: 'mestre' }) },
+        { rotulo: 'Notificações', ajuda: 'Avisos de roda, batizado e mensalidade', icone: 'far fa-bell', acao: () => this.toast('Notificações ativadas.') }
+      ],
+
+      indicadores: [
+        { valor: '38', rotulo: 'ALUNOS', cor: '#fff' },
+        { valor: '12', rotulo: 'APTOS (70%+)', cor: '#00E676' },
+        { valor: '5', rotulo: 'EM ATRASO', cor: '#F39C12' }
+      ],
+      busca: this.state.busca,
+      mudarBusca: (ev) => this.setState({ busca: ev.target.value }),
+      filtros: ['Todos', 'Aptos (70%+)', 'Kids (sub-12)', 'Adultos'].map((f) => ({
+        rotulo: f,
+        aplicar: () => this.setState({ filtro: f }),
+        estilo: this.state.filtro === f
+          ? "padding:9px 16px; border:none; border-radius:999px; background:#002D72; color:#fff; font-weight:800; font-size:.8rem; white-space:nowrap; cursor:pointer; font-family:'Nunito',sans-serif;"
+          : "padding:9px 16px; border:1px solid #E0E6E5; border-radius:999px; background:#fff; color:#5A6B72; font-weight:700; font-size:.8rem; white-space:nowrap; cursor:pointer; font-family:'Nunito',sans-serif;"
+      })),
+      alunos: listaAlunos.map((a) => ({
+        nome: a.nome,
+        cordao: a.cordao,
+        idade: a.idade,
+        percentual: a.percentual,
+        inicial: a.nome.charAt(0),
+        avatar: "width:44px; height:44px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center; font-family:'Montserrat',sans-serif; font-weight:800; color:#fff; background:" + (a.percentual >= 70 ? '#389E92' : '#95A5A6') + ';',
+        barra: 'height:100%; width:' + a.percentual + '%; border-radius:6px; background:' + (a.percentual >= 70 ? '#00E676' : '#F39C12') + ';',
+        chip: a.percentual >= 70
+          ? 'font-weight:800; font-size:.82rem; color:#00A854;'
+          : 'font-weight:800; font-size:.82rem; color:#C0700C;',
+        avaliar: () => this.toast('Prontuário de ' + a.nome.split(' ')[0] + ' aberto.')
+      })),
+
+      pilulaEstilo: 'position:absolute; top:8px; bottom:8px; width:19%; left:' + (idx * 20 + 0.5) + '%; border-radius:20px; background:rgba(0,230,118,.16); border:1px solid rgba(0,230,118,.35); transition:left .38s cubic-bezier(.16,1,.3,1); opacity:' + (this.state.papel === 'mestre' || this.state.aba === 'aulas' ? '0' : '1') + ';',
+      abas: ABAS.map((t) => {
+        const ativa = t.id === this.state.aba && this.state.papel === 'aluno';
+        if (t.id === 'vazio') {
+          return { rotulo: '', icone: '', abrir: () => {}, botao: 'flex:1; height:52px; border:none; background:none; pointer-events:none;', iconeEstilo: 'display:none;', rotuloEstilo: 'display:none;' };
+        }
+        return {
+          rotulo: t.rotulo,
+          icone: t.icone,
+          abrir: () => { this.setState({ papel: 'aluno' }); this.irPara(t.id); },
+          botao: "position:relative; z-index:2; flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; padding:9px 2px; border:none; background:none; cursor:pointer; font-family:'Nunito',sans-serif;",
+          iconeEstilo: 'font-size:1.02rem; transition:.3s cubic-bezier(.16,1,.3,1); transform:translateY(' + (ativa ? '-2px' : '0') + '); color:' + (ativa ? '#00E676' : 'rgba(255,255,255,.5)') + ';',
+          rotuloEstilo: 'font-size:.66rem; font-weight:800; letter-spacing:.02em; color:' + (ativa ? '#fff' : 'rgba(255,255,255,.45)') + ';'
+        };
+      })
+    };
+  }
+}
+
+</script>
+</body>
+</html>
