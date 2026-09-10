@@ -98,7 +98,7 @@ inputDataNasc.addEventListener('change', (e) => {
 
     inputIdade.value = idade;
 
-    if (idade >= 12) {
+    if (idade >= 18) {
         secaoResponsavel.style.display = 'none';
         inputsResponsavel.forEach(input => { input.removeAttribute('required'); input.value = ''; });
     } else {
@@ -175,7 +175,7 @@ form.addEventListener('submit', async (e) => {
     const nomeAssinatura = document.getElementById('assinaturaNomeFicha');
     const dataHoraFicha = document.getElementById('dataHoraImpressaoFicha');
 
-    if (idadeAluno >= 12) {
+    if (idadeAluno >= 18) {
         nomeAssinatura.textContent = inputNome.value ? inputNome.value : "_________________________________";
     } else {
         nomeAssinatura.textContent = inputResponsavel.value ? inputResponsavel.value : "_________________________________";
