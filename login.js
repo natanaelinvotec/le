@@ -7,7 +7,7 @@
 */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { hashPassword } from "./shared.js";
+import { hashPassword, gerarSlug } from "./shared.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBkwCDziiV-Uh7MLzsy9OYJmA_LMnn7jbg",
@@ -103,6 +103,7 @@ form.addEventListener('submit', async (e) => {
                 role: 'professor',
                 nome: professorEncontrado.professor,
                 academia: nomeAcademiaLimpo,
+                academiaId: professorEncontrado.academiaId || gerarSlug(nomeAcademiaLimpo),
                 ts: Date.now()
             }));
             window.location.href = 'admin.html';
