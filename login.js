@@ -1,147 +1,86 @@
-/* login.js — v2
-   Melhorias de segurança:
-   - Nenhuma credencial de admin fica hardcoded no bundle JS (antes: visível em "view-source").
-   - Comparação de senha feita via hash SHA-256 (ver shared.js) contra o hash salvo no Firestore.
-   - Mensagens de erro nunca revelam qual campo está incorreto (evita enumeração de usuários).
-   - Bloqueio progressivo simples contra força bruta (client-side, mitigação básica).
-*/
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { hashPassword, gerarSlug } from "./shared.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyBkwCDziiV-Uh7MLzsy9OYJmA_LMnn7jbg",
-  authDomain: "capoeira-liberdade.firebaseapp.com",
-  projectId: "capoeira-liberdade",
-  storageBucket: "capoeira-liberdade.firebasestorage.app",
-  messagingSenderId: "492022804215",
-  appId: "1:492022804215:web:c61aed556d9f1aa9576df2"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+// login.js — v3: autenticação real via Firebase Authentication.
+// Substitui o esquema antigo (hash SHA-256 comparado direto no Firestore).
+import { entrar, recuperarSenha } from './firebase.js';
 
 const form = document.getElementById('loginForm');
+const campoEmail = document.getElementById('loginIdentificador');
+const campoSenha = document.getElementById('senha');
 const btn = document.getElementById('btnAcessar');
-const errorMsg = document.getElementById('errorMsg');
-const errorMsgText = document.getElementById('errorMsgText');
-const inputId = document.getElementById('loginIdentificador');
-const inputSenha = document.getElementById('senha');
+const erroBox = document.getElementById('errorMsg');
+const erroTexto = document.getElementById('errorMsgText');
+const infoBox = document.getElementById('infoMsg');
+const infoTexto = document.getElementById('infoMsgText');
+const linkEsqueci = document.getElementById('linkEsqueciSenha');
 
 let tentativas = 0;
 let bloqueadoAte = 0;
 
-function mostrarErro(texto) {
-    errorMsgText.textContent = texto; // textContent nunca interpreta HTML — seguro contra XSS
-    errorMsg.style.display = 'block';
-    form.classList.remove('shake');
-    // força reflow para permitir reiniciar a animação
-    void form.offsetWidth;
-    form.classList.add('shake');
+function mostrarErro(msg) {
+  infoBox.style.display = 'none';
+  erroTexto.textContent = msg;
+  erroBox.style.display = 'block';
+  form.classList.remove('shake');
+  void form.offsetWidth; // reinicia a animação
+  form.classList.add('shake');
 }
 
-function setLoading(estaCarregando) {
-    btn.disabled = estaCarregando;
-    btn.innerHTML = estaCarregando
-        ? '<i class="fas fa-circle-notch fa-spin"></i> Autenticando...'
-        : 'Acessar Painel <i class="fas fa-arrow-right"></i>';
+function mostrarInfo(msg) {
+  erroBox.style.display = 'none';
+  infoTexto.textContent = msg;
+  infoBox.style.display = 'block';
 }
 
-form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    errorMsg.style.display = 'none';
+function destinoPorPapeis(papeis) {
+  if (!Array.isArray(papeis)) return 'app.html';
+  if (papeis.includes('admin') || papeis.includes('mestre')) return 'admin.html';
+  return 'app.html';
+}
 
-    const agora = Date.now();
-    if (agora < bloqueadoAte) {
-        const seg = Math.ceil((bloqueadoAte - agora) / 1000);
-        mostrarErro(`Muitas tentativas. Aguarde ${seg}s para tentar novamente.`);
-        return;
+form.addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const agora = Date.now();
+  if (agora < bloqueadoAte) {
+    const seg = Math.ceil((bloqueadoAte - agora) / 1000);
+    mostrarErro(`Muitas tentativas. Tente novamente em ${seg}s.`);
+    return;
+  }
+
+  const email = campoEmail.value.trim();
+  const senha = campoSenha.value;
+  if (!email || !senha) return;
+
+  btn.disabled = true;
+  btn.innerHTML = 'Entrando... <i class="fas fa-spinner fa-spin"></i>';
+  try {
+    const perfil = await entrar(email, senha);
+    tentativas = 0;
+    window.location.href = destinoPorPapeis(perfil.papeis);
+  } catch (e) {
+    tentativas += 1;
+    if (tentativas >= 5) {
+      bloqueadoAte = Date.now() + 30000;
+      tentativas = 0;
+      mostrarErro('Muitas tentativas incorretas. Aguarde 30s antes de tentar de novo.');
+    } else {
+      // Mensagem genérica (não revela se o e-mail existe ou não).
+      mostrarErro('E-mail ou senha incorretos.');
     }
+    btn.disabled = false;
+    btn.innerHTML = 'Acessar Painel <i class="fas fa-arrow-right"></i>';
+  }
+});
 
-    const identificador = inputId.value.trim().toLowerCase();
-    const senha = inputSenha.value;
-
-    if (!identificador || !senha) { mostrarErro('Preencha usuário e senha.'); return; }
-
-    setLoading(true);
-
-    try {
-        const senhaHash = await hashPassword(senha);
-
-        // 1. Administradores (coleção dedicada "admins", nunca no código-fonte)
-        const snapAdmins = await getDocs(collection(db, "admins"));
-        let adminEncontrado = null;
-        snapAdmins.forEach(docSnap => {
-            const d = docSnap.data();
-            const emailDb = (d.email || '').trim().toLowerCase();
-            if (emailDb === identificador && d.senhaHash === senhaHash) adminEncontrado = d;
-        });
-
-        if (adminEncontrado) {
-            sessionStorage.setItem('sessaoCapoeira', JSON.stringify({
-                role: 'admin', nome: adminEncontrado.nome || 'Admin Master', ts: Date.now()
-            }));
-            window.location.href = 'admin.html';
-            return;
-        }
-
-        // 2. Professores (coleção "academias")
-        const snapAcademias = await getDocs(collection(db, "academias"));
-        let professorEncontrado = null;
-        snapAcademias.forEach(docSnap => {
-            const d = docSnap.data();
-            const emailDb = (d.email || '').trim().toLowerCase();
-            const telDb = (d.celular || '').trim().toLowerCase();
-            if ((emailDb === identificador || telDb === identificador) && d.senhaHash === senhaHash) {
-                professorEncontrado = d;
-            }
-        });
-
-        if (professorEncontrado) {
-            const nomeAcademiaLimpo = (professorEncontrado.nome || '').replace(/^Academia\s+/i, '').trim();
-            sessionStorage.setItem('sessaoCapoeira', JSON.stringify({
-                role: 'professor',
-                nome: professorEncontrado.professor,
-                academia: nomeAcademiaLimpo,
-                academiaId: professorEncontrado.academiaId || gerarSlug(nomeAcademiaLimpo),
-                ts: Date.now()
-            }));
-            window.location.href = 'admin.html';
-            return;
-        }
-
-        // 3. Alunos / Responsáveis (coleção "alunos")
-        // Usa query indexada por identificador quando possível para não varrer a coleção inteira no cliente.
-        const camposBusca = ['email', 'celular', 'emailResponsavel', 'celularResponsavel'];
-        let alunoEncontrado = null;
-        for (const campo of camposBusca) {
-            const q = query(collection(db, "alunos"), where(campo, "==", identificador), limit(5));
-            const snap = await getDocs(q);
-            snap.forEach(docSnap => {
-                const d = docSnap.data();
-                if (d.senhaHash === senhaHash) alunoEncontrado = { id: docSnap.id, ...d };
-            });
-            if (alunoEncontrado) break;
-        }
-
-        if (alunoEncontrado) {
-            sessionStorage.setItem('sessaoAluno', JSON.stringify({ ...alunoEncontrado, ts: Date.now() }));
-            window.location.href = 'aluno.html';
-            return;
-        }
-
-        throw new Error("Usuário ou senha inválidos.");
-
-    } catch (error) {
-        tentativas++;
-        if (tentativas >= 5) {
-            bloqueadoAte = Date.now() + 30000;
-            tentativas = 0;
-            mostrarErro('Muitas tentativas incorretas. Aguarde 30s.');
-        } else {
-            mostrarErro('E-mail/celular ou senha incorretos.');
-        }
-    } finally {
-        setLoading(false);
-    }
+linkEsqueci.addEventListener('click', async (ev) => {
+  ev.preventDefault();
+  const email = campoEmail.value.trim();
+  if (!email) {
+    mostrarErro('Digite seu e-mail no campo acima e clique em "Esqueci minha senha" de novo.');
+    return;
+  }
+  try {
+    await recuperarSenha(email);
+  } catch (e) {
+    // Não revela se o e-mail existe - mesma mensagem em qualquer caso.
+  }
+  mostrarInfo('Se esse e-mail estiver cadastrado, enviamos um link para redefinir a senha.');
 });
