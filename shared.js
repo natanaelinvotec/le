@@ -46,6 +46,19 @@ export function exigirSessao(chave, papeisPermitidos, redirectPara = 'login.html
     return sessao;
 }
 
+/** Gera um identificador estavel (slug) a partir do nome de uma academia,
+ * ex.: "Mestre Abraao" -> "mestre-abraao". Base do campo academiaId,
+ * gravado em academias/alunos para preparar o sistema para multiplas
+ * academias (multi-tenant) no futuro, sem quebrar nada do fluxo atual. */
+export function gerarSlug(nome) {
+if (!nome) return 'geral';
+return String(nome)
+.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+.toLowerCase()
+.replace(/[^a-z0-9]+/g, '-')
+.replace(/^-+|-+$/g, '') || 'geral';
+}
+
 /** Debounce simples para inputs de busca/filtro. */
 export function debounce(fn, wait = 250) {
     let t;
