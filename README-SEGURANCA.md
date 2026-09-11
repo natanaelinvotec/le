@@ -46,3 +46,36 @@ não testado — mas se você quiser, posso implementar essa migração como pr�
    depois cole manualmente no Firestore).
 2. Publique `firestore.rules` no seu projeto Firebase.
 3. Apague `senha.txt` do repositório/hospedagem — credenciais nunca devem ficar em arquivo texto público.
+
+
+## Atualizacao 2026-09-11 - Firebase Auth (novo app) + preparacao multi-tenant (academiaId)
+
+O projeto Firebase `capoeira-liberdade` ja existia e serve dados reais deste sistema
+antigo (login.js/admin.js/inscricao.js/aluno.html). Nesta atualizacao:
+
+- Ativado o provedor de Email/Senha no Firebase Authentication (estava desligado) e
+  publicado o `firebaseConfig` real em `firebase.js`, para o **novo app** (Portal do
+  Aluno / Painel do Mestre em `app.html`/`gerenciar.html`/`index.html`) usar login de
+  verdade via `usuarios/{uid}`. Importante: `app.html`, `gerenciar.html` e `index.html`
+  sao hoje uma exportacao estatica de uma ferramenta de design (pasta `_ds/`, script
+  `support.js`) - ainda **nao** leem/gravam no Firestore. Ligar essas paginas aos dados
+  reais e um trabalho a parte, ainda nao iniciado.
+- `firestore.rules` foi mesclado: as colecoes novas (`usuarios`, `materiais`,
+  `pagamentos`) ja exigem login do Firebase Authentication; as colecoes antigas
+  (`academias`, `admins`, `alunos`, `siteConteudo`, `site_agenda`, `site_equipe`,
+  `site_locais`, `site_loja`) continuam com `allow read, write: if true`, exatamente
+  como ja estava, para nao quebrar o site no ar (o login antigo compara e-mail/senha
+  direto no Firestore, nao usa o Firebase Authentication). Isso tambem substituiu a
+  regra de "modo de teste" que venceria em 30/09/2026.
+- Preparacao para crescer para varias academias (multi-tenant): foi adicionada a
+  funcao `gerarSlug()` em `shared.js`, e `academiaId` passou a ser gravado
+  automaticamente a partir de agora em `admin.js` (ao criar/editar uma academia e ao
+  transferir um aluno de academia), em `inscricao.js` (ao cadastrar um novo aluno) e
+  na sessao do professor em `login.js`. Documentos ja existentes em `academias` e
+  `alunos` ainda **nao** tem `academiaId` (o preenchimento retroativo desses ~22
+  documentos foi propositalmente deixado para ser feito com acompanhamento humano, via
+  Console do Firebase ou um script revisado, em vez de automatico).
+- Os 5 logins (natanael@, simone@, profeta@, rafinha@, admin@ - todos
+  `@liberdade.com`, senha `capoeira2026`) ainda precisam ser criados manualmente no
+  Console do Firebase (Authentication > Users) - por seguranca, isso nao e feito por
+  automacao. Depois de criados, os UIDs entram em `usuarios/{uid}`.
