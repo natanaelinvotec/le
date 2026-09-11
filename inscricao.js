@@ -8,7 +8,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { hashPassword, sanitizeInput } from "./shared.js";
+import { hashPassword, sanitizeInput, gerarSlug } from "./shared.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBkwCDziiV-Uh7MLzsy9OYJmA_LMnn7jbg",
@@ -212,6 +212,7 @@ form.addEventListener('submit', async (e) => {
             celularResponsavel: (data.emergenciaTel || '').trim(),
             fotoUrl: fotoFinalUrl,
             dataCadastro: new Date().toISOString(),
+            academiaId: gerarSlug(data.localTreino),
             statusAtual: "Ativo",
             cordaoAtual: "Iniciante",
             notas: {}
