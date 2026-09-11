@@ -5,12 +5,12 @@ import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStat
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 export const firebaseConfig = {
-  apiKey: 'COLE_AQUI',
-  authDomain: 'COLE_AQUI.firebaseapp.com',
-  projectId: 'COLE_AQUI',
-  storageBucket: 'COLE_AQUI.appspot.com',
-  messagingSenderId: 'COLE_AQUI',
-  appId: 'COLE_AQUI'
+  apiKey: 'AIzaSyBkwCDziIv-Uh7MLzsy9OYJmA_LMnn7jbg',
+  authDomain: 'capoeira-liberdade.firebaseapp.com',
+  projectId: 'capoeira-liberdade',
+  storageBucket: 'capoeira-liberdade.firebasestorage.app',
+  messagingSenderId: '492022804215',
+  appId: '1:492022804215:web:c61aed556d9f1aa9576df2'
 };
 
 const app = initializeApp(firebaseConfig);
