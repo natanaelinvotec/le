@@ -8,6 +8,50 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="./support.js"></script>
+    <script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getFirestore, doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+const firebaseConfig = {
+  apiKey: 'AIzaSyBkwCDziiV-Uh7MLzsy9OYJmA_LMnn7jbg',
+  authDomain: 'capoeira-liberdade.firebaseapp.com',
+  projectId: 'capoeira-liberdade',
+  storageBucket: 'capoeira-liberdade.firebasestorage.app',
+  messagingSenderId: '492022804215',
+  appId: '1:492022804215:web:c61aed556d9f1aa9576df2'
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+// Ponte para o conteudo do site (colecao siteConteudo, doc landing) usada por
+// index.html e gerenciar.html. Se o Firestore falhar/estiver indisponivel,
+// as paginas continuam funcionando com o conteudo local (localStorage/padrao),
+// exatamente como antes desta ponte existir.
+window.__leCarregarConteudo = async function () {
+  const ref = doc(db, 'siteConteudo', 'landing');
+  const snap = await getDoc(ref);
+  return snap.exists() ? snap.data() : null;
+};
+window.__leSalvarConteudo = async function (dados) {
+  const ref = doc(db, 'siteConteudo', 'landing');
+  await setDoc(ref, dados);
+};
+// Mescla dados locais (padrao/localStorage) com os vindos do Firestore,
+// preferindo, para cada lista, a versao com mais itens - assim um documento
+// do Firestore ainda incompleto nunca faz o site "perder" academias, mestres,
+// eventos ou produtos que ja estavam configurados localmente.
+window.__leMesclarMaior = function (local, remoto) {
+  if (!remoto) return local;
+  const out = Object.assign({}, local, remoto);
+  ['academias', 'mestres', 'eventos', 'produtos'].forEach((k) => {
+    const a = Array.isArray(local && local[k]) ? local[k] : [];
+    const b = Array.isArray(remoto && remoto[k]) ? remoto[k] : [];
+    out[k] = (b.length >= a.length && b.length > 0) ? b : a;
+  });
+  out.textos = Object.assign({}, local && local.textos, remoto && remoto.textos);
+  out.imagens = Object.assign({}, local && local.imagens, remoto && remoto.imagens);
+  out.loja = Object.assign({}, local && local.loja, remoto && remoto.loja);
+  return out;
+};
+</script>
 </head>
 <body>
 <x-dc>
@@ -506,6 +550,7 @@ class Component extends DCLogic {
   get heroAtivo() { return this.state.hero || this.props.hero || 'roda'; }
 
   lerConteudo() {
+    if (this._conteudoRemoto) return this._conteudoRemoto;
     try { return JSON.parse(window.localStorage.getItem('leSiteConteudo') || 'null') || {}; } catch (e) { return {}; }
   }
 
@@ -531,6 +576,25 @@ class Component extends DCLogic {
     this.responsivo();
     this._onResize = () => this.responsivo();
     window.addEventListener('resize', this._onResize);
+      if (window.__leCarregarConteudo) {
+        window.__leCarregarConteudo().then((remoto) => {
+          if (!remoto) return;
+          const local = this.lerConteudo();
+          const base = {
+            academias: (local.academias && local.academias.length) ? local.academias : ACADEMIAS,
+            mestres: (local.mestres && local.mestres.length) ? local.mestres : MESTRES,
+            eventos: (local.eventos && local.eventos.length) ? local.eventos : EVENTOS,
+            produtos: (local.produtos && local.produtos.length) ? local.produtos : PRODUTOS,
+            textos: local.textos || {},
+            imagens: local.imagens || {}
+          };
+          const mesclado = window.__leMesclarMaior(base, remoto);
+          this._conteudoRemoto = mesclado;
+          try { window.localStorage.setItem('leSiteConteudo', JSON.stringify(mesclado)); } catch (e) {}
+          this.aplicarTextos();
+          this.setState({});
+        }).catch((e) => console.error('Firestore indisponivel, mantendo conteudo local', e));
+      }
 
     const alvos = Array.from(document.querySelectorAll('[data-reveal]'));
     alvos.forEach((el) => {
