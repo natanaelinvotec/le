@@ -10,7 +10,7 @@
 */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, getDocs, doc, updateDoc, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { escapeHTML, sanitizeInput, hashPassword, exigirSessao, debounce } from "./shared.js";
+import { escapeHTML, sanitizeInput, hashPassword, exigirSessao, debounce, gerarSlug } from "./shared.js";
 
 const usuarioLogado = exigirSessao('sessaoCapoeira', ['admin', 'professor']);
 // exigirSessao já redireciona para login.html se inválido; se chegou aqui, a sessão existe.
@@ -224,6 +224,7 @@ if (formNovaAcademia) {
             const senhaHash = await hashPassword(senha);
             await addDoc(collection(db, "academias"), {
                 nome: normalizarAcademia(nomeRaw),
+                academiaId: gerarSlug(normalizarAcademia(nomeRaw)),
                 professor,
                 email,
                 senhaHash,
@@ -282,6 +283,9 @@ if (formEditAcademia) {
                 professor: sanitizeInput(document.getElementById('editNomeProfessor').value),
                 email: sanitizeInput(document.getElementById('editEmailProfessor').value).trim().toLowerCase()
             };
+            if (!academiasDBGlobais.find((a) => a.id === academiaEditandoID)?.academiaId) {
+                objUpdate.academiaId = gerarSlug(objUpdate.nome);
+            }
             const s = document.getElementById('editSenhaProfessor').value;
             if (s.trim() !== "") {
                 if (s.trim().length < 6) { toast('A nova senha deve ter ao menos 6 caracteres.', 'error'); btnSubmit.disabled = false; return; }
@@ -381,7 +385,10 @@ window.transferirAluno = async function (idAluno, novaAcademia) {
     if (novaAcademia === "") return;
     if (confirm(`Confirmar transferência para ${novaAcademia}?`)) {
         try {
-            await updateDoc(doc(db, "alunos", idAluno), { localTreino: normalizarAcademia(novaAcademia) });
+            const nomeAcLimpo = normalizarAcademia(novaAcademia);
+      const acEncontrada = academiasDBGlobais.find((a) => normalizarAcademia(a.nome) === nomeAcLimpo);
+      const academiaIdDestino = (acEncontrada && acEncontrada.academiaId) || gerarSlug(nomeAcLimpo);
+      await updateDoc(doc(db, "alunos", idAluno), { localTreino: nomeAcLimpo, academiaId: academiaIdDestino });
             toast("Aluno transferido!");
             await carregarAlunos();
         } catch (e) {
