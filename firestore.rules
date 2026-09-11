@@ -7,43 +7,54 @@ service cloud.firestore {
     function ehAdmin() { return logado() && meuPerfil().papel == 'admin'; }
     function ehGestor() { return logado() && (meuPerfil().papel == 'admin' || meuPerfil().papel == 'mestre'); }
 
-    // Cada um lê o próprio cadastro; só o Master Admin muda papel e academia
+    // ===== Novo app (Portal do Aluno / Painel do Mestre) =====
+    // Coleções novas, protegidas por login do Firebase Authentication.
     match /usuarios/{uid} {
       allow read: if logado() && (request.auth.uid == uid || ehGestor());
       allow update: if request.auth.uid == uid || ehAdmin();
       allow create, delete: if ehAdmin();
     }
 
-    // Aluno lê o próprio prontuário; responsável lê os dos filhos vinculados
-    match /alunos/{alunoId} {
-      allow read: if logado() && (
-        request.auth.uid == alunoId ||
-        ehGestor() ||
-        request.auth.uid in resource.data.responsaveis
-      );
-      allow write: if ehGestor();
-
-      match /avaliacoes/{aval} {
-        allow read: if logado() && (request.auth.uid == alunoId || ehGestor());
-        allow write: if ehGestor();
-      }
-    }
-
-    // Material de estudo: todo aluno lê, só gestor publica
     match /materiais/{id} {
       allow read: if logado();
       allow write: if ehGestor();
     }
 
-    // Financeiro: aluno vê o que é dele, gestor lança
     match /pagamentos/{id} {
       allow read: if logado() && (resource.data.alunoId == request.auth.uid || ehGestor());
       allow write: if ehGestor();
     }
 
+    // ===== Sistema atual (inscricao.html / admin.js / aluno.html / login.js) =====
+    // Estas coleções já têm dados reais e tráfego ao vivo. O login desse
+    // sistema compara e-mail/senha direto no Firestore (não usa o Firebase
+    // Authentication), então o acesso segue aberto - como já estava - para
+    // não interromper o site no ar. Isso substitui a regra de "modo de
+    // teste" que venceria em 30/09/2026. Revisar/restringir quando o
+    // sistema antigo for migrado para o modelo novo (usuarios/*).
     match /academias/{id} {
-      allow read: if logado();
-      allow write: if ehAdmin();
+      allow read, write: if true;
+    }
+    match /admins/{id} {
+      allow read, write: if true;
+    }
+    match /alunos/{id} {
+      allow read, write: if true;
+    }
+    match /siteConteudo/{id} {
+      allow read, write: if true;
+    }
+    match /site_agenda/{id} {
+      allow read, write: if true;
+    }
+    match /site_equipe/{id} {
+      allow read, write: if true;
+    }
+    match /site_locais/{id} {
+      allow read, write: if true;
+    }
+    match /site_loja/{id} {
+      allow read, write: if true;
     }
   }
 }
