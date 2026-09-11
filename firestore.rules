@@ -4,15 +4,64 @@ service cloud.firestore {
 
     function logado() { return request.auth != null; }
     function meuPerfil() { return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data; }
-    function ehAdmin() { return logado() && meuPerfil().papel == 'admin'; }
-    function ehGestor() { return logado() && (meuPerfil().papel == 'admin' || meuPerfil().papel == 'mestre'); }
+    function meusPapeis() { return meuPerfil().papeis; }
+    function ehAdmin() { return logado() && 'admin' in meusPapeis(); }
+    function ehGestor() { return logado() && meusPapeis().hasAny(['admin', 'mestre']); }
+    function minhaAcademiaGerenciada() { return meuPerfil().academiaGerenciadaId; }
+    function papeisInalterados() { return request.resource.data.papeis == resource.data.papeis; }
+    function academiaInalterada() { return request.resource.data.academiaId == resource.data.academiaId; }
+    function academiaGerenciadaInalterada() { return request.resource.data.academiaGerenciadaId == resource.data.academiaGerenciadaId; }
+    function notasInalteradas() { return request.resource.data.notas == resource.data.notas; }
 
-    // ===== Novo app (Portal do Aluno / Painel do Mestre) =====
-    // Coleções novas, protegidas por login do Firebase Authentication.
     match /usuarios/{uid} {
-      allow read: if logado() && (request.auth.uid == uid || ehGestor());
-      allow update: if request.auth.uid == uid || ehAdmin();
-      allow create, delete: if ehAdmin();
+      allow read: if logado() && (
+        request.auth.uid == uid ||
+        ehAdmin() ||
+        (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada()) ||
+        resource.data.responsavelUid == request.auth.uid
+      );
+
+      allow create: if ehAdmin() ||
+        (request.auth.uid == uid && request.resource.data.papeis == ['aluno']);
+
+      allow update: if ehAdmin() ||
+        (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada() && academiaInalterada() && papeisInalterados()) ||
+        (request.auth.uid == uid && papeisInalterados() && academiaInalterada() && academiaGerenciadaInalterada() && notasInalteradas());
+
+      allow delete: if ehAdmin();
+    }
+
+    match /usuarios/{uid}/avaliacoes/{id} {
+      function alunoDoMeuNucleo() {
+        return get(/databases/$(database)/documents/usuarios/$(uid)).data.academiaId == minhaAcademiaGerenciada();
+      }
+      allow read: if logado() && (request.auth.uid == uid || ehAdmin() || (ehGestor() && alunoDoMeuNucleo()));
+      allow create: if ehAdmin() || (ehGestor() && alunoDoMeuNucleo());
+    }
+
+    match /nucleos/{id} {
+      allow read: if true;
+      allow write: if ehAdmin();
+    }
+
+    match /solicitacoes/{id} {
+      allow read: if ehAdmin() || (ehGestor() && resource.data.solicitanteUid == request.auth.uid);
+      allow create: if ehGestor() &&
+        request.resource.data.solicitanteUid == request.auth.uid &&
+        request.resource.data.academiaId == minhaAcademiaGerenciada() &&
+        request.resource.data.status == 'pendente';
+      allow update, delete: if ehAdmin();
+    }
+
+    match /eventos/{id} {
+      allow read: if logado();
+      allow write: if ehAdmin();
+    }
+
+    match /avisos/{id} {
+      allow read: if logado();
+      allow create: if ehAdmin() || (ehGestor() && request.resource.data.academiaId == minhaAcademiaGerenciada());
+      allow update, delete: if ehAdmin();
     }
 
     match /materiais/{id} {
@@ -25,13 +74,6 @@ service cloud.firestore {
       allow write: if ehGestor();
     }
 
-    // ===== Sistema atual (inscricao.html / admin.js / aluno.html / login.js) =====
-    // Estas coleções já têm dados reais e tráfego ao vivo. O login desse
-    // sistema compara e-mail/senha direto no Firestore (não usa o Firebase
-    // Authentication), então o acesso segue aberto - como já estava - para
-    // não interromper o site no ar. Isso substitui a regra de "modo de
-    // teste" que venceria em 30/09/2026. Revisar/restringir quando o
-    // sistema antigo for migrado para o modelo novo (usuarios/*).
     match /academias/{id} {
       allow read, write: if true;
     }
