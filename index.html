@@ -1,23 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#002D72">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="icon" href="assets/icon-192.png" sizes="192x192" type="image/png">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="./support.js"></script>
-<link rel="manifest" href="./manifest.webmanifest">
-<meta name="theme-color" content="#002D72">
-<link rel="icon" href="./assets/icons/icon-32.png">
-<link rel="apple-touch-icon" href="./assets/icons/icon-180.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Liberdade">
-<script>
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./service-worker.js").catch(() => {});
-    });
-  }
-</script>
 </head>
 <body>
 <x-dc>
@@ -77,7 +67,7 @@ img{ display:block; max-width:100%; }
   </nav>
 
   <div style="display:flex; align-items:center; gap:10px; flex:none;">
-    <a data-portal="1" href="login.html" style="padding:10px 16px; border-radius:22px; border:1px solid rgba(255,255,255,.28); color:#fff; font-weight:700; font-size:.85rem; transition:.25s var(--ease);" style-hover="border-color:#00E676; color:#00E676;">Portal do Aluno</a>
+    <a data-portal="1" href="app.html" style="padding:10px 16px; border-radius:22px; border:1px solid rgba(255,255,255,.28); color:#fff; font-weight:700; font-size:.85rem; transition:.25s var(--ease);" style-hover="border-color:#00E676; color:#00E676;">Portal do Aluno</a>
     <a href="https://wa.me/5567991293269?text=Ol%C3%A1!%20Quero%20agendar%20minha%20primeira%20aula%20gr%C3%A1tis%20de%20capoeira." target="_blank" rel="noopener" style="padding:11px 20px; border-radius:22px; background:#00E676; color:#05070C; font-weight:800; font-size:.86rem; font-family:'Montserrat',sans-serif; letter-spacing:.02em; box-shadow:0 8px 24px rgba(0,230,118,.32); transition:.25s var(--ease);" style-hover="transform:translateY(-2px); box-shadow:0 12px 30px rgba(0,230,118,.45);">Aula grátis</a>
     <button data-menubtn="1" onClick="{{ alternarMenu }}" aria-label="Abrir menu" style="display:none; width:44px; height:44px; border-radius:50%; border:1px solid rgba(255,255,255,.28); background:rgba(255,255,255,.06); color:#fff; font-size:1.15rem; cursor:pointer;"><i class="fas fa-bars"></i></button>
   </div>
@@ -91,7 +81,8 @@ img{ display:block; max-width:100%; }
   <a href="#mestres" onClick="{{ fecharMenu }}" style="padding:16px 4px; border-bottom:1px solid rgba(255,255,255,.08); color:#fff; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.5rem;">Mestres</a>
   <a href="#agenda" onClick="{{ fecharMenu }}" style="padding:16px 4px; border-bottom:1px solid rgba(255,255,255,.08); color:#fff; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.5rem;">Agenda</a>
   <a href="#loja" onClick="{{ fecharMenu }}" style="padding:16px 4px; border-bottom:1px solid rgba(255,255,255,.08); color:#fff; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.5rem;">Loja</a>
-  <a href="login.html" style="margin-top:20px; padding:16px; border-radius:24px; border:1px solid rgba(255,255,255,.3); color:#fff; text-align:center; font-weight:800;">Portal do Aluno</a>
+  <a href="app.html" style="margin-top:20px; padding:16px; border-radius:24px; border:1px solid rgba(255,255,255,.3); color:#fff; text-align:center; font-weight:800;">Portal do Aluno</a>
+  <a href="instalar.html" style="margin-top:10px; padding:16px; border-radius:24px; background:rgba(0,230,118,.16); border:1px solid rgba(0,230,118,.4); color:#00E676; text-align:center; font-weight:800;">Instalar o aplicativo</a>
   <a href="https://wa.me/5567991293269?text=Ol%C3%A1!%20Quero%20agendar%20minha%20primeira%20aula%20gr%C3%A1tis%20de%20capoeira." target="_blank" rel="noopener" style="padding:18px; border-radius:24px; background:#00E676; color:#05070C; text-align:center; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.05rem;">Agende sua aula grátis</a>
 </div>
 
@@ -435,9 +426,10 @@ img{ display:block; max-width:100%; }
     </div>
     <div>
       <h4 style="margin:0 0 16px; font-family:'Montserrat',sans-serif; color:#fff; font-size:.86rem; letter-spacing:.16em;">SISTEMA</h4>
-      <a href="login.html" style="display:block; margin-bottom:12px; color:rgba(255,255,255,.75); font-size:.95rem;" style-hover="color:#00E676;">Portal do Aluno</a>
+      <a href="app.html" style="display:block; margin-bottom:12px; color:rgba(255,255,255,.75); font-size:.95rem;" style-hover="color:#00E676;">Portal do Aluno</a>
       <a href="inscricao.html" style="display:block; margin-bottom:12px; color:rgba(255,255,255,.75); font-size:.95rem;" style-hover="color:#00E676;">Ficha de Inscrição</a>
-      <a href="login.html" style="display:block; margin-bottom:12px; color:rgba(255,255,255,.75); font-size:.95rem;" style-hover="color:#00E676;">Painel do Professor</a>
+      <a href="app.html" style="display:block; margin-bottom:12px; color:rgba(255,255,255,.75); font-size:.95rem;" style-hover="color:#00E676;">Painel do Professor</a>
+      <a href="instalar.html" style="display:block; margin-bottom:12px; color:rgba(255,255,255,.75); font-size:.95rem;" style-hover="color:#00E676;">Instalar o aplicativo</a>
       <a href="gerenciar.html" style="display:block; color:rgba(255,255,255,.45); font-size:.9rem;" style-hover="color:#00E676;">Gerenciar o Site</a>
     </div>
   </div>

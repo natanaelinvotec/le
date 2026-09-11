@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Instalar o aplicativo — Capoeira Liberdade e Expressão</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#002D72">
+<meta name="description" content="Instale o app do Grupo de Capoeira Liberdade e Expressão no seu celular Android ou iPhone.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="icon" href="assets/icon-192.png" sizes="192x192" type="image/png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:'Nunito',sans-serif;color:#2C3E50;background:#EAF2F1}
+a{color:#00A854;text-decoration:none}
+a:hover{color:#389E92}
+.topo{position:relative;overflow:hidden;background:linear-gradient(158deg,#0B5C52 0%,#12796B 42%,#002D72 100%);color:#fff;padding:64px 24px 72px;text-align:center}
+.topo::after{content:"";position:absolute;bottom:0;left:0;right:0;height:4px;background:#00E676}
+.blob{position:absolute;border-radius:50%;filter:blur(62px);opacity:.35;animation:sobe 9s ease-in-out infinite}
+@keyframes sobe{0%,100%{transform:translateY(0)}50%{transform:translateY(-22px)}}
+.wrap{max-width:960px;margin:0 auto;padding:0 24px}
+.marca{position:relative;width:120px;height:120px;border-radius:50%;background:#fff;border:3px solid #00E676;margin:0 auto 18px;display:block}
+h1{font-family:'Montserrat',sans-serif;font-weight:800;font-size:2rem;margin:0 0 8px;position:relative}
+.sub{margin:0 auto;max-width:560px;color:rgba(255,255,255,.78);font-size:1.05rem;line-height:1.5;position:relative}
+.btnInstalar{position:relative;display:none;align-items:center;gap:10px;margin:24px auto 0;padding:16px 28px;border:none;border-radius:20px;background:#00E676;color:#05070C;font-family:'Montserrat',sans-serif;font-weight:800;font-size:1rem;cursor:pointer;box-shadow:0 12px 28px rgba(0,230,118,.35)}
+.grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;margin:-40px 0 0;position:relative}
+.card{background:#fff;border:1px solid #E0E6E5;border-radius:20px;padding:26px;box-shadow:0 4px 15px rgba(0,0,0,.03)}
+.card h2{font-family:'Montserrat',sans-serif;color:#002D72;font-size:1.2rem;margin:0 0 4px;display:flex;align-items:center;gap:10px}
+.card p.lead{color:#7F8C8D;font-size:.92rem;margin:0 0 18px}
+ol{margin:0;padding-left:0;list-style:none;counter-reset:passo}
+ol li{counter-increment:passo;position:relative;padding:0 0 18px 46px;line-height:1.5}
+ol li:last-child{padding-bottom:0}
+ol li::before{content:counter(passo);position:absolute;left:0;top:-2px;width:32px;height:32px;border-radius:50%;background:#002D72;color:#fff;font-family:'Montserrat',sans-serif;font-weight:800;font-size:.9rem;display:flex;align-items:center;justify-content:center}
+ol li strong{color:#002D72}
+.chip{display:inline-flex;align-items:center;gap:6px;background:#F8FBFB;border:1px solid #E0E6E5;border-radius:8px;padding:3px 9px;font-weight:700;font-size:.85rem;color:#389E92}
+.beneficios{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin:36px 0 0}
+.ben{background:#fff;border:1px solid #E0E6E5;border-radius:18px;padding:20px}
+.ben i{color:#389E92;font-size:1.2rem}
+.ben strong{display:block;font-family:'Montserrat',sans-serif;color:#002D72;margin:10px 0 4px}
+.ben span{color:#7F8C8D;font-size:.88rem;line-height:1.45}
+.rodape{text-align:center;padding:48px 24px 60px;color:#7F8C8D;font-size:.9rem}
+.voltar{display:inline-flex;align-items:center;gap:8px;margin-top:34px;padding:14px 22px;border:1px solid #E0E6E5;border-radius:20px;background:#fff;font-weight:800;color:#002D72}
+</style>
+</head>
+<body>
+<header class="topo">
+  <div class="blob" style="top:-80px;left:-60px;width:300px;height:300px;background:#00E676"></div>
+  <div class="blob" style="bottom:-100px;right:-70px;width:320px;height:320px;background:#389E92;animation-delay:1.5s"></div>
+  <img class="marca" src="assets/logo-liberdade.png" alt="Brasão do Grupo Liberdade e Expressão">
+  <h1>Instale o aplicativo do grupo</h1>
+  <p class="sub">O Portal do Aluno no seu celular: presença por QR, evolução do cordão, mensalidade, agenda e loja oficial. Sem loja de aplicativos, direto do nosso site.</p>
+  <button class="btnInstalar" id="btnInstalar"><i class="fas fa-download"></i> Instalar agora</button>
+</header>
+
+<main class="wrap">
+  <div class="grade">
+    <section class="card">
+      <h2><i class="fab fa-android" style="color:#00B140"></i> Android</h2>
+      <p class="lead">Chrome, Edge ou Samsung Internet.</p>
+      <ol>
+        <li>Abra <strong>este site</strong> no navegador do celular.</li>
+        <li>Toque no botão <span class="chip"><i class="fas fa-download"></i> Instalar agora</span> aqui em cima. Se ele não aparecer, toque nos <strong>três pontinhos</strong> do navegador.</li>
+        <li>Escolha <strong>Instalar aplicativo</strong> (ou "Adicionar à tela inicial").</li>
+        <li>Confirme. O brasão do grupo aparece na sua tela inicial.</li>
+        <li>Abra pelo ícone: o app inicia no <strong>Portal do Aluno</strong>, em tela cheia.</li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2><i class="fab fa-apple" style="color:#002D72"></i> iPhone e iPad</h2>
+      <p class="lead">Precisa ser pelo Safari — o iOS só instala por ele.</p>
+      <ol>
+        <li>Abra <strong>este site no Safari</strong> (não no Chrome).</li>
+        <li>Toque no botão <strong>Compartilhar</strong> <span class="chip"><i class="fas fa-arrow-up-from-bracket"></i> na barra inferior</span>.</li>
+        <li>Role a lista e toque em <strong>Adicionar à Tela de Início</strong>.</li>
+        <li>Toque em <strong>Adicionar</strong>, no canto superior direito.</li>
+        <li>Pronto: o app abre em tela cheia, sem a barra do navegador.</li>
+      </ol>
+    </section>
+  </div>
+
+  <div class="beneficios">
+    <div class="ben"><i class="fas fa-qrcode"></i><strong>Presença por QR</strong><span>Marque presença na roda em um toque.</span></div>
+    <div class="ben"><i class="fas fa-chart-line"></i><strong>Evolução do cordão</strong><span>Acompanhe os 15 critérios avaliados pelo mestre.</span></div>
+    <div class="ben"><i class="fas fa-wallet"></i><strong>Financeiro completo</strong><span>Mensalidade, PIX e tudo que já investiu na capoeira.</span></div>
+    <div class="ben"><i class="fas fa-users"></i><strong>Conta família</strong><span>Um login para os filhos, com prontuários separados.</span></div>
+  </div>
+
+  <div style="text-align:center"><a class="voltar" href="index.html"><i class="fas fa-arrow-left"></i> Voltar para o site</a></div>
+</main>
+
+<p class="rodape">Grupo de Capoeira Liberdade e Expressão · Mestre Profeta · Campo Grande — MS</p>
+
+<script>
+let prompt_ = null;
+const btn = document.getElementById('btnInstalar');
+window.addEventListener('beforeinstallprompt', function (e) {
+  e.preventDefault();
+  prompt_ = e;
+  btn.style.display = 'inline-flex';
+});
+btn.addEventListener('click', async function () {
+  if (!prompt_) return;
+  prompt_.prompt();
+  await prompt_.userChoice;
+  prompt_ = null;
+  btn.style.display = 'none';
+});
+window.addEventListener('appinstalled', function () { btn.style.display = 'none'; });
+</script>
+</body>
+</html>

@@ -1,142 +1,49 @@
 rules_version = '2';
-
-// ============================================================================
-// REGRAS DE SEGURANÇA — Capoeira Liberdade e Expressão
-// ----------------------------------------------------------------------------
-// LEIA O README-SEGURANCA.md ANTES DE PUBLICAR ESTAS REGRAS.
-//
-// Aviso importante: este projeto NÃO usa Firebase Authentication — o "login"
-// é feito comparando hash de senha em uma coleção do Firestore e guardando o
-// papel (admin/professor/aluno) apenas no sessionStorage do navegador.
-// sessionStorage é 100% client-side: qualquer pessoa pode abrir o console do
-// navegador e escrevê-lo manualmente, ou simplesmente chamar a API REST do
-// Firestore diretamente com a apiKey pública, ignorando completamente o site.
-//
-// Ou seja: SEM Firebase Authentication, estas regras não conseguem verificar
-// "quem" está pedindo os dados — só conseguem restringir a FORMA da operação
-// (o quê pode ser criado, quais campos, etc.). Isso ainda é valioso (impede
-// exclusão em massa por engano/robô, impede sobrescrever campos sensíveis
-// pelo formulário público, etc.), mas NÃO é controle de acesso por identidade.
-//
-// Migração recomendada (não incluída neste pacote por ser uma mudança maior
-// de arquitetura): Firebase Authentication (e-mail/senha) + uma coleção
-// "roles/{uid}" com { role, academia } + regras usando request.auth.uid.
-// ============================================================================
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ---------------------------------------------------------------------
-    // ADMINS: nunca deve ser legível/gravável pelo cliente em produção real.
-    // Mantido aberto para leitura aqui apenas porque o login atual precisa
-    // comparar o hash no próprio navegador (limitação arquitetural acima).
-    // Se migrar para Firebase Auth, troque para "allow read, write: if false;"
-    // ---------------------------------------------------------------------
-    match /admins/{adminId} {
-      allow get: if true;   // necessário para o login comparar o hash
-      allow list: if false; // impede listar todos os admins de uma vez
-      allow write: if false; // crie/edite manualmente pelo Console do Firebase
+    function logado() { return request.auth != null; }
+    function meuPerfil() { return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data; }
+    function ehAdmin() { return logado() && meuPerfil().papel == 'admin'; }
+    function ehGestor() { return logado() && (meuPerfil().papel == 'admin' || meuPerfil().papel == 'mestre'); }
+
+    // Cada um lê o próprio cadastro; só o Master Admin muda papel e academia
+    match /usuarios/{uid} {
+      allow read: if logado() && (request.auth.uid == uid || ehGestor());
+      allow update: if request.auth.uid == uid || ehAdmin();
+      allow create, delete: if ehAdmin();
     }
 
-    // ---------------------------------------------------------------------
-    // ACADEMIAS (professores)
-    // ---------------------------------------------------------------------
-    match /academias/{academiaId} {
-      allow get: if true;    // login precisa localizar o professor pelo e-mail/celular
-      allow list: if true;   // usado para montar filtros e o painel admin
-      // Criação/edição/exclusão deveriam ser restritas a admins autenticados.
-      // Como não há Firebase Auth aqui, mantemos abertas mas VALIDANDO a forma
-      // dos dados para reduzir abuso via chamadas diretas à API:
-      allow create: if request.resource.data.keys().hasAll(['nome','professor','email','senhaHash'])
-                    && request.resource.data.senhaHash is string
-                    && request.resource.data.senhaHash.size() == 64; // tamanho de um SHA-256 em hex
-      allow update: if request.resource.data.diff(resource.data).affectedKeys()
-                        .hasOnly(['nome','professor','email','senhaHash']);
-      allow delete: if true; // ⚠ ver README — idealmente restrito a admin autenticado
-    }
-
-    // ---------------------------------------------------------------------
-    // ALUNOS
-    // ---------------------------------------------------------------------
+    // Aluno lê o próprio prontuário; responsável lê os dos filhos vinculados
     match /alunos/{alunoId} {
-      allow get: if true;  // login e painel do aluno precisam ler o próprio documento
-      allow list: if true; // usado pelos painéis administrativos
+      allow read: if logado() && (
+        request.auth.uid == alunoId ||
+        ehGestor() ||
+        request.auth.uid in resource.data.responsaveis
+      );
+      allow write: if ehGestor();
 
-      // Cadastro público (inscricao.html): só aceita se vier com os campos
-      // essenciais e SEM já vir com um cordão/nota adulterados.
-      allow create: if request.resource.data.statusAtual == 'Ativo'
-                    && request.resource.data.cordaoAtual == 'Iniciante'
-                    && request.resource.data.keys().hasAll(['nome','senhaHash','localTreino']);
-
-      // Atualização: qualquer chamada direta à API só pode alterar campos
-      // esperados — impede, por exemplo, que alguém injete um campo "role":"admin".
-      // responsavelId/titular fazem parte da conta família (ver PARTE 4 das
-      // instruções): responsavelId é o UID do responsável (vazio para quem
-      // treina sozinho), titular marca quem faz login por essa conta.
-      allow update: if request.resource.data.diff(resource.data).affectedKeys()
-                        .hasOnly(['nome','idade','fotoUrl','statusAtual','cordaoAtual',
-                                  'notas','localTreino','senhaHash',
-                                  'responsavelId','titular']);
-
-      allow delete: if true; // ⚠ ver README — idealmente restrito a admin/professor autenticado
+      match /avaliacoes/{aval} {
+        allow read: if logado() && (request.auth.uid == alunoId || ehGestor());
+        allow write: if ehGestor();
+      }
     }
 
-    // ---------------------------------------------------------------------
-    // SITECONTEUDO: conteúdo público da landing page, editado pelo
-    // gerenciar.html. Documento único "landing" — mesma limitação estrutural
-    // das coleções acima (sem Firebase Auth, só validamos a FORMA).
-    // ---------------------------------------------------------------------
-    match /siteConteudo/{docId} {
-      allow get: if true;
-      allow list: if true;
-      allow create, update: if docId == 'landing'
-                    && request.resource.data.keys().hasAny(
-                         ['textos','imagens','academias','mestres',
-                          'eventos','produtos','loja','schemaVersion']);
-      allow delete: if false; // nunca apagar o documento de conteúdo do site
+    // Material de estudo: todo aluno lê, só gestor publica
+    match /materiais/{id} {
+      allow read: if logado();
+      allow write: if ehGestor();
     }
 
-    // ---------------------------------------------------------------------
-    // Coleções legadas do site (site_agenda/site_equipe/site_locais/site_loja)
-    // — mantidas enquanto gerenciar.html/index.html não migram 100% para ler
-    // só siteConteudo/landing (ver PARTE 4.4 das instruções). Mesmo nível de
-    // exposição que já existia antes desta atualização.
-    // ---------------------------------------------------------------------
-    match /site_agenda/{doc} {
-      allow get, list: if true;
-      allow write: if true;
+    // Financeiro: aluno vê o que é dele, gestor lança
+    match /pagamentos/{id} {
+      allow read: if logado() && (resource.data.alunoId == request.auth.uid || ehGestor());
+      allow write: if ehGestor();
     }
-    match /site_equipe/{doc} {
-      allow get, list: if true;
-      allow write: if true;
-    }
-    match /site_locais/{doc} {
-      allow get, list: if true;
-      allow write: if true;
-    }
-    match /site_loja/{doc} {
-      allow get, list: if true;
-      allow write: if true;
+
+    match /academias/{id} {
+      allow read: if logado();
+      allow write: if ehAdmin();
     }
   }
 }
-
-// ----------------------------------------------------------------------------
-// Storage (fotos dos alunos + imagens do site) — regras equivalentes sugeridas
-// para firebase.storage.rules:
-//
-// service firebase.storage {
-//   match /b/{bucket}/o {
-//     match /fotos_alunos/{arquivo} {
-//       allow read: if true;
-//       allow write: if request.resource.size < 5 * 1024 * 1024
-//                    && request.resource.contentType.matches('image/.*');
-//     }
-//     match /site/{arquivo=**} {
-//       allow read: if true;
-//       allow write: if request.resource.size < 5 * 1024 * 1024
-//                    && request.resource.contentType.matches('image/.*');
-//     }
-//   }
-// }
-// ----------------------------------------------------------------------------
