@@ -1,27 +1,12 @@
-/* inscricao.js — v2
-   Melhorias:
-   - Sanitização de todos os campos de texto antes de gravar no Firestore.
-   - Senha nunca é gravada em texto puro (hash SHA-256, ver shared.js).
-   - Câmera: paramos as tracks corretamente ao trocar de câmera/sair da página (evita vazamento de recurso).
-   - Tratamento de erro mais claro no upload da foto.
+/* inscricao.js — v3: cria uma conta de verdade no Firebase Authentication
+   (em vez de gravar senha em hash direto no Firestore) e o perfil em
+   usuarios/{uid} (coleção nova, ver firestore.rules). Todo mundo que se
+   inscreve aqui entra com papeis:['aluno'] — inclusive quem um dia vai
+   virar professor/mestre (isso o admin concede depois ao mesmo cadastro,
+   sem precisar de uma inscrição separada).
 */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { hashPassword, sanitizeInput, gerarSlug } from "./shared.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyBkwCDziiV-Uh7MLzsy9OYJmA_LMnn7jbg",
-  authDomain: "capoeira-liberdade.firebaseapp.com",
-  projectId: "capoeira-liberdade",
-  storageBucket: "capoeira-liberdade.firebasestorage.app",
-  messagingSenderId: "492022804215",
-  appId: "1:492022804215:web:c61aed556d9f1aa9576df2"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const storage = getStorage(app);
+import { criarConta, enviarFoto, listarNucleosAtivos } from './firebase.js';
+import { sanitizeInput, gerarSlug } from './shared.js';
 
 const steps = document.querySelectorAll('.form-step');
 const indicators = document.querySelectorAll('.step-indicator');
@@ -73,6 +58,30 @@ btnPrev.addEventListener('click', () => {
     currentStep--;
     updateFormSteps();
 });
+
+// ===== Núcleos: mescla a lista fixa (já no HTML, garante que a inscrição
+// funcione mesmo se o Firestore estiver fora do ar) com os núcleos ativos
+// cadastrados pelo admin no sistema novo (mesmo id/slug reaproveitado). =====
+const selectNucleo = document.getElementById('localTreinoSelect');
+(async function popularNucleos() {
+    try {
+        const nucleos = await listarNucleosAtivos();
+        nucleos.forEach((n) => {
+            const existente = Array.from(selectNucleo.options).find((o) => o.value === n.id);
+            if (existente) {
+                existente.textContent = n.nome || existente.textContent;
+            } else {
+                const opt = document.createElement('option');
+                opt.value = n.id;
+                opt.textContent = n.nome || n.id;
+                selectNucleo.appendChild(opt);
+            }
+        });
+    } catch (e) {
+        // Mantém a lista fixa que já está no HTML - a inscrição continua funcionando.
+        console.warn('Não foi possível carregar núcleos do Firestore, usando lista padrão.', e);
+    }
+})();
 
 const inputDataNasc = document.getElementById('dataNasc');
 const inputIdade = document.getElementById('campoIdade');
@@ -165,6 +174,20 @@ snapBtn.addEventListener('click', () => {
 window.addEventListener('beforeunload', pararCamera);
 document.addEventListener('visibilitychange', () => { if (document.hidden) pararCamera(); });
 
+function mensagemDeErro(codigoOuErro) {
+    const codigo = (codigoOuErro && codigoOuErro.code) || '';
+    if (codigo === 'auth/email-already-in-use') {
+        return 'Este e-mail já tem cadastro. Se o esqueceu, use "Esqueci minha senha" na tela de login.';
+    }
+    if (codigo === 'auth/invalid-email') {
+        return 'O e-mail informado não é válido. Confira e tente de novo.';
+    }
+    if (codigo === 'auth/weak-password') {
+        return 'A senha é muito curta. Use pelo menos 6 caracteres.';
+    }
+    return 'Erro técnico ao salvar sua inscrição. Verifique sua conexão e tente novamente.';
+}
+
 const form = document.getElementById('formInscricao');
 
 form.addEventListener('submit', async (e) => {
@@ -194,37 +217,57 @@ form.addEventListener('submit', async (e) => {
     const data = {};
     Object.keys(dataRaw).forEach(k => { data[k] = sanitizeInput(dataRaw[k]); });
 
+    const nomeAcademiaSelecionada = selectNucleo.selectedOptions[0] ? selectNucleo.selectedOptions[0].textContent : data.localTreino;
+    const academiaId = data.localTreino || gerarSlug(nomeAcademiaSelecionada);
+
     try {
-        const senhaHash = await hashPassword(data.senha || '');
         const nomeArquivo = 'fotos_alunos/' + Date.now() + '_' + (data.nome || 'aluno').replace(/\s+/g, '_') + '.jpg';
-        const fotoRef = ref(storage, nomeArquivo);
-        await uploadString(fotoRef, fotoDataUrl.value, 'data_url');
-        const fotoFinalUrl = await getDownloadURL(fotoRef);
+        const fotoFinalUrl = await enviarFoto(nomeArquivo, fotoDataUrl.value);
 
-        const { senha, fotoDataUrl: _descartado, ...dataSemSenha } = data;
-
-        await addDoc(collection(db, "alunos"), {
-            ...dataSemSenha,
-            email: (data.email || '').trim().toLowerCase(),
-            celular: (data.telefone || '').trim(),
-            senhaHash,
-            emailResponsavel: (data.emailResponsavel || '').trim().toLowerCase(),
-            celularResponsavel: (data.emergenciaTel || '').trim(),
+        const dadosPerfil = {
+            nome: data.nome,
+            dataNasc: data.dataNasc,
+            idade: idadeAluno,
+            documento: data.documento,
+            celular: data.telefone,
+            endereco: data.endereco,
+            bairro: data.bairro,
+            cidade: data.cidade,
+            academiaId,
+            academiaNome: nomeAcademiaSelecionada,
+            cordaoAtual: 'Iniciante',
+            statusAtual: 'Ativo',
             fotoUrl: fotoFinalUrl,
-            dataCadastro: new Date().toISOString(),
-            academiaId: gerarSlug(data.localTreino),
-            statusAtual: "Ativo",
-            cordaoAtual: "Iniciante",
-            notas: {}
-        });
+            saude: {
+                doencaCronica: data.doencaCronica, qualDoenca: data.qualDoenca || '',
+                cardiaco: data.cardiaco, asma: data.asma,
+                lesoes: data.lesoes, qualLesao: data.qualLesao || '',
+                cirurgia: data.cirurgia, qualCirurgia: data.qualCirurgia || '',
+                medicamentos: data.medicamentos, qualMedicamento: data.qualMedicamento || '',
+                alergia: data.alergia, qualAlergia: data.qualAlergia || '',
+                apto: data.apto,
+            },
+            experiencia: {
+                jaPraticou: data.jaPraticou, ondePraticou: data.ondePraticou || '', tempoPratica: data.tempoPratica || '',
+                tamCamiseta: data.tamCamiseta, tamCalca: data.tamCalca,
+            },
+            financeiro: { dataPagamento: data.dataPagamento, formaPagamento: data.formaPagamento },
+            usoImagem: data.usoImagem,
+            responsavelContato: idadeAluno < 18 ? {
+                nome: data.emergenciaNome || '', telefone: data.emergenciaTel || '',
+                parentesco: data.parentesco || '', email: (data.emailResponsavel || '').trim().toLowerCase(),
+            } : null,
+        };
 
-        alert("Inscrição salva com sucesso! Gerando PDF para impressão...");
+        await criarConta(data.email, data.senha, dadosPerfil);
+
+        alert("Inscrição salva com sucesso! Gerando ficha para impressão...");
         window.print();
-        setTimeout(() => { location.reload(); }, 2000);
+        setTimeout(() => { window.location.href = 'app.html'; }, 1500);
 
     } catch (error) {
         console.error(error);
-        alert("Erro técnico ao salvar sua inscrição. Verifique sua conexão e tente novamente.");
+        alert(mensagemDeErro(error));
     } finally {
         btnSubmit.innerHTML = '<i class="fas fa-check-circle"></i> Enviar e Gerar PDF';
         btnSubmit.disabled = false;
