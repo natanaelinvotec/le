@@ -1,79 +1,24 @@
-/* admin.js — v2
-   Melhorias de segurança e UX:
-   - Guarda de sessão centralizada (shared.js) em vez de checagem manual solta no topo do arquivo.
-   - TODO conteúdo dinâmico inserido via innerHTML passa por escapeHTML() — mitiga XSS armazenado
-     (ex.: um nome de aluno contendo "<img onerror=...>" não executa mais).
-   - Senha de professor nunca mais é gravada em texto puro (senhaHash).
-   - Notificações via toast (não bloqueantes) substituem a maioria dos alert().
-   - Gráficos: cada Chart.js é destruído antes de recriar (evita vazamento de memória) — reforçado
-     com um registro central de instâncias.
+/* admin.js — v3: painel único para Admin Master e Mestre/Professor.
+   Autenticado por Firebase Authentication (não mais sessionStorage/hash).
+   - Admin: vê e gerencia todos os usuários, cria/edita núcleos, aprova ou
+     rejeita solicitações, publica avisos para todo mundo, dispara redefinição
+     de senha de qualquer conta.
+   - Mestre/professor: vê e avalia só os alunos do próprio núcleo
+     (academiaGerenciadaId), não transfere aluno nem edita mensalidade/evento
+     direto — precisa abrir uma solicitação para o admin aprovar.
 */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, updateDoc, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { escapeHTML, sanitizeInput, hashPassword, exigirSessao, debounce, gerarSlug } from "./shared.js";
+import {
+    observarSessao, entrar, recuperarSenha, sair,
+    buscar, listar, listarPorAcademia, salvar, atualizar,
+    criarSolicitacao, minhasSolicitacoes, criarContaComoAdmin,
+    publicarAviso, listarAvisos,
+} from './firebase.js';
+import { escapeHTML, sanitizeInput, debounce, gerarSlug } from './shared.js';
 
-const usuarioLogado = exigirSessao('sessaoCapoeira', ['admin', 'professor']);
-// exigirSessao já redireciona para login.html se inválido; se chegou aqui, a sessão existe.
+let sessaoAtual = null; // { uid, nome, email, papeis, academiaId, academiaGerenciadaId, ... }
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBkwCDziiV-Uh7MLzsy9OYJmA_LMnn7jbg",
-  authDomain: "capoeira-liberdade.firebaseapp.com",
-  projectId: "capoeira-liberdade",
-  storageBucket: "capoeira-liberdade.firebasestorage.app",
-  messagingSenderId: "492022804215",
-  appId: "1:492022804215:web:c61aed556d9f1aa9576df2"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-const normalizarAcademia = (nome) => {
-    if (!nome) return 'Não informada';
-    return nome.replace(/^Academia\s+/i, '').trim();
-};
-
-let todosAlunos = [];
-let listaAcademias = [];
-let academiasDBGlobais = [];
-let alunoSelecionado = null;
-let academiaEditandoID = null;
-let deleteConfirm = false;
-let chartsInstances = {};
-
-const academiasPadrao = [
-    "Mestre Profeta", "Professora Taynara", "Mestre Abraão",
-    "Mestre Omar", "Mestre Carlinhos", "Professor Maick",
-    "Professor Tigoy", "Professor Rafinha", "Instrutor Leiliano",
-    "Professor Lebrinha"
-];
-
-const ordemCordoes = [
-    "Iniciante", "Cinza Claro", "Cinza e Bege", "Bege",
-    "Escravo", "Fugitivo", "Quilombola", "Vagante",
-    "Liberto", "Instrutor", "Professor", "Mestre"
-];
-
-const cordoesAdulto = [
-    { nome: "Iniciante", cor: ['#CCC','#CCC','#CCC'] }, { nome: "Escravo", cor: ['#4F4F4F','#4F4F4F','#4F4F4F'] },
-    { nome: "Fugitivo", cor: ['#4F4F4F','#F5DEB3','#4F4F4F'] }, { nome: "Quilombola", cor: ['#DAA520','#DAA520','#DAA520'] },
-    { nome: "Vagante", cor: ['#D2691E','#D32F2F','#D2691E'] }, { nome: "Liberto", cor: ['#D32F2F','#D32F2F','#D32F2F'] },
-    { nome: "Instrutor", cor: ['#4F4F4F','#F5DEB3','#D32F2F'] }, { nome: "Professor", cor: ['#D32F2F','#FFFFFF','#D32F2F'] },
-    { nome: "Mestre", cor: ['#F5F5F5','#F5F5F5','#F5F5F5'] }
-];
-const cordoesKids = [
-    { nome: "Iniciante", cor: ['#CCC','#CCC','#CCC'] }, { nome: "Cinza Claro", cor: ['#D3D3D3','#D3D3D3','#D3D3D3'] },
-    { nome: "Cinza e Bege", cor: ['#D3D3D3','#F5DEB3','#D3D3D3'] }, { nome: "Bege", cor: ['#F5DEB3','#F5DEB3','#F5DEB3'] }
-];
-const criteriosRegras = [
-    { id: 'c1', txt: 'Ginga e Base', reqAdulto: 0, reqKids: true }, { id: 'c2', txt: 'Acrobacias', reqAdulto: 3, reqKids: false },
-    { id: 'c3', txt: 'Respeito', reqAdulto: 0, reqKids: true }, { id: 'c4', txt: 'Disciplina', reqAdulto: 0, reqKids: true },
-    { id: 'c5', txt: 'Pontualidade', reqAdulto: 0, reqKids: true }, { id: 'c6', txt: 'Freq. Aulas', reqAdulto: 0, reqKids: true },
-    { id: 'c7', txt: 'Freq. Rodas', reqAdulto: 0, reqKids: true }, { id: 'c8', txt: 'Eventos', reqAdulto: 0, reqKids: true },
-    { id: 'c9', txt: 'Pandeiro', reqAdulto: 5, reqKids: false }, { id: 'c10', txt: 'Atabaque', reqAdulto: 5, reqKids: false },
-    { id: 'c11', txt: 'Berimbau', reqAdulto: 5, reqKids: false }, { id: 'c12', txt: 'Canta/Responde', reqAdulto: 5, reqKids: false },
-    { id: 'c13', txt: 'Higiene', reqAdulto: 0, reqKids: true }, { id: 'c14', txt: 'Aprendizado', reqAdulto: 0, reqKids: true },
-    { id: 'c15', txt: 'Fundamentos', reqAdulto: 0, reqKids: true }
-];
+const ehAdmin = () => !!sessaoAtual && (sessaoAtual.papeis || []).includes('admin');
+const ehMestre = () => !!sessaoAtual && (sessaoAtual.papeis || []).includes('mestre');
 
 /* ---------------------- TOASTS ---------------------- */
 function garantirToastContainer() {
@@ -91,7 +36,7 @@ function toast(mensagem, tipo = 'success', duracaoMs = 3500) {
     const container = garantirToastContainer();
     const el = document.createElement('div');
     el.className = `toast ${tipo}`;
-    el.textContent = mensagem; // textContent: seguro contra XSS
+    el.textContent = mensagem;
     container.appendChild(el);
     setTimeout(() => {
         el.classList.add('leaving');
@@ -99,42 +44,113 @@ function toast(mensagem, tipo = 'success', duracaoMs = 3500) {
     }, duracaoMs);
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-    const profileSpan = document.querySelector('.admin-profile span');
-    if (profileSpan) profileSpan.textContent = usuarioLogado.nome;
+/* ===================== LOGIN / SESSÃO ===================== */
+const telaLogin = document.getElementById('telaLogin');
+const appPainel = document.getElementById('appPainel');
+const formLogin = document.getElementById('formLogin');
+const loginMsg = document.getElementById('loginMsg');
 
-    if (usuarioLogado.role === 'professor') {
-        const abaAcademias = document.querySelector('a[onclick="mudarAba(\'academias\')"]');
-        const abaFinanceiro = document.querySelector('a[onclick="mudarAba(\'financeiro\')"]');
-        if (abaAcademias) abaAcademias.style.display = 'none';
-        if (abaFinanceiro) abaFinanceiro.style.display = 'none';
+function mostrarTelaLogin() {
+    telaLogin.classList.remove('oculto');
+    appPainel.classList.add('oculto');
+}
 
-        const headerAlunos = document.querySelector('#aba-alunos .section-header h2');
-        if (headerAlunos) {
-            headerAlunos.textContent = `Alunos - Academia ${usuarioLogado.academia}`;
+observarSessao(async (user) => {
+    if (!user) { sessaoAtual = null; mostrarTelaLogin(); return; }
+    try {
+        const perfil = await buscar('usuarios', user.uid);
+        if (!perfil || !((perfil.papeis || []).includes('admin') || (perfil.papeis || []).includes('mestre'))) {
+            toast('Esta conta não tem acesso ao painel de gestão. Use o app do aluno.', 'error');
+            await sair();
+            mostrarTelaLogin();
+            return;
         }
-        const sidebar = document.querySelector('.sidebar');
-        if (sidebar) sidebar.style.display = 'none';
+        sessaoAtual = { uid: user.uid, ...perfil };
+        await iniciarPainel();
+    } catch (e) {
+        console.error(e);
+        mostrarTelaLogin();
     }
+});
+
+formLogin.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btnEntrarPainel');
+    const email = document.getElementById('loginEmail').value;
+    const senha = document.getElementById('loginSenha').value;
+    loginMsg.textContent = '';
+    loginMsg.classList.remove('ok');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Entrando...';
+    try {
+        const perfil = await entrar(email, senha);
+        if (!((perfil.papeis || []).includes('admin') || (perfil.papeis || []).includes('mestre'))) {
+            await sair();
+            loginMsg.textContent = 'Esta conta é de aluno/responsável e não tem acesso a este painel.';
+            return;
+        }
+        // observarSessao acima cuida de iniciar o painel.
+    } catch (err) {
+        console.error(err);
+        loginMsg.textContent = 'E-mail ou senha inválidos.';
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Entrar';
+    }
+});
+
+document.getElementById('btnEsqueciSenhaPainel').addEventListener('click', async () => {
+    const email = document.getElementById('loginEmail').value;
+    if (!email) { loginMsg.textContent = 'Digite seu e-mail no campo acima primeiro.'; return; }
+    try {
+        await recuperarSenha(email);
+    } catch (_) { /* mensagem genérica de qualquer forma, não revela se o e-mail existe */ }
+    loginMsg.textContent = 'Se este e-mail existir em nossa base, enviamos um link de redefinição de senha.';
+    loginMsg.classList.add('ok');
+});
+
+document.getElementById('btnLogout').addEventListener('click', () => {
+    if (confirm('Deseja realmente sair da conta?')) sair();
+});
+
+/* ===================== ESTADO GERAL ===================== */
+let todosUsuarios = [];
+let todosNucleos = [];
+let usuarioSelecionado = null;
+let nucleoEditandoID = null;
+let statusToggleConfirm = false;
+let chartsInstances = {};
+
+async function iniciarPainel() {
+    telaLogin.classList.add('oculto');
+    appPainel.classList.remove('oculto');
+
+    const admin = ehAdmin();
+    document.querySelectorAll('[data-papel="admin"]').forEach((el) => { el.style.display = admin ? '' : 'none'; });
+    document.querySelectorAll('[data-papel="mestre"]').forEach((el) => { el.style.display = admin ? 'none' : ''; });
+
+    document.getElementById('nomePerfilLogado').textContent = sessaoAtual.nome || sessaoAtual.email;
+
+    let nomeNucleoProprio = '';
+    if (!admin && sessaoAtual.academiaGerenciadaId) {
+        const nuc = await buscar('nucleos', sessaoAtual.academiaGerenciadaId);
+        nomeNucleoProprio = nuc ? nuc.nome : sessaoAtual.academiaGerenciadaId;
+    }
+    document.getElementById('tituloAbaAlunos').textContent = admin ? 'Todos os Alunos' : `Meus Alunos — ${nomeNucleoProprio}`;
+    document.getElementById('tituloAbaSolicitacoes').textContent = admin ? 'Solicitações Recebidas' : 'Minhas Solicitações';
 
     document.getElementById('mobile-menu-btn').addEventListener('click', () => {
         document.getElementById('nav-links').classList.toggle('show');
     });
 
-    const btnLogout = document.getElementById('btnLogout');
-    if (btnLogout) {
-        btnLogout.addEventListener('click', () => {
-            if (confirm("Deseja realmente sair da conta?")) {
-                sessionStorage.removeItem('sessaoCapoeira');
-                window.location.href = 'login.html';
-            }
-        });
-    }
-
     mostrarSkeletons();
-    await carregarAcademias();
-    await carregarAlunos();
-});
+    await Promise.all([
+        carregarNucleos(),
+        carregarUsuarios(),
+        carregarSolicitacoes(),
+        carregarAvisos(),
+    ]);
+}
 
 function mostrarSkeletons(qtd = 6) {
     const grid = document.getElementById('gridAlunos');
@@ -156,166 +172,184 @@ function mostrarSkeletons(qtd = 6) {
     grid.innerHTML = html;
 }
 
-window.mudarAba = function (abaId) {
-    document.querySelectorAll('.aba-content, .nav-item').forEach(el => el.classList.remove('active'));
+window.mudarAba = function (abaId, evt) {
+    document.querySelectorAll('.aba-content, .nav-item').forEach((el) => el.classList.remove('active'));
     document.getElementById(`aba-${abaId}`).classList.add('active');
-    event.currentTarget.classList.add('active');
+    if (evt && evt.currentTarget) evt.currentTarget.classList.add('active');
     document.getElementById('nav-links').classList.remove('show');
 };
 
-window.irParaRelatorios = function () {
-    window.mudarAba('alunos');
+window.irParaRelatorios = function (evt) {
+    window.mudarAba('alunos', evt);
     setTimeout(() => { document.getElementById('secao-graficos').scrollIntoView({ behavior: 'smooth' }); }, 100);
 };
 
-async function carregarAcademias() {
+/* ===================== NÚCLEOS ===================== */
+async function carregarNucleos() {
     try {
-        const snap = await getDocs(collection(db, "academias"));
-        academiasDBGlobais = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        let nomesUnicos = new Set(academiasPadrao);
-        academiasDBGlobais.forEach(ac => nomesUnicos.add(normalizarAcademia(ac.nome)));
-        listaAcademias = Array.from(nomesUnicos).map(nome => ({ nome }));
+        todosNucleos = await listar('nucleos');
 
-        let selectHtml = '<option value="">Todas as Academias</option>';
-        listaAcademias.forEach(ac => selectHtml += `<option value="${escapeHTML(ac.nome)}">${escapeHTML(ac.nome)}</option>`);
-
-        const listaPainel = document.getElementById('listaAcademiasPainel');
-        if (listaPainel) {
-            if (academiasDBGlobais.length === 0) {
-                listaPainel.innerHTML = `<div class="empty-state"><i class="fas fa-school"></i>Nenhuma academia cadastrada ainda.</div>`;
-            } else {
-                listaPainel.innerHTML = academiasDBGlobais.map((ac, i) => {
-                    const nomeLimpo = normalizarAcademia(ac.nome);
-                    return `
-                    <div class="academia-card" style="--card-index:${i}">
-                        <h4><i class="fas fa-map-marker-alt"></i> ${escapeHTML(nomeLimpo)}</h4>
-                        <p><strong>Prof:</strong> ${escapeHTML(ac.professor || 'Não informado')}</p>
-                        <p><strong>Contato:</strong> ${escapeHTML(ac.email || 'Não informado')}</p>
-                        <div class="academia-actions">
-                            <button class="btn-edit-ac" onclick="abrirEditarAcademia('${ac.id}')"><i class="fas fa-edit"></i> Editar</button>
-                            <button class="btn-del-ac" onclick="excluirAcademia('${ac.id}', '${escapeHTML(nomeLimpo).replace(/'/g, "\\'")}')"><i class="fas fa-trash"></i> Excluir</button>
-                        </div>
-                    </div>`;
-                }).join('');
-            }
+        // Select de filtro (sidebar, admin)
+        const filtro = document.getElementById('filtroAcademia');
+        if (filtro) {
+            filtro.innerHTML = '<option value="">Todos os Núcleos</option>' +
+                todosNucleos.map((n) => `<option value="${escapeHTML(n.id)}">${escapeHTML(n.nome)}</option>`).join('');
         }
-        const filtroAcademia = document.getElementById('filtroAcademia');
-        if (filtroAcademia) filtroAcademia.innerHTML = selectHtml;
+        // Select de destino de transferência (mestre)
+        const destino = document.getElementById('solicTransferDestino');
+        if (destino) {
+            destino.innerHTML = '<option value="">Núcleo de destino...</option>' +
+                todosNucleos.filter((n) => n.ativo && n.id !== sessaoAtual.academiaGerenciadaId)
+                    .map((n) => `<option value="${escapeHTML(n.id)}">${escapeHTML(n.nome)}</option>`).join('');
+        }
+        // Select de aviso por núcleo (admin)
+        const avisoAcademia = document.getElementById('avisoAcademia');
+        if (avisoAcademia) {
+            avisoAcademia.innerHTML = '<option value="">Todos os núcleos</option>' +
+                todosNucleos.map((n) => `<option value="${escapeHTML(n.id)}">${escapeHTML(n.nome)}</option>`).join('');
+        }
+
+        if (!ehAdmin()) return;
+
+        const lista = document.getElementById('listaNucleosPainel');
+        if (todosNucleos.length === 0) {
+            lista.innerHTML = '<div class="empty-state"><i class="fas fa-school"></i>Nenhum núcleo cadastrado ainda.</div>';
+        } else {
+            lista.innerHTML = todosNucleos.map((n, i) => `
+                <div class="academia-card" style="--card-index:${i}">
+                    <h4><i class="fas fa-map-marker-alt"></i> ${escapeHTML(n.nome)}</h4>
+                    <p><strong>Mensalidade:</strong> ${n.mensalidadeValor ? `R$ ${Number(n.mensalidadeValor).toFixed(2)}` : 'Não informada'}</p>
+                    <p><strong>Status:</strong> ${n.ativo ? 'Ativo' : 'Inativo'}</p>
+                    <div class="academia-actions">
+                        <button class="btn-edit-ac" onclick="abrirEditarNucleo('${n.id}')"><i class="fas fa-edit"></i> Editar</button>
+                    </div>
+                </div>`).join('');
+        }
+
+        // Select "responsável" do form de novo núcleo: qualquer usuário que ainda não administra núcleo próprio
+        const selResp = document.getElementById('responsavelNucleo');
+        if (selResp) {
+            const disponiveis = todosUsuarios.filter((u) => !u.academiaGerenciadaId);
+            selResp.innerHTML = '<option value="__novo__">— Cadastrar pessoa nova —</option>' +
+                disponiveis.map((u) => `<option value="${escapeHTML(u.id)}">${escapeHTML(u.nome)} (${escapeHTML(u.email)})</option>`).join('');
+        }
     } catch (e) {
         console.error(e);
-        toast('Não foi possível carregar as academias.', 'error');
+        toast('Não foi possível carregar os núcleos.', 'error');
     }
 }
 
-const formNovaAcademia = document.getElementById('formNovaAcademia');
-if (formNovaAcademia) {
-    formNovaAcademia.addEventListener('submit', async (e) => {
+const selResponsavelNucleo = document.getElementById('responsavelNucleo');
+if (selResponsavelNucleo) {
+    selResponsavelNucleo.addEventListener('change', () => {
+        document.getElementById('camposNovoResponsavel').style.display = selResponsavelNucleo.value === '__novo__' ? 'grid' : 'none';
+    });
+}
+
+const formNovoNucleo = document.getElementById('formNovoNucleo');
+if (formNovoNucleo) {
+    formNovoNucleo.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const btnSubmit = formNovaAcademia.querySelector('button[type="submit"]');
-        btnSubmit.disabled = true;
+        const btn = formNovoNucleo.querySelector('button[type="submit"]');
+        btn.disabled = true;
         try {
-            const nomeRaw = sanitizeInput(document.getElementById('nomeAcademia').value);
-            const professor = sanitizeInput(document.getElementById('nomeProfessor').value);
-            const email = sanitizeInput(document.getElementById('emailProfessor').value).trim().toLowerCase();
-            const senha = document.getElementById('senhaProfessor').value;
+            const nome = sanitizeInput(document.getElementById('nomeNucleo').value);
+            const mensalidadeValor = Number(document.getElementById('mensalidadeNucleo').value) || 0;
+            const slug = gerarSlug(nome);
+            const respSelecionado = document.getElementById('responsavelNucleo').value;
 
-            if (senha.length < 6) { toast('A senha deve ter ao menos 6 caracteres.', 'error'); return; }
+            let professorUid;
+            if (respSelecionado === '__novo__') {
+                const nomeResp = sanitizeInput(document.getElementById('nomeNovoResponsavel').value);
+                const emailResp = sanitizeInput(document.getElementById('emailNovoResponsavel').value);
+                const senhaResp = document.getElementById('senhaNovoResponsavel').value;
+                if (!nomeResp || !emailResp || senhaResp.length < 6) {
+                    toast('Preencha nome, e-mail e uma senha de ao menos 6 caracteres para a pessoa nova.', 'error');
+                    return;
+                }
+                const novo = await criarContaComoAdmin(emailResp, senhaResp, {
+                    nome: nomeResp,
+                    papeis: ['aluno', 'mestre'],
+                    academiaId: slug,
+                    academiaNome: nome,
+                    academiaGerenciadaId: slug,
+                    idade: 0,
+                    cordaoAtual: 'Professor',
+                    statusAtual: 'Ativo',
+                    fotoUrl: '',
+                });
+                professorUid = novo.uid;
+            } else {
+                professorUid = respSelecionado;
+                const respAtual = todosUsuarios.find((u) => u.id === professorUid);
+                const papeisNovos = Array.from(new Set([...(respAtual?.papeis || ['aluno']), 'mestre']));
+                await atualizar('usuarios', professorUid, { papeis: papeisNovos, academiaGerenciadaId: slug });
+            }
 
-            const senhaHash = await hashPassword(senha);
-            await addDoc(collection(db, "academias"), {
-                nome: normalizarAcademia(nomeRaw),
-                academiaId: gerarSlug(normalizarAcademia(nomeRaw)),
-                professor,
-                email,
-                senhaHash,
-                data: new Date().toISOString()
-            });
-            toast("Academia cadastrada com sucesso!");
-            e.target.reset();
-            await carregarAcademias();
-            await carregarAlunos();
+            await salvar('nucleos', slug, { nome, mensalidadeValor, professorUid, ativo: true });
+            toast('Núcleo criado com sucesso!');
+            formNovoNucleo.reset();
+            document.getElementById('camposNovoResponsavel').style.display = 'grid';
+            await Promise.all([carregarNucleos(), carregarUsuarios()]);
         } catch (err) {
             console.error(err);
-            toast("Erro ao criar academia.", 'error');
+            toast(err && err.code === 'auth/email-already-in-use' ? 'Este e-mail já tem cadastro.' : 'Erro ao criar núcleo.', 'error');
         } finally {
-            btnSubmit.disabled = false;
+            btn.disabled = false;
         }
     });
 }
 
-window.excluirAcademia = async function (id, nome) {
-    if (confirm(`Deseja REALMENTE excluir a academia "${nome}"? Esta ação não pode ser desfeita.`)) {
-        try {
-            await deleteDoc(doc(db, "academias", id));
-            toast("Academia excluída.");
-            await carregarAcademias();
-            await carregarAlunos();
-        } catch (e) {
-            console.error(e);
-            toast("Erro ao excluir academia.", 'error');
-        }
-    }
+window.abrirEditarNucleo = function (id) {
+    nucleoEditandoID = id;
+    const n = todosNucleos.find((x) => x.id === id);
+    if (!n) return;
+    document.getElementById('editNomeNucleo').value = n.nome || '';
+    document.getElementById('editMensalidadeNucleo').value = n.mensalidadeValor || '';
+    document.getElementById('editAtivoNucleo').value = n.ativo === false ? 'false' : 'true';
+    document.getElementById('modalEditarNucleo').style.display = 'flex';
 };
+window.fecharModalNucleo = () => { document.getElementById('modalEditarNucleo').style.display = 'none'; };
 
-window.abrirEditarAcademia = function (id) {
-    academiaEditandoID = id;
-    const ac = academiasDBGlobais.find(a => a.id === id);
-    if (ac) {
-        document.getElementById('editNomeAcademia').value = normalizarAcademia(ac.nome);
-        document.getElementById('editNomeProfessor').value = ac.professor || '';
-        document.getElementById('editEmailProfessor').value = ac.email || '';
-        document.getElementById('editSenhaProfessor').value = "";
-        document.getElementById('modalEditarAcademia').style.display = 'flex';
-    }
-};
-window.fecharModalAcademia = () => document.getElementById('modalEditarAcademia').style.display = 'none';
-
-const formEditAcademia = document.getElementById('formEditAcademia');
-if (formEditAcademia) {
-    formEditAcademia.addEventListener('submit', async (e) => {
+const formEditNucleo = document.getElementById('formEditNucleo');
+if (formEditNucleo) {
+    formEditNucleo.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const btnSubmit = formEditAcademia.querySelector('button[type="submit"]');
-        btnSubmit.disabled = true;
+        const btn = formEditNucleo.querySelector('button[type="submit"]');
+        btn.disabled = true;
         try {
-            const nomeRaw = sanitizeInput(document.getElementById('editNomeAcademia').value);
-            const objUpdate = {
-                nome: normalizarAcademia(nomeRaw),
-                professor: sanitizeInput(document.getElementById('editNomeProfessor').value),
-                email: sanitizeInput(document.getElementById('editEmailProfessor').value).trim().toLowerCase()
-            };
-            if (!academiasDBGlobais.find((a) => a.id === academiaEditandoID)?.academiaId) {
-                objUpdate.academiaId = gerarSlug(objUpdate.nome);
-            }
-            const s = document.getElementById('editSenhaProfessor').value;
-            if (s.trim() !== "") {
-                if (s.trim().length < 6) { toast('A nova senha deve ter ao menos 6 caracteres.', 'error'); btnSubmit.disabled = false; return; }
-                objUpdate.senhaHash = await hashPassword(s.trim());
-            }
-
-            await updateDoc(doc(db, "academias", academiaEditandoID), objUpdate);
-            toast("Dados atualizados com sucesso!");
-            fecharModalAcademia();
-            await carregarAcademias();
-            await carregarAlunos();
-        } catch (e) {
-            console.error(e);
-            toast("Erro ao editar academia.", 'error');
+            await atualizar('nucleos', nucleoEditandoID, {
+                nome: sanitizeInput(document.getElementById('editNomeNucleo').value),
+                mensalidadeValor: Number(document.getElementById('editMensalidadeNucleo').value) || 0,
+                ativo: document.getElementById('editAtivoNucleo').value === 'true',
+            });
+            toast('Núcleo atualizado!');
+            window.fecharModalNucleo();
+            await carregarNucleos();
+        } catch (err) {
+            console.error(err);
+            toast('Erro ao editar núcleo.', 'error');
         } finally {
-            btnSubmit.disabled = false;
+            btn.disabled = false;
         }
     });
 }
 
-async function carregarAlunos() {
+/* ===================== USUÁRIOS / ALUNOS ===================== */
+async function carregarUsuarios() {
     try {
-        const snap = await getDocs(collection(db, "alunos"));
-        todosAlunos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (ehAdmin()) {
+            todosUsuarios = await listar('usuarios');
+        } else {
+            const { itens } = await listarPorAcademia('usuarios', sessaoAtual.academiaGerenciadaId || '__none__', 300);
+            todosUsuarios = itens;
+        }
         aplicarFiltros();
     } catch (e) {
         console.error(e);
         toast('Não foi possível carregar os alunos.', 'error');
         const grid = document.getElementById('gridAlunos');
-        if (grid) grid.innerHTML = `<div class="empty-state"><i class="fas fa-triangle-exclamation"></i>Erro ao carregar os dados. Tente recarregar a página.</div>`;
+        if (grid) grid.innerHTML = '<div class="empty-state"><i class="fas fa-triangle-exclamation"></i>Erro ao carregar os dados. Tente recarregar a página.</div>';
     }
 }
 
@@ -326,17 +360,11 @@ const inputBusca = document.getElementById('buscaGeral');
 if (inputBusca) inputBusca.addEventListener('input', debounce(aplicarFiltros, 200));
 
 function aplicarFiltros() {
-    let ac = document.getElementById('filtroAcademia') ? document.getElementById('filtroAcademia').value : "";
-    const txt = document.getElementById('buscaGeral') ? document.getElementById('buscaGeral').value.toLowerCase() : "";
+    const alunos = todosUsuarios.filter((u) => (u.papeis || []).includes('aluno'));
+    const ac = ehAdmin() && selectFiltroAcademia ? selectFiltroAcademia.value : '';
+    const txt = inputBusca ? inputBusca.value.toLowerCase() : '';
 
-    if (usuarioLogado.role === 'professor') {
-        ac = usuarioLogado.academia;
-    }
-
-    const filtrados = todosAlunos.filter(a => {
-        const localLimpo = normalizarAcademia(a.localTreino);
-        return (ac === "" || localLimpo === ac) && (txt === "" || (a.nome || '').toLowerCase().includes(txt));
-    });
+    const filtrados = alunos.filter((a) => (ac === '' || a.academiaId === ac) && (txt === '' || (a.nome || '').toLowerCase().includes(txt)));
 
     renderizarGrid(filtrados);
     desenharGraficos(filtrados);
@@ -347,16 +375,15 @@ function renderizarGrid(alunos) {
     if (!grid) return;
 
     let optAc = '<option value="">Transferir para...</option>';
-    listaAcademias.forEach(ac => { optAc += `<option value="${escapeHTML(ac.nome)}">${escapeHTML(ac.nome)}</option>`; });
+    todosNucleos.filter((n) => n.ativo).forEach((n) => { optAc += `<option value="${escapeHTML(n.id)}">${escapeHTML(n.nome)}</option>`; });
 
     if (alunos.length === 0) {
-        grid.innerHTML = `<div class="empty-state"><i class="fas fa-user-slash"></i>Nenhum aluno encontrado com os filtros atuais.</div>`;
+        grid.innerHTML = '<div class="empty-state"><i class="fas fa-user-slash"></i>Nenhum aluno encontrado com os filtros atuais.</div>';
         return;
     }
 
     grid.innerHTML = alunos.map((a, i) => {
-        const localLimpo = normalizarAcademia(a.localTreino);
-        const htmlTransferencia = usuarioLogado.role === 'admin'
+        const htmlTransferencia = ehAdmin()
             ? `<select class="select-encaminhar" onchange="transferirAluno('${a.id}', this.value)">${optAc}</select>`
             : '';
         const statusCor = a.statusAtual === 'Ativo' ? '#389E92' : '#E74C3C';
@@ -366,14 +393,14 @@ function renderizarGrid(alunos) {
                 <div class="card-top">
                     <img src="${escapeHTML(a.fotoUrl || 'https://via.placeholder.com/70')}" class="card-foto" alt="Foto de ${escapeHTML(a.nome || 'aluno')}" loading="lazy">
                     <div class="card-info">
-                        <h3>${escapeHTML(a.nome || 'Sem nome')}</h3>
+                        <h3>${escapeHTML(a.nome || 'Sem nome')} ${(a.papeis || []).includes('mestre') ? '<span class="badge">Mestre</span>' : ''}</h3>
                         <p>Rank: <strong>${escapeHTML(a.cordaoAtual || 'Iniciante')}</strong></p>
                         <p>Idade: <strong>${escapeHTML(a.idade ?? '-')} anos</strong></p>
-                        <p>Academia: <strong>${escapeHTML(localLimpo)}</strong></p>
+                        <p>Núcleo: <strong>${escapeHTML(a.academiaNome || a.academiaId || '-')}</strong></p>
                         <p>Status: <strong style="color:${statusCor}">${escapeHTML(a.statusAtual || 'Ativo')}</strong></p>
                     </div>
                 </div>
-                <div class="card-bottom" style="${usuarioLogado.role === 'professor' ? 'justify-content: flex-end;' : ''}">
+                <div class="card-bottom" style="${!ehAdmin() ? 'justify-content: flex-end;' : ''}">
                     ${htmlTransferencia}
                     <button class="btn-detalhes" onclick="abrirModal('${a.id}')">Avaliar / Editar</button>
                 </div>
@@ -381,53 +408,82 @@ function renderizarGrid(alunos) {
     }).join('');
 }
 
-window.transferirAluno = async function (idAluno, novaAcademia) {
-    if (novaAcademia === "") return;
-    if (confirm(`Confirmar transferência para ${novaAcademia}?`)) {
+window.transferirAluno = async function (idAluno, novoNucleoId) {
+    if (!novoNucleoId) return;
+    const nucleo = todosNucleos.find((n) => n.id === novoNucleoId);
+    if (!nucleo) return;
+    if (confirm(`Confirmar transferência para ${nucleo.nome}?`)) {
         try {
-            const nomeAcLimpo = normalizarAcademia(novaAcademia);
-      const acEncontrada = academiasDBGlobais.find((a) => normalizarAcademia(a.nome) === nomeAcLimpo);
-      const academiaIdDestino = (acEncontrada && acEncontrada.academiaId) || gerarSlug(nomeAcLimpo);
-      await updateDoc(doc(db, "alunos", idAluno), { localTreino: nomeAcLimpo, academiaId: academiaIdDestino });
-            toast("Aluno transferido!");
-            await carregarAlunos();
+            await atualizar('usuarios', idAluno, { academiaId: novoNucleoId, academiaNome: nucleo.nome });
+            toast('Aluno transferido!');
+            await carregarUsuarios();
         } catch (e) {
             console.error(e);
-            toast("Erro ao transferir aluno.", 'error');
+            toast('Erro ao transferir aluno.', 'error');
         }
     }
 };
+
+/* --- Modal de avaliação/edição (cordão + critérios), igual ao sistema
+   anterior, agora lendo/gravando em usuarios/{id}. --- */
+const ordemCordoes = [
+    'Iniciante', 'Cinza Claro', 'Cinza e Bege', 'Bege',
+    'Escravo', 'Fugitivo', 'Quilombola', 'Vagante',
+    'Liberto', 'Instrutor', 'Professor', 'Mestre',
+];
+const cordoesAdulto = [
+    { nome: 'Iniciante', cor: ['#CCC', '#CCC', '#CCC'] }, { nome: 'Escravo', cor: ['#4F4F4F', '#4F4F4F', '#4F4F4F'] },
+    { nome: 'Fugitivo', cor: ['#4F4F4F', '#F5DEB3', '#4F4F4F'] }, { nome: 'Quilombola', cor: ['#DAA520', '#DAA520', '#DAA520'] },
+    { nome: 'Vagante', cor: ['#D2691E', '#D32F2F', '#D2691E'] }, { nome: 'Liberto', cor: ['#D32F2F', '#D32F2F', '#D32F2F'] },
+    { nome: 'Instrutor', cor: ['#4F4F4F', '#F5DEB3', '#D32F2F'] }, { nome: 'Professor', cor: ['#D32F2F', '#FFFFFF', '#D32F2F'] },
+    { nome: 'Mestre', cor: ['#F5F5F5', '#F5F5F5', '#F5F5F5'] },
+];
+const cordoesKids = [
+    { nome: 'Iniciante', cor: ['#CCC', '#CCC', '#CCC'] }, { nome: 'Cinza Claro', cor: ['#D3D3D3', '#D3D3D3', '#D3D3D3'] },
+    { nome: 'Cinza e Bege', cor: ['#D3D3D3', '#F5DEB3', '#D3D3D3'] }, { nome: 'Bege', cor: ['#F5DEB3', '#F5DEB3', '#F5DEB3'] },
+];
+const criteriosRegras = [
+    { id: 'c1', txt: 'Ginga e Base', reqAdulto: 0, reqKids: true }, { id: 'c2', txt: 'Acrobacias', reqAdulto: 3, reqKids: false },
+    { id: 'c3', txt: 'Respeito', reqAdulto: 0, reqKids: true }, { id: 'c4', txt: 'Disciplina', reqAdulto: 0, reqKids: true },
+    { id: 'c5', txt: 'Pontualidade', reqAdulto: 0, reqKids: true }, { id: 'c6', txt: 'Freq. Aulas', reqAdulto: 0, reqKids: true },
+    { id: 'c7', txt: 'Freq. Rodas', reqAdulto: 0, reqKids: true }, { id: 'c8', txt: 'Eventos', reqAdulto: 0, reqKids: true },
+    { id: 'c9', txt: 'Pandeiro', reqAdulto: 5, reqKids: false }, { id: 'c10', txt: 'Atabaque', reqAdulto: 5, reqKids: false },
+    { id: 'c11', txt: 'Berimbau', reqAdulto: 5, reqKids: false }, { id: 'c12', txt: 'Canta/Responde', reqAdulto: 5, reqKids: false },
+    { id: 'c13', txt: 'Higiene', reqAdulto: 0, reqKids: true }, { id: 'c14', txt: 'Aprendizado', reqAdulto: 0, reqKids: true },
+    { id: 'c15', txt: 'Fundamentos', reqAdulto: 0, reqKids: true },
+];
 
 let notasAtuais = {};
 let criteriosAtivos = [];
 
 window.abrirModal = function (id) {
-    alunoSelecionado = todosAlunos.find(a => a.id === id);
-    if (!alunoSelecionado) return;
-    deleteConfirm = false;
+    usuarioSelecionado = todosUsuarios.find((a) => a.id === id);
+    if (!usuarioSelecionado) return;
+    statusToggleConfirm = false;
 
-    const btnExcluir = document.getElementById('btnExcluirModal');
-    btnExcluir.textContent = "Excluir Aluno";
-    btnExcluir.classList.remove('confirm-danger');
+    const btnStatus = document.getElementById('btnExcluirModal');
+    const ativo = usuarioSelecionado.statusAtual !== 'Inativo';
+    btnStatus.innerHTML = ativo ? '<i class="fas fa-user-slash"></i> Desativar Aluno' : '<i class="fas fa-user-check"></i> Reativar Aluno';
+    btnStatus.classList.remove('confirm-danger');
 
-    document.getElementById('modFoto').src = alunoSelecionado.fotoUrl || 'https://via.placeholder.com/90';
-    document.getElementById('modNomeTitulo').textContent = alunoSelecionado.nome || 'Aluno';
-    document.getElementById('modAcademia').textContent = normalizarAcademia(alunoSelecionado.localTreino);
+    document.getElementById('modFoto').src = usuarioSelecionado.fotoUrl || 'https://via.placeholder.com/90';
+    document.getElementById('modNomeTitulo').textContent = usuarioSelecionado.nome || 'Aluno';
+    document.getElementById('modAcademia').textContent = usuarioSelecionado.academiaNome || usuarioSelecionado.academiaId || '-';
 
-    document.getElementById('modNomeInput').value = alunoSelecionado.nome || '';
-    document.getElementById('modIdadeInput').value = alunoSelecionado.idade || '';
-    document.getElementById('modFotoInput').value = alunoSelecionado.fotoUrl || '';
-    document.getElementById('modStatus').value = alunoSelecionado.statusAtual || 'Ativo';
+    document.getElementById('modNomeInput').value = usuarioSelecionado.nome || '';
+    document.getElementById('modIdadeInput').value = usuarioSelecionado.idade || '';
+    document.getElementById('modFotoInput').value = usuarioSelecionado.fotoUrl || '';
+    document.getElementById('modStatus').value = usuarioSelecionado.statusAtual || 'Ativo';
 
     const selCordao = document.getElementById('modCordao');
     selCordao.innerHTML = '';
-    const idadeNumero = Number(alunoSelecionado.idade) || 0;
+    const idadeNumero = Number(usuarioSelecionado.idade) || 0;
     const listaCordoesLocal = idadeNumero < 12 ? cordoesKids : cordoesAdulto;
 
     listaCordoesLocal.forEach((c, index) => { selCordao.innerHTML += `<option value="${escapeHTML(c.nome)}" data-idx="${index}">${escapeHTML(c.nome)}</option>`; });
-    selCordao.value = alunoSelecionado.cordaoAtual || "Iniciante";
+    selCordao.value = usuarioSelecionado.cordaoAtual || 'Iniciante';
 
-    notasAtuais = { ...(alunoSelecionado.notas || {}) };
+    notasAtuais = { ...(usuarioSelecionado.notas || {}) };
     gerarCriteriosUI(listaCordoesLocal, idadeNumero);
     document.getElementById('modalAvaliacao').style.display = 'flex';
     selCordao.onchange = () => gerarCriteriosUI(listaCordoesLocal, idadeNumero);
@@ -435,7 +491,7 @@ window.abrirModal = function (id) {
 
 function gerarCriteriosUI(listaCordoesLocal, idadeNumero) {
     const grid = document.getElementById('gridCriterios');
-    let idxCordaoAtual = listaCordoesLocal.findIndex(c => c.nome === document.getElementById('modCordao').value);
+    let idxCordaoAtual = listaCordoesLocal.findIndex((c) => c.nome === document.getElementById('modCordao').value);
     if (idxCordaoAtual === -1) idxCordaoAtual = 0;
     const proximoCordao = listaCordoesLocal[idxCordaoAtual + 1] || listaCordoesLocal[idxCordaoAtual];
 
@@ -445,16 +501,16 @@ function gerarCriteriosUI(listaCordoesLocal, idadeNumero) {
     cssCordao.style.setProperty('--c2', proximoCordao.cor[1]);
     cssCordao.style.setProperty('--c3', proximoCordao.cor[2]);
 
-    criteriosAtivos = criteriosRegras.filter(crit => idadeNumero < 12 ? crit.reqKids : idxCordaoAtual >= (crit.reqAdulto - 1));
+    criteriosAtivos = criteriosRegras.filter((crit) => (idadeNumero < 12 ? crit.reqKids : idxCordaoAtual >= (crit.reqAdulto - 1)));
 
-    grid.innerHTML = criteriosAtivos.map(crit => {
+    grid.innerHTML = criteriosAtivos.map((crit) => {
         if (notasAtuais[crit.id] === undefined) notasAtuais[crit.id] = 0;
         let htmlStars = '';
         for (let i = 1; i <= 10; i++) htmlStars += `<i class="fas fa-star" data-val="${i}"></i>`;
         return `<div class="crit-item"><span>${escapeHTML(crit.txt)}</span><div class="stars-row" data-id="${crit.id}">${htmlStars}</div></div>`;
     }).join('');
 
-    document.querySelectorAll('.stars-row').forEach(row => {
+    document.querySelectorAll('.stars-row').forEach((row) => {
         const idCrit = row.getAttribute('data-id');
         const stars = Array.from(row.querySelectorAll('i'));
         stars.forEach((s, idx) => { if (idx < notasAtuais[idCrit]) s.classList.add('ativa'); });
@@ -474,33 +530,51 @@ function atualizarNota(idCrit, valor, starsArray) {
 
 function calcularPorcentagem() {
     let totalPontos = 0;
-    criteriosAtivos.forEach(c => { if (notasAtuais[c.id]) totalPontos += Number(notasAtuais[c.id]); });
+    criteriosAtivos.forEach((c) => { if (notasAtuais[c.id]) totalPontos += Number(notasAtuais[c.id]); });
     const maxPontos = criteriosAtivos.length * 10;
-    let porc = maxPontos > 0 ? (totalPontos / maxPontos) * 100 : 0;
+    const porc = maxPontos > 0 ? (totalPontos / maxPontos) * 100 : 0;
 
     document.getElementById('porcentagemEvolucao').textContent = `${Math.floor(porc > 100 ? 100 : porc)}%`;
     const cssCordao = document.getElementById('cordaoTrancado');
     cssCordao.style.width = `${porc > 100 ? 100 : porc}%`;
-    cssCordao.style.boxShadow = porc >= 70 ? "0 0 15px rgba(0, 230, 118, 0.8)" : "none";
+    cssCordao.style.boxShadow = porc >= 70 ? '0 0 15px rgba(0, 230, 118, 0.8)' : 'none';
 }
 
-window.excluirAlunoBtn = async function () {
+window.alternarStatusAlunoBtn = async function () {
     const btn = document.getElementById('btnExcluirModal');
-    if (!deleteConfirm) {
-        btn.textContent = "Tem certeza? Excluir";
+    const desativando = usuarioSelecionado.statusAtual !== 'Inativo';
+    if (!statusToggleConfirm) {
+        btn.textContent = desativando ? 'Tem certeza? Desativar' : 'Tem certeza? Reativar';
         btn.classList.add('confirm-danger');
-        deleteConfirm = true;
-        setTimeout(() => { deleteConfirm = false; btn.textContent = "Excluir Aluno"; btn.classList.remove('confirm-danger'); }, 4000);
+        statusToggleConfirm = true;
+        setTimeout(() => {
+            statusToggleConfirm = false;
+            btn.innerHTML = desativando ? '<i class="fas fa-user-slash"></i> Desativar Aluno' : '<i class="fas fa-user-check"></i> Reativar Aluno';
+            btn.classList.remove('confirm-danger');
+        }, 4000);
     } else {
         try {
-            await deleteDoc(doc(db, "alunos", alunoSelecionado.id));
-            toast("Cadastro excluído.");
-            fecharModal();
-            await carregarAlunos();
+            const novoStatus = desativando ? 'Inativo' : 'Ativo';
+            await atualizar('usuarios', usuarioSelecionado.id, { statusAtual: novoStatus, ativo: !desativando });
+            toast(desativando ? 'Aluno desativado.' : 'Aluno reativado.');
+            window.fecharModal();
+            await carregarUsuarios();
         } catch (e) {
             console.error(e);
-            toast("Erro ao excluir aluno.", 'error');
+            toast('Erro ao atualizar o status do aluno.', 'error');
         }
+    }
+};
+
+window.resetarSenhaAluno = async function () {
+    if (!usuarioSelecionado || !usuarioSelecionado.email) return;
+    if (!confirm(`Enviar e-mail de redefinição de senha para ${usuarioSelecionado.email}?`)) return;
+    try {
+        await recuperarSenha(usuarioSelecionado.email);
+        toast('E-mail de redefinição enviado.');
+    } catch (e) {
+        console.error(e);
+        toast('Erro ao enviar redefinição de senha.', 'error');
     }
 };
 
@@ -516,83 +590,303 @@ window.salvarEdicaoAluno = async function () {
         if (!novoNome) { toast('O nome do aluno não pode ficar vazio.', 'error'); return; }
         if (!Number.isFinite(novaIdade) || novaIdade < 0 || novaIdade > 120) { toast('Informe uma idade válida.', 'error'); return; }
 
-        await updateDoc(doc(db, "alunos", alunoSelecionado.id), {
+        await atualizar('usuarios', usuarioSelecionado.id, {
             nome: novoNome,
             idade: novaIdade,
             fotoUrl: novaFoto,
             statusAtual: document.getElementById('modStatus').value,
             cordaoAtual: document.getElementById('modCordao').value,
-            notas: notasAtuais
+            notas: notasAtuais,
         });
-        toast("Prontuário atualizado com sucesso!");
-        fecharModal();
-        await carregarAlunos();
+        toast('Prontuário atualizado com sucesso!');
+        window.fecharModal();
+        await carregarUsuarios();
     } catch (e) {
         console.error(e);
-        toast("Erro ao salvar alterações.", 'error');
+        toast('Erro ao salvar alterações.', 'error');
     } finally {
         btn.innerHTML = '<i class="fas fa-save"></i> Atualizar Prontuário';
         btn.disabled = false;
     }
 };
 
-window.fecharModal = () => document.getElementById('modalAvaliacao').style.display = 'none';
+window.fecharModal = () => { document.getElementById('modalAvaliacao').style.display = 'none'; };
 
+/* ===================== SOLICITAÇÕES ===================== */
+window.abrirFormSolicitacao = function (tipo) {
+    document.querySelectorAll('.form-solicitacao').forEach((f) => { f.style.display = 'none'; });
+    const form = document.getElementById(`formSolic${tipo.charAt(0).toUpperCase()}${tipo.slice(1)}`);
+    if (form) form.style.display = 'grid';
+    if (tipo === 'transferencia') {
+        const selAluno = document.getElementById('solicTransferAluno');
+        const meusAlunos = todosUsuarios.filter((u) => (u.papeis || []).includes('aluno'));
+        selAluno.innerHTML = '<option value="">Selecione o aluno...</option>' +
+            meusAlunos.map((a) => `<option value="${escapeHTML(a.id)}">${escapeHTML(a.nome)}</option>`).join('');
+    }
+};
+
+async function enviarSolicitacao(tipo, dadosPedido) {
+    await criarSolicitacao({
+        tipo,
+        academiaId: sessaoAtual.academiaGerenciadaId,
+        solicitanteUid: sessaoAtual.uid,
+        solicitanteNome: sessaoAtual.nome,
+        dadosPedido,
+    });
+    toast('Solicitação enviada ao admin!');
+    document.querySelectorAll('.form-solicitacao').forEach((f) => { f.style.display = 'none'; f.reset(); });
+    await carregarSolicitacoes();
+}
+
+const formSolicMensalidade = document.getElementById('formSolicMensalidade');
+if (formSolicMensalidade) {
+    formSolicMensalidade.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+            await enviarSolicitacao('mensalidade', {
+                novoValor: Number(document.getElementById('solicMensalidadeValor').value) || 0,
+                justificativa: sanitizeInput(document.getElementById('solicMensalidadeJustificativa').value),
+            });
+        } catch (err) { console.error(err); toast('Erro ao enviar solicitação.', 'error'); }
+    });
+}
+const formSolicEvento = document.getElementById('formSolicEvento');
+if (formSolicEvento) {
+    formSolicEvento.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+            await enviarSolicitacao('evento', {
+                nome: sanitizeInput(document.getElementById('solicEventoNome').value),
+                data: document.getElementById('solicEventoData').value,
+                descricao: sanitizeInput(document.getElementById('solicEventoDescricao').value),
+            });
+        } catch (err) { console.error(err); toast('Erro ao enviar solicitação.', 'error'); }
+    });
+}
+const formSolicTransferencia = document.getElementById('formSolicTransferencia');
+if (formSolicTransferencia) {
+    formSolicTransferencia.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+            const alunoUid = document.getElementById('solicTransferAluno').value;
+            const destinoId = document.getElementById('solicTransferDestino').value;
+            const aluno = todosUsuarios.find((a) => a.id === alunoUid);
+            const destino = todosNucleos.find((n) => n.id === destinoId);
+            if (!aluno || !destino) { toast('Selecione o aluno e o núcleo de destino.', 'error'); return; }
+            await enviarSolicitacao('transferencia', {
+                alunoUid,
+                alunoNome: aluno.nome,
+                destinoId,
+                destinoNome: destino.nome,
+                motivo: sanitizeInput(document.getElementById('solicTransferMotivo').value),
+            });
+        } catch (err) { console.error(err); toast('Erro ao enviar solicitação.', 'error'); }
+    });
+}
+
+function descreverSolicitacao(s) {
+    if (s.tipo === 'mensalidade') return `Alterar mensalidade para R$ ${Number(s.dadosPedido?.novoValor || 0).toFixed(2)}`;
+    if (s.tipo === 'evento') return `Criar evento "${s.dadosPedido?.nome || ''}" em ${s.dadosPedido?.data || '-'}`;
+    if (s.tipo === 'transferencia') return `Transferir ${s.dadosPedido?.alunoNome || ''} para ${s.dadosPedido?.destinoNome || ''}`;
+    return s.tipo;
+}
+
+async function carregarSolicitacoes() {
+    try {
+        if (ehAdmin()) {
+            const todas = await listar('solicitacoes');
+            todas.sort((a, b) => (b.criadoEm || '').localeCompare(a.criadoEm || ''));
+            const pendentes = todas.filter((s) => s.status === 'pendente');
+            const historico = todas.filter((s) => s.status !== 'pendente');
+
+            const listaP = document.getElementById('listaSolicPendentes');
+            listaP.innerHTML = pendentes.length
+                ? pendentes.map((s) => `
+                    <div class="lista-item">
+                        <div class="lista-item-info">
+                            <strong>${escapeHTML(s.solicitanteNome || 'Mestre/Professor')}</strong>
+                            <span>${escapeHTML(descreverSolicitacao(s))}</span>
+                        </div>
+                        <div class="lista-item-actions">
+                            <button class="btn-mini btn-mini-aprovar" onclick="aprovarSolicitacao('${s.id}')">Aprovar</button>
+                            <button class="btn-mini btn-mini-rejeitar" onclick="rejeitarSolicitacao('${s.id}')">Rejeitar</button>
+                        </div>
+                    </div>`).join('')
+                : '<div class="empty-state"><i class="fas fa-inbox"></i>Nenhuma solicitação pendente.</div>';
+
+            const listaH = document.getElementById('listaSolicHistorico');
+            listaH.innerHTML = historico.length
+                ? historico.slice(0, 30).map((s) => `
+                    <div class="lista-item">
+                        <div class="lista-item-info">
+                            <strong>${escapeHTML(s.solicitanteNome || 'Mestre/Professor')}</strong>
+                            <span>${escapeHTML(descreverSolicitacao(s))}</span>
+                        </div>
+                        <span class="pill pill-${s.status}">${s.status === 'aprovado' ? 'Aprovado' : 'Rejeitado'}</span>
+                    </div>`).join('')
+                : '<div class="empty-state"><i class="fas fa-clock-rotate-left"></i>Sem histórico ainda.</div>';
+        } else {
+            const minhas = await minhasSolicitacoes(sessaoAtual.uid);
+            const lista = document.getElementById('listaMinhasSolic');
+            lista.innerHTML = minhas.length
+                ? minhas.map((s) => `
+                    <div class="lista-item">
+                        <div class="lista-item-info">
+                            <strong>${escapeHTML(descreverSolicitacao(s))}</strong>
+                            <span>${new Date(s.criadoEm).toLocaleDateString('pt-BR')}</span>
+                        </div>
+                        <span class="pill pill-${s.status}">${s.status === 'pendente' ? 'Pendente' : (s.status === 'aprovado' ? 'Aprovado' : 'Rejeitado')}</span>
+                    </div>`).join('')
+                : '<div class="empty-state"><i class="fas fa-inbox"></i>Você ainda não enviou nenhuma solicitação.</div>';
+        }
+    } catch (e) {
+        console.error(e);
+        toast('Não foi possível carregar as solicitações.', 'error');
+    }
+}
+
+window.aprovarSolicitacao = async function (id) {
+    try {
+        const sol = (await listar('solicitacoes')).find((s) => s.id === id);
+        if (!sol) return;
+        if (sol.tipo === 'mensalidade') {
+            await atualizar('nucleos', sol.academiaId, { mensalidadeValor: Number(sol.dadosPedido.novoValor) || 0 });
+        } else if (sol.tipo === 'evento') {
+            await salvar('eventos', `${sol.academiaId}-${Date.now()}`, {
+                nome: sol.dadosPedido.nome, data: sol.dadosPedido.data, descricao: sol.dadosPedido.descricao || '',
+                academiaId: sol.academiaId, criadoEm: new Date().toISOString(),
+            });
+        } else if (sol.tipo === 'transferencia') {
+            await atualizar('usuarios', sol.dadosPedido.alunoUid, {
+                academiaId: sol.dadosPedido.destinoId, academiaNome: sol.dadosPedido.destinoNome,
+            });
+        }
+        await atualizar('solicitacoes', id, { status: 'aprovado' });
+        toast('Solicitação aprovada e aplicada!');
+        await Promise.all([carregarSolicitacoes(), carregarUsuarios(), carregarNucleos()]);
+    } catch (e) {
+        console.error(e);
+        toast('Erro ao aprovar solicitação.', 'error');
+    }
+};
+
+window.rejeitarSolicitacao = async function (id) {
+    if (!confirm('Rejeitar esta solicitação?')) return;
+    try {
+        await atualizar('solicitacoes', id, { status: 'rejeitado' });
+        toast('Solicitação rejeitada.');
+        await carregarSolicitacoes();
+    } catch (e) {
+        console.error(e);
+        toast('Erro ao rejeitar solicitação.', 'error');
+    }
+};
+
+/* ===================== AVISOS ===================== */
+async function carregarAvisos() {
+    try {
+        const avisos = await listarAvisos(20);
+        const visiveis = ehAdmin() ? avisos : avisos.filter((a) => !a.academiaId || a.academiaId === sessaoAtual.academiaGerenciadaId);
+        const lista = document.getElementById('listaAvisos');
+        lista.innerHTML = visiveis.length
+            ? visiveis.map((a) => `
+                <div class="lista-item">
+                    <div class="lista-item-info">
+                        <strong>${escapeHTML(a.titulo)} <span class="pill pill-aprovado">${escapeHTML(a.tipo || 'geral')}</span></strong>
+                        <span>${escapeHTML(a.texto)}</span>
+                    </div>
+                </div>`).join('')
+            : '<div class="empty-state"><i class="fas fa-bell-slash"></i>Nenhum aviso publicado ainda.</div>';
+    } catch (e) {
+        console.error(e);
+        toast('Não foi possível carregar os avisos.', 'error');
+    }
+}
+
+const formNovoAviso = document.getElementById('formNovoAviso');
+if (formNovoAviso) {
+    formNovoAviso.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = formNovoAviso.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        try {
+            const academiaId = ehAdmin() ? (document.getElementById('avisoAcademia').value || null) : sessaoAtual.academiaGerenciadaId;
+            await publicarAviso({
+                titulo: sanitizeInput(document.getElementById('avisoTitulo').value),
+                texto: sanitizeInput(document.getElementById('avisoTexto').value),
+                tipo: document.getElementById('avisoTipo').value,
+                academiaId,
+                autorUid: sessaoAtual.uid,
+                autorNome: sessaoAtual.nome,
+            });
+            toast('Aviso publicado!');
+            formNovoAviso.reset();
+            await carregarAvisos();
+        } catch (err) {
+            console.error(err);
+            toast('Erro ao publicar aviso.', 'error');
+        } finally {
+            btn.disabled = false;
+        }
+    });
+}
+
+/* ===================== GRÁFICOS ===================== */
 function obterCorPorCordao(nome) {
     const mapa = {
-        'Iniciante': '#CCCCCC', 'Cinza Claro': '#D3D3D3', 'Cinza e Bege': '#C0C0C0', 'Bege': '#DEB887',
-        'Escravo': '#555555', 'Fugitivo': '#8B7D6B', 'Quilombola': '#DAA520', 'Vagante': '#CD5C5C',
-        'Liberto': '#D32F2F', 'Instrutor': '#800000', 'Professor': '#F08080', 'Mestre': '#F5F5F5'
+        Iniciante: '#CCCCCC', 'Cinza Claro': '#D3D3D3', 'Cinza e Bege': '#C0C0C0', Bege: '#DEB887',
+        Escravo: '#555555', Fugitivo: '#8B7D6B', Quilombola: '#DAA520', Vagante: '#CD5C5C',
+        Liberto: '#D32F2F', Instrutor: '#800000', Professor: '#F08080', Mestre: '#F5F5F5',
     };
     return mapa[nome] || '#389E92';
 }
 
 function desenharGraficos(alunosAtuais) {
-    let aptos = 0, desenv = 0, rankCount = {}, academiaCount = {}, ativos = 0, inativos = 0, kids = 0, adultos = 0;
-    let fundamentosSoma = {}, fundamentosQtd = {};
-    criteriosRegras.forEach(c => { fundamentosSoma[c.txt] = 0; fundamentosQtd[c.txt] = 0; });
+    let aptos = 0; let desenv = 0; const rankCount = {}; const academiaCount = {}; let ativos = 0; let inativos = 0; let kids = 0; let adultos = 0;
+    const fundamentosSoma = {}; const fundamentosQtd = {};
+    criteriosRegras.forEach((c) => { fundamentosSoma[c.txt] = 0; fundamentosQtd[c.txt] = 0; });
 
-    alunosAtuais.forEach(a => {
+    alunosAtuais.forEach((a) => {
         const idadeAluno = Number(a.idade) || 0;
         if (idadeAluno < 12) kids++; else adultos++;
         if (a.statusAtual === 'Ativo') ativos++; else inativos++;
-        const local = normalizarAcademia(a.localTreino); academiaCount[local] = (academiaCount[local] || 0) + 1;
+        const local = a.academiaNome || a.academiaId || 'Não informado'; academiaCount[local] = (academiaCount[local] || 0) + 1;
         const rank = a.cordaoAtual || 'Iniciante'; rankCount[rank] = (rankCount[rank] || 0) + 1;
 
-        let idxCordao = cordoesAdulto.findIndex(c => c.nome === rank);
-        if (idadeAluno < 12) idxCordao = cordoesKids.findIndex(c => c.nome === rank);
+        let idxCordao = cordoesAdulto.findIndex((c) => c.nome === rank);
+        if (idadeAluno < 12) idxCordao = cordoesKids.findIndex((c) => c.nome === rank);
         if (idxCordao === -1) idxCordao = 0;
 
-        let critAtivosAluno = criteriosRegras.filter(crit => idadeAluno < 12 ? crit.reqKids : idxCordao >= (crit.reqAdulto - 1));
-        let maxPontos = critAtivosAluno.length * 10;
+        const critAtivosAluno = criteriosRegras.filter((crit) => (idadeAluno < 12 ? crit.reqKids : idxCordao >= (crit.reqAdulto - 1)));
+        const maxPontos = critAtivosAluno.length * 10;
         let totalPontosAluno = 0;
 
         if (a.notas) {
-            critAtivosAluno.forEach(c => {
+            critAtivosAluno.forEach((c) => {
                 if (a.notas[c.id] !== undefined) {
-                    let notaVal = Number(a.notas[c.id]);
+                    const notaVal = Number(a.notas[c.id]);
                     totalPontosAluno += notaVal;
                     fundamentosSoma[c.txt] += notaVal;
                     fundamentosQtd[c.txt] += 1;
                 }
             });
-            let porc = maxPontos > 0 ? (totalPontosAluno / maxPontos) * 100 : 0;
+            const porc = maxPontos > 0 ? (totalPontosAluno / maxPontos) * 100 : 0;
             if (maxPontos > 0 && porc >= 70) aptos++; else desenv++;
         } else { desenv++; }
     });
 
-    let labelFundamentos = [], dataFundamentos = [];
-    for (let crit in fundamentosSoma) {
+    const labelFundamentos = []; const dataFundamentos = [];
+    Object.keys(fundamentosSoma).forEach((crit) => {
         if (fundamentosQtd[crit] > 0) { labelFundamentos.push(crit); dataFundamentos.push((fundamentosSoma[crit] / fundamentosQtd[crit]).toFixed(1)); }
-    }
+    });
 
-    const colorTeal = '#389E92', colorBlue = '#002D72', colorGreen = '#00E676', colorRed = '#E74C3C', colorYellow = '#F5B041';
+    const colorTeal = '#389E92'; const colorBlue = '#002D72'; const colorGreen = '#00E676'; const colorRed = '#E74C3C'; const colorYellow = '#F5B041';
 
     criarGrafico('chartTermometro', 'pie', ['Aptos (Candidatos Formatura)', 'Em Desenvolvimento'], [aptos, desenv], [colorGreen, colorYellow]);
     criarGrafico('chartStatus', 'doughnut', ['Ativos', 'Inativos/Pausa'], [ativos, inativos], [colorTeal, colorRed]);
 
-    let piramideLabels = [], piramideData = [], piramideColors = [];
-    ordemCordoes.forEach(nomeCordao => {
+    const piramideLabels = []; const piramideData = []; const piramideColors = [];
+    ordemCordoes.forEach((nomeCordao) => {
         if (rankCount[nomeCordao] !== undefined) {
             piramideLabels.push(nomeCordao);
             piramideData.push(rankCount[nomeCordao]);
@@ -603,20 +897,19 @@ function desenharGraficos(alunosAtuais) {
     criarGrafico('chartPiramide', 'bar', piramideLabels, piramideData, piramideColors, true);
     criarGrafico('chartFundamentos', 'bar', labelFundamentos, dataFundamentos, colorTeal, true);
 
-    const boxAcademias = document.getElementById('chartAcademias')?.closest('.chart-box');
-    if (Object.keys(academiaCount).length > 1) {
-        criarGrafico('chartAcademias', 'doughnut', Object.keys(academiaCount), Object.values(academiaCount), [colorTeal, colorBlue, colorGreen, colorYellow, '#8E44AD']);
-        if (boxAcademias) boxAcademias.style.display = 'flex';
-    } else if (boxAcademias) {
-        boxAcademias.style.display = 'none';
+    if (ehAdmin()) {
+        const boxAcademias = document.getElementById('chartAcademias')?.closest('.chart-box');
+        if (Object.keys(academiaCount).length > 1) {
+            criarGrafico('chartAcademias', 'doughnut', Object.keys(academiaCount), Object.values(academiaCount), [colorTeal, colorBlue, colorGreen, colorYellow, '#8E44AD']);
+            if (boxAcademias) boxAcademias.style.display = 'flex';
+        } else if (boxAcademias) {
+            boxAcademias.style.display = 'none';
+        }
     }
 
     criarGrafico('chartIdades', 'pie', ['Kids (Sub-12)', 'Adultos'], [kids, adultos], [colorGreen, colorBlue]);
 }
 
-/** Cria (ou recria) um gráfico Chart.js. SEMPRE destrói a instância anterior
- *  associada ao canvasId antes de criar uma nova — evita vazamento de memória
- *  (contextos WebGL/Canvas2D órfãos) ao trocar filtros repetidamente. */
 function criarGrafico(canvasId, type, labels, data, colors, hideLegend = false) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
@@ -628,19 +921,18 @@ function criarGrafico(canvasId, type, labels, data, colors, hideLegend = false) 
     }
 
     chartsInstances[canvasId] = new Chart(ctx, {
-        type: type,
-        data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 1 }] },
+        type,
+        data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 1 }] },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             animation: { duration: 650, easing: 'easeOutQuart' },
-            plugins: { legend: { display: !hideLegend } }
-        }
+            plugins: { legend: { display: !hideLegend } },
+        },
     });
 }
 
-// Ao sair da página, destrói todos os gráficos ativos explicitamente.
 window.addEventListener('beforeunload', () => {
-    Object.values(chartsInstances).forEach(c => { try { c.destroy(); } catch (_) {} });
+    Object.values(chartsInstances).forEach((c) => { try { c.destroy(); } catch (_) { /* noop */ } });
     chartsInstances = {};
 });
