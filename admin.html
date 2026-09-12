@@ -1,10 +1,11 @@
-<!-- admin.html — v2 -->
+<!-- admin.html — v3: painel único para Admin Master e Mestre/Professor,
+     autenticado por Firebase Authentication (usuarios/{uid}.papeis). -->
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Master - Capoeira Liberdade</title>
+    <title>Painel de Gestão - Capoeira Liberdade</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -13,177 +14,284 @@
 <body>
     <noscript>Este painel exige JavaScript habilitado para funcionar.</noscript>
 
-    <header class="top-nav">
-        <div class="logo-area">
-            <img src="logo-liberdade150.png" alt="Logo Capoeira Liberdade" class="nav-logo">
+    <!-- TELA DE LOGIN (gate) - some assim que a sessão é validada -->
+    <div class="tela-login" id="telaLogin">
+        <div class="card-padrao login-card">
+            <img src="logo-liberdade150.png" alt="Logo Capoeira Liberdade" class="login-logo">
+            <h2>Painel de Gestão</h2>
+            <p class="login-sub">Acesso da administração, mestres e professores.</p>
+            <form id="formLogin" novalidate>
+                <div class="form-group-mod">
+                    <label for="loginEmail">E-mail</label>
+                    <input type="email" id="loginEmail" class="input-padrao" required autocomplete="username" placeholder="seu@email.com">
+                </div>
+                <div class="form-group-mod" style="margin-top:12px;">
+                    <label for="loginSenha">Senha</label>
+                    <input type="password" id="loginSenha" class="input-padrao" required autocomplete="current-password" placeholder="Sua senha">
+                </div>
+                <button type="submit" class="btn-salvar-modal" id="btnEntrarPainel" style="width:100%; margin-top:18px;">
+                    <i class="fas fa-right-to-bracket"></i> Entrar
+                </button>
+            </form>
+            <button type="button" id="btnEsqueciSenhaPainel" class="link-esqueci">Esqueci minha senha</button>
+            <p id="loginMsg" class="login-msg" role="alert" aria-live="polite"></p>
         </div>
-
-        <button class="menu-toggle" id="mobile-menu-btn" aria-label="Abrir menu"><i class="fas fa-bars"></i></button>
-
-        <nav class="nav-links" id="nav-links">
-            <a href="#" class="nav-item active" onclick="mudarAba('alunos')">Alunos Master</a>
-            <a href="#" class="nav-item" onclick="mudarAba('academias')">Gestão de Academias</a>
-            <a href="#" class="nav-item" onclick="mudarAba('financeiro')">Financeiro</a>
-            <a href="#" class="nav-item" onclick="irParaRelatorios()">Relatórios</a>
-        </nav>
-
-        <div class="user-area">
-            <div class="search-bar">
-                <label for="buscaGeral" class="sr-only" style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0);">Buscar aluno</label>
-                <input type="text" id="buscaGeral" placeholder="Buscar aluno...">
-                <i class="fas fa-search"></i>
-            </div>
-            <div class="admin-profile">
-                <img src="https://via.placeholder.com/40" alt="" class="admin-avatar">
-                <span>Admin Master</span>
-            </div>
-            <button id="btnLogout" class="btn-logout" title="Sair da Conta" aria-label="Sair da conta">
-                <i class="fas fa-sign-out-alt"></i>
-            </button>
-        </div>
-    </header>
-
-    <div class="main-layout">
-        <main class="content-area">
-
-            <section id="aba-alunos" class="aba-content active">
-                <div class="section-header">
-                    <h2>Lista Completa de Alunos - Painel de Controle e Distribuição</h2>
-                </div>
-
-                <div class="alunos-grid" id="gridAlunos" aria-live="polite"></div>
-
-                <div id="secao-graficos" class="chart-section" style="margin-top: 50px;">
-                    <div class="section-header" style="background: #002D72;">
-                        <h2><i class="fas fa-chart-pie"></i> Inteligência de Dados e Evolução</h2>
-                    </div>
-
-                    <div class="charts-grid-layout">
-                        <div class="chart-box">
-                            <h3>Termômetro de Aprovação (Meta 70%)</h3>
-                            <div class="canvas-container"><canvas id="chartTermometro"></canvas></div>
-                        </div>
-                        <div class="chart-box">
-                            <h3>Status de Retenção (Ativos vs Inativos)</h3>
-                            <div class="canvas-container"><canvas id="chartStatus"></canvas></div>
-                        </div>
-                        <div class="chart-box full-width">
-                            <h3>Pirâmide de Graduação (Quantidade por Cordão)</h3>
-                            <div class="canvas-container"><canvas id="chartPiramide"></canvas></div>
-                        </div>
-                        <div class="chart-box full-width">
-                            <h3>Desempenho por Fundamentos (Média do Grupo)</h3>
-                            <div class="canvas-container"><canvas id="chartFundamentos"></canvas></div>
-                        </div>
-                        <div class="chart-box">
-                            <h3>Distribuição por Academia</h3>
-                            <div class="canvas-container"><canvas id="chartAcademias"></canvas></div>
-                        </div>
-                        <div class="chart-box">
-                            <h3>Demografia (Kids vs Adultos)</h3>
-                            <div class="canvas-container"><canvas id="chartIdades"></canvas></div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section id="aba-academias" class="aba-content">
-                <div class="section-header"><h2>Gestão de Academias e Permissões</h2></div>
-                <div class="card-padrao" style="margin-bottom: 20px;">
-                    <h3>Cadastrar Nova Academia / Professor</h3>
-                    <form id="formNovaAcademia" style="display: grid; gap: 15px; margin-top: 15px;">
-                        <input type="text" id="nomeAcademia" placeholder="Nome da Academia (Ex: Academia Mestre Profeta)" class="input-padrao" required>
-                        <input type="text" id="nomeProfessor" placeholder="Nome do Professor Responsável" class="input-padrao" required>
-                        <input type="text" id="emailProfessor" placeholder="E-mail ou Celular de Login" class="input-padrao" required>
-                        <input type="password" id="senhaProfessor" placeholder="Senha de Acesso (mín. 6 caracteres)" class="input-padrao" minlength="6" required>
-                        <button type="submit" class="btn-detalhes" style="width: 250px;">Cadastrar Academia</button>
-                    </form>
-                </div>
-                <h3>Academias Registradas</h3>
-                <div class="academias-grid" id="listaAcademiasPainel"></div>
-            </section>
-
-            <section id="aba-financeiro" class="aba-content">
-                <div class="section-header"><h2>Gestão Financeira e Pagamentos</h2></div>
-                <div class="card-padrao">
-                    <p>Acompanhamento de mensalidades e vendas da lojinha em tempo real.</p>
-                </div>
-            </section>
-        </main>
-
-        <aside class="sidebar">
-            <div class="widget">
-                <h3>Filtros Avançados</h3>
-                <p style="font-size: 0.8rem; color: #666; margin-bottom: 10px;">Ao filtrar, os gráficos mostrarão apenas os dados da academia selecionada.</p>
-                <label for="filtroAcademia" style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0);">Filtrar por academia</label>
-                <select class="input-padrao" id="filtroAcademia" style="margin-bottom: 10px;">
-                    <option value="">Todas as Academias</option>
-                </select>
-            </div>
-        </aside>
     </div>
 
-    <!-- MODAL POPUP AVALIAÇÃO E EDIÇÃO DO ALUNO -->
-    <div class="modal-overlay" id="modalAvaliacao" role="dialog" aria-modal="true" aria-labelledby="modNomeTitulo">
-        <div class="modal-content modal-large">
-            <button class="close-modal" onclick="fecharModal()" aria-label="Fechar"><i class="fas fa-times"></i></button>
-            <div class="modal-header-centered">
-                <img src="" id="modFoto" class="mod-foto-large" alt="">
-                <h2 id="modNomeTitulo">EDITAR ALUNO</h2>
-                <p><i class="fas fa-map-marker-alt"></i> <span id="modAcademia">Academia</span></p>
+    <!-- PAINEL PRINCIPAL - oculto até autenticar -->
+    <div id="appPainel" class="oculto">
+        <header class="top-nav">
+            <div class="logo-area">
+                <img src="logo-liberdade150.png" alt="Logo Capoeira Liberdade" class="nav-logo">
             </div>
-            <div class="cordao-container">
-                <div class="cordao-header"><span id="textoEvolucao">Progresso</span><span id="porcentagemEvolucao">0%</span></div>
-                <div class="cordao-track"><div class="cordao-fill" id="cordaoTrancado"></div></div>
+
+            <button class="menu-toggle" id="mobile-menu-btn" aria-label="Abrir menu"><i class="fas fa-bars"></i></button>
+
+            <nav class="nav-links" id="nav-links">
+                <a href="#" class="nav-item active" data-papel="all" onclick="mudarAba('alunos', event)">Alunos</a>
+                <a href="#" class="nav-item" data-papel="admin" onclick="mudarAba('nucleos', event)">Núcleos</a>
+                <a href="#" class="nav-item" data-papel="all" onclick="mudarAba('solicitacoes', event)">Solicitações</a>
+                <a href="#" class="nav-item" data-papel="all" onclick="mudarAba('avisos', event)">Avisos</a>
+                <a href="#" class="nav-item" data-papel="all" onclick="irParaRelatorios(event)">Relatórios</a>
+            </nav>
+
+            <div class="user-area">
+                <div class="search-bar" id="buscaBarWrap">
+                    <label for="buscaGeral" class="sr-only" style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0);">Buscar aluno</label>
+                    <input type="text" id="buscaGeral" placeholder="Buscar aluno...">
+                    <i class="fas fa-search"></i>
+                </div>
+                <div class="admin-profile">
+                    <img src="https://via.placeholder.com/40" alt="" class="admin-avatar">
+                    <span id="nomePerfilLogado">—</span>
+                </div>
+                <button id="btnLogout" class="btn-logout" title="Sair da Conta" aria-label="Sair da conta">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
             </div>
-            <div class="modal-body-split">
-                <div class="mod-left">
-                    <div class="form-group-mod" style="margin-bottom: 12px;">
-                        <label for="modNomeInput">Nome do Aluno:</label>
-                        <input type="text" id="modNomeInput" class="input-padrao">
+        </header>
+
+        <div class="main-layout">
+            <main class="content-area">
+
+                <section id="aba-alunos" class="aba-content active">
+                    <div class="section-header">
+                        <h2 id="tituloAbaAlunos">Alunos</h2>
                     </div>
-                    <div class="form-group-mod" style="margin-bottom: 12px;">
-                        <label for="modIdadeInput">Idade:</label>
-                        <input type="number" id="modIdadeInput" class="input-padrao" min="0" max="120">
+
+                    <div class="alunos-grid" id="gridAlunos" aria-live="polite"></div>
+
+                    <div id="secao-graficos" class="chart-section" style="margin-top: 50px;">
+                        <div class="section-header" style="background: #002D72;">
+                            <h2><i class="fas fa-chart-pie"></i> Inteligência de Dados e Evolução</h2>
+                        </div>
+
+                        <div class="charts-grid-layout">
+                            <div class="chart-box">
+                                <h3>Termômetro de Aprovação (Meta 70%)</h3>
+                                <div class="canvas-container"><canvas id="chartTermometro"></canvas></div>
+                            </div>
+                            <div class="chart-box">
+                                <h3>Status de Retenção (Ativos vs Inativos)</h3>
+                                <div class="canvas-container"><canvas id="chartStatus"></canvas></div>
+                            </div>
+                            <div class="chart-box full-width">
+                                <h3>Pirâmide de Graduação (Quantidade por Cordão)</h3>
+                                <div class="canvas-container"><canvas id="chartPiramide"></canvas></div>
+                            </div>
+                            <div class="chart-box full-width">
+                                <h3>Desempenho por Fundamentos (Média do Grupo)</h3>
+                                <div class="canvas-container"><canvas id="chartFundamentos"></canvas></div>
+                            </div>
+                            <div class="chart-box" data-papel="admin">
+                                <h3>Distribuição por Núcleo</h3>
+                                <div class="canvas-container"><canvas id="chartAcademias"></canvas></div>
+                            </div>
+                            <div class="chart-box">
+                                <h3>Demografia (Kids vs Adultos)</h3>
+                                <div class="canvas-container"><canvas id="chartIdades"></canvas></div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group-mod" style="margin-bottom: 12px;">
-                        <label for="modFotoInput">URL da Foto:</label>
-                        <input type="text" id="modFotoInput" class="input-padrao">
+                </section>
+
+                <section id="aba-nucleos" class="aba-content">
+                    <div class="section-header"><h2>Gestão de Núcleos e Permissões</h2></div>
+                    <div class="card-padrao" style="margin-bottom: 20px;">
+                        <h3>Criar Núcleo / Conceder Academia Própria</h3>
+                        <p style="font-size:0.85rem; color:var(--text-muted); margin:8px 0 15px;">
+                            Escolha um aluno já cadastrado para virar responsável por este núcleo
+                            (ele continua sendo avaliado como aluno normalmente), ou cadastre uma pessoa nova.
+                        </p>
+                        <form id="formNovoNucleo" style="display: grid; gap: 15px;">
+                            <input type="text" id="nomeNucleo" placeholder="Nome do Núcleo (Ex: Academia Mestre Profeta)" class="input-padrao" required>
+                            <input type="number" id="mensalidadeNucleo" placeholder="Valor da mensalidade (R$)" class="input-padrao" min="0" step="0.01">
+                            <label for="responsavelNucleo" style="font-size:0.85rem; color:var(--text-muted);">Responsável (professor/mestre)</label>
+                            <select id="responsavelNucleo" class="input-padrao">
+                                <option value="__novo__">— Cadastrar pessoa nova —</option>
+                            </select>
+                            <div id="camposNovoResponsavel" style="display:grid; gap:15px;">
+                                <input type="text" id="nomeNovoResponsavel" placeholder="Nome completo" class="input-padrao">
+                                <input type="email" id="emailNovoResponsavel" placeholder="E-mail (login de acesso)" class="input-padrao">
+                                <input type="password" id="senhaNovoResponsavel" placeholder="Senha inicial (mín. 6 caracteres)" class="input-padrao" minlength="6" value="capoeira2026">
+                            </div>
+                            <button type="submit" class="btn-detalhes" style="width: 280px;">Criar Núcleo</button>
+                        </form>
                     </div>
-                    <div class="form-group-mod" style="margin-bottom: 12px;">
-                        <label for="modStatus">Status:</label>
-                        <select id="modStatus" class="input-padrao mod-input">
-                            <option value="Ativo">Ativo</option><option value="Inativo">Inativo</option><option value="Pausa">Pausa</option><option value="Lesionado">Lesionado</option>
+                    <h3>Núcleos Cadastrados</h3>
+                    <div class="academias-grid" id="listaNucleosPainel"></div>
+                </section>
+
+                <section id="aba-solicitacoes" class="aba-content">
+                    <div class="section-header"><h2 id="tituloAbaSolicitacoes">Solicitações</h2></div>
+
+                    <div id="painelSolicitarMestre" data-papel="mestre" class="card-padrao" style="margin-bottom:20px;">
+                        <h3>Nova Solicitação</h3>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap; margin:15px 0;">
+                            <button type="button" class="btn-detalhes" onclick="abrirFormSolicitacao('mensalidade')">Alterar Mensalidade</button>
+                            <button type="button" class="btn-detalhes" onclick="abrirFormSolicitacao('evento')">Criar Evento/Batizado</button>
+                            <button type="button" class="btn-detalhes" onclick="abrirFormSolicitacao('transferencia')">Transferir Aluno</button>
+                        </div>
+
+                        <form id="formSolicMensalidade" class="form-solicitacao" style="display:none; gap:15px;" data-tipo="mensalidade">
+                            <input type="number" id="solicMensalidadeValor" placeholder="Novo valor da mensalidade (R$)" class="input-padrao" min="0" step="0.01" required>
+                            <textarea id="solicMensalidadeJustificativa" placeholder="Justificativa (opcional)" class="input-padrao" rows="2"></textarea>
+                            <button type="submit" class="btn-salvar-modal">Enviar Solicitação</button>
+                        </form>
+
+                        <form id="formSolicEvento" class="form-solicitacao" style="display:none; gap:15px;" data-tipo="evento">
+                            <input type="text" id="solicEventoNome" placeholder="Nome do evento/batizado" class="input-padrao" required>
+                            <input type="date" id="solicEventoData" class="input-padrao" required>
+                            <textarea id="solicEventoDescricao" placeholder="Descrição (opcional)" class="input-padrao" rows="2"></textarea>
+                            <button type="submit" class="btn-salvar-modal">Enviar Solicitação</button>
+                        </form>
+
+                        <form id="formSolicTransferencia" class="form-solicitacao" style="display:none; gap:15px;" data-tipo="transferencia">
+                            <select id="solicTransferAluno" class="input-padrao" required>
+                                <option value="">Selecione o aluno...</option>
+                            </select>
+                            <select id="solicTransferDestino" class="input-padrao" required>
+                                <option value="">Núcleo de destino...</option>
+                            </select>
+                            <textarea id="solicTransferMotivo" placeholder="Motivo (opcional)" class="input-padrao" rows="2"></textarea>
+                            <button type="submit" class="btn-salvar-modal">Enviar Solicitação</button>
+                        </form>
+                    </div>
+
+                    <h3 data-papel="mestre" style="margin-bottom:10px;">Minhas Solicitações</h3>
+                    <div class="lista-simples" id="listaMinhasSolic" data-papel="mestre"></div>
+
+                    <h3 data-papel="admin" style="margin-bottom:10px;">Solicitações Pendentes</h3>
+                    <div class="lista-simples" id="listaSolicPendentes" data-papel="admin"></div>
+
+                    <h3 data-papel="admin" style="margin:20px 0 10px;">Histórico</h3>
+                    <div class="lista-simples" id="listaSolicHistorico" data-papel="admin"></div>
+                </section>
+
+                <section id="aba-avisos" class="aba-content">
+                    <div class="section-header"><h2>Avisos</h2></div>
+                    <div class="card-padrao" style="margin-bottom:20px;">
+                        <h3>Publicar Aviso</h3>
+                        <form id="formNovoAviso" style="display:grid; gap:15px; margin-top:15px;">
+                            <input type="text" id="avisoTitulo" placeholder="Título do aviso" class="input-padrao" required>
+                            <textarea id="avisoTexto" placeholder="Mensagem" class="input-padrao" rows="3" required></textarea>
+                            <select id="avisoTipo" class="input-padrao">
+                                <option value="geral">Geral</option>
+                                <option value="financeiro">Financeiro</option>
+                                <option value="evento">Evento</option>
+                            </select>
+                            <select id="avisoAcademia" class="input-padrao" data-papel="admin">
+                                <option value="">Todos os núcleos</option>
+                            </select>
+                            <button type="submit" class="btn-detalhes" style="width:220px;">Publicar</button>
+                        </form>
+                    </div>
+                    <h3 style="margin-bottom:10px;">Avisos Recentes</h3>
+                    <div class="lista-simples" id="listaAvisos"></div>
+                </section>
+            </main>
+
+            <aside class="sidebar" data-papel="admin">
+                <div class="widget">
+                    <h3>Filtros Avançados</h3>
+                    <p style="font-size: 0.8rem; color: #666; margin-bottom: 10px;">Ao filtrar, os gráficos mostrarão apenas os dados do núcleo selecionado.</p>
+                    <label for="filtroAcademia" style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0);">Filtrar por núcleo</label>
+                    <select class="input-padrao" id="filtroAcademia" style="margin-bottom: 10px;">
+                        <option value="">Todos os Núcleos</option>
+                    </select>
+                </div>
+            </aside>
+        </div>
+
+        <!-- MODAL AVALIAÇÃO E EDIÇÃO DO ALUNO -->
+        <div class="modal-overlay" id="modalAvaliacao" role="dialog" aria-modal="true" aria-labelledby="modNomeTitulo">
+            <div class="modal-content modal-large">
+                <button class="close-modal" onclick="fecharModal()" aria-label="Fechar"><i class="fas fa-times"></i></button>
+                <div class="modal-header-centered">
+                    <img src="" id="modFoto" class="mod-foto-large" alt="">
+                    <h2 id="modNomeTitulo">EDITAR ALUNO</h2>
+                    <p><i class="fas fa-map-marker-alt"></i> <span id="modAcademia">Núcleo</span></p>
+                </div>
+                <div class="cordao-container">
+                    <div class="cordao-header"><span id="textoEvolucao">Progresso</span><span id="porcentagemEvolucao">0%</span></div>
+                    <div class="cordao-track"><div class="cordao-fill" id="cordaoTrancado"></div></div>
+                </div>
+                <div class="modal-body-split">
+                    <div class="mod-left">
+                        <div class="form-group-mod" style="margin-bottom: 12px;">
+                            <label for="modNomeInput">Nome do Aluno:</label>
+                            <input type="text" id="modNomeInput" class="input-padrao">
+                        </div>
+                        <div class="form-group-mod" style="margin-bottom: 12px;">
+                            <label for="modIdadeInput">Idade:</label>
+                            <input type="number" id="modIdadeInput" class="input-padrao" min="0" max="120">
+                        </div>
+                        <div class="form-group-mod" style="margin-bottom: 12px;">
+                            <label for="modFotoInput">URL da Foto:</label>
+                            <input type="text" id="modFotoInput" class="input-padrao">
+                        </div>
+                        <div class="form-group-mod" style="margin-bottom: 12px;">
+                            <label for="modStatus">Status:</label>
+                            <select id="modStatus" class="input-padrao mod-input">
+                                <option value="Ativo">Ativo</option><option value="Inativo">Inativo</option><option value="Pausa">Pausa</option><option value="Lesionado">Lesionado</option>
+                            </select>
+                        </div>
+                        <div class="form-group-mod" style="margin-bottom: 12px;">
+                            <label for="modCordao">Graduação Atual:</label>
+                            <select id="modCordao" class="input-padrao mod-input"></select>
+                        </div>
+                        <button class="btn-excluir-aluno" id="btnExcluirModal" data-papel="admin" onclick="alternarStatusAlunoBtn()"><i class="fas fa-user-slash"></i> Desativar Aluno</button>
+                        <button class="btn-excluir-aluno" id="btnResetSenhaModal" data-papel="admin" onclick="resetarSenhaAluno()" style="margin-top:8px;"><i class="fas fa-key"></i> Enviar redefinição de senha</button>
+                    </div>
+                    <div class="mod-right">
+                        <h3 class="mod-title-right">Critérios de Evolução (0 a 10)</h3>
+                        <div class="criterios-grid" id="gridCriterios"></div>
+                    </div>
+                </div>
+                <div class="modal-footer-centered" style="margin-top: 20px;">
+                    <button class="btn-salvar-modal" id="btnSalvarModal" onclick="salvarEdicaoAluno()"><i class="fas fa-save"></i> Atualizar Prontuário</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL EDITAR NÚCLEO -->
+        <div class="modal-overlay" id="modalEditarNucleo" role="dialog" aria-modal="true">
+            <div class="modal-content" style="max-width: 500px;">
+                <button class="close-modal" onclick="fecharModalNucleo()" aria-label="Fechar"><i class="fas fa-times"></i></button>
+                <h2 style="color: var(--primary-blue); margin-bottom: 20px;">Editar Núcleo</h2>
+                <form id="formEditNucleo" style="display: grid; gap: 15px;">
+                    <div><label for="editNomeNucleo">Nome do Núcleo</label><input type="text" id="editNomeNucleo" class="input-padrao" required></div>
+                    <div><label for="editMensalidadeNucleo">Mensalidade (R$)</label><input type="number" id="editMensalidadeNucleo" class="input-padrao" min="0" step="0.01"></div>
+                    <div>
+                        <label for="editAtivoNucleo">Status</label>
+                        <select id="editAtivoNucleo" class="input-padrao">
+                            <option value="true">Ativo (aparece na inscrição)</option>
+                            <option value="false">Inativo</option>
                         </select>
                     </div>
-                    <div class="form-group-mod" style="margin-bottom: 12px;">
-                        <label for="modCordao">Graduação Atual:</label>
-                        <select id="modCordao" class="input-padrao mod-input"></select>
-                    </div>
-                    <button class="btn-excluir-aluno" id="btnExcluirModal" onclick="excluirAlunoBtn()"><i class="fas fa-trash"></i> Excluir Aluno</button>
-                </div>
-                <div class="mod-right">
-                    <h3 class="mod-title-right">Critérios de Evolução (0 a 10)</h3>
-                    <div class="criterios-grid" id="gridCriterios"></div>
-                </div>
+                    <button type="submit" class="btn-salvar-modal" style="width: 100%; margin-top: 10px;"><i class="fas fa-save"></i> Salvar Alterações</button>
+                </form>
             </div>
-            <div class="modal-footer-centered" style="margin-top: 20px;">
-                <button class="btn-salvar-modal" id="btnSalvarModal" onclick="salvarEdicaoAluno()"><i class="fas fa-save"></i> Atualizar Prontuário</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="modalEditarAcademia" role="dialog" aria-modal="true">
-        <div class="modal-content" style="max-width: 500px;">
-            <button class="close-modal" onclick="fecharModalAcademia()" aria-label="Fechar"><i class="fas fa-times"></i></button>
-            <h2 style="color: var(--primary-blue); margin-bottom: 20px;">Editar Academia</h2>
-            <form id="formEditAcademia" style="display: grid; gap: 15px;">
-                <div><label for="editNomeAcademia">Nome da Academia</label><input type="text" id="editNomeAcademia" class="input-padrao" required></div>
-                <div><label for="editNomeProfessor">Professor Responsável</label><input type="text" id="editNomeProfessor" class="input-padrao" required></div>
-                <div><label for="editEmailProfessor">E-mail ou Celular de Login</label><input type="text" id="editEmailProfessor" class="input-padrao" required></div>
-                <div><label for="editSenhaProfessor">Nova Senha (opcional)</label><input type="password" id="editSenhaProfessor" class="input-padrao" minlength="6" placeholder="Deixe em branco para não alterar"></div>
-                <button type="submit" class="btn-salvar-modal" style="width: 100%; margin-top: 10px;"><i class="fas fa-save"></i> Salvar Alterações</button>
-            </form>
         </div>
     </div>
 
