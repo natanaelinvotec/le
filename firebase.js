@@ -13,6 +13,9 @@ import {
   deleteDoc, query, where, orderBy, limit, startAfter,
   getCountFromServer, initializeFirestore, persistentLocalCache,
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import {
+  getStorage, ref as storageRef, uploadString, getDownloadURL,
+} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 
 export const firebaseConfig = {
   apiKey: 'AIzaSyBkwCDziiV-Uh7MLzsy9OYJmA_LMnn7jbg',
@@ -28,7 +31,16 @@ export const auth = getAuth(app);
 // Cache local ligado - visões repetidas na mesma sessão não voltam a ler do
 // servidor o que não mudou (parte do esforço de reduzir leituras do Firestore).
 export const db = initializeFirestore(app, { localCache: persistentLocalCache() });
+export const storage = getStorage(app);
 await setPersistence(auth, browserLocalPersistence); // "manter-me sempre conectado"
+
+// Upload de foto (carteirinha/perfil) - usado pela inscrição e pela troca de
+// foto no painel. Retorna a URL pública já pronta para gravar no Firestore.
+export async function enviarFoto(caminho, dataUrl) {
+  const r = storageRef(storage, caminho);
+  await uploadString(r, dataUrl, 'data_url');
+  return getDownloadURL(r);
+}
 
 // Senha padrão sugerida quando o admin cria uma conta nova (professor/mestre) -
 // a pessoa troca depois em "Meus dados". Não tem mais nenhum papel de
