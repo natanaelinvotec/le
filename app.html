@@ -75,76 +75,19 @@ a:hover{ color:#389E92; }
       </div>
 
       <sc-if value="{{ telaLogin }}" hint-placeholder-val="{{ true }}">
-        <div data-rolagem="1" style="flex:1; position:relative; overflow-y:auto; padding:54px 22px 34px; background:linear-gradient(160deg,#002D72 0%,#0B1C3C 55%,#05070C 100%);">
-          <div style="position:absolute; top:-60px; left:-70px; width:320px; height:320px; border-radius:50%; background:#389E92; filter:blur(60px); opacity:.5; animation:apBlob 8s ease-in-out infinite;"></div>
-          <div style="position:absolute; bottom:-90px; right:-80px; width:300px; height:300px; border-radius:50%; background:#00E676; filter:blur(64px); opacity:.32; animation:apBlob 9s ease-in-out infinite reverse;"></div>
-
-          <div style="position:relative; text-align:center; margin-bottom:22px;">
-            <img src="assets/logo-liberdade.png" alt="Brasão do Grupo Liberdade e Expressão" style="width:112px; height:112px; border-radius:50%; background:#fff; border:3px solid #00E676; margin:0 auto 14px; display:block; box-shadow:0 16px 40px rgba(0,0,0,.45);" />
-            <h1 style="margin:0 0 4px; font-family:'Montserrat',sans-serif; font-size:1.45rem; color:#fff;">Portal do Aluno</h1>
-            <p style="margin:0; color:rgba(255,255,255,.65); font-size:.86rem;">Grupo de Capoeira Liberdade e Expressão</p>
-          </div>
-
-          <sc-if value="{{ mostrarContas }}" hint-placeholder-val="{{ true }}">
-            <div style="position:relative; animation:apEntra .45s cubic-bezier(.16,1,.3,1) both;">
-              <div style="color:rgba(255,255,255,.55); font-size:.72rem; font-weight:800; letter-spacing:.16em; margin-bottom:10px;">CONTAS NESTE APARELHO</div>
-              <div style="display:flex; flex-direction:column; gap:10px;">
-                <sc-for list="{{ perfisSalvos }}" as="p" hint-placeholder-count="3">
-                  <div style="position:relative; border-radius:20px; overflow:hidden;">
-                    <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:flex-end; gap:8px; padding-right:18px; border-radius:20px; background:linear-gradient(90deg,#C0392B,#E74C3C); color:#fff; font-weight:800; font-size:.84rem;"><i class="fas fa-trash"></i> Remover acesso</div>
-                    <button onClick="{{ p.entrar }}" onPointerDown="{{ p.pegar }}" onPointerMove="{{ p.mover }}" onPointerUp="{{ p.soltar }}" onPointerCancel="{{ p.soltar }}" style="{{ p.cartao }}">
-                      <img src="{{ p.foto }}" alt="" style="width:52px; height:52px; border-radius:50%; object-fit:cover; border:2px solid #389E92; flex:none; pointer-events:none;" />
-                      <span style="flex:1; min-width:0; pointer-events:none;">
-                        <span style="display:block; font-family:'Montserrat',sans-serif; font-weight:800; color:#002D72; font-size:.98rem; line-height:1.2;">{{ p.nome }}</span>
-                        <span style="display:block; color:#7F8C8D; font-size:.78rem; margin-top:3px;">{{ p.sub }}</span>
-                      </span>
-                      <span style="{{ p.selo }}">{{ p.papelRotulo }}</span>
-                    </button>
-                  </div>
-                </sc-for>
-              </div>
-              <button onClick="{{ abrirFormulario }}" style="margin-top:16px; width:100%; padding:15px; border:1px solid rgba(255,255,255,.3); border-radius:20px; background:rgba(255,255,255,.08); color:#fff; font-weight:800; font-size:.92rem; cursor:pointer; font-family:'Nunito',sans-serif;"><i class="fas fa-user-plus"></i> Entrar com outra conta</button>
-              <p style="margin:16px 0 0; text-align:center; color:rgba(255,255,255,.42); font-size:.76rem; line-height:1.5;">Toque na foto para entrar direto.<br />Arraste o cartão para a esquerda para remover o acesso.</p>
-            </div>
-          </sc-if>
-
-          <sc-if value="{{ formularioAberto }}" hint-placeholder-val="{{ false }}">
-            <div style="position:relative; background:rgba(255,255,255,.97); border-radius:24px; padding:24px 20px; box-shadow:0 24px 60px rgba(0,0,0,.4); animation:apEntra .4s cubic-bezier(.16,1,.3,1) both;">
-              <label for="appUsuario" style="display:block; font-weight:700; font-size:.85rem; margin-bottom:6px;">E-mail cadastrado:</label>
-              <div style="position:relative; margin-bottom:14px;">
-                <i class="fas fa-user" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#7F8C8D;"></i>
-                <input id="appUsuario" type="email" autocomplete="username" placeholder="seunome@liberdade.com" value="{{ usuario }}" onInput="{{ mudarUsuario }}" style="width:100%; padding:15px 14px 15px 42px; border:1px solid #ccc; border-radius:12px; font-size:1rem; font-family:'Nunito',sans-serif;" />
-              </div>
-
-              <label for="appSenha" style="display:block; font-weight:700; font-size:.85rem; margin-bottom:6px;">Senha:</label>
-              <div style="position:relative; margin-bottom:10px;">
-                <i class="fas fa-lock" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#7F8C8D;"></i>
-                <input id="appSenha" type="{{ tipoSenha }}" autocomplete="current-password" placeholder="Sua senha" value="{{ senha }}" onInput="{{ mudarSenha }}" style="width:100%; padding:15px 46px 15px 42px; border:1px solid #ccc; border-radius:12px; font-size:1rem; font-family:'Nunito',sans-serif;" />
-                <button onClick="{{ verSenha }}" aria-label="Mostrar ou ocultar a senha" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:34px; height:34px; border:none; border-radius:50%; background:none; color:#7F8C8D; cursor:pointer;"><i class="{{ iconeOlho }}"></i></button>
-              </div>
-
-              <button onClick="{{ alternarLembrar }}" style="display:flex; align-items:center; gap:10px; width:100%; padding:0; border:none; background:none; cursor:pointer; font-family:'Nunito',sans-serif; margin-bottom:16px;">
-                <span style="{{ caixaLembrar }}"><i class="fas fa-check" style="{{ checkLembrar }}"></i></span>
-                <span style="font-weight:700; font-size:.86rem; color:#2C3E50;">Manter-me sempre conectado</span>
-              </button>
-
-              <button onClick="{{ acessar }}" style="{{ botaoEntrar }}">{{ rotuloEntrar }}</button>
-
-              <div style="display:flex; justify-content:space-between; margin-top:14px;">
-                <button onClick="{{ esqueciSenha }}" style="border:none; background:none; color:#389E92; font-size:.82rem; font-weight:700; cursor:pointer; font-family:'Nunito',sans-serif; padding:0;">Esqueci minha senha</button>
-                <button onClick="{{ fecharFormulario }}" style="border:none; background:none; color:#7F8C8D; font-size:.82rem; font-weight:700; cursor:pointer; font-family:'Nunito',sans-serif;">Voltar às contas</button>
-              </div>
-
-              <div style="display:flex; align-items:center; gap:12px; margin:20px 0 14px;">
-                <div style="flex:1; height:1px; background:#eee;"></div><span style="color:#95A5A6; font-size:.76rem; font-weight:700;">AINDA NÃO TREINA?</span><div style="flex:1; height:1px; background:#eee;"></div>
-              </div>
-              <a href="inscricao.html" style="display:block; padding:14px; border-radius:20px; border:1px solid #E0E6E5; text-align:center; color:#002D72; font-weight:800; font-size:.92rem;">Fazer minha inscrição</a>
-            </div>
-          </sc-if>
-        </div>
-      </sc-if>
-
-      <sc-if value="{{ telaEscolha }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; padding:34px; text-align:center; overflow:hidden; background:linear-gradient(160deg,#002D72 0%,#0B1C3C 55%,#05070C 100%);">
+<div style="position:absolute; top:-60px; left:-70px; width:320px; height:320px; border-radius:50%; background:#389E92; filter:blur(60px); opacity:.5; animation:apBlob 8s ease-in-out infinite;"></div>
+<div style="position:absolute; bottom:-90px; right:-80px; width:300px; height:300px; border-radius:50%; background:#00E676; filter:blur(64px); opacity:.32; animation:apBlob 9s ease-in-out infinite reverse;"></div>
+<img src="assets/logo-liberdade.png" alt="Brasão do Grupo Liberdade e Expressão" style="position:relative; width:112px; height:112px; border-radius:50%; background:#fff; border:3px solid #00E676; box-shadow:0 16px 40px rgba(0,0,0,.45);" />
+<div style="position:relative;">
+<h1 style="margin:0 0 4px; font-family:'Montserrat',sans-serif; font-size:1.3rem; color:#fff;">Portal do Aluno</h1>
+<p style="margin:0; color:rgba(255,255,255,.65); font-size:.86rem;">Grupo de Capoeira Liberdade e Expressão</p>
+</div>
+<i class="fas fa-spinner fa-spin" style="position:relative; color:#00E676; font-size:1.6rem;"></i>
+<p style="position:relative; margin:0; color:rgba(255,255,255,.55); font-size:.82rem;">Carregando sua conta...</p>
+</div>
+</sc-if>
+<sc-if value="{{ telaEscolha }}" hint-placeholder-val="{{ false }}">
         <div style="flex:1; display:flex; flex-direction:column; justify-content:center; padding:60px 22px 40px; background:linear-gradient(160deg,#002D72 0%,#0B1C3C 60%,#05070C 100%); animation:apEntra .4s cubic-bezier(.16,1,.3,1) both;">
           <div style="text-align:center; margin-bottom:26px;">
             <div style="color:#00E676; font-size:.72rem; font-weight:800; letter-spacing:.18em; margin-bottom:8px;">CONTA FAMÍLIA</div>
@@ -307,178 +250,63 @@ a:hover{ color:#389E92; }
           </sc-if>
 
           <sc-if value="{{ ehFinanceiro }}" hint-placeholder-val="{{ false }}">
-            <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
-              <div style="position:relative; overflow:hidden; background:linear-gradient(158deg,#0B5C52 0%,#12796B 42%,#002D72 100%); padding:52px 20px 34px; border-radius:0 0 30px 30px;">
-                <div style="position:absolute; top:-70px; right:-50px; width:220px; height:220px; border-radius:50%; background:#00E676; filter:blur(58px); opacity:.28; animation:apBlob 10s ease-in-out infinite;"></div>
-                <div style="position:relative; color:rgba(255,255,255,.6); font-size:.72rem; font-weight:800; letter-spacing:.16em;">INVESTIDO NA CAPOEIRA</div>
-                <div style="position:relative; color:#fff; font-family:'Montserrat',sans-serif; font-weight:800; font-size:2.4rem; line-height:1.1; margin-top:6px;">{{ totalInvestido }}</div>
-                <div style="position:relative; color:rgba(255,255,255,.72); font-size:.84rem; margin-top:4px;">Desde {{ desdeMatricula }} · {{ mesesTreino }} meses de treino</div>
-                <div style="position:relative; display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:18px;">
-                  <div style="background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:16px; padding:13px;">
-                    <div style="color:#fff; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.2rem;">{{ mediaMensal }}</div>
-                    <div style="color:rgba(255,255,255,.6); font-size:.68rem; font-weight:700; letter-spacing:.06em; margin-top:4px;">MÉDIA POR MÊS</div>
-                  </div>
-                  <div style="background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:16px; padding:13px;">
-                    <div style="color:#00E676; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.2rem;">{{ gastoAno }}</div>
-                    <div style="color:rgba(255,255,255,.6); font-size:.68rem; font-weight:700; letter-spacing:.06em; margin-top:4px;">NOS 12 MESES</div>
-                  </div>
-                </div>
-              </div>
+<div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
+<div style="position:relative; overflow:hidden; background:linear-gradient(158deg,#0B5C52 0%,#12796B 42%,#002D72 100%); padding:52px 20px 34px; border-radius:0 0 30px 30px;">
+<div style="position:absolute; top:-70px; right:-50px; width:220px; height:220px; border-radius:50%; background:#00E676; filter:blur(58px); opacity:.28; animation:apBlob 10s ease-in-out infinite;"></div>
+<div style="position:relative; color:rgba(255,255,255,.6); font-size:.72rem; font-weight:800; letter-spacing:.16em;">SUA MENSALIDADE</div>
+<div style="position:relative; color:#fff; font-family:'Montserrat',sans-serif; font-weight:800; font-size:2.3rem; line-height:1.1; margin-top:6px;">{{ mensalidadeValor }}</div>
+<div style="position:relative; color:rgba(255,255,255,.72); font-size:.84rem; margin-top:4px;">{{ mensalidadeAcademia }}</div>
+</div>
 
-              <div style="margin:16px;">
-                <div style="background:linear-gradient(140deg,#389E92,#002D72); border-radius:22px; padding:20px; color:#fff; box-shadow:0 14px 32px rgba(0,45,114,.24);">
-                  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-                    <span style="font-size:.76rem; font-weight:800; letter-spacing:.12em; opacity:.85;">MENSALIDADE DE SETEMBRO</span>
-                    <span style="padding:5px 11px; border-radius:999px; background:rgba(255,255,255,.16); font-size:.7rem; font-weight:800;">{{ statusMensalidade }}</span>
-                  </div>
-                  <div style="font-family:'Montserrat',sans-serif; font-weight:800; font-size:2rem; line-height:1.1;">R$ 50,00</div>
-                  <div style="opacity:.78; font-size:.84rem; margin-top:2px;">Vencimento todo dia 10 de cada mês</div>
-                  <button onClick="{{ pagarPix }}" style="margin-top:16px; width:100%; padding:15px; border:none; border-radius:18px; background:#00E676; color:#05070C; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1rem; cursor:pointer; animation:apPulso 3s infinite;"><i class="fas fa-qrcode"></i> Pagar com PIX</button>
-                </div>
+<div style="margin:16px;">
+<div style="background:linear-gradient(140deg,#389E92,#002D72); border-radius:22px; padding:20px; color:#fff; box-shadow:0 14px 32px rgba(0,45,114,.24);">
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+<span style="font-size:.76rem; font-weight:800; letter-spacing:.12em; opacity:.85;">MENSALIDADE</span>
+<span style="padding:5px 11px; border-radius:999px; background:rgba(255,255,255,.16); font-size:.7rem; font-weight:800;">{{ statusMensalidade }}</span>
+</div>
+<div style="font-family:'Montserrat',sans-serif; font-weight:800; font-size:2rem; line-height:1.1;">{{ mensalidadeValor }}</div>
+<div style="opacity:.78; font-size:.84rem; margin-top:2px;">{{ mensalidadeAjuda }}</div>
+<button onClick="{{ pagarPix }}" style="margin-top:16px; width:100%; padding:15px; border:none; border-radius:18px; background:#00E676; color:#05070C; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1rem; cursor:pointer;"><i class="fas fa-comment-dots"></i> Falar sobre o pagamento</button>
+</div>
 
-                <div style="margin-top:16px; background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:18px;">
-                  <h2 style="margin:0 0 14px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1rem;">Onde foi investido</h2>
-                  <div style="display:flex; align-items:center; gap:16px;">
-                    <div style="position:relative; width:118px; height:118px; flex:none;">
-                      <div style="width:118px; height:118px; border-radius:50%; background:conic-gradient({{ roscaGradiente }});"></div>
-                      <div style="position:absolute; inset:26px; border-radius:50%; background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-                        <span style="font-family:'Montserrat',sans-serif; font-weight:800; color:#002D72; font-size:.95rem;">{{ maiorCategoriaPct }}%</span>
-                        <span style="color:#7F8C8D; font-size:.6rem; font-weight:700; text-align:center; line-height:1.1; padding:0 4px;">{{ maiorCategoria }}</span>
-                      </div>
-                    </div>
-                    <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:7px;">
-                      <sc-for list="{{ categoriasTopo }}" as="c" hint-placeholder-count="4">
-                        <div style="display:flex; align-items:center; gap:8px;">
-                          <span style="{{ c.ponto }}"></span>
-                          <span style="flex:1; min-width:0; font-size:.76rem; font-weight:700; color:#2C3E50; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ c.nome }}</span>
-                          <span style="font-size:.76rem; font-weight:800; color:#7F8C8D;">{{ c.valor }}</span>
-                        </div>
-                      </sc-for>
-                    </div>
-                  </div>
-                  <div style="margin-top:14px; display:flex; flex-direction:column; gap:9px; border-top:1px solid #eee; padding-top:14px;">
-                    <sc-for list="{{ categoriasResto }}" as="c" hint-placeholder-count="4">
-                      <div style="display:flex; align-items:center; gap:8px;">
-                        <span style="{{ c.ponto }}"></span>
-                        <span style="flex:1; min-width:0; font-size:.76rem; font-weight:700; color:#2C3E50;">{{ c.nome }}</span>
-                        <span style="font-size:.76rem; font-weight:800; color:#7F8C8D;">{{ c.valor }}</span>
-                      </div>
-                    </sc-for>
-                  </div>
-                </div>
+<sc-if value="{{ ehFamilia }}" hint-placeholder-val="{{ false }}">
+<div style="margin-top:16px; background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:18px;">
+<h2 style="margin:0 0 14px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1rem;">Mensalidade por atleta</h2>
+<div style="display:flex; flex-direction:column; gap:14px;">
+<sc-for list="{{ comparativoFamilia }}" as="c" hint-placeholder-count="0">
+<div style="display:flex; align-items:center; gap:9px;">
+<img src="{{ c.foto }}" alt="" style="width:34px; height:34px; border-radius:50%; object-fit:cover; flex:none;" />
+<span style="flex:1; min-width:0; font-weight:700; color:#2C3E50; font-size:.88rem;">{{ c.nome }}</span>
+<span style="font-weight:800; color:#002D72; font-size:.88rem;">{{ c.valor }}</span>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
 
-                <div style="margin-top:16px; background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:18px;">
-                  <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px;">
-                    <h2 style="margin:0; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1rem;">Gasto mês a mês</h2>
-                    <span style="color:#7F8C8D; font-size:.76rem; font-weight:700;">últimos 12 meses</span>
-                  </div>
-                  <div style="display:flex; align-items:flex-end; gap:5px; height:116px;">
-                    <sc-for list="{{ barrasMes }}" as="b" hint-placeholder-count="12">
-                      <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; min-width:0;">
-                        <span style="{{ b.barra }}"></span>
-                        <span style="font-size:.58rem; color:#95A5A6; font-weight:700;">{{ b.mes }}</span>
-                      </div>
-                    </sc-for>
-                  </div>
-                </div>
+<div style="margin-top:16px; background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:20px; text-align:center;">
+<i class="fas fa-file-invoice" style="color:#95A5A6; font-size:1.4rem; margin-bottom:8px; display:block;"></i>
+<p style="margin:0; color:#7F8C8D; font-size:.84rem; line-height:1.5;">Histórico de pagamentos ainda não disponível por aqui. Confirme valores e vencimentos direto com a sua academia.</p>
+</div>
 
-                <div style="margin-top:16px; background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:18px;">
-                  <h2 style="margin:0 0 4px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1rem;">Acumulado desde a matrícula</h2>
-                  <p style="margin:0 0 14px; color:#7F8C8D; font-size:.8rem;">Tudo que você já investiu na sua capoeira.</p>
-                  <sc-for list="{{ linhaAcumulada }}" as="l" hint-placeholder-count="0">
-                    <svg viewBox="0 0 300 120" preserveAspectRatio="none" style="width:100%; height:130px; display:block;" role="img" aria-label="Curva do valor acumulado">
-                      <defs>
-                        <linearGradient id="gradAcum" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stop-color="#00E676" stop-opacity="0.35"></stop>
-                          <stop offset="100%" stop-color="#00E676" stop-opacity="0"></stop>
-                        </linearGradient>
-                      </defs>
-                      <polygon points="{{ l.area }}" fill="url(#gradAcum)"></polygon>
-                      <polyline points="{{ l.linha }}" fill="none" stroke="#00A854" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>
-                      <circle cx="{{ l.cx }}" cy="{{ l.cy }}" r="5" fill="#00E676" stroke="#fff" stroke-width="2"></circle>
-                    </svg>
-                  </sc-for>
-                  <div style="display:flex; justify-content:space-between; color:#95A5A6; font-size:.7rem; font-weight:700; margin-top:6px;">
-                    <span>{{ desdeMatricula }}</span><span>hoje · {{ totalInvestido }}</span>
-                  </div>
-                </div>
-
-                <div style="margin-top:16px; background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:18px;">
-                  <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px;">
-                    <h2 style="margin:0; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1rem;">Mensalidades em dia</h2>
-                    <span style="font-family:'Montserrat',sans-serif; font-weight:800; color:#389E92; font-size:1.25rem;">{{ emDiaPct }}%</span>
-                  </div>
-                  <div style="width:100%; height:20px; border-radius:20px; background:#E6EDEC; overflow:hidden;">
-                    <div style="height:100%; width:{{ emDiaPct }}%; border-radius:20px; background:linear-gradient(90deg,#389E92,#00E676);"></div>
-                  </div>
-                  <p style="margin:10px 0 0; color:#7F8C8D; font-size:.8rem;">{{ emDiaTexto }}</p>
-                </div>
-
-                <sc-if value="{{ ehFamilia }}" hint-placeholder-val="{{ false }}">
-                  <div style="margin-top:16px; background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:18px;">
-                    <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:4px;">
-                      <h2 style="margin:0; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1rem;">Comparativo da família</h2>
-                      <span style="font-family:'Montserrat',sans-serif; font-weight:800; color:#389E92; font-size:1.1rem;">{{ totalFamiliaInvestido }}</span>
-                    </div>
-                    <p style="margin:0 0 14px; color:#7F8C8D; font-size:.8rem;">Investimento por atleta desde a matrícula.</p>
-                    <div style="display:flex; flex-direction:column; gap:12px;">
-                      <sc-for list="{{ comparativoFamilia }}" as="c" hint-placeholder-count="0">
-                        <div>
-                          <div style="display:flex; align-items:center; gap:9px; margin-bottom:6px;">
-                            <img src="{{ c.foto }}" alt="" style="width:28px; height:28px; border-radius:50%; object-fit:cover; flex:none;" />
-                            <span style="flex:1; min-width:0; font-weight:700; color:#2C3E50; font-size:.85rem;">{{ c.nome }}</span>
-                            <span style="font-weight:800; color:#002D72; font-size:.85rem;">{{ c.valor }}</span>
-                          </div>
-                          <div style="width:100%; height:9px; border-radius:6px; background:#E6EDEC; overflow:hidden;">
-                            <div style="{{ c.barra }}"></div>
-                          </div>
-                        </div>
-                      </sc-for>
-                    </div>
-                    <button onClick="{{ pagarPix }}" style="margin-top:16px; width:100%; padding:14px; border:none; border-radius:18px; background:#002D72; color:#fff; font-weight:800; cursor:pointer; font-family:'Nunito',sans-serif;"><i class="fas fa-qrcode"></i> Pagar tudo em um PIX · {{ totalFamilia }}</button>
-                  </div>
-                </sc-if>
-
-                <div style="margin-top:16px; background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:18px;">
-                  <h2 style="margin:0 0 14px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1rem;">Próximos vencimentos</h2>
-                  <div style="display:flex; flex-direction:column; gap:0;">
-                    <sc-for list="{{ vencimentos }}" as="v" hint-placeholder-count="3">
-                      <div style="display:flex; gap:13px;">
-                        <div style="display:flex; flex-direction:column; align-items:center; flex:none; width:22px;">
-                          <span style="{{ v.ponto }}"></span>
-                          <span style="{{ v.trilho }}"></span>
-                        </div>
-                        <div style="flex:1; min-width:0; padding-bottom:16px;">
-                          <div style="display:flex; align-items:baseline; justify-content:space-between; gap:8px;">
-                            <span style="font-weight:800; color:#2C3E50; font-size:.88rem;">{{ v.titulo }}</span>
-                            <span style="font-weight:800; color:#002D72; font-size:.88rem;">{{ v.valor }}</span>
-                          </div>
-                          <div style="color:#7F8C8D; font-size:.78rem; margin-top:2px;">{{ v.data }} · {{ v.situacao }}</div>
-                        </div>
-                      </div>
-                    </sc-for>
-                  </div>
-                </div>
-
-                <h2 style="margin:24px 0 10px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.02rem;">Loja oficial</h2>
-                <div style="display:flex; flex-direction:column; gap:12px;">
-                  <sc-for list="{{ produtosProntos }}" as="p" hint-placeholder-count="0">
-                    <article style="display:flex; gap:14px; align-items:center; background:#fff; border:1px solid #E0E6E5; border-radius:18px; padding:12px;">
-                      <img src="{{ p.img }}" alt="{{ p.nome }}" style="width:74px; height:74px; border-radius:14px; object-fit:cover; flex:none;" />
-                      <div style="flex:1; min-width:0;">
-                        <div style="font-family:'Montserrat',sans-serif; color:#002D72; font-weight:800; font-size:.98rem;">{{ p.nome }}</div>
-                        <div style="color:#7F8C8D; font-size:.8rem; line-height:1.35; margin:3px 0 6px;">{{ p.desc }}</div>
-                        <div style="font-weight:800; color:#389E92; font-size:1.05rem;">{{ p.preco }}</div>
-                      </div>
-                      <a href="{{ p.link }}" target="_blank" rel="noopener" aria-label="Comprar" style="width:46px; height:46px; border-radius:14px; background:#00E676; color:#05070C; display:flex; align-items:center; justify-content:center; font-size:1.05rem; flex:none;"><i class="fas fa-cart-plus"></i></a>
-                    </article>
-                  </sc-for>
-                </div>
-              </div>
-            </div>
-          </sc-if>
-
-          <sc-if value="{{ ehFinanceiroGrupo }}" hint-placeholder-val="{{ false }}">
+<h2 style="margin:24px 0 10px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.02rem;">Loja oficial</h2>
+<div style="display:flex; flex-direction:column; gap:12px;">
+<sc-for list="{{ produtosProntos }}" as="p" hint-placeholder-count="0">
+<article style="display:flex; gap:14px; align-items:center; background:#fff; border:1px solid #E0E6E5; border-radius:18px; padding:12px;">
+<img src="{{ p.img }}" alt="{{ p.nome }}" style="width:74px; height:74px; border-radius:14px; object-fit:cover; flex:none;" />
+<div style="flex:1; min-width:0;">
+<div style="font-family:'Montserrat',sans-serif; color:#002D72; font-weight:800; font-size:.98rem;">{{ p.nome }}</div>
+<div style="color:#7F8C8D; font-size:.8rem; line-height:1.35; margin:3px 0 6px;">{{ p.desc }}</div>
+<div style="font-weight:800; color:#389E92; font-size:1.05rem;">{{ p.preco }}</div>
+</div>
+<a href="{{ p.link }}" target="_blank" rel="noopener" aria-label="Comprar" style="width:46px; height:46px; border-radius:14px; background:#00E676; color:#05070C; display:flex; align-items:center; justify-content:center; font-size:1.05rem; flex:none;"><i class="fas fa-cart-plus"></i></a>
+</article>
+</sc-for>
+</div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ ehFinanceiroGrupo }}" hint-placeholder-val="{{ false }}">
             <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
               <div style="position:relative; overflow:hidden; background:linear-gradient(158deg,#0B5C52 0%,#12796B 42%,#002D72 100%); padding:52px 20px 30px; border-radius:0 0 30px 30px;">
                 <div style="position:absolute; top:-70px; right:-50px; width:220px; height:220px; border-radius:50%; background:#00E676; filter:blur(58px); opacity:.28; animation:apBlob 10s ease-in-out infinite;"></div>
@@ -919,16 +747,12 @@ a:hover{ color:#389E92; }
     </div>
   </div>
 
-  <p data-chrome="1" style="max-width:440px; text-align:center; color:rgba(255,255,255,.45); font-size:.82rem; line-height:1.5;">Senha padrão de todas as contas: <strong style="color:#00E676;">capoeira2026</strong> — cada perfil tem o próprio e-mail e pode trocar a senha em Perfil → Meus dados.</p>
+  <p data-chrome="1" style="max-width:440px; text-align:center; color:rgba(255,255,255,.45); font-size:.82rem; line-height:1.5;">Cada pessoa entra com o próprio e-mail e senha, cadastrados na inscrição.</p>
 </div>
 
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{}">
-const NOTAS = [['Ginga e Base',9],['Acrobacias',6],['Respeito',10],['Disciplina',9],['Pontualidade',8],['Freq. Aulas',9],['Freq. Rodas',7],['Eventos',6],['Pandeiro',5],['Atabaque',6],['Berimbau',6],['Canta/Responde',7],['Higiene',10],['Aprendizado',8],['Fundamentos',8]];
-
-const CORDOES = ['Iniciante','Escravo','Fugitivo','Quilombola','Vagante','Liberto','Instrutor','Professor','Mestre'];
+<script type="text/x-dc" data-dc-script data-props="{}">const CORDOES = ['Iniciante','Cinza Claro','Cinza e Bege','Bege','Escravo','Fugitivo','Quilombola','Vagante','Liberto','Instrutor','Professor','Mestre'];
 const ACADEMIAS = ['Mestre Profeta · Buriti','Profª Taynara · Buriti','Profº Rafinha · Rancho Alegre','Mestre Omar · Guanandi','Instrutor Tigoy · Nova Lima'];
-const SENHA_PADRAO = 'capoeira2026';
 
 const PRODUTOS = [
   { nome:'Abadá Oficial', desc:'Tecido leve e resistente, bordado com o brasão do grupo.', preco:'R$ 90,00', img:'assets/equipe.jpg' },
@@ -956,51 +780,11 @@ const AGENDA = [
   { titulo:'Roda do Profº Rafinha', local:'Rancho Alegre', horario:'19:00h', dia:'29', mes:'AGO', quando:'2026-08-29' }
 ];
 
-const ALUNOS = [
-  { nome:'Ana Beatriz Rocha', cordao:'Fugitivo', idade:17, percentual:82, academia:0, email:'ana.rocha@liberdade.com' },
-  { nome:'Lucas Moreira', cordao:'Quilombola', idade:11, percentual:64, academia:0, email:'lucas.moreira@liberdade.com' },
-  { nome:'Natanael Silva', cordao:'Vagante', idade:24, percentual:72, academia:0, email:'natanael@liberdade.com' },
-  { nome:'Sofia Lima', cordao:'Escravo', idade:9, percentual:55, academia:1, email:'sofia.lima@liberdade.com' },
-  { nome:'Rafael Duarte', cordao:'Liberto', idade:19, percentual:91, academia:2, email:'rafael.duarte@liberdade.com' },
-  { nome:'Camila Reis', cordao:'Vagante', idade:28, percentual:47, academia:0, email:'camila.reis@liberdade.com' }
-];
+const PENDENTES = [];
 
-const ATLETAS = [
-  { nome:'Natanael Silva', curto:'Natanael', foto:'assets/retrato-leiliano.jpg', cordao:'Vagante', idxCordao:4, idade:24, academia:'Mestre Profeta · Buriti', fator:1, papelFamilia:'Responsável', mensalidade:'Em aberto', desde:'mar/2021', meses:54 },
-  { nome:'Helena Silva', curto:'Helena', foto:'assets/retrato-taynara.jpg', cordao:'Fugitivo', idxCordao:2, idade:9, academia:'Profª Taynara · Buriti', fator:0.82, papelFamilia:'Filha', mensalidade:'Paga', desde:'fev/2024', meses:19 },
-  { nome:'Théo Silva', curto:'Théo', foto:'assets/retrato-maick.jpg', cordao:'Escravo', idxCordao:1, idade:12, academia:'Mestre Profeta · Buriti', fator:0.63, papelFamilia:'Filho', mensalidade:'Em aberto', desde:'ago/2025', meses:13 }
-];
-
-const CATEGORIAS = [
-  ['Mensalidades', 2700, '#002D72'],
-  ['Batizados e eventos', 640, '#389E92'],
-  ['Uniforme e abadá', 470, '#00E676'],
-  ['Instrumentos', 400, '#F39C12'],
-  ['Viagens', 380, '#D2691E'],
-  ['Aulas particulares', 300, '#8E44AD'],
-  ['Cordão e graduação', 260, '#00B140'],
-  ['Loja em geral', 190, '#E74C3C']
-];
-
-const MESES = ['out','nov','dez','jan','fev','mar','abr','mai','jun','jul','ago','set'];
-const GASTO_MES = [50, 140, 50, 50, 90, 50, 230, 50, 50, 170, 320, 50];
-const RECEITA_MES = [14200, 15100, 12800, 16400, 16900, 17200, 16800, 17600, 18100, 17400, 19200, 18650];
-
-const RECEITA_ACADEMIA = [
-  { nome:'Mestre Profeta · Buriti', valor:5400, alunos:38, atraso:5 },
-  { nome:'Profº Rafinha · Rancho Alegre', valor:4150, alunos:31, atraso:6 },
-  { nome:'Mestre Omar · Guanandi', valor:3900, alunos:29, atraso:4 },
-  { nome:'Profª Taynara · Buriti', valor:2800, alunos:22, atraso:7 },
-  { nome:'Instrutor Tigoy · Nova Lima', valor:2400, alunos:18, atraso:5 }
-];
-
-const PERFIS = [
-  { id:'aluno', email:'natanael@liberdade.com', nome:'Natanael Silva', sub:'Cordão Vagante · Buriti', foto:'assets/retrato-leiliano.jpg', papeis:['aluno'], conta:'solo', atleta:0 },
-  { id:'familia', email:'simone@liberdade.com', nome:'Simone Silva', sub:'Responsável · 2 atletas', foto:'assets/retrato-taynara.jpg', papeis:['responsavel'], conta:'familia', atleta:1 },
-  { id:'profeta', email:'profeta@liberdade.com', nome:'Mestre Profeta', sub:'Academia Buriti · 38 alunos', foto:'assets/retrato-profeta.jpg', papeis:['mestre'], conta:'solo', atleta:0, academia:'Mestre Profeta · Buriti' },
-  { id:'rafinha', email:'rafinha@liberdade.com', nome:'Profº Rafinha', sub:'Academia Rancho Alegre · também aluno', foto:'assets/retrato-rafinha.jpg', papeis:['mestre','aluno'], conta:'solo', atleta:0, academia:'Profº Rafinha · Rancho Alegre' },
-  { id:'admin', email:'admin@liberdade.com', nome:'Master Admin', sub:'Gestão dos 18 núcleos', foto:'assets/retrato-omar.jpg', papeis:['admin'], conta:'solo', atleta:0 }
-];
+let PERFIS = [];
+let ATLETAS = [];
+let ALUNOS = [];
 
 const PAPEL_ROTULO = { aluno:'Aluno', responsavel:'Família', mestre:'Mestre', admin:'Master Admin' };
 const PAPEL_ICONE = { aluno:'fas fa-user', responsavel:'fas fa-users', mestre:'fas fa-chalkboard-teacher', admin:'fas fa-shield-alt' };
@@ -1027,24 +811,152 @@ const ABAS_ADMIN = [
   { id:'perfil', rotulo:'Perfil', icone:'fas fa-user' }
 ];
 
-const PENDENTES = [
-  { nome:'Yasmin Oliveira', idade:8, academia:'Mestre Profeta · Buriti' },
-  { nome:'Pedro Henrique Alves', idade:15, academia:'Profº Rafinha · Rancho Alegre' }
+const CRITERIOS_REGRAS = [
+  { id:'c1', txt:'Ginga e Base', reqAdulto:0, reqKids:true }, { id:'c2', txt:'Acrobacias', reqAdulto:3, reqKids:false },
+  { id:'c3', txt:'Respeito', reqAdulto:0, reqKids:true }, { id:'c4', txt:'Disciplina', reqAdulto:0, reqKids:true },
+  { id:'c5', txt:'Pontualidade', reqAdulto:0, reqKids:true }, { id:'c6', txt:'Freq. Aulas', reqAdulto:0, reqKids:true },
+  { id:'c7', txt:'Freq. Rodas', reqAdulto:0, reqKids:true }, { id:'c8', txt:'Eventos', reqAdulto:0, reqKids:true },
+  { id:'c9', txt:'Pandeiro', reqAdulto:5, reqKids:false }, { id:'c10', txt:'Atabaque', reqAdulto:5, reqKids:false },
+  { id:'c11', txt:'Berimbau', reqAdulto:5, reqKids:false }, { id:'c12', txt:'Canta/Responde', reqAdulto:5, reqKids:false },
+  { id:'c13', txt:'Higiene', reqAdulto:0, reqKids:true }, { id:'c14', txt:'Aprendizado', reqAdulto:0, reqKids:true },
+  { id:'c15', txt:'Fundamentos', reqAdulto:0, reqKids:true },
 ];
+function criteriosAtivosPara(idade, idxCordao) {
+  return CRITERIOS_REGRAS.filter((c) => (idade < 12 ? c.reqKids : idxCordao >= (c.reqAdulto - 1)));
+}
+function progressoDe(idade, idxCordao, notasObj) {
+  const ativos = criteriosAtivosPara(idade, idxCordao);
+  const notas = notasObj || {};
+  let total = 0;
+  ativos.forEach((c) => { total += Number(notas[c.id]) || 0; });
+  const max = ativos.length * 10;
+  return { ativos, total, max, progresso: max > 0 ? Math.floor((total / max) * 100) : 0 };
+}
 
 function brl(v) {
-  return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 class Component extends DCLogic {
   state = {
-    perfil: null, papel: 'aluno', formulario: false, usuario: '', senha: '', verSenha: false,
-    lembrar: true, entrando: false, aba: 'inicio', atleta: 0, escolhendo: false, trocador: false,
+    carregando: true,
+    perfil: null, papel: 'aluno', aba: 'inicio', atleta: 0, escolhendo: false, trocador: false,
     busca: '', filtro: 'Todos', filtroMaterial: 'Tudo', aviso: '', avaliando: null, notasAval: null,
-    observacao: '', historico: {}, sheet: null, sheetVals: {}, pendentes: PENDENTES.slice(),
-    alunos: ALUNOS.slice(), materiais: MATERIAIS.slice(), contas: PERFIS.map((p) => p.id),
-    arrastandoId: null, arrastandoDx: 0
+    observacao: '', historico: {}, sheet: null, sheetVals: {},
+    pendentes: PENDENTES.slice(), alunos: ALUNOS.slice(), materiais: MATERIAIS.slice(),
   };
+
+  componentDidMount() {
+    this.iniciar();
+  }
+
+  async iniciar() {
+    try {
+      const FB = await import('./firebase.js');
+      this._FB = FB;
+      FB.observarSessao(async (user) => {
+        if (!user) { window.location.href = 'login.html'; return; }
+        try {
+          const perfil = await FB.buscar('usuarios', user.uid);
+          const papeis = (perfil && perfil.papeis) || [];
+          if (!perfil || !(papeis.includes('aluno') || papeis.includes('responsavel'))) {
+            window.location.href = 'admin.html';
+            return;
+          }
+          this._uid = user.uid;
+          await this.montarPerfil(user.uid, perfil);
+        } catch (e) {
+          console.error(e);
+          this.toast('Não foi possível carregar seus dados. Recarregue a página.');
+        }
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  async montarAtleta(u, uidDoAtleta) {
+    const FB = this._FB;
+    const idade = Number(u.idade) || 0;
+    let idx = CORDOES.indexOf(u.cordaoAtual || 'Iniciante');
+    if (idx === -1) idx = 0;
+    let mensalidadeValor = null;
+    if (u.academiaId) {
+      try {
+        const nuc = await FB.buscar('nucleos', u.academiaId);
+        if (nuc && nuc.mensalidadeValor !== undefined) mensalidadeValor = Number(nuc.mensalidadeValor) || 0;
+      } catch (_) { /* segue sem o valor */ }
+    }
+    return {
+      uid: uidDoAtleta,
+      nome: u.nome || 'Aluno',
+      curto: (u.nome || 'Aluno').split(' ')[0],
+      foto: u.fotoUrl || 'assets/logo-liberdade.png',
+      cordao: u.cordaoAtual || 'Iniciante',
+      idxCordao: idx,
+      idade,
+      academia: u.academiaNome || u.academiaId || '-',
+      academiaId: u.academiaId || null,
+      notasReais: u.notas || {},
+      mensalidadeValor,
+      papelFamilia: '',
+    };
+  }
+
+  async montarPerfil(uid, perfil) {
+    const papeis = perfil.papeis || ['aluno'];
+    const ehResp = papeis.includes('responsavel');
+    const gestorPapel = papeis.includes('mestre') ? 'mestre' : (papeis.includes('admin') ? 'admin' : null);
+
+    if (ehResp) {
+      const filhos = Array.isArray(perfil.responsavelDe) ? perfil.responsavelDe : [];
+      const carregados = [];
+      for (const filhoUid of filhos) {
+        try {
+          const doc = await this._FB.buscar('usuarios', filhoUid);
+          if (doc) carregados.push(await this.montarAtleta(doc, filhoUid));
+        } catch (_) { /* ignora filho que falhar ao carregar */ }
+      }
+      ATLETAS = carregados.length ? carregados : [await this.montarAtleta(perfil, uid)];
+    } else {
+      ATLETAS = [await this.montarAtleta(perfil, uid)];
+    }
+
+    const papeisConta = (ehResp ? ['responsavel'] : ['aluno']).concat(gestorPapel ? [gestorPapel] : []);
+    PERFIS = [{
+      id: uid,
+      email: perfil.email || '',
+      nome: perfil.nome || perfil.email || 'Conta',
+      sub: ehResp ? ('Responsável · ' + ATLETAS.length + (ATLETAS.length === 1 ? ' atleta' : ' atletas')) : ('Cordão ' + ((ATLETAS[0] && ATLETAS[0].cordao) || 'Iniciante')),
+      foto: perfil.fotoUrl || 'assets/logo-liberdade.png',
+      papeis: papeisConta,
+      conta: ehResp ? 'familia' : 'solo',
+      atleta: 0,
+      academia: gestorPapel ? (perfil.academiaNome || perfil.academiaGerenciadaId || '') : undefined,
+      academiaGerenciadaId: perfil.academiaGerenciadaId || null,
+    }];
+
+    this.setState({ carregando: false });
+    this.entrarComPerfil(PERFIS[0]);
+
+    if (gestorPapel === 'mestre' && perfil.academiaGerenciadaId) {
+      this.carregarTurma(perfil.academiaGerenciadaId);
+    }
+  }
+
+  async carregarTurma(academiaId) {
+    try {
+      const { itens } = await this._FB.listarPorAcademia('usuarios', academiaId, 300);
+      const lista = itens.filter((u) => (u.papeis || []).includes('aluno')).map((u) => {
+        let idx = CORDOES.indexOf(u.cordaoAtual || 'Iniciante'); if (idx === -1) idx = 0;
+        const idade = Number(u.idade) || 0;
+        const { progresso } = progressoDe(idade, idx, u.notas);
+        return { nome: u.nome || 'Aluno', cordao: u.cordaoAtual || 'Iniciante', idade, percentual: progresso, academia: 0, email: u.email || '' };
+      });
+      ALUNOS = lista;
+      this.setState({ alunos: lista.slice() });
+    } catch (e) { console.error(e); }
+  }
 
   toast(msg) {
     this.setState({ aviso: msg });
@@ -1067,9 +979,8 @@ class Component extends DCLogic {
   entrarComPerfil(p) {
     const papel = p.papeis[0];
     this.setState({
-      perfil: p.id, papel: papel, atleta: p.atleta, formulario: false,
-      escolhendo: p.conta === 'familia', aba: this.abaInicial(papel),
-      trocador: false, avaliando: null, sheet: null, arrastandoId: null, arrastandoDx: 0
+      perfil: p.id, papel: papel, atleta: p.atleta, escolhendo: p.conta === 'familia',
+      aba: this.abaInicial(papel), trocador: false, avaliando: null, sheet: null,
     });
   }
 
@@ -1083,36 +994,13 @@ class Component extends DCLogic {
     const familia = !!perfilAtual && perfilAtual.conta === 'familia';
     const gestor = papel === 'mestre' || papel === 'admin';
     const admin = papel === 'admin';
-    const atleta = familia ? ATLETAS[this.state.atleta] : ATLETAS[0];
-    const notas = NOTAS.map((n) => [n[0], Math.max(1, Math.round(n[1] * atleta.fator))]);
-    const total = notas.reduce((s, n) => s + n[1], 0);
-    const progresso = Math.floor((total / (notas.length * 10)) * 100);
+    const atleta = (familia ? ATLETAS[this.state.atleta] : ATLETAS[0]) || {
+      nome:'', curto:'', foto:'assets/logo-liberdade.png', cordao:'Iniciante', idxCordao:0, idade:0, academia:'-', notasReais:{}, mensalidadeValor:null, papelFamilia:'',
+    };
+    const { ativos: criteriosAtivos, progresso } = progressoDe(atleta.idade, atleta.idxCordao, atleta.notasReais);
+    const notas = criteriosAtivos.map((c) => [c.txt, Number(atleta.notasReais[c.id]) || 0]);
     const ABAS = admin ? ABAS_ADMIN : (gestor ? ABAS_MESTRE : ABAS_ALUNO);
     const idx = Math.max(0, ABAS.map((a) => a.id).indexOf(this.state.aba));
-    const hoje = new Date('2026-09-10T00:00:00');
-
-    const catValores = CATEGORIAS.map((c) => [c[0], Math.round(c[1] * atleta.fator * (atleta.meses / 54)), c[2]]);
-    const somaCat = catValores.reduce((s, c) => s + c[1], 0);
-    let acc = 0;
-    const paradas = catValores.map((c) => {
-      const ini = (acc / somaCat) * 100;
-      acc += c[1];
-      return c[2] + ' ' + ini.toFixed(2) + '% ' + ((acc / somaCat) * 100).toFixed(2) + '%';
-    }).join(', ');
-    const maior = catValores.slice().sort((a, b) => b[1] - a[1])[0];
-
-    const gastos = GASTO_MES.map((g) => Math.round(g * atleta.fator));
-    const maxGasto = Math.max.apply(null, gastos);
-    let cum = 0;
-    const baseAnterior = somaCat - gastos.reduce((s, g) => s + g, 0);
-    const coords = gastos.map((g, i) => {
-      cum += g;
-      const x = (i / (gastos.length - 1)) * 296 + 2;
-      const y = 114 - ((baseAnterior + cum) / somaCat) * 106;
-      return [x, y];
-    });
-    const linhaStr = coords.map((c) => c[0].toFixed(1) + ',' + c[1].toFixed(1)).join(' ');
-    const maxReceita = Math.max.apply(null, RECEITA_MES);
 
     const termo = this.state.busca.trim().toLowerCase();
     const listaAlunos = this.state.alunos.filter((a) => {
@@ -1127,131 +1015,88 @@ class Component extends DCLogic {
     const notasAval = this.state.notasAval || [];
     const somaAval = notasAval.reduce((s, n) => s + n[1], 0);
     const pctAval = notasAval.length ? Math.round((somaAval / (notasAval.length * 10)) * 100) : 0;
-    const histAlvo = (alvo && this.state.historico[alvo.nome]) || [
-      { data: '12/05/2026', valor: Math.max(30, alvo ? alvo.percentual - 11 : 60), obs: 'Boa ginga, precisa firmar a base.' },
-      { data: '18/01/2026', valor: Math.max(25, alvo ? alvo.percentual - 19 : 52), obs: 'Entrou bem no ritmo da bateria.' }
-    ];
+    const histAlvo = (alvo && this.state.historico[alvo.nome]) || [];
 
     const listaAlunosOpcoes = this.state.alunos.map((a) => ({ valor: a.nome, rotulo: a.nome }));
     const academiasOpcoes = ACADEMIAS.map((a) => ({ valor: a, rotulo: a }));
-    const professores = PERFIS.filter((p) => p.academia).map((p) => ({ valor: p.nome, rotulo: p.nome + ' — ' + p.academia }));
+    const professores = [];
 
     const sheetDefs = {
       dados: {
         titulo: 'Meus dados',
-        ajuda: 'Atualize seu contato e troque a senha de acesso. A senha padrão do grupo é ' + SENHA_PADRAO + '.',
+        ajuda: 'Atualize seu nome e telefone de contato. Para trocar de senha, use "Esqueci minha senha" na tela de login.',
         botao: 'Salvar alterações',
         campos: [
-          { chave: 'nome', rotulo: 'Nome completo:', tipo: 'texto', entrada: 'text', padrao: perfilAtual ? perfilAtual.nome : '' },
-          { chave: 'email', rotulo: 'E-mail de acesso:', tipo: 'texto', entrada: 'email', padrao: perfilAtual ? perfilAtual.email : '' },
-          { chave: 'telefone', rotulo: 'Celular:', tipo: 'texto', entrada: 'tel', dica: '(67) 99129-3269', padrao: '' },
-          { chave: 'atual', rotulo: 'Senha atual:', tipo: 'texto', entrada: 'password', dica: 'Senha em uso', padrao: '' },
-          { chave: 'nova', rotulo: 'Nova senha:', tipo: 'texto', entrada: 'password', dica: 'Mínimo 6 caracteres', padrao: '' },
-          { chave: 'confirma', rotulo: 'Repita a nova senha:', tipo: 'texto', entrada: 'password', dica: 'Confirme a nova senha', padrao: '' }
-        ]
+          { chave:'nome', rotulo:'Nome completo:', tipo:'texto', entrada:'text', padrao: perfilAtual ? perfilAtual.nome : '' },
+          { chave:'email', rotulo:'E-mail de acesso:', tipo:'texto', entrada:'email', padrao: perfilAtual ? perfilAtual.email : '' },
+          { chave:'telefone', rotulo:'Celular:', tipo:'texto', entrada:'tel', dica:'(67) 99129-3269', padrao:'' },
+        ],
       },
       academia: {
         titulo: admin ? 'Academias do grupo' : 'Minha academia',
-        ajuda: admin ? 'Escolha o núcleo para abrir a lista de alunos dele.' : 'Sua unidade de treino e os horários das aulas.',
-        botao: admin ? 'Abrir alunos da academia' : 'Ver minha turma',
-        campos: [{ chave: 'academia', rotulo: 'Academia:', tipo: 'select', opcoes: academiasOpcoes }]
-      },
-      notificacoes: {
-        titulo: 'Notificações',
-        ajuda: 'Escolha o que você quer receber no celular.',
-        botao: 'Salvar preferências',
+        ajuda: admin ? 'Lista dos núcleos cadastrados no grupo.' : 'Sua unidade de treino.',
+        botao: 'Fechar',
         campos: [
-          { chave: 'rodas', rotulo: 'Rodas e eventos:', tipo: 'interruptor', padrao: true },
-          { chave: 'mensalidade', rotulo: 'Mensalidade e cobranças:', tipo: 'interruptor', padrao: true },
-          { chave: 'material', rotulo: 'Novos materiais e aulas:', tipo: 'interruptor', padrao: true },
-          { chave: 'avaliacao', rotulo: 'Resultado de avaliações:', tipo: 'interruptor', padrao: false }
-        ]
+          { chave:'academia', rotulo:'Academia:', tipo:'select', opcoes: academiasOpcoes },
+        ],
       },
       transferir: {
         titulo: 'Transferir aluno de academia',
-        ajuda: 'O histórico, as notas e o financeiro seguem junto com o aluno.',
-        botao: 'Confirmar transferência',
+        ajuda: 'Peça ao mestre ou ao admin para transferir o aluno pelo painel de gestão.',
+        botao: 'Entendi',
         campos: [
-          { chave: 'aluno', rotulo: 'Aluno:', tipo: 'select', opcoes: listaAlunosOpcoes },
-          { chave: 'academia', rotulo: 'Nova academia:', tipo: 'select', opcoes: academiasOpcoes }
-        ]
+          { chave:'aluno', rotulo:'Aluno:', tipo:'select', opcoes: listaAlunosOpcoes },
+        ],
       },
       vincular: {
         titulo: 'Vincular familiar na mesma conta',
-        ajuda: 'Os dois passam a entrar pelo mesmo login, com prontuários separados.',
-        botao: 'Vincular atletas',
+        ajuda: 'Fale com o admin para vincular um dependente à sua conta de responsável.',
+        botao: 'Entendi',
         campos: [
-          { chave: 'responsavel', rotulo: 'Conta responsável:', tipo: 'select', opcoes: listaAlunosOpcoes },
-          { chave: 'dependente', rotulo: 'Atleta a vincular:', tipo: 'select', opcoes: listaAlunosOpcoes }
-        ]
+          { chave:'dependente', rotulo:'Atleta a vincular:', tipo:'select', opcoes: listaAlunosOpcoes },
+        ],
       },
       papel: {
         titulo: 'Habilitar troca de papel',
-        ajuda: 'Só professores e instrutores com academia podem ter os dois acessos. Vincule a conta de professor ao cadastro de aluno dele.',
-        botao: 'Habilitar troca de papel',
-        campos: [
-          { chave: 'professor', rotulo: 'Professor ou instrutor:', tipo: 'select', opcoes: professores },
-          { chave: 'aluno', rotulo: 'Cadastro de aluno dele:', tipo: 'select', opcoes: listaAlunosOpcoes }
-        ]
+        ajuda: 'Só o admin pode conceder uma academia própria a um usuário, pelo painel de gestão.',
+        botao: 'Entendi',
+        campos: [],
       },
       pagamento: {
-        titulo: 'Lançar pagamento manual',
-        ajuda: 'Use para dinheiro, transferência ou PIX recebido fora do app.',
-        botao: 'Lançar pagamento',
-        campos: [
-          { chave: 'aluno', rotulo: 'Aluno:', tipo: 'select', opcoes: listaAlunosOpcoes },
-          { chave: 'tipo', rotulo: 'Referente a:', tipo: 'select', opcoes: CATEGORIAS.map((c) => ({ valor: c[0], rotulo: c[0] })) },
-          { chave: 'valor', rotulo: 'Valor:', tipo: 'texto', entrada: 'text', dica: 'R$ 50,00', padrao: 'R$ 50,00' }
-        ]
+        titulo: 'Lançar pagamento',
+        ajuda: 'Pagamentos são lançados pelo painel de gestão (admin.html) por enquanto.',
+        botao: 'Entendi',
+        campos: [],
       },
       aviso: {
-        titulo: 'Enviar aviso para uma academia',
-        ajuda: 'Chega como notificação no app de todos os alunos daquele núcleo.',
-        botao: 'Enviar aviso',
-        campos: [
-          { chave: 'academia', rotulo: 'Academia:', tipo: 'select', opcoes: [{ valor: 'Todas as academias', rotulo: 'Todas as academias' }].concat(academiasOpcoes) },
-          { chave: 'assunto', rotulo: 'Assunto:', tipo: 'texto', entrada: 'text', dica: 'Ex: Roda extra no sábado', padrao: '' },
-          { chave: 'mensagem', rotulo: 'Mensagem:', tipo: 'area', dica: 'Escreva o recado para a turma.', padrao: '' }
-        ]
-      },
-      cadastro: {
-        titulo: 'Cadastrar academia ou professor',
-        ajuda: 'A nova unidade aparece na inscrição pública e no site.',
-        botao: 'Cadastrar',
-        campos: [
-          { chave: 'tipo', rotulo: 'O que cadastrar:', tipo: 'select', opcoes: [{ valor: 'Academia', rotulo: 'Nova academia' }, { valor: 'Professor', rotulo: 'Novo professor ou instrutor' }] },
-          { chave: 'nome', rotulo: 'Nome:', tipo: 'texto', entrada: 'text', dica: 'Ex: Academia Mestre Profeta', padrao: '' },
-          { chave: 'academia', rotulo: 'Vinculado a:', tipo: 'select', opcoes: academiasOpcoes }
-        ]
+        titulo: 'Enviar aviso',
+        ajuda: 'Avisos são publicados pelo painel de gestão (admin.html) por enquanto.',
+        botao: 'Entendi',
+        campos: [],
       },
       publicar: {
-        titulo: 'Publicar material de estudo',
-        ajuda: 'Videoaulas, oficinas de canto e música, biblioteca em PDF e avaliações. Cole o link do YouTube, do Drive ou do formulário.',
-        botao: 'Publicar para os alunos',
+        titulo: 'Publicar material',
+        ajuda: 'Chega na aba Material de todos os alunos daquele destino.',
+        botao: 'Publicar',
         campos: [
-          { chave: 'tipo', rotulo: 'Tipo de material:', tipo: 'select', opcoes: TIPOS_MATERIAL.map((t) => ({ valor: t, rotulo: t })) },
-          { chave: 'titulo', rotulo: 'Título:', tipo: 'texto', entrada: 'text', dica: 'Ex: Oficina de canto — corridos', padrao: '' },
-          { chave: 'desc', rotulo: 'Descrição:', tipo: 'area', dica: 'O que o aluno vai aprender, data e local.', padrao: '' },
-          { chave: 'link', rotulo: 'Link (YouTube, Drive ou formulário):', tipo: 'texto', entrada: 'url', dica: 'https://', padrao: '' },
-          { chave: 'destino', rotulo: 'Publicar para:', tipo: 'select', opcoes: [{ valor: 'Todas as academias', rotulo: 'Todas as academias' }].concat(academiasOpcoes) }
-        ]
-      }
+          { chave:'tipo', rotulo:'Tipo:', tipo:'select', opcoes: TIPOS_MATERIAL.map((t) => ({ valor:t, rotulo:t })) },
+          { chave:'titulo', rotulo:'Título:', tipo:'texto', entrada:'text', dica:'Ex: Oficina de berimbau', padrao:'' },
+          { chave:'desc', rotulo:'Descrição:', tipo:'area', dica:'Um resumo curto.', padrao:'' },
+          { chave:'link', rotulo:'Link:', tipo:'texto', entrada:'text', dica:'https://...', padrao:'' },
+          { chave:'destino', rotulo:'Destino:', tipo:'select', opcoes:[{ valor:'Todas as academias', rotulo:'Todas as academias' }].concat(academiasOpcoes) },
+        ],
+      },
     };
     const sheetDef = this.state.sheet ? sheetDefs[this.state.sheet] : null;
 
     const materiaisFiltrados = this.state.materiais.filter((m) => this.state.filtroMaterial === 'Tudo' || m.tipo === this.state.filtroMaterial);
     const enfeiteMaterial = (m) => ({
-      tipo: m.tipo,
-      titulo: m.titulo,
-      desc: m.desc,
-      link: m.link || '#',
-      destino: m.destino,
-      temCapa: !!m.capa,
-      capaLista: m.capa ? [{ url: m.capa }] : [],
+      tipo: m.tipo, titulo: m.titulo, desc: m.desc, link: m.link || '#', destino: m.destino,
+      temCapa: !!m.capa, capaLista: m.capa ? [{ url: m.capa }] : [],
       icone: MAT_ICONE[m.tipo] || 'fas fa-book',
       acaoIcone: m.tipo === 'Biblioteca' ? 'fas fa-download' : (m.tipo === 'Avaliação' ? 'fas fa-arrow-right' : 'fas fa-play'),
       bolha: 'width:40px; height:40px; border-radius:13px; flex:none; display:flex; align-items:center; justify-content:center; font-size:.95rem; color:' + (MAT_COR[m.tipo] || '#002D72') + '; background:' + (MAT_COR[m.tipo] || '#002D72') + '1f;',
-      selo: 'display:inline-block; font-size:.64rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; padding:3px 8px; border-radius:7px; color:' + (MAT_COR[m.tipo] || '#002D72') + '; background:' + (MAT_COR[m.tipo] || '#002D72') + '1a;'
+      selo: 'display:inline-block; font-size:.64rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; padding:3px 8px; border-radius:7px; color:' + (MAT_COR[m.tipo] || '#002D72') + '; background:' + (MAT_COR[m.tipo] || '#002D72') + '1a;',
     });
 
     return {
@@ -1262,69 +1107,8 @@ class Component extends DCLogic {
       progresso: progresso,
       voltaProgresso: (progresso / 100) + 'turn',
 
-      mostrarContas: !this.state.formulario,
-      formularioAberto: this.state.formulario,
-      perfisSalvos: PERFIS.filter((p) => this.state.contas.indexOf(p.id) >= 0).map((p) => {
-        const dx = this.state.arrastandoId === p.id ? this.state.arrastandoDx : 0;
-        return {
-          nome: p.nome,
-          sub: p.sub,
-          foto: p.foto,
-          papelRotulo: PAPEL_ROTULO[p.papeis[0]],
-          selo: 'flex:none; font-size:.64rem; font-weight:800; letter-spacing:.04em; padding:5px 9px; border-radius:8px; pointer-events:none; color:' + (p.papeis[0] === 'aluno' ? '#00A854' : p.papeis[0] === 'responsavel' ? '#C0700C' : '#002D72') + '; background:' + (p.papeis[0] === 'aluno' ? 'rgba(0,230,118,.14)' : p.papeis[0] === 'responsavel' ? 'rgba(243,156,18,.14)' : 'rgba(0,45,114,.1)') + ';',
-          cartao: 'position:relative; display:flex; align-items:center; gap:13px; width:100%; text-align:left; background:#fff; border:1px solid rgba(255,255,255,.4); border-radius:20px; padding:13px 14px; cursor:pointer; font-family:\'Nunito\',sans-serif; touch-action:pan-y; transform:translateX(' + dx + 'px); transition:' + (this.state.arrastandoId === p.id ? 'none' : 'transform .3s cubic-bezier(.16,1,.3,1)') + ';',
-          entrar: () => { if (Math.abs(this.state.arrastandoDx) > 6) return; this.entrarComPerfil(p); },
-          pegar: (ev) => { this._x0 = ev.clientX; this.setState({ arrastandoId: p.id, arrastandoDx: 0 }); },
-          mover: (ev) => {
-            if (this.state.arrastandoId !== p.id || this._x0 == null) return;
-            const dif = Math.min(0, ev.clientX - this._x0);
-            if (dif !== this.state.arrastandoDx) this.setState({ arrastandoDx: dif });
-          },
-          soltar: () => {
-            const dif = this.state.arrastandoDx;
-            this._x0 = null;
-            if (dif < -110) {
-              this.setState((s) => ({ contas: s.contas.filter((c) => c !== p.id), arrastandoId: null, arrastandoDx: 0, formulario: s.contas.length <= 1 }));
-              this.toast('Acesso de ' + p.nome.split(' ')[0] + ' removido deste aparelho.');
-            } else {
-              this.setState({ arrastandoId: null, arrastandoDx: 0 });
-            }
-          }
-        };
-      }),
-      abrirFormulario: () => this.setState({ formulario: true }),
-      fecharFormulario: () => this.setState({ formulario: false }),
-      usuario: this.state.usuario,
-      senha: this.state.senha,
-      mudarUsuario: (ev) => this.setState({ usuario: ev.target.value }),
-      mudarSenha: (ev) => this.setState({ senha: ev.target.value }),
-      tipoSenha: this.state.verSenha ? 'text' : 'password',
-      iconeOlho: this.state.verSenha ? 'fas fa-eye-slash' : 'fas fa-eye',
-      verSenha: () => this.setState((s) => ({ verSenha: !s.verSenha })),
-      alternarLembrar: () => this.setState((s) => ({ lembrar: !s.lembrar })),
-      caixaLembrar: 'width:22px; height:22px; border-radius:7px; flex:none; display:flex; align-items:center; justify-content:center; border:2px solid ' + (this.state.lembrar ? '#00B140' : '#C4CFCD') + '; background:' + (this.state.lembrar ? '#00B140' : '#fff') + ';',
-      checkLembrar: 'color:#fff; font-size:.7rem; opacity:' + (this.state.lembrar ? '1' : '0') + ';',
-      rotuloEntrar: this.state.entrando ? 'Entrando…' : 'Acessar Painel',
-      botaoEntrar: this.state.entrando
-        ? "width:100%; padding:16px; border:none; border-radius:22px; background:#002D72; color:#fff; font-family:'Montserrat',sans-serif; font-weight:700; font-size:1rem; opacity:.7; cursor:progress;"
-        : "width:100%; padding:16px; border:none; border-radius:22px; background:#002D72; color:#fff; font-family:'Montserrat',sans-serif; font-weight:700; font-size:1rem; cursor:pointer; box-shadow:0 10px 24px rgba(0,45,114,.3);",
-      acessar: () => {
-        if (this.state.entrando) return;
-        const email = this.state.usuario.trim().toLowerCase();
-        const achado = PERFIS.filter((p) => p.email === email)[0];
-        if (!achado) { this.toast('E-mail não encontrado no cadastro do grupo.'); return; }
-        if (this.state.senha !== SENHA_PADRAO) { this.toast('Senha incorreta. A senha padrão é ' + SENHA_PADRAO + '.'); return; }
-        this.setState({ entrando: true });
-        setTimeout(() => {
-          this.setState((s) => ({ entrando: false, senha: '', contas: s.contas.indexOf(achado.id) >= 0 ? s.contas : s.contas.concat([achado.id]) }));
-          this.entrarComPerfil(achado);
-        }, 800);
-      },
-      esqueciSenha: () => this.toast('Enviamos o link de redefinição para o e-mail informado.'),
-      sair: () => this.setState({ perfil: null, papel: 'aluno', aba: 'inicio', formulario: false, trocador: false, escolhendo: false, avaliando: null, sheet: null, usuario: '', senha: '' }),
-
       ehFamilia: familia,
-      atletaNome: atleta.curto,
+      atletaNome: familia ? atleta.curto : (perfilAtual ? perfilAtual.nome.split(' ')[0] : ''),
       atletaAcademia: atleta.academia,
       atletaCordao: 'Cordão ' + atleta.cordao,
       proximoCordao: CORDOES[Math.min(CORDOES.length - 1, atleta.idxCordao + 1)],
@@ -1333,75 +1117,41 @@ class Component extends DCLogic {
       fotoAtletaLista: [{ url: atleta.foto }],
       fotoPerfilLista: [{ url: gestor && perfilAtual ? perfilAtual.foto : atleta.foto }],
       perfilNome: gestor && perfilAtual ? perfilAtual.nome : atleta.nome,
-      perfilSub: gestor && perfilAtual ? perfilAtual.sub : 'Cordão ' + atleta.cordao + ' · ' + atleta.academia,
+      perfilSub: gestor && perfilAtual ? perfilAtual.sub : ('Cordão ' + atleta.cordao + ' · ' + atleta.academia),
+
+      opcoesPerfil: [
+        { rotulo:'Meus dados', ajuda:'Nome, e-mail e telefone de contato', icone:'fas fa-id-card', acao: () => this.abrirSheet('dados') },
+      ].concat(!gestor ? [{ rotulo:'Minha academia', ajuda:'Onde você treina', icone:'fas fa-map-marker-alt', acao: () => this.abrirSheet('academia') }] : [])
+        .concat(familia ? [{ rotulo:'Vincular familiar', ajuda:'Ligar outro dependente à conta', icone:'fas fa-link', acao: () => this.abrirSheet('vincular') }] : []),
 
       temVariosPapeis: !!perfilAtual && perfilAtual.papeis.length > 1 && !!perfilAtual.academia,
       papeisDisponiveis: (perfilAtual ? perfilAtual.papeis : []).map((r) => ({
-        rotulo: PAPEL_ROTULO[r],
-        icone: PAPEL_ICONE[r],
+        rotulo: PAPEL_ROTULO[r], icone: PAPEL_ICONE[r],
         trocar: () => this.setState({ papel: r, aba: this.abaInicial(r), trocador: false }),
         estilo: r === papel
           ? "display:flex; align-items:center; gap:7px; padding:10px 15px; border:none; border-radius:999px; background:#002D72; color:#fff; font-weight:800; font-size:.8rem; cursor:pointer; font-family:'Nunito',sans-serif;"
-          : "display:flex; align-items:center; gap:7px; padding:10px 15px; border:1px solid #E0E6E5; border-radius:999px; background:#fff; color:#5A6B72; font-weight:700; font-size:.8rem; cursor:pointer; font-family:'Nunito',sans-serif;"
+          : "display:flex; align-items:center; gap:7px; padding:10px 15px; border:1px solid #E0E6E5; border-radius:999px; background:#fff; color:#5A6B72; font-weight:700; font-size:.8rem; cursor:pointer; font-family:'Nunito',sans-serif;",
       })),
-
-      trocadorAberto: this.state.trocador,
-      abrirTrocador: () => { if (familia) this.setState({ trocador: true }); else this.irPara('perfil'); },
-      fecharTrocador: () => this.setState({ trocador: false }),
-      atletasProntos: ATLETAS.map((a, i) => ({
-        curto: a.curto,
-        foto: a.foto,
-        papelFamilia: a.papelFamilia,
-        academia: a.academia,
-        cordao: 'Cordão ' + a.cordao,
-        mensalidade: a.mensalidade,
-        selecionar: () => { this.setState({ atleta: i, escolhendo: false, trocador: false, aba: 'inicio' }); const cx = document.querySelector('[data-rolagem]'); if (cx) cx.scrollTop = 0; },
-        cartao: i === this.state.atleta
-          ? 'display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:#fff; border:2px solid #00E676; border-radius:18px; padding:14px; cursor:pointer;'
-          : 'display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:#fff; border:1px solid #E0E6E5; border-radius:18px; padding:14px; cursor:pointer;',
-        chip: a.mensalidade === 'Paga'
-          ? 'font-size:.7rem; font-weight:800; color:#00A854; background:rgba(0,230,118,.14); padding:4px 9px; border-radius:8px;'
-          : 'font-size:.7rem; font-weight:800; color:#C0700C; background:rgba(243,156,18,.14); padding:4px 9px; border-radius:8px;'
-      })),
-
-      ehInicio: !gestor && this.state.aba === 'inicio',
-      ehEvolucao: !gestor && this.state.aba === 'evolucao',
-      ehFinanceiro: !gestor && this.state.aba === 'financeiro',
-      ehFinanceiroGrupo: gestor && this.state.aba === 'financeiro',
-      ehAulas: this.state.aba === 'aulas',
-      ehPerfil: this.state.aba === 'perfil',
-      ehTurma: gestor && this.state.aba === 'turma',
-      ehGestao: gestor && this.state.aba === 'gestao',
-
-      irPerfil: () => this.irPara('perfil'),
-      irAulas: () => this.irPara('aulas'),
-      rotuloQr: gestor ? 'Abrir leitor de presença da turma' : 'Marcar presença na roda',
-      marcarPresenca: () => this.toast(gestor ? 'Leitor de presença aberto para a turma de hoje.' : 'Presença registrada na roda de hoje!'),
-      pagarPix: () => this.toast('QR Code PIX gerado — pagamento em processamento.'),
 
       atalhos: [
-        { rotulo: 'Presença', icone: 'fas fa-qrcode', abrir: () => this.toast('Presença registrada na roda de hoje!') },
-        { rotulo: 'Material', icone: 'fas fa-play-circle', abrir: () => this.irPara('aulas') },
-        { rotulo: 'Mensalidade', icone: 'fas fa-wallet', abrir: () => this.irPara('financeiro') },
-        { rotulo: 'Evolução', icone: 'fas fa-award', abrir: () => this.irPara('evolucao') }
+        { rotulo:'Evolução', icone:'fas fa-award', abrir: () => this.irPara('evolucao') },
+        { rotulo:'Financeiro', icone:'fas fa-wallet', abrir: () => this.irPara('financeiro') },
+        { rotulo:'Material', icone:'fas fa-book-open', abrir: () => this.irPara('aulas') },
+        { rotulo:'Perfil', icone:'fas fa-user', abrir: () => this.irPara('perfil') },
       ],
+      irAulas: () => this.irPara('aulas'),
+      irPerfil: () => this.irPara('perfil'),
 
       criterios: notas.map((n) => ({
-        nome: n[0],
-        nota: n[1] + '/10',
-        chip: n[1] >= 7
+        nome: n[0], nota: n[1] + '/10',
+        chip: n[1] > 7
           ? 'font-weight:800; color:#00A854; background:rgba(0,230,118,.14); padding:5px 10px; border-radius:9px; font-size:.78rem; flex:none;'
-          : 'font-weight:800; color:#C0700C; background:rgba(243,156,18,.14); padding:5px 10px; border-radius:9px; font-size:.78rem; flex:none;'
+          : 'font-weight:800; color:#C0700C; background:rgba(243,156,18,.14); padding:5px 10px; border-radius:9px; font-size:.78rem; flex:none;',
       })),
 
-      historicoAluno: [
-        { data: 'jan/26', valor: Math.max(20, progresso - 22) },
-        { data: 'mai/26', valor: Math.max(25, progresso - 11) },
-        { data: 'set/26', valor: progresso }
-      ].map((h) => ({
-        data: h.data,
-        valor: h.valor,
-        barra: 'display:block; width:100%; max-width:46px; border-radius:8px 8px 3px 3px; transform-origin:bottom; animation:apCresce .6s cubic-bezier(.16,1,.3,1) both; height:' + Math.round((h.valor / 100) * 70) + 'px; background:' + (h.valor >= 70 ? 'linear-gradient(180deg,#00E676,#389E92)' : 'linear-gradient(180deg,#F39C12,#D2691E)') + ';'
+      historicoAluno: (notas.length ? [{ data:'Hoje', valor: progresso }] : []).map((h) => ({
+        data: h.data, valor: h.valor,
+        barra: 'display:block; width:100%; max-width:46px; border-radius:8px 8px 3px 3px; transform-origin:bottom; animation:apCresce .6s cubic-bezier(.16,1,.3,1) both; height:' + Math.round((h.valor / 100) * 70) + 'px; background:' + (h.valor >= 70 ? 'linear-gradient(180deg,#00E676,#389E92)' : 'linear-gradient(180deg,#F39C12,#D2691E)') + ';',
       })),
 
       trilha: CORDOES.map((c, i) => ({
@@ -1414,90 +1164,30 @@ class Component extends DCLogic {
         texto: i <= atleta.idxCordao ? 'flex:1; font-weight:800; color:#002D72; font-size:.9rem;' : 'flex:1; font-weight:700; color:#95A5A6; font-size:.9rem;',
         tag: i === atleta.idxCordao
           ? 'font-size:.72rem; font-weight:800; color:#00A854; background:rgba(0,230,118,.14); padding:4px 10px; border-radius:8px;'
-          : 'font-size:.72rem; font-weight:700; color:#95A5A6;'
+          : 'font-size:.72rem; font-weight:700; color:#95A5A6;',
       })),
 
-      totalInvestido: brl(somaCat),
-      desdeMatricula: atleta.desde,
-      mesesTreino: atleta.meses,
-      mediaMensal: brl(Math.round(somaCat / atleta.meses)),
-      gastoAno: brl(gastos.reduce((s, g) => s + g, 0)),
-      statusMensalidade: atleta.mensalidade === 'Paga' ? 'PAGA' : 'EM ABERTO',
-      roscaGradiente: paradas,
-      maiorCategoria: maior[0],
-      maiorCategoriaPct: Math.round((maior[1] / somaCat) * 100),
-      categoriasTopo: catValores.slice(0, 4).map((c) => ({ nome: c[0], valor: brl(c[1]), ponto: 'width:10px; height:10px; border-radius:3px; flex:none; background:' + c[2] + ';' })),
-      categoriasResto: catValores.slice(4).map((c) => ({ nome: c[0], valor: brl(c[1]), ponto: 'width:10px; height:10px; border-radius:3px; flex:none; background:' + c[2] + ';' })),
-      barrasMes: gastos.map((g, i) => ({
-        mes: MESES[i],
-        barra: 'display:block; width:100%; border-radius:5px 5px 2px 2px; transform-origin:bottom; animation:apCresce .55s cubic-bezier(.16,1,.3,1) both; height:' + Math.max(6, Math.round((g / maxGasto) * 92)) + 'px; background:' + (g > 100 ? 'linear-gradient(180deg,#00E676,#389E92)' : '#BFD6D2') + ';'
-      })),
-      linhaAcumulada: [{
-        linha: linhaStr,
-        area: linhaStr + ' 298,118 2,118',
-        cx: coords[coords.length - 1][0].toFixed(1),
-        cy: coords[coords.length - 1][1].toFixed(1)
-      }],
-      emDiaPct: Math.round(((atleta.meses - (atleta.mensalidade === 'Paga' ? 0 : 1)) / atleta.meses) * 100),
-      emDiaTexto: atleta.mensalidade === 'Paga'
-        ? 'Todas as ' + atleta.meses + ' mensalidades quitadas. Parabéns!'
-        : 'Apenas a mensalidade de setembro está em aberto — as outras ' + (atleta.meses - 1) + ' foram pagas em dia.',
-      comparativoFamilia: ATLETAS.map((a) => {
-        const v = Math.round(CATEGORIAS.reduce((s, c) => s + c[1], 0) * a.fator * (a.meses / 54));
-        return { nome: a.curto, foto: a.foto, valor: brl(v), v: v };
-      }).map((c, i, arr) => ({
-        nome: c.nome, foto: c.foto, valor: c.valor,
-        barra: 'height:100%; border-radius:6px; width:' + Math.round((c.v / Math.max.apply(null, arr.map((x) => x.v))) * 100) + '%; background:linear-gradient(90deg,#389E92,#00E676);'
-      })),
-      totalFamiliaInvestido: brl(ATLETAS.reduce((s, a) => s + Math.round(CATEGORIAS.reduce((t, c) => t + c[1], 0) * a.fator * (a.meses / 54)), 0)),
-      totalFamilia: brl(ATLETAS.filter((a) => a.mensalidade !== 'Paga').length * 50),
-      vencimentos: [
-        { titulo: 'Mensalidade de setembro', data: '10/09/2026', valor: 'R$ 50,00', situacao: 'Em aberto', cor: '#F39C12' },
-        { titulo: 'Taxa do batizado', data: '22/09/2026', valor: 'R$ 120,00', situacao: 'A vencer', cor: '#389E92' },
-        { titulo: 'Mensalidade de outubro', data: '10/10/2026', valor: 'R$ 50,00', situacao: 'A vencer', cor: '#C4CFCD' }
-      ].map((v, i, arr) => ({
-        titulo: v.titulo, data: v.data, valor: v.valor, situacao: v.situacao,
-        ponto: 'width:11px; height:11px; border-radius:50%; flex:none; margin-top:4px; background:' + v.cor + '; box-shadow:0 0 0 3px ' + v.cor + '33;',
-        trilho: i === arr.length - 1 ? 'display:none;' : 'flex:1; width:2px; background:#E0E6E5; margin:4px 0;'
-      })),
+      mensalidadeValor: atleta.mensalidadeValor != null ? brl(atleta.mensalidadeValor) : 'A confirmar',
+      mensalidadeAcademia: atleta.academia,
+      statusMensalidade: 'A CONFIRMAR',
+      mensalidadeAjuda: 'Confirme o pagamento e o vencimento diretamente com a sua academia.',
+      pagarPix: () => this.toast('Fale com o seu mestre ou a secretaria para combinar o pagamento.'),
+      comparativoFamilia: ATLETAS.map((a) => ({ nome: a.curto, foto: a.foto, valor: a.mensalidadeValor != null ? brl(a.mensalidadeValor) : 'A confirmar' })),
+      produtosProntos: PRODUTOS,
 
-      receitaMes: brl(RECEITA_MES[RECEITA_MES.length - 1]),
-      recebidoTexto: '412 alunos ativos · ticket médio ' + brl(Math.round(RECEITA_MES[RECEITA_MES.length - 1] / 412)),
-      adimplencia: 87,
-      inadimplencia: brl(2350),
-      receitaAcademias: RECEITA_ACADEMIA.map((r) => ({
-        nome: r.nome, valor: brl(r.valor), alunos: r.alunos, atraso: r.atraso,
-        barra: 'height:100%; border-radius:6px; width:' + Math.round((r.valor / RECEITA_ACADEMIA[0].valor) * 100) + '%; background:linear-gradient(90deg,#002D72,#389E92);'
-      })),
-      barrasGrupo: RECEITA_MES.map((g, i) => ({
-        mes: MESES[i],
-        barra: 'display:block; width:100%; border-radius:5px 5px 2px 2px; transform-origin:bottom; animation:apCresce .55s cubic-bezier(.16,1,.3,1) both; height:' + Math.max(8, Math.round((g / maxReceita) * 92)) + 'px; background:' + (i === RECEITA_MES.length - 1 ? 'linear-gradient(180deg,#00E676,#389E92)' : '#BFD6D2') + ';'
-      })),
-      abrirPagamento: () => this.abrirSheet('pagamento'),
-      gerarRelatorio: () => this.toast('Relatório financeiro de setembro gerado em PDF.'),
-
-      filtrosMaterial: ['Tudo'].concat(TIPOS_MATERIAL).map((f) => ({
-        rotulo: f,
-        aplicar: () => this.setState({ filtroMaterial: f }),
-        estilo: this.state.filtroMaterial === f
-          ? "padding:8px 14px; border:none; border-radius:999px; background:#002D72; color:#fff; font-weight:800; font-size:.76rem; cursor:pointer; font-family:'Nunito',sans-serif;"
-          : "padding:8px 14px; border:1px solid #E0E6E5; border-radius:999px; background:#fff; color:#5A6B72; font-weight:700; font-size:.76rem; cursor:pointer; font-family:'Nunito',sans-serif;"
+      filtrosMaterial: TIPOS_MATERIAL.concat(['Tudo']).reduce((acc, t) => acc, ['Tudo'].concat(TIPOS_MATERIAL)).map((t) => ({
+        rotulo: t,
+        aplicar: () => this.setState({ filtroMaterial: t }),
+        estilo: t === this.state.filtroMaterial
+          ? 'padding:8px 14px; border:none; border-radius:999px; background:#002D72; color:#fff; font-weight:800; font-size:.78rem; cursor:pointer;'
+          : 'padding:8px 14px; border:1px solid #E0E6E5; border-radius:999px; background:#fff; color:#5A6B72; font-weight:700; font-size:.78rem; cursor:pointer;',
       })),
       materiais: materiaisFiltrados.map(enfeiteMaterial),
-      materiaisGestao: this.state.materiais.map((m, i) => Object.assign(enfeiteMaterial(m), {
-        remover: () => { this.setState((s) => ({ materiais: s.materiais.filter((x, j) => j !== i) })); this.toast('Material removido dos alunos.'); }
-      })),
-      abrirPublicar: () => this.abrirSheet('publicar'),
-
-      produtosProntos: PRODUTOS.map((p) => Object.assign({}, p, {
-        link: 'https://wa.me/5567991293269?text=' + encodeURIComponent('Olá! Quero adquirir o seguinte item "' + p.nome + '".')
-      })),
       agenda: AGENDA.map((e) => {
-        const passou = new Date(e.quando + 'T00:00:00') < hoje;
-        return Object.assign({}, e, {
-          cartao: passou
-            ? 'display:flex; align-items:center; gap:12px; background:#F1F5F4; border:1px solid #E0E6E5; border-radius:16px; padding:12px;'
-            : 'display:flex; align-items:center; gap:12px; background:#fff; border:1px solid #E0E6E5; border-radius:16px; padding:12px;',
+        const passou = new Date(e.quando) < new Date();
+        return {
+          dia: e.dia, mes: e.mes, titulo: e.titulo, local: e.local, horario: e.horario,
+          cartao: 'display:flex; align-items:center; gap:14px; background:#fff; border:1px solid #E0E6E5; border-radius:16px; padding:13px;',
           dataBox: passou
             ? 'width:52px; height:52px; border-radius:14px; background:#DDE5E4; color:#6B7A80; display:flex; flex-direction:column; align-items:center; justify-content:center; flex:none;'
             : 'width:52px; height:52px; border-radius:14px; background:#002D72; color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; flex:none;',
@@ -1506,116 +1196,105 @@ class Component extends DCLogic {
             : "font-family:'Montserrat',sans-serif; color:#002D72; font-weight:800; font-size:.92rem; line-height:1.2;",
           acaoIcone: passou ? 'fas fa-images' : 'fas fa-map-marked-alt',
           acaoRotulo: passou ? 'Veja as fotos e vídeos' : 'Como chegar',
-          acaoLink: passou ? 'https://drive.google.com/drive/folders/' : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(e.local + ', Campo Grande - MS')
-        });
+          acaoLink: passou ? 'https://drive.google.com/drive/folders/' : 'https://www.google.com/maps',
+        };
       }),
 
-      opcoesPerfil: gestor ? [
-        { rotulo: 'Meus dados', ajuda: 'Contato, e-mail e troca de senha', icone: 'fas fa-id-card', acao: () => this.abrirSheet('dados') },
-        { rotulo: admin ? 'Academias do grupo' : 'Minha academia', ajuda: admin ? 'Abrir alunos de um núcleo' : (perfilAtual && perfilAtual.academia ? perfilAtual.academia : ''), icone: 'fas fa-map-marker-alt', acao: () => this.abrirSheet('academia') },
-        { rotulo: 'Avaliações pendentes', ajuda: '4 alunos sem avaliação neste mês', icone: 'fas fa-star', acao: () => this.irPara('turma') },
-        { rotulo: 'Notificações', ajuda: 'Avisos de roda, batizado e mensalidade', icone: 'far fa-bell', acao: () => this.abrirSheet('notificacoes') }
-      ] : [
-        { rotulo: 'Meus dados', ajuda: 'Contato, e-mail e troca de senha', icone: 'fas fa-id-card', acao: () => this.abrirSheet('dados') },
-        { rotulo: 'Minha academia', ajuda: atleta.academia, icone: 'fas fa-map-marker-alt', acao: () => this.abrirSheet('academia') },
-        { rotulo: familia ? 'Atletas da conta' : 'Vincular um familiar', ajuda: familia ? 'Trocar entre os atletas da família' : 'Um filho ou parente que também treina', icone: 'fas fa-users', acao: () => familia ? this.setState({ trocador: true }) : this.toast('Peça ao seu mestre para vincular o atleta.') },
-        { rotulo: 'Notificações', ajuda: 'Avisos de roda, batizado e mensalidade', icone: 'far fa-bell', acao: () => this.abrirSheet('notificacoes') }
-      ],
+      trocadorAberto: this.state.trocador,
+      abrirTrocador: () => { if (familia) this.setState({ trocador: true }); else this.irPara('perfil'); },
+      fecharTrocador: () => this.setState({ trocador: false }),
+      atletasProntos: ATLETAS.map((a, i) => ({
+        curto: a.curto, foto: a.foto, papelFamilia: a.papelFamilia, academia: a.academia,
+        cordao: 'Cordão ' + a.cordao,
+        mensalidade: a.mensalidadeValor != null ? brl(a.mensalidadeValor) : 'A confirmar',
+        selecionar: () => { this.setState({ atleta:i, escolhendo:false, trocador:false, aba:'inicio' }); const cx = document.querySelector('[data-rolagem]'); if (cx) cx.scrollTop = 0; },
+        cartao: i === this.state.atleta
+          ? 'display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:#fff; border:2px solid #00E676; border-radius:18px; padding:14px; cursor:pointer;'
+          : 'display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:#fff; border:1px solid #E0E6E5; border-radius:18px; padding:14px; cursor:pointer;',
+        chip: 'font-size:.7rem; font-weight:800; color:#C0700C; background:rgba(243,156,18,.14); padding:4px 9px; border-radius:8px;',
+      })),
 
-      tituloPainel: admin ? 'MASTER ADMIN' : 'PAINEL DO MESTRE',
-      subtituloPainel: admin ? 'Todos os núcleos' : (perfilAtual && perfilAtual.academia ? perfilAtual.academia.split(' · ')[0] : 'Minha academia'),
-      indicadores: admin
-        ? [{ valor: '412', rotulo: 'ALUNOS', cor: '#fff' }, { valor: '18', rotulo: 'NÚCLEOS', cor: '#00E676' }, { valor: '27', rotulo: 'EM ATRASO', cor: '#F39C12' }]
-        : [{ valor: '38', rotulo: 'ALUNOS', cor: '#fff' }, { valor: '12', rotulo: 'APTOS (70%+)', cor: '#00E676' }, { valor: '5', rotulo: 'EM ATRASO', cor: '#F39C12' }],
+      atletasProntosEscolha: ATLETAS.map((a, i) => ({
+        selecionar: () => { this.setState({ atleta:i, escolhendo:false, aba:'inicio' }); },
+        cartao: 'display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:16px; cursor:pointer;',
+        foto: a.foto, curto: a.curto, papelFamilia: a.papelFamilia, cordao: a.cordao,
+        chip: 'font-size:.7rem; font-weight:800; color:#C0700C; background:rgba(243,156,18,.14); padding:4px 9px; border-radius:8px;',
+        mensalidade: a.mensalidadeValor != null ? brl(a.mensalidadeValor) : 'A confirmar',
+      })),
+
+      ehInicio: !gestor && this.state.aba === 'inicio',
+      ehEvolucao: !gestor && this.state.aba === 'evolucao',
+      ehFinanceiro: this.state.aba === 'financeiro',
+      ehAulas: this.state.aba === 'aulas',
+      ehPerfil: this.state.aba === 'perfil',
+      ehTurma: gestor && this.state.aba === 'turma',
+      ehGestao: gestor && this.state.aba === 'gestao',
+
       busca: this.state.busca,
       mudarBusca: (ev) => this.setState({ busca: ev.target.value }),
-      filtros: ['Todos', 'Aptos (70%+)', 'Kids (sub-12)', 'Adultos'].map((f) => ({
-        rotulo: f,
-        aplicar: () => this.setState({ filtro: f }),
-        estilo: this.state.filtro === f
-          ? "padding:9px 16px; border:none; border-radius:999px; background:#002D72; color:#fff; font-weight:800; font-size:.8rem; white-space:nowrap; cursor:pointer; font-family:'Nunito',sans-serif;"
-          : "padding:9px 16px; border:1px solid #E0E6E5; border-radius:999px; background:#fff; color:#5A6B72; font-weight:700; font-size:.8rem; white-space:nowrap; cursor:pointer; font-family:'Nunito',sans-serif;"
+      filtros: ['Todos','Aptos (70%+)','Kids (sub-12)','Adultos'].map((f) => ({
+        rotulo: f, aplicar: () => this.setState({ filtro: f }),
+        estilo: f === this.state.filtro
+          ? 'padding:8px 14px; border:none; border-radius:999px; background:#002D72; color:#fff; font-weight:800; font-size:.78rem; cursor:pointer;'
+          : 'padding:8px 14px; border:1px solid #E0E6E5; border-radius:999px; background:#fff; color:#5A6B72; font-weight:700; font-size:.78rem; cursor:pointer;',
       })),
       alunos: listaAlunos.map((a) => ({
-        nome: a.nome,
-        cordao: a.cordao,
-        idade: a.idade,
-        academia: ACADEMIAS[a.academia].split(' · ')[0],
-        percentual: a.percentual,
-        inicial: a.nome.charAt(0),
-        avatar: "width:44px; height:44px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center; font-family:'Montserrat',sans-serif; font-weight:800; color:#fff; background:" + (a.percentual >= 70 ? '#389E92' : '#95A5A6') + ';',
-        barra: 'height:100%; width:' + a.percentual + '%; border-radius:6px; background:' + (a.percentual >= 70 ? '#00E676' : '#F39C12') + ';',
-        chip: a.percentual >= 70 ? 'font-weight:800; font-size:.82rem; color:#00A854;' : 'font-weight:800; font-size:.82rem; color:#C0700C;',
-        avaliar: () => this.setState({
-          avaliando: a,
-          notasAval: NOTAS.map((n) => [n[0], Math.max(1, Math.min(10, Math.round((a.percentual / 100) * 10 + (n[1] - 8) * 0.5)))]),
-          observacao: ''
-        })
+        inicial: (a.nome || '?').charAt(0).toUpperCase(),
+        avatar: 'width:44px; height:44px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center; font-weight:800; color:#fff; background:#389E92;',
+        nome: a.nome, cordao: a.cordao, idade: a.idade, academia: atleta.academia, percentual: a.percentual,
+        chip: a.percentual >= 70
+          ? 'font-weight:800; color:#00A854; background:rgba(0,230,118,.14); padding:5px 10px; border-radius:9px; font-size:.8rem;'
+          : 'font-weight:800; color:#C0700C; background:rgba(243,156,18,.14); padding:5px 10px; border-radius:9px; font-size:.8rem;',
+        barra: 'height:100%; border-radius:6px; width:' + a.percentual + '%; background:' + (a.percentual >= 70 ? '#00E676' : '#F39C12') + ';',
+        avaliar: () => this.toast('Para lançar notas, use o painel de gestão (admin.html) por enquanto.'),
+      })),
+
+      tituloPainel: admin ? 'PAINEL DO ADMIN' : 'PAINEL DO MESTRE',
+      subtituloPainel: admin ? 'Todos os núcleos do grupo' : (perfilAtual ? perfilAtual.academia : ''),
+      indicadores: [
+        { valor: String(this.state.alunos.length), rotulo: 'ALUNOS', cor: '#fff' },
+        { valor: String(this.state.pendentes.length), rotulo: 'MATRÍCULAS PENDENTES', cor: '#00E676' },
+        { valor: '—', rotulo: 'EM ATRASO', cor: '#F39C12' },
+      ],
+      temPendentes: this.state.pendentes.length > 0,
+      pendentes: this.state.pendentes.map((p) => ({
+        nome: p.nome, idade: p.idade, academia: p.academia,
+        aprovar: () => this.toast('Aprove matrículas pelo painel de gestão (admin.html).'),
+        recusar: () => this.toast('Recuse matrículas pelo painel de gestão (admin.html).'),
+      })),
+      acoesGestao: [
+        { id:'transferir', rotulo:'Transferir aluno', ajuda:'Mudar o aluno de academia', icone:'fas fa-right-left', cor:'#389E92' },
+        { id:'vincular', rotulo:'Vincular familiar', ajuda:'Ligar um dependente à conta', icone:'fas fa-link', cor:'#00B140' },
+        { id:'papel', rotulo:'Habilitar professor', ajuda:'Dar academia própria a um usuário', icone:'fas fa-chalkboard-teacher', cor:'#002D72' },
+        { id:'pagamento', rotulo:'Lançar pagamento', ajuda:'Dinheiro, PIX ou transferência', icone:'fas fa-wallet', cor:'#F39C12' },
+        { id:'aviso', rotulo:'Enviar aviso', ajuda:'Notificação para uma academia', icone:'far fa-bell', cor:'#D2691E' },
+      ].map((g) => ({
+        rotulo: g.rotulo, ajuda: g.ajuda, icone: g.icone,
+        bolha: 'width:40px; height:40px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:1rem; color:' + g.cor + '; background:' + g.cor + '1f;',
+        abrir: () => this.abrirSheet(g.id),
+      })),
+      abrirPublicar: () => this.abrirSheet('publicar'),
+      materiaisGestao: this.state.materiais.slice(0, 6).map((m) => ({
+        titulo: m.titulo, tipo: m.tipo, destino: m.destino, icone: MAT_ICONE[m.tipo] || 'fas fa-book',
+        bolha: 'width:38px; height:38px; border-radius:11px; flex:none; display:flex; align-items:center; justify-content:center; color:' + (MAT_COR[m.tipo] || '#002D72') + '; background:' + (MAT_COR[m.tipo] || '#002D72') + '1a;',
+        remover: () => this.setState((s) => ({ materiais: s.materiais.filter((x) => x !== m) })),
       })),
 
       avaliacaoAberta: !!alvo,
       avaliandoNome: alvo ? alvo.nome : '',
       avaliacaoPct: pctAval,
-      avaliandoResumo: alvo ? (pctAval >= 70 ? 'Apto à troca de cordão' : 'Ainda não atingiu os 70%') : '',
-      avaliandoUltima: alvo ? (alvo.cordao + ' · ' + alvo.idade + ' anos · última avaliação em ' + histAlvo[0].data) : '',
-      podeGerirSenha: !!alvo && admin,
-      emailAluno: alvo ? ('Login: ' + (alvo.email || '—')) : '',
-      redefinirSenhaAluno: () => { if (alvo) this.toast('Senha de ' + alvo.nome.split(' ')[0] + ' redefinida para ' + SENHA_PADRAO + '.'); },
-      reenviarAcesso: () => { if (alvo) this.toast('Acesso reenviado para ' + (alvo.email || 'o e-mail cadastrado') + '.'); },
-      criteriosAvaliacao: notasAval.map((n, i) => ({
-        nome: n[0],
-        nota: n[1] + '/10',
-        chip: n[1] >= 7
-          ? 'flex:none; font-weight:800; color:#00A854; font-size:.74rem; min-width:38px; text-align:right;'
-          : 'flex:none; font-weight:800; color:#C0700C; font-size:.74rem; min-width:38px; text-align:right;',
-        estrelas: [1, 2, 3, 4, 5].map((s) => ({
-          rotulo: s + ' de 5 em ' + n[0],
-          setar: () => this.setState((st) => {
-            const copia = st.notasAval.map((x) => x.slice());
-            copia[i][1] = s * 2;
-            return { notasAval: copia };
-          }),
-          estilo: 'padding:2px; border:none; background:none; cursor:pointer; font-size:.82rem; transition:.2s cubic-bezier(.16,1,.3,1); color:' + (s * 2 <= n[1] ? '#F39C12' : '#DCE5E3') + ';'
-        }))
-      })),
+      avaliandoResumo: alvo ? ('Cordão ' + alvo.cordao) : '',
+      avaliandoUltima: '',
+      podeGerirSenha: false,
+      emailAluno: alvo ? (alvo.email || '') : '',
+      redefinirSenhaAluno: () => this.toast('Redefina a senha pelo painel de gestão (admin.html).'),
+      reenviarAcesso: () => this.toast('Reenvie o acesso pelo painel de gestão (admin.html).'),
+      criteriosAvaliacao: [],
       observacao: this.state.observacao,
       mudarObservacao: (ev) => this.setState({ observacao: ev.target.value }),
-      historicoAvaliacoes: histAlvo.map((h) => ({
-        data: h.data,
-        obs: h.obs,
-        valor: h.valor,
-        chip: "flex:none; width:46px; height:46px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Montserrat',sans-serif; font-weight:800; font-size:.8rem; color:#fff; background:" + (h.valor >= 70 ? '#389E92' : '#95A5A6') + ';'
-      })),
-      fecharAvaliacao: () => this.setState({ avaliando: null, notasAval: null, observacao: '' }),
-      salvarAvaliacao: () => {
-        if (!alvo) return;
-        const novoHist = Object.assign({}, this.state.historico);
-        novoHist[alvo.nome] = [{ data: '10/09/2026', valor: pctAval, obs: this.state.observacao || 'Sem observações.' }].concat(histAlvo);
-        const novosAlunos = this.state.alunos.map((a) => a.nome === alvo.nome ? Object.assign({}, a, { percentual: pctAval }) : a);
-        this.setState({ historico: novoHist, alunos: novosAlunos, avaliando: null, notasAval: null, observacao: '' });
-        this.toast('Prontuário de ' + alvo.nome.split(' ')[0] + ' atualizado: ' + pctAval + '%.');
-      },
-
-      temPendentes: this.state.pendentes.length > 0,
-      pendentes: this.state.pendentes.map((p) => ({
-        nome: p.nome, idade: p.idade, academia: p.academia,
-        aprovar: () => { this.setState((s) => ({ pendentes: s.pendentes.filter((x) => x.nome !== p.nome) })); this.toast(p.nome.split(' ')[0] + ' aprovado — acesso enviado com a senha ' + SENHA_PADRAO + '.'); },
-        recusar: () => { this.setState((s) => ({ pendentes: s.pendentes.filter((x) => x.nome !== p.nome) })); this.toast('Ficha de ' + p.nome.split(' ')[0] + ' recusada.'); }
-      })),
-      acoesGestao: [
-        { id: 'publicar', rotulo: 'Publicar material', ajuda: 'Videoaula, oficina, PDF ou avaliação', icone: 'fas fa-cloud-arrow-up', cor: '#002D72' },
-        { id: 'transferir', rotulo: 'Transferir aluno', ajuda: 'Mudar de academia sem perder histórico', icone: 'fas fa-right-left', cor: '#389E92' },
-        { id: 'vincular', rotulo: 'Vincular familiar', ajuda: 'Dois atletas no mesmo login', icone: 'fas fa-users', cor: '#00B140' },
-        { id: 'papel', rotulo: 'Troca de papel', ajuda: 'Professor com academia que também treina', icone: 'fas fa-user-shield', cor: '#8E44AD' },
-        { id: 'cadastro', rotulo: 'Academia e professor', ajuda: 'Cadastrar nova unidade ou instrutor', icone: 'fas fa-map-marker-alt', cor: '#00A854' },
-        { id: 'pagamento', rotulo: 'Lançar pagamento', ajuda: 'Dinheiro, PIX ou transferência', icone: 'fas fa-wallet', cor: '#F39C12' },
-        { id: 'aviso', rotulo: 'Enviar aviso', ajuda: 'Notificação para uma academia', icone: 'far fa-bell', cor: '#D2691E' },
-        { id: 'pdf', rotulo: 'Relatório em PDF', ajuda: 'Alunos, notas e financeiro do mês', icone: 'fas fa-file-pdf', cor: '#E74C3C' }
-      ].map((g) => ({
-        rotulo: g.rotulo, ajuda: g.ajuda, icone: g.icone,
-        bolha: 'width:40px; height:40px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:1rem; color:' + g.cor + '; background:' + g.cor + '1f;',
-        abrir: () => g.id === 'pdf' ? this.toast('Relatório de setembro gerado em PDF.') : this.abrirSheet(g.id)
-      })),
+      historicoAvaliacoes: histAlvo,
+      fecharAvaliacao: () => this.setState({ avaliando: null, notasAval: null }),
+      salvarAvaliacao: () => { this.toast('Lance avaliações pelo painel de gestão (admin.html).'); this.setState({ avaliando: null, notasAval: null }); },
 
       sheetAberta: !!sheetDef,
       sheetTitulo: sheetDef ? sheetDef.titulo : '',
@@ -1623,106 +1302,65 @@ class Component extends DCLogic {
       sheetBotao: sheetDef ? sheetDef.botao : '',
       sheetCampos: sheetDef ? sheetDef.campos.map((c) => {
         const bruto = this.state.sheetVals[c.chave];
-        const valor = bruto === undefined ? (c.tipo === 'select' ? c.opcoes[0].valor : (c.padrao !== undefined ? c.padrao : '')) : bruto;
-        const ligado = !!valor;
+        const valor = bruto === undefined ? (c.tipo === 'select' ? (c.opcoes[0] ? c.opcoes[0].valor : '') : (c.padrao !== undefined ? c.padrao : '')) : bruto;
         return {
-          rotulo: c.rotulo,
-          dica: c.dica || '',
-          tipo: c.entrada || 'text',
-          valor: c.tipo === 'interruptor' ? '' : valor,
-          opcoes: c.opcoes || [],
-          ehSelect: c.tipo === 'select',
-          ehTexto: c.tipo === 'texto',
-          ehArea: c.tipo === 'area',
-          ehInterruptor: c.tipo === 'interruptor',
-          estadoTexto: ligado ? 'Ativado' : 'Desativado',
-          trilho: 'width:44px; height:26px; border-radius:999px; flex:none; display:flex; align-items:center; padding:3px; transition:.25s cubic-bezier(.16,1,.3,1); justify-content:' + (ligado ? 'flex-end' : 'flex-start') + '; background:' + (ligado ? '#00B140' : '#C4CFCD') + ';',
-          bolinha: 'width:20px; height:20px; border-radius:50%; background:#fff; box-shadow:0 2px 5px rgba(0,0,0,.2);',
-          alternar: () => this.setState((s) => {
-            const v = Object.assign({}, s.sheetVals);
-            v[c.chave] = !(v[c.chave] === undefined ? c.padrao : v[c.chave]);
-            return { sheetVals: v };
-          }),
-          mudar: (ev) => this.setState((s) => {
-            const v = Object.assign({}, s.sheetVals);
-            v[c.chave] = ev.target.value;
-            return { sheetVals: v };
-          })
+          rotulo: c.rotulo, dica: c.dica || '', tipo: c.entrada || 'text', valor: valor, opcoes: c.opcoes || [],
+          ehSelect: c.tipo === 'select', ehTexto: c.tipo === 'texto', ehArea: c.tipo === 'area', ehInterruptor: false,
+          estadoTexto: '', trilho: '', bolinha: '',
+          alternar: () => {},
+          mudar: (ev) => this.setState((s) => { const v = Object.assign({}, s.sheetVals); v[c.chave] = ev.target.value; return { sheetVals: v }; }),
         };
       }) : [],
       fecharSheet: () => this.setState({ sheet: null, sheetVals: {} }),
-      confirmarSheet: () => {
+      confirmarSheet: async () => {
         const tipo = this.state.sheet;
         const v = this.state.sheetVals;
         const pega = (chave, padrao) => (v[chave] === undefined ? padrao : v[chave]);
-        let msg = 'Alteração salva.';
         if (tipo === 'dados') {
-          if (v.nova || v.confirma || v.atual) {
-            if (!v.atual) { this.toast('Informe a senha atual para trocar.'); return; }
-            if (!v.nova || v.nova.length < 6) { this.toast('A nova senha precisa de pelo menos 6 caracteres.'); return; }
-            if (v.nova !== v.confirma) { this.toast('A confirmação não confere com a nova senha.'); return; }
-            msg = 'Dados salvos e senha alterada com sucesso.';
-          } else {
-            msg = 'Seus dados foram atualizados.';
+          try {
+            await this._FB.atualizar('usuarios', this._uid, {
+              nome: pega('nome', perfilAtual ? perfilAtual.nome : ''),
+              telefone: pega('telefone', ''),
+            });
+            this.toast('Seus dados foram atualizados.');
+          } catch (e) {
+            console.error(e);
+            this.toast('Não foi possível salvar seus dados agora.');
           }
-        }
-        if (tipo === 'academia') {
-          const ac = pega('academia', ACADEMIAS[0]);
-          this.setState({ sheet: null, sheetVals: {}, busca: '', filtro: 'Todos' });
-          if (gestor) { this.irPara('turma'); }
-          this.toast(ac);
-          return;
-        }
-        if (tipo === 'notificacoes') msg = 'Preferências de notificação salvas.';
-        if (tipo === 'transferir') {
-          const aluno = pega('aluno', this.state.alunos[0].nome);
-          const ac = pega('academia', ACADEMIAS[0]);
-          const alvoIdx = ACADEMIAS.indexOf(ac);
-          this.setState((s) => ({ alunos: s.alunos.map((a) => a.nome === aluno ? Object.assign({}, a, { academia: alvoIdx }) : a) }));
-          msg = aluno.split(' ')[0] + ' transferido para ' + ac + '.';
-        }
-        if (tipo === 'vincular') msg = pega('dependente', '').split(' ')[0] + ' vinculado à conta de ' + pega('responsavel', '').split(' ')[0] + '.';
-        if (tipo === 'papel') msg = 'Troca de papel habilitada para ' + pega('professor', professores.length ? professores[0].valor : '') + '.';
-        if (tipo === 'pagamento') msg = 'Pagamento de ' + pega('valor', 'R$ 50,00') + ' lançado para ' + pega('aluno', '').split(' ')[0] + '.';
-        if (tipo === 'aviso') msg = 'Aviso enviado para ' + pega('academia', 'Todas as academias') + '.';
-        if (tipo === 'cadastro') msg = pega('tipo', 'Academia') + ' "' + (pega('nome', '') || 'sem nome') + '" cadastrado.';
-        if (tipo === 'publicar') {
+        } else if (tipo === 'publicar') {
           const titulo = pega('titulo', '').trim();
           if (!titulo) { this.toast('Dê um título ao material antes de publicar.'); return; }
-          const novo = {
-            tipo: pega('tipo', TIPOS_MATERIAL[0]),
-            titulo: titulo,
-            desc: pega('desc', '') || 'Material publicado pelo grupo.',
-            link: pega('link', '') || '#',
-            capa: '',
-            destino: pega('destino', 'Todas as academias')
-          };
+          const novo = { tipo: pega('tipo', TIPOS_MATERIAL[0]), titulo: titulo, desc: pega('desc', '') || 'Material publicado pelo grupo.', link: pega('link', '') || '#', capa: '', destino: pega('destino', 'Todas as academias') };
           this.setState((s) => ({ materiais: [novo].concat(s.materiais) }));
-          msg = 'Material "' + titulo + '" publicado para ' + novo.destino + '.';
+          this.toast('Material "' + titulo + '" publicado.');
+        } else {
+          this.toast('Tudo certo.');
         }
         this.setState({ sheet: null, sheetVals: {} });
-        this.toast(msg);
       },
 
       pilulaEstilo: 'position:absolute; top:8px; bottom:8px; width:19%; left:' + (idx * 20 + 0.5) + '%; border-radius:20px; background:rgba(0,230,118,.16); border:1px solid rgba(0,230,118,.35); transition:left .38s cubic-bezier(.16,1,.3,1);',
       abas: ABAS.map((t) => {
         const ativa = t.id === this.state.aba;
         if (t.id === 'vazio') {
-          return { rotulo: '', icone: '', abrir: () => {}, botao: 'flex:1; height:52px; border:none; background:none; pointer-events:none;', iconeEstilo: 'display:none;', rotuloEstilo: 'display:none;' };
+          return { rotulo:'', icone:'', abrir: () => {}, botao:'flex:1; height:52px; border:none; background:none; pointer-events:none;', iconeEstilo:'display:none;', rotuloEstilo:'display:none;' };
         }
         return {
-          rotulo: t.rotulo,
-          icone: t.icone,
-          abrir: () => this.irPara(t.id),
+          rotulo: t.rotulo, icone: t.icone, abrir: () => this.irPara(t.id),
           botao: "position:relative; z-index:2; flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; padding:9px 2px; border:none; background:none; cursor:pointer; font-family:'Nunito',sans-serif;",
           iconeEstilo: 'font-size:1.02rem; transition:.3s cubic-bezier(.16,1,.3,1); transform:translateY(' + (ativa ? '-2px' : '0') + '); color:' + (ativa ? '#00E676' : 'rgba(255,255,255,.5)') + ';',
-          rotuloEstilo: 'font-size:.66rem; font-weight:800; letter-spacing:.02em; color:' + (ativa ? '#fff' : 'rgba(255,255,255,.45)') + ';'
+          rotuloEstilo: 'font-size:.66rem; font-weight:800; letter-spacing:.02em; color:' + (ativa ? '#00E676' : 'rgba(255,255,255,.5)') + ';',
         };
-      })
+      }),
+      marcarPresenca: () => this.toast('Presença registrada pelo painel de gestão (admin.html) por enquanto.'),
+      rotuloQr: 'Marcar presença',
+
+      sair: () => { try { this._FB && this._FB.sair(); } catch (_) {} window.location.href = 'login.html'; },
+      carregando: this.state.carregando,
+      temVariosPapeisEscolha: familia,
     };
   }
 }
-
 </script>
 </body>
 </html>
