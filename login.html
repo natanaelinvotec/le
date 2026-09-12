@@ -53,10 +53,11 @@
             <p>Acesse com E-mail ou Celular e Senha</p>
         </div>
         <div class="error-msg" id="errorMsg" role="alert"><i class="fas fa-exclamation-circle"></i> <span id="errorMsgText">Credenciais incorretas.</span></div>
+        <div class="error-msg" id="infoMsg" role="status" style="display:none; color:#00695C; background:#E0F2F1; border-color:#80CBC4;"><i class="fas fa-check-circle"></i> <span id="infoMsgText"></span></div>
         <form id="loginForm" autocomplete="on" novalidate>
             <div class="input-group">
-                <i class="fas fa-user"></i>
-                <input type="text" id="loginIdentificador" name="username" placeholder="E-mail ou Celular" autocomplete="username" required>
+                <i class="fas fa-envelope"></i>
+                <input type="email" id="loginIdentificador" name="username" placeholder="Seu e-mail" autocomplete="username" required>
             </div>
             <div class="input-group">
                 <i class="fas fa-lock"></i>
@@ -66,6 +67,9 @@
                 Acessar Painel <i class="fas fa-arrow-right"></i>
             </button>
         </form>
+        <div class="link-inscricao">
+            <a href="#" id="linkEsqueciSenha">Esqueci minha senha</a>
+        </div>
         <div class="link-inscricao">
             Não tem cadastro? <a href="inscricao.html">Inscreva-se aqui</a>
         </div>
