@@ -18,7 +18,7 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 
 export const firebaseConfig = {
-  apiKey: 'AIzaSyBkwCDziiV-Uh7MLzsy9OYJmA_LMnn7jbg',
+  apiKey: 'AIzaSyBkwCDziIv-Uh7MLzsy9OYJmA_LMnn7jbg',
   authDomain: 'capoeira-liberdade.firebaseapp.com',
   projectId: 'capoeira-liberdade',
   storageBucket: 'capoeira-liberdade.firebasestorage.app',
