@@ -1,6 +1,6 @@
 {
   "name": "Capoeira Liberdade e Expressão",
-  "short_name": "Liberdade",
+  "short_name": "Liberdade e Expressão",
   "description": "Portal do Aluno, Mestre e Master Admin do Grupo de Capoeira Liberdade e Expressão.",
   "start_url": "./app.html",
   "scope": "./",
