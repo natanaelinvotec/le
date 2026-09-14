@@ -58,7 +58,11 @@ body { background-color: var(--bg-app); color: var(--text-dark); overflow-x: hid
 /* LAYOUT & CARDS */
 .main-layout { display: flex; gap: 25px; padding: 25px 30px; max-width: 1600px; margin: 0 auto; }
 .content-area { flex: 1; min-width: 0; }
-.sidebar { width: 300px; display: flex; flex-direction: column; gap: 15px; }
+.sidebar { width: 300px; flex-shrink: 0; display: flex; flex-direction: column; gap: 15px; }
+@media (max-width: 900px) {
+    .main-layout { flex-direction: column; padding: 20px 16px; }
+    .sidebar { width: 100%; }
+}
 .aba-content { display: none; animation: fadeIn 0.35s var(--ease-standard); }
 .aba-content.active { display: block; }
 @keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
