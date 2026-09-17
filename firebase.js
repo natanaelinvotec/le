@@ -10,7 +10,7 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import {
   getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc,
-  deleteDoc, query, where, orderBy, limit, startAfter,
+  deleteDoc, query, where, orderBy, limit, startAfter, arrayUnion,
   getCountFromServer, initializeFirestore, persistentLocalCache,
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import {
@@ -186,11 +186,32 @@ export const historicoAvaliacoes = async (uid) =>
 export const listarNucleosAtivos = async () =>
   (await getDocs(query(collection(db, 'nucleos'), where('ativo', '==', true)))).docs.map((d) => ({ id: d.id, ...d.data() }));
 
-// ===== Solicitações (mestre/professor → admin) =====
+// ===== Solicitações (mestre/professor → admin; e aluno → mestre/admin no
+// caso de vínculo de parentesco) =====
 export const criarSolicitacao = (dados) =>
   addDoc(collection(db, 'solicitacoes'), { ...dados, status: 'pendente', criadoEm: new Date().toISOString() });
 export const minhasSolicitacoes = async (uid) =>
   (await getDocs(query(collection(db, 'solicitacoes'), where('solicitanteUid', '==', uid), orderBy('criadoEm', 'desc')))).docs.map((d) => ({ id: d.id, ...d.data() }));
+
+// Solicitações pendentes de um núcleo (usado pelo mestre/professor para
+// aprovar vínculos de parentesco dos próprios alunos, sem precisar do admin).
+export const solicitacoesPendentesDoNucleo = async (academiaId) =>
+  (await getDocs(query(collection(db, 'solicitacoes'),
+    where('academiaId', '==', academiaId), where('status', '==', 'pendente'), orderBy('criadoEm', 'desc')))).docs.map((d) => ({ id: d.id, ...d.data() }));
+
+// Vínculo de parentesco entre dois cadastros de aluno já existentes (ex.: mãe
+// e filho que treinam juntos) — um pede, o mestre/professor do núcleo (ou o
+// admin) aprova, e os dois cadastros passam a poder trocar de perfil um para
+// o outro na tela de login/perfil do app (campo responsavelDe, em mão dupla).
+export const criarSolicitacaoVinculoFamilia = (dados) =>
+  criarSolicitacao({ ...dados, tipo: 'vinculo_familia' });
+
+export async function aprovarVinculoFamilia(alunoUid, alunoRelacionadoUid) {
+  await Promise.all([
+    updateDoc(doc(db, 'usuarios', alunoUid), { responsavelDe: arrayUnion(alunoRelacionadoUid) }),
+    updateDoc(doc(db, 'usuarios', alunoRelacionadoUid), { responsavelDe: arrayUnion(alunoUid) }),
+  ]);
+}
 
 // ===== Avisos (notificações dentro do app) =====
 export const publicarAviso = (dados) =>

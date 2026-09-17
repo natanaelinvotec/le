@@ -16,6 +16,7 @@ import {
 observarSessao, entrar, recuperarSenha, sair,
 buscar, listar, listarPorAcademia, salvar, atualizar,
 criarSolicitacao, minhasSolicitacoes, criarContaComoAdmin,
+solicitacoesPendentesDoNucleo, aprovarVinculoFamilia,
 publicarAviso, listarAvisos,
 comprimirImagemDataUrl, arquivoParaDataUrlComprimido,
 calcularEstrelaViva, souFundador,
@@ -161,6 +162,7 @@ let usuarioSelecionado = null;
 let nucleoEditandoID = null;
 let statusToggleConfirm = false;
 let chartsInstances = {};
+let solicitacoesCache = []; // última leitura de solicitações visíveis a esta sessão (evita listar('solicitacoes') sem filtro, que um gestor não-admin não tem permissão de ler por inteiro)
 
 async function iniciarPainel() {
 telaLogin.classList.add('oculto');
@@ -955,6 +957,7 @@ function descreverSolicitacao(s) {
 if (s.tipo === 'mensalidade') return `Alterar mensalidade para R$ ${Number(s.dadosPedido?.novoValor || 0).toFixed(2)}`;
 if (s.tipo === 'evento') return `Criar evento "${s.dadosPedido?.nome || ''}" em ${s.dadosPedido?.data || '-'}`;
 if (s.tipo === 'transferencia') return `Transferir ${s.dadosPedido?.alunoNome || ''} para ${s.dadosPedido?.destinoNome || ''}`;
+if (s.tipo === 'vinculo_familia') return `Vínculo de parentesco com ${s.dadosPedido?.alunoRelacionadoNome || 'outro aluno'} (${s.dadosPedido?.grauParentesco || 'parentesco não informado'})`;
 return s.tipo;
 }
 
@@ -963,6 +966,7 @@ try {
 if (ehAdmin()) {
 const todas = await listar('solicitacoes');
 todas.sort((a, b) => (b.criadoEm || '').localeCompare(a.criadoEm || ''));
+solicitacoesCache = todas;
 const pendentes = todas.filter((s) => s.status === 'pendente');
 const historico = todas.filter((s) => s.status !== 'pendente');
 
@@ -994,6 +998,7 @@ listaH.innerHTML = historico.length
 : '<div class="empty-state"><i class="fas fa-clock-rotate-left"></i>Sem histórico ainda.</div>';
 } else if (ehGestor()) {
 const minhas = await minhasSolicitacoes(sessaoAtual.uid);
+solicitacoesCache = minhas.slice();
 const lista = document.getElementById('listaMinhasSolic');
 lista.innerHTML = minhas.length
 ? minhas.map((s) => `
@@ -1005,6 +1010,30 @@ lista.innerHTML = minhas.length
 <span class="pill pill-${s.status}">${s.status === 'pendente' ? 'Pendente' : (s.status === 'aprovado' ? 'Aprovado' : 'Rejeitado')}</span>
 </div>`).join('')
 : '<div class="empty-state"><i class="fas fa-inbox"></i>Você ainda não enviou nenhuma solicitação.</div>';
+
+// Pedidos de vínculo de parentesco dos próprios alunos — o mestre/
+// professor aprova direto, sem precisar passar pelo admin.
+const listaFam = document.getElementById('listaSolicFamiliaPendentes');
+if (listaFam && sessaoAtual.academiaGerenciadaId) {
+const pendentesNucleo = (await solicitacoesPendentesDoNucleo(sessaoAtual.academiaGerenciadaId))
+.filter((s) => s.tipo === 'vinculo_familia');
+solicitacoesCache = solicitacoesCache.concat(pendentesNucleo.filter((s) => !solicitacoesCache.some((c) => c.id === s.id)));
+listaFam.innerHTML = pendentesNucleo.length
+? pendentesNucleo.map((s) => `
+<div class="lista-item">
+<div class="lista-item-info">
+<strong>${escapeHTML(s.solicitanteNome || 'Aluno')}</strong>
+<span>${escapeHTML(descreverSolicitacao(s))}</span>
+</div>
+<div class="lista-item-actions">
+<button class="btn-mini btn-mini-aprovar" onclick="aprovarSolicitacao('${s.id}')">Aprovar</button>
+<button class="btn-mini btn-mini-rejeitar" onclick="rejeitarSolicitacao('${s.id}')">Rejeitar</button>
+</div>
+</div>`).join('')
+: '<div class="empty-state"><i class="fas fa-user-group"></i>Nenhum pedido de vínculo de parentesco pendente.</div>';
+} else if (listaFam) {
+listaFam.innerHTML = '<div class="empty-state"><i class="fas fa-user-group"></i>Este cadastro ainda não administra um núcleo próprio.</div>';
+}
 }
 } catch (e) {
 console.error(e);
@@ -1014,8 +1043,11 @@ toast('Não foi possível carregar as solicitações.', 'error');
 
 window.aprovarSolicitacao = async function (id) {
 try {
-const sol = (await listar('solicitacoes')).find((s) => s.id === id);
-if (!sol) return;
+// Usa o que já foi carregado na tela (solicitacoesCache) em vez de listar('solicitacoes')
+// sem filtro — um mestre/professor não-admin não tem permissão de ler a coleção inteira,
+// só o que é dele ou do próprio núcleo, então essa leitura sem filtro falharia para ele.
+const sol = solicitacoesCache.find((s) => s.id === id);
+if (!sol) { toast('Solicitação não encontrada — recarregue a página e tente de novo.', 'error'); return; }
 if (sol.tipo === 'mensalidade') {
 await atualizar('nucleos', sol.academiaId, { mensalidadeValor: Number(sol.dadosPedido.novoValor) || 0 });
 } else if (sol.tipo === 'evento') {
@@ -1030,6 +1062,8 @@ academiaId: sol.dadosPedido.destinoId, academiaNome: sol.dadosPedido.destinoNome
 academiaAnteriorId: alunoAtual ? alunoAtual.academiaId : sol.academiaId,
 origemTransferenciaDireta: true,
 });
+} else if (sol.tipo === 'vinculo_familia') {
+await aprovarVinculoFamilia(sol.solicitanteUid, sol.dadosPedido.alunoRelacionadoUid);
 }
 await atualizar('solicitacoes', id, { status: 'aprovado' });
 toast('Solicitação aprovada e aplicada!');
