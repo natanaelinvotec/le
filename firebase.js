@@ -213,6 +213,15 @@ export async function aprovarVinculoFamilia(alunoUid, alunoRelacionadoUid) {
   ]);
 }
 
+// Transferências de aluno pendentes de aprovação do PRÓPRIO mestre/professor
+// de destino (não quem pediu, e sim quem vai receber o aluno no núcleo dele)
+// — o aluno só muda de fato de academia depois que o professor de destino
+// aceita, mesmo que quem pediu a transferência já tenha sido o admin ou o
+// professor de origem.
+export const transferenciasPendentesParaDestino = async (destinoId) =>
+  (await getDocs(query(collection(db, 'solicitacoes'),
+    where('tipo', '==', 'transferencia'), where('dadosPedido.destinoId', '==', destinoId), where('status', '==', 'pendente'), orderBy('criadoEm', 'desc')))).docs.map((d) => ({ id: d.id, ...d.data() }));
+
 // ===== Avisos (notificações dentro do app) =====
 export const publicarAviso = (dados) =>
   addDoc(collection(db, 'avisos'), { ...dados, criadoEm: new Date().toISOString() });

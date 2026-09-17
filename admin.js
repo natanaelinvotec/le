@@ -16,7 +16,7 @@ import {
 observarSessao, entrar, recuperarSenha, sair,
 buscar, listar, listarPorAcademia, salvar, atualizar,
 criarSolicitacao, minhasSolicitacoes, criarContaComoAdmin,
-solicitacoesPendentesDoNucleo, aprovarVinculoFamilia,
+solicitacoesPendentesDoNucleo, aprovarVinculoFamilia, transferenciasPendentesParaDestino,
 publicarAviso, listarAvisos,
 comprimirImagemDataUrl, arquivoParaDataUrlComprimido,
 calcularEstrelaViva, souFundador,
@@ -941,12 +941,14 @@ const alunoUid = document.getElementById('solicTransferAluno').value;
 const destinoId = document.getElementById('solicTransferDestino').value;
 const aluno = todosUsuarios.find((a) => a.id === alunoUid);
 const destino = todosNucleos.find((n) => n.id === destinoId);
+const origem = todosNucleos.find((n) => n.id === sessaoAtual.academiaGerenciadaId);
 if (!aluno || !destino) { toast('Selecione o aluno e o núcleo de destino.', 'error'); return; }
 await enviarSolicitacao('transferencia', {
 alunoUid,
 alunoNome: aluno.nome,
 destinoId,
 destinoNome: destino.nome,
+academiaOrigemNome: origem ? origem.nome : '',
 motivo: sanitizeInput(document.getElementById('solicTransferMotivo').value),
 });
 } catch (err) { console.error(err); toast('Erro ao enviar solicitação.', 'error'); }
@@ -1033,6 +1035,30 @@ listaFam.innerHTML = pendentesNucleo.length
 : '<div class="empty-state"><i class="fas fa-user-group"></i>Nenhum pedido de vínculo de parentesco pendente.</div>';
 } else if (listaFam) {
 listaFam.innerHTML = '<div class="empty-state"><i class="fas fa-user-group"></i>Este cadastro ainda não administra um núcleo próprio.</div>';
+}
+
+// Transferências de aluno esperando o aceite do PRÓPRIO núcleo (alguém —
+// admin ou o professor de origem — pediu pra mandar um aluno pra cá; só
+// muda de fato depois que este professor aprova).
+const listaTransfer = document.getElementById('listaTransferPendentes');
+if (listaTransfer && sessaoAtual.academiaGerenciadaId) {
+const transferPendentes = await transferenciasPendentesParaDestino(sessaoAtual.academiaGerenciadaId);
+solicitacoesCache = solicitacoesCache.concat(transferPendentes.filter((s) => !solicitacoesCache.some((c) => c.id === s.id)));
+listaTransfer.innerHTML = transferPendentes.length
+? transferPendentes.map((s) => `
+<div class="lista-item">
+<div class="lista-item-info">
+<strong>${escapeHTML(s.dadosPedido?.alunoNome || 'Aluno')}</strong>
+<span>Pedido por ${escapeHTML(s.solicitanteNome || 'alguém do grupo')} · vem de ${escapeHTML(s.dadosPedido?.academiaOrigemNome || 'outro núcleo')}</span>
+</div>
+<div class="lista-item-actions">
+<button class="btn-mini btn-mini-aprovar" onclick="aprovarSolicitacao('${s.id}')">Aceitar aluno</button>
+<button class="btn-mini btn-mini-rejeitar" onclick="rejeitarSolicitacao('${s.id}')">Recusar</button>
+</div>
+</div>`).join('')
+: '<div class="empty-state"><i class="fas fa-right-left"></i>Nenhuma transferência aguardando seu aceite.</div>';
+} else if (listaTransfer) {
+listaTransfer.innerHTML = '<div class="empty-state"><i class="fas fa-right-left"></i>Este cadastro ainda não administra um núcleo próprio.</div>';
 }
 }
 } catch (e) {
