@@ -42,6 +42,44 @@ export async function enviarFoto(caminho, dataUrl) {
   return getDownloadURL(r);
 }
 
+// ===== Compressão de imagem (evita que uma foto de 15MB da galeria pese o
+// banco/o storage) — redimensiona para no máximo `maxDim` no maior lado e
+// recomprime em JPEG, descartando o arquivo grande original. 540px é o
+// padrão combinado: suficiente pra reconhecer o aluno nos cards do app. =====
+export async function comprimirImagemDataUrl(dataUrl, maxDim = 540, qualidade = 0.82) {
+  const img = await new Promise((resolve, reject) => {
+    const el = new Image();
+    el.onload = () => resolve(el);
+    el.onerror = () => reject(new Error('Não foi possível ler a imagem.'));
+    el.src = dataUrl;
+  });
+  const maiorLado = Math.max(img.width, img.height);
+  const escala = maiorLado > maxDim ? maxDim / maiorLado : 1;
+  const w = Math.max(1, Math.round(img.width * escala));
+  const h = Math.max(1, Math.round(img.height * escala));
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+  return canvas.toDataURL('image/jpeg', qualidade);
+}
+
+// Lê um File (do input da galeria) e devolve o dataURL já comprimido —
+// usar sempre no lugar de ler o arquivo cru, tanto na inscrição quanto em
+// qualquer tela de editar foto de perfil.
+export function arquivoParaDataUrlComprimido(file, maxDim = 540, qualidade = 0.82) {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type || !file.type.startsWith('image/')) {
+      reject(new Error('Selecione um arquivo de imagem.'));
+      return;
+    }
+    const leitor = new FileReader();
+    leitor.onload = () => comprimirImagemDataUrl(leitor.result, maxDim, qualidade).then(resolve).catch(reject);
+    leitor.onerror = () => reject(new Error('Não foi possível ler o arquivo.'));
+    leitor.readAsDataURL(file);
+  });
+}
+
 // Senha padrão sugerida quando o admin cria uma conta nova (professor/mestre) -
 // a pessoa troca depois em "Meus dados". Não tem mais nenhum papel de
 // segurança (a senha real de cada um é validada pelo Firebase Auth).
@@ -160,11 +198,109 @@ export const publicarAviso = (dados) =>
 export const listarAvisos = async (tamanho = 20) =>
   (await getDocs(query(collection(db, 'avisos'), orderBy('criadoEm', 'desc'), limit(tamanho)))).docs.map((d) => ({ id: d.id, ...d.data() }));
 
-// ===== Materiais de estudo publicados pelo Master Admin =====
+// ===== Materiais gerais (visíveis a todo mundo logado) =====
 export const publicarMaterial = (dados) => addDoc(collection(db, 'materiais'), { ...dados, criadoEm: new Date().toISOString() });
 export const listarMateriais = () => listar('materiais');
+export const removerMaterial = (id) => deleteDoc(doc(db, 'materiais', id));
 
-// ===== Financeiro =====
+// ===== Materiais de Formação (curados pelo Admin: vídeos, conduta, ética,
+// preparação de graduação) — visíveis ao admin, a mestre/professor e a
+// instrutor; o app.html só exibe a aba pra quem já tem 'instrutor' ou mais
+// nos papeis. =====
+export const publicarMaterialFormacao = (dados) => addDoc(collection(db, 'materiaisFormacao'), { ...dados, criadoEm: new Date().toISOString() });
+export const listarMateriaisFormacao = () => listar('materiaisFormacao');
+export const removerMaterialFormacao = (id) => deleteDoc(doc(db, 'materiaisFormacao', id));
+
+// ===== Financeiro manual (sem API de pagamento) =====
 export const lancarPagamento = (dados) => addDoc(collection(db, 'pagamentos'), { ...dados, criadoEm: new Date().toISOString() });
 export const pagamentosDoAluno = async (alunoId) =>
-  (await getDocs(query(collection(db, 'pagamentos'), where('alunoId', '==', alunoId)))).docs.map((d) => d.data());
+  (await getDocs(query(collection(db, 'pagamentos'), where('alunoId', '==', alunoId)))).docs.map((d) => ({ id: d.id, ...d.data() }));
+export const listarPagamentosDoNucleo = async (academiaId) =>
+  (await getDocs(query(collection(db, 'pagamentos'), where('academiaId', '==', academiaId)))).docs.map((d) => ({ id: d.id, ...d.data() }));
+export const marcarPagamento = (id, pago) => updateDoc(doc(db, 'pagamentos', id), { pago, pagoEm: pago ? new Date().toISOString() : null });
+export const removerPagamento = (id) => deleteDoc(doc(db, 'pagamentos', id));
+
+// ===== Papel instrutor: quem avalia cada aluno (atribuído pelo admin ou
+// pelo mestre/professor responsável, dentro do próprio núcleo) =====
+export const atribuirInstrutorAoAluno = (alunoId, instrutorUid) =>
+  updateDoc(doc(db, 'usuarios', alunoId), { instrutorUid: instrutorUid || null });
+
+// ===== Fundador (Mestre Profeta) — acesso geral. É um campo travado no
+// próprio documento (usuarios/{uid}.acessoGeral === true), só alterável
+// pelo Admin Master, e a regra do Firestore impede que o próprio usuário
+// ou um mestre/professor mude esse campo — não existe forma de
+// "transferir" essa marca por fora do painel do Admin Master. =====
+export const souFundador = (perfil) => !!(perfil && perfil.acessoGeral === true);
+
+// ===== Estrela viva =====
+// Reflete o nível mais alto de graduação entre os alunos ATIVOS vinculados
+// HOJE a este núcleo (quem foi transferido para outro núcleo do grupo não
+// conta mais aqui; quem chegou transferido de outro núcleo também não
+// conta ainda, aparece com a tag "direto Prof. X" até evoluir de novo já
+// sob o professor atual). Mapeamento: 1 Escravo · 2 Fugitivo · 3 Quilombola
+// · 4 Vagante · 5 Liberto · 6 Instrutor · 7 Professor (completar as 7
+// libera a avaliação de mestre para quem formou).
+export const ORDEM_ESTRELA = ['Escravo', 'Fugitivo', 'Quilombola', 'Vagante', 'Liberto', 'Instrutor', 'Professor'];
+export function calcularEstrelaViva(academiaGerenciadaId, todosUsuarios) {
+  if (!academiaGerenciadaId) return 0;
+  let maxIdx = -1;
+  todosUsuarios.forEach((u) => {
+    if (u.academiaId !== academiaGerenciadaId) return;
+    if (u.statusAtual === 'Inativo') return;
+    if (u.origemTransferenciaDireta) return;
+    const idx = ORDEM_ESTRELA.indexOf(u.cordaoAtual);
+    if (idx > maxIdx) maxIdx = idx;
+  });
+  return maxIdx + 1;
+}
+
+// Alunos que já pertenceram a este núcleo e foram transferidos para outro
+// dentro do próprio grupo — mostrados como card cinza "transferido ou
+// inativo" no roster de origem, sem contar pra estrela.
+export const listarTransferidosDoNucleo = async (academiaGerenciadaId) => {
+  const snap = await getDocs(query(collection(db, 'usuarios'), where('academiaAnteriorId', '==', academiaGerenciadaId)));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((u) => u.academiaId !== academiaGerenciadaId);
+};
+
+// Transferência de aluno para outro núcleo do grupo — grava a origem para
+// a estrela e para o rótulo "direto Prof. X" no novo núcleo.
+export async function transferirAlunoParaNucleo(alunoId, nucleoAntigoId, novoNucleoId, novoNucleoNome) {
+  await updateDoc(doc(db, 'usuarios', alunoId), {
+    academiaId: novoNucleoId,
+    academiaNome: novoNucleoNome,
+    academiaAnteriorId: nucleoAntigoId,
+    origemTransferenciaDireta: true,
+  });
+}
+
+// ===== Despesas administrativas do Admin Master + rateio proporcional =====
+// capacidade = alunos ativos do núcleo × mensalidade do núcleo — quem tem
+// mais estrutura paga uma fatia maior da despesa, nunca a mesma parcela
+// de quem tem menos alunos ou mensalidade menor.
+export function calcularRateio(despesaValor, responsaveis) {
+  const totalCapacidade = responsaveis.reduce((s, r) => s + (r.capacidade || 0), 0);
+  if (totalCapacidade <= 0) {
+    const partesIguais = Number((despesaValor / (responsaveis.length || 1)).toFixed(2));
+    return responsaveis.map((r) => ({ ...r, valor: partesIguais }));
+  }
+  return responsaveis.map((r) => ({ ...r, valor: Number(((r.capacidade / totalCapacidade) * despesaValor).toFixed(2)) }));
+}
+
+export async function lancarDespesaComRateio(dadosDespesa, responsaveis) {
+  const despesaRef = await addDoc(collection(db, 'despesasAdministrativas'), { ...dadosDespesa, criadoEm: new Date().toISOString() });
+  const rateio = calcularRateio(dadosDespesa.valor, responsaveis);
+  await Promise.all(rateio.map((r) => addDoc(collection(db, 'rateios'), {
+    despesaId: despesaRef.id,
+    despesaTitulo: dadosDespesa.titulo,
+    responsavelUid: r.uid,
+    responsavelNome: r.nome,
+    valor: r.valor,
+    status: 'pendente',
+    criadoEm: new Date().toISOString(),
+  })));
+  return despesaRef.id;
+}
+export const meusRateios = async (uid) =>
+  (await getDocs(query(collection(db, 'rateios'), where('responsavelUid', '==', uid), orderBy('criadoEm', 'desc')))).docs.map((d) => ({ id: d.id, ...d.data() }));
+export const todosRateios = () => listar('rateios');
+export const marcarRateioPago = (id, pago) => updateDoc(doc(db, 'rateios', id), { status: pago ? 'pago' : 'pendente' });

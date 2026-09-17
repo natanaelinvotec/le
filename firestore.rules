@@ -1,102 +1,143 @@
 rules_version = '2';
 service cloud.firestore {
-  match /databases/{database}/documents {
+match /databases/{database}/documents {
 
-    function logado() { return request.auth != null; }
-    function meuPerfil() { return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data; }
-    function meusPapeis() { return meuPerfil().papeis; }
-    function ehAdmin() { return logado() && 'admin' in meusPapeis(); }
-    function ehGestor() { return logado() && meusPapeis().hasAny(['admin', 'mestre']); }
-    function minhaAcademiaGerenciada() { return meuPerfil().academiaGerenciadaId; }
-    function papeisInalterados() { return request.resource.data.papeis == resource.data.papeis; }
-    function academiaInalterada() { return request.resource.data.academiaId == resource.data.academiaId; }
-    function academiaGerenciadaInalterada() { return request.resource.data.academiaGerenciadaId == resource.data.academiaGerenciadaId; }
-    function notasInalteradas() { return request.resource.data.notas == resource.data.notas; }
+function logado() { return request.auth != null; }
+function meuPerfil() { return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data; }
+function meusPapeis() { return meuPerfil().papeis; }
+function ehAdmin() { return logado() && 'admin' in meusPapeis(); }
+function ehGestor() { return logado() && meusPapeis().hasAny(['admin', 'mestre']); }
+function ehInstrutor() { return logado() && 'instrutor' in meusPapeis(); }
+function souFundador() { return logado() && meuPerfil().acessoGeral == true; }
+function minhaAcademiaGerenciada() { return meuPerfil().academiaGerenciadaId; }
+function papeisInalterados() { return request.resource.data.papeis == resource.data.papeis; }
+function academiaInalterada() { return request.resource.data.academiaId == resource.data.academiaId; }
+function academiaGerenciadaInalterada() { return request.resource.data.academiaGerenciadaId == resource.data.academiaGerenciadaId; }
+function notasInalteradas() { return request.resource.data.notas == resource.data.notas; }
+function acessoGeralInalterado() { return request.resource.data.acessoGeral == resource.data.acessoGeral; }
+function souInstrutorDoAluno() { return ehInstrutor() && resource.data.instrutorUid == request.auth.uid; }
 
-    match /usuarios/{uid} {
-      allow read: if logado() && (
-        request.auth.uid == uid ||
-        ehAdmin() ||
-        (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada()) ||
-        resource.data.responsavelUid == request.auth.uid
-      );
+match /usuarios/{uid} {
+allow read: if logado() && (
+request.auth.uid == uid ||
+ehAdmin() ||
+souFundador() ||
+(ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada()) ||
+(ehInstrutor() && resource.data.instrutorUid == request.auth.uid) ||
+resource.data.responsavelUid == request.auth.uid
+);
 
-      allow create: if ehAdmin() ||
-        (request.auth.uid == uid && request.resource.data.papeis == ['aluno']);
+allow create: if ehAdmin() ||
+(request.auth.uid == uid && request.resource.data.papeis == ['aluno']);
 
-      allow update: if ehAdmin() ||
-        (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada() && academiaInalterada() && papeisInalterados()) ||
-        (request.auth.uid == uid && papeisInalterados() && academiaInalterada() && academiaGerenciadaInalterada() && notasInalteradas());
+allow update: if ehAdmin() ||
+(ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada() && academiaInalterada() && papeisInalterados() && acessoGeralInalterado()) ||
+(souInstrutorDoAluno() && academiaInalterada() && papeisInalterados() && academiaGerenciadaInalterada() && acessoGeralInalterado()) ||
+(request.auth.uid == uid && papeisInalterados() && academiaInalterada() && academiaGerenciadaInalterada() && notasInalteradas() && acessoGeralInalterado());
 
-      allow delete: if ehAdmin();
-    }
+allow delete: if ehAdmin();
+}
 
-    match /usuarios/{uid}/avaliacoes/{id} {
-      function alunoDoMeuNucleo() {
-        return get(/databases/$(database)/documents/usuarios/$(uid)).data.academiaId == minhaAcademiaGerenciada();
-      }
-      allow read: if logado() && (request.auth.uid == uid || ehAdmin() || (ehGestor() && alunoDoMeuNucleo()));
-      allow create: if ehAdmin() || (ehGestor() && alunoDoMeuNucleo());
-    }
+match /usuarios/{uid}/avaliacoes/{id} {
+function alunoDoMeuNucleo() {
+return get(/databases/$(database)/documents/usuarios/$(uid)).data.academiaId == minhaAcademiaGerenciada();
+}
+function souInstrutorDesteAluno() {
+return ehInstrutor() && get(/databases/$(database)/documents/usuarios/$(uid)).data.instrutorUid == request.auth.uid;
+}
+allow read: if logado() && (request.auth.uid == uid || ehAdmin() || souFundador() || (ehGestor() && alunoDoMeuNucleo()) || souInstrutorDesteAluno());
+allow create: if ehAdmin() || (ehGestor() && alunoDoMeuNucleo()) || souInstrutorDesteAluno();
+}
 
-    match /nucleos/{id} {
-      allow read: if true;
-      allow write: if ehAdmin();
-    }
+match /nucleos/{id} {
+allow read: if true;
+allow write: if ehAdmin();
+}
 
-    match /solicitacoes/{id} {
-      allow read: if ehAdmin() || (ehGestor() && resource.data.solicitanteUid == request.auth.uid);
-      allow create: if ehGestor() &&
-        request.resource.data.solicitanteUid == request.auth.uid &&
-        request.resource.data.academiaId == minhaAcademiaGerenciada() &&
-        request.resource.data.status == 'pendente';
-      allow update, delete: if ehAdmin();
-    }
+match /solicitacoes/{id} {
+allow read: if ehAdmin() || (ehGestor() && resource.data.solicitanteUid == request.auth.uid);
+allow create: if ehGestor() &&
+request.resource.data.solicitanteUid == request.auth.uid &&
+request.resource.data.academiaId == minhaAcademiaGerenciada() &&
+request.resource.data.status == 'pendente';
+allow update, delete: if ehAdmin();
+}
 
-    match /eventos/{id} {
-      allow read: if logado();
-      allow write: if ehAdmin();
-    }
+match /eventos/{id} {
+allow read: if logado();
+allow write: if ehAdmin();
+}
 
-    match /avisos/{id} {
-      allow read: if logado();
-      allow create: if ehAdmin() || (ehGestor() && request.resource.data.academiaId == minhaAcademiaGerenciada());
-      allow update, delete: if ehAdmin();
-    }
+match /avisos/{id} {
+allow read: if logado();
+allow create: if ehAdmin() || (ehGestor() && request.resource.data.academiaId == minhaAcademiaGerenciada());
+allow update, delete: if ehAdmin();
+}
 
-    match /materiais/{id} {
-      allow read: if logado();
-      allow write: if ehGestor();
-    }
+match /materiais/{id} {
+allow read: if logado();
+allow write: if ehGestor();
+}
 
-    match /pagamentos/{id} {
-      allow read: if logado() && (resource.data.alunoId == request.auth.uid || ehGestor());
-      allow write: if ehGestor();
-    }
+// Conteúdo de formação (vídeos, conduta, ética, preparação de graduação),
+// curado pelo Admin Master. Visível ao próprio alvo (instrutor/professor),
+// ao mestre/professor que supervisiona, e ao Admin.
+match /materiaisFormacao/{id} {
+allow read: if ehAdmin() || ehGestor() || ehInstrutor();
+allow write: if ehAdmin();
+}
 
-    match /academias/{id} {
-      allow read, write: if true;
-    }
-    match /admins/{id} {
-      allow read, write: if true;
-    }
-    match /alunos/{id} {
-      allow read, write: if true;
-    }
-    match /siteConteudo/{id} {
-      allow read, write: if true;
-    }
-    match /site_agenda/{id} {
-      allow read, write: if true;
-    }
-    match /site_equipe/{id} {
-      allow read, write: if true;
-    }
-    match /site_locais/{id} {
-      allow read, write: if true;
-    }
-    match /site_loja/{id} {
-      allow read, write: if true;
-    }
-  }
+// Pagamentos manuais (mensalidade paga/não paga) — restrito ao próprio
+// núcleo de quem lança, exceto o Admin que vê/gerencia tudo.
+match /pagamentos/{id} {
+allow read: if logado() && (resource.data.alunoId == request.auth.uid || ehAdmin() || (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada()));
+allow create: if ehAdmin() || (ehGestor() && request.resource.data.academiaId == minhaAcademiaGerenciada());
+allow update, delete: if ehAdmin() || (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada());
+}
+
+// Despesas administrativas do grupo (marketing, jurídico etc.) lançadas
+// pelo Admin Master, com rateio individual por responsável de núcleo.
+match /despesasAdministrativas/{id} {
+allow read: if ehAdmin();
+allow write: if ehAdmin();
+}
+
+// Parcela individual do rateio de uma despesa — cada responsável só vê e
+// só pode marcar como paga a própria parcela; quem cria/edita o valor é o Admin.
+match /rateios/{id} {
+allow read: if ehAdmin() || (logado() && resource.data.responsavelUid == request.auth.uid);
+allow create, delete: if ehAdmin();
+allow update: if ehAdmin() || (
+logado() && resource.data.responsavelUid == request.auth.uid &&
+request.resource.data.responsavelUid == resource.data.responsavelUid &&
+request.resource.data.valor == resource.data.valor &&
+request.resource.data.despesaId == resource.data.despesaId
+);
+}
+
+match /academias/{id} {
+allow read, write: if true;
+}
+match /admins/{id} {
+allow read, write: if true;
+}
+match /alunos/{id} {
+allow read, write: if true;
+}
+match /siteConteudo/{id} {
+allow read, write: if true;
+}
+match /site_agenda/{id} {
+allow read, write: if true;
+}
+match /site_equipe/{id} {
+allow read, write: if true;
+}
+match /site_locais/{id} {
+allow read, write: if true;
+}
+match /site_loja/{id} {
+allow read, write: if true;
+}
+}
 }
