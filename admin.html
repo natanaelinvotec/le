@@ -67,6 +67,7 @@ por Firebase Authentication (usuarios/{uid}.papeis). -->
 <input type="text" id="buscaGeral" placeholder="Buscar aluno...">
 <i class="fas fa-search"></i>
 </div>
+<a href="master.html" class="btn-fundador-link" data-papel="admin" title="Área exclusiva do Admin Master"><i class="fas fa-crown"></i> <span class="btn-fundador-label">Painel do Fundador</span></a>
 <div class="admin-profile">
 <img src="logo-liberdade150.png" alt="" class="admin-avatar">
 <span id="nomePerfilLogado">—</span>
@@ -87,6 +88,14 @@ por Firebase Authentication (usuarios/{uid}.papeis). -->
 </div>
 
 <div class="alunos-grid" id="gridAlunos" aria-live="polite"></div>
+
+<div id="secao-cascata" class="cascata-section" data-papel="gestor" style="margin-top: 40px;">
+<div class="section-header" style="background: var(--primary-blue);">
+<h2><i class="fas fa-sitemap"></i> Cascata de Formação</h2>
+</div>
+<p id="cascataAvisoSelecione" class="empty-state oculto"><i class="fas fa-hand-pointer"></i>Selecione um núcleo em "Filtros Avançados" para ver a cascata de formação dele.</p>
+<div id="cascataContainer" class="cascata-tree"></div>
+</div>
 
 <div id="secao-graficos" class="chart-section" style="margin-top: 50px;">
 <div class="section-header" style="background: #002D72;">

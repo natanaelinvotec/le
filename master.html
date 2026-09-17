@@ -1,0 +1,91 @@
+<!-- master.html — Painel do Fundador (Admin Master): rota própria e exclusiva,
+separada do admin.html operacional (usado por admin/mestre/instrutor).
+Só entra quem tem papel 'admin' — qualquer outra conta autenticada é
+recusada aqui e encaminhada de volta para admin.html. -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel do Fundador - Capoeira Liberdade</title><link rel="icon" type="image/png" href="assets/icon-192.png"><link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="admin.css">
+<link rel="stylesheet" href="master.css">
+</head>
+<body>
+<noscript>Este painel exige JavaScript habilitado para funcionar.</noscript>
+
+<!-- TELA DE LOGIN (gate) -->
+<div class="tela-login" id="telaLogin">
+<div class="card-padrao login-card">
+<img src="logo-liberdade150.png" alt="Logo Capoeira Liberdade" class="login-logo">
+<h2>Painel do Fundador</h2>
+<p class="login-sub">Área exclusiva do Admin Master. Use a mesma conta do painel de gestão.</p>
+<form id="formLogin" novalidate>
+<div class="form-group-mod">
+<label for="loginEmail">E-mail</label>
+<input type="email" id="loginEmail" class="input-padrao" required autocomplete="username" placeholder="seu@email.com">
+</div>
+<div class="form-group-mod" style="margin-top:12px;">
+<label for="loginSenha">Senha</label>
+<input type="password" id="loginSenha" class="input-padrao" required autocomplete="current-password" placeholder="Sua senha">
+</div>
+<button type="submit" class="btn-salvar-modal" id="btnEntrarMaster" style="width:100%; margin-top:18px;">
+<i class="fas fa-right-to-bracket"></i> Entrar
+</button>
+</form>
+<p id="loginMsg" class="login-msg" role="alert" aria-live="polite"></p>
+<a href="admin.html" class="link-esqueci" style="display:inline-block; margin-top:14px;">Voltar ao painel de gestão</a>
+</div>
+</div>
+
+<!-- TELA DE BLOQUEIO (logado, mas sem papel admin) -->
+<div class="tela-login oculto" id="telaBloqueado">
+<div class="card-padrao login-card">
+<i class="fas fa-shield-halved tela-bloqueada-icone"></i>
+<h2>Acesso restrito</h2>
+<p class="login-sub">Esta área é exclusiva do Admin Master. Sua conta não tem essa permissão.</p>
+<a href="admin.html" class="btn-salvar-modal" style="display:inline-block; text-decoration:none; margin-top:6px;">Ir para o meu painel</a>
+<button type="button" id="btnSairBloqueado" class="link-esqueci" style="display:block; margin:14px auto 0;">Sair da conta</button>
+</div>
+</div>
+
+<!-- PAINEL DO FUNDADOR -->
+<div id="appMaster" class="oculto">
+<header class="top-nav">
+<div class="logo-area">
+<img src="logo-liberdade150.png" alt="Logo Capoeira Liberdade" class="nav-logo">
+<span class="faixa-fundador faixa-fundador-grande" style="margin-left:14px;"><i class="fas fa-crown"></i> Painel do Fundador</span>
+</div>
+<div class="user-area">
+<a href="admin.html" class="link-voltar-painel"><i class="fas fa-arrow-left"></i> Painel de Gestão</a>
+<button id="btnLogoutMaster" class="btn-logout" title="Sair da Conta" aria-label="Sair da conta">
+<i class="fas fa-sign-out-alt"></i>
+</button>
+</div>
+</header>
+
+<div class="main-layout" style="max-width: 1400px;">
+<main class="content-area">
+
+<div class="section-header" style="background: linear-gradient(90deg, #002D72, #389E92);">
+<h2><i class="fas fa-chart-line"></i> Visão Geral da Rede</h2>
+</div>
+
+<div class="kpis-master" id="kpisMaster" aria-live="polite"></div>
+
+<h3 style="margin: 34px 0 15px; color: var(--primary-blue); font-family:'Montserrat',sans-serif;">Núcleos da Rede</h3>
+<div class="academias-grid" id="tabelaNucleosMaster"></div>
+
+<h3 style="margin: 34px 0 15px; color: var(--primary-blue); font-family:'Montserrat',sans-serif;"><i class="fas fa-star"></i> Contas com Acesso Geral (Fundador)</h3>
+<p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">Concedido/removido em cada cadastro, dentro do painel de gestão (aba Alunos → Avaliar/Editar → Papéis especiais).</p>
+<div class="lista-simples" id="listaFundadores"></div>
+
+</main>
+</div>
+</div>
+
+<script type="module" src="master.js"></script>
+</body>
+</html>

@@ -263,3 +263,44 @@ margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid var(--border-
 position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
 overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
 }
+
+/* ===== v4.1: link para o Painel do Fundador, Cascata de Formação ===== */
+
+.btn-fundador-link {
+display: inline-flex; align-items: center; gap: 8px;
+background: linear-gradient(90deg, #002D72, #389E92); color: #fff;
+padding: 8px 16px; border-radius: 20px; text-decoration: none;
+font-size: 0.82rem; font-weight: 800; letter-spacing: 0.2px;
+font-family: 'Montserrat', sans-serif; transition: 0.2s var(--ease-standard);
+white-space: nowrap;
+}
+.btn-fundador-link:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,45,114,0.35); }
+@media (max-width: 1100px) { .btn-fundador-label { display: none; } .btn-fundador-link { padding: 8px 12px; } }
+@media (max-width: 850px) { .btn-fundador-link { display: none; } }
+
+.cascata-section { margin-bottom: 10px; }
+.cascata-tree { display: flex; flex-direction: column; align-items: center; padding: 25px 15px 10px; }
+.cascata-mestre {
+display: flex; align-items: center; gap: 10px; position: relative;
+background: var(--primary-blue); color: #fff; padding: 12px 26px; border-radius: 14px;
+font-family: 'Montserrat', sans-serif; font-size: 1rem; box-shadow: 0 8px 20px rgba(0,45,114,0.25);
+margin-bottom: 30px;
+}
+.cascata-mestre i { color: var(--star-filled); }
+.cascata-mestre::after { content: ""; position: absolute; bottom: -30px; left: 50%; width: 2px; height: 30px; background: var(--border-color); }
+.cascata-ramos { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; position: relative; padding-top: 26px; width: 100%; }
+.cascata-ramos::before { content: ""; position: absolute; top: 0; left: 12%; right: 12%; height: 2px; background: var(--border-color); }
+.cascata-ramo { position: relative; padding-top: 26px; display: flex; flex-direction: column; align-items: center; max-width: 230px; }
+.cascata-ramo::before { content: ""; position: absolute; top: 0; left: 50%; width: 2px; height: 26px; background: var(--border-color); transform: translateX(-1px); }
+.cascata-instrutor-node {
+display: flex; flex-direction: column; align-items: center; gap: 4px;
+background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px;
+padding: 12px 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); text-align: center; min-width: 150px;
+}
+.cascata-instrutor-node i { color: var(--primary-teal); font-size: 1.1rem; }
+.cascata-instrutor-node.cascata-direto i { color: #B9770E; }
+.cascata-contagem { font-size: 0.75rem; color: var(--text-muted); font-weight: 700; }
+.cascata-alunos-lista { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 12px; max-width: 220px; }
+.cascata-aluno-chip { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--card-bg); box-shadow: 0 0 0 1px var(--border-color); }
+.cascata-vazio { font-size: 0.82rem; color: var(--text-muted); font-style: italic; }
+@media (max-width: 700px) { .cascata-ramos::before { display: none; } .cascata-ramo::before { display: none; } }

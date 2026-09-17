@@ -1,0 +1,32 @@
+/* master.css — Painel do Fundador (Admin Master): rota exclusiva, separada do admin.html operacional. */
+
+body { min-height: 100vh; }
+
+.faixa-fundador-grande {
+display: inline-flex; align-items: center; gap: 8px;
+font-size: 0.9rem; font-weight: 800; font-family: 'Montserrat', sans-serif;
+}
+
+.link-voltar-painel {
+display: inline-flex; align-items: center; gap: 8px;
+color: var(--text-dark); text-decoration: none; font-weight: 700; font-size: 0.9rem;
+padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border-color);
+transition: 0.2s var(--ease-standard);
+}
+.link-voltar-painel:hover { background: var(--primary-teal); color: #fff; border-color: var(--primary-teal); }
+
+.kpis-master { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 10px; }
+.kpi-card {
+background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 15px;
+padding: 20px 22px; display: flex; flex-direction: column; gap: 6px;
+box-shadow: 0 4px 15px rgba(0,0,0,0.03); animation: cardIn 0.4s var(--ease-standard) both;
+}
+.kpi-card span { font-size: 0.78rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; }
+.kpi-card strong { font-size: 1.9rem; font-family: 'Montserrat', sans-serif; color: var(--primary-blue); }
+.kpi-card.kpi-alerta strong { color: #E74C3C; }
+.kpi-card.kpi-sucesso strong { color: #00B140; }
+
+.nucleo-master-card { display: flex; flex-direction: column; gap: 2px; }
+.nucleo-master-card .estrela-viva { margin-left: 0; display: block; margin-top: 8px; }
+
+.tela-bloqueada-icone { font-size: 2.4rem; color: #B9770E; margin-bottom: 12px; display: block; }

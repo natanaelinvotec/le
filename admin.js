@@ -438,6 +438,75 @@ const filtrados = alunos.filter((a) => (ac === '' || a.academiaId === ac) && (tx
 
 renderizarGrid(filtrados);
 desenharGraficos(filtrados);
+renderizarCascata();
+}
+
+/* ===================== CASCATA DE FORMAÇÃO (Mestre → Instrutores → Alunos) ===================== */
+function renderizarCascata() {
+const wrap = document.getElementById('cascataContainer');
+const aviso = document.getElementById('cascataAvisoSelecione');
+if (!wrap) return;
+
+let nucleoId = '';
+let pessoasDoNucleo = [];
+let mestreInfo = null;
+
+if (ehAdmin()) {
+nucleoId = selectFiltroAcademia ? selectFiltroAcademia.value : '';
+if (!nucleoId) { wrap.innerHTML = ''; if (aviso) aviso.classList.remove('oculto'); return; }
+if (aviso) aviso.classList.add('oculto');
+pessoasDoNucleo = todosUsuarios.filter((u) => u.academiaId === nucleoId);
+const nucleo = todosNucleos.find((n) => n.id === nucleoId);
+mestreInfo = nucleo ? todosUsuarios.find((u) => u.id === nucleo.professorUid) : null;
+} else if (ehGestor()) {
+nucleoId = sessaoAtual.academiaGerenciadaId;
+if (aviso) aviso.classList.add('oculto');
+if (!nucleoId) { wrap.innerHTML = '<span class="cascata-vazio">Este cadastro ainda não administra um núcleo próprio.</span>'; return; }
+pessoasDoNucleo = todosUsuarios.filter((u) => u.academiaId === nucleoId);
+mestreInfo = { id: sessaoAtual.uid, nome: sessaoAtual.nome };
+} else {
+return;
+}
+
+const instrutores = pessoasDoNucleo.filter((u) => (u.papeis || []).includes('instrutor'));
+const todosAlunosNucleo = pessoasDoNucleo.filter((u) => (u.papeis || []).includes('aluno'));
+const instrutorIds = new Set(instrutores.map((i) => i.id));
+const porInstrutor = instrutores.map((instr) => ({
+instrutor: instr,
+alunos: todosAlunosNucleo.filter((a) => a.instrutorUid === instr.id),
+}));
+const diretos = todosAlunosNucleo.filter((a) => !a.instrutorUid && !instrutorIds.has(a.id));
+
+const chip = (a) => `<img class="cascata-aluno-chip" src="${escapeHTML(a.fotoUrl || 'https://via.placeholder.com/34')}" title="${escapeHTML(a.nome || 'Aluno')} (${escapeHTML(a.cordaoAtual || 'Iniciante')})" alt="${escapeHTML(a.nome || 'Aluno')}">`;
+
+const ramos = [
+...porInstrutor.map(({ instrutor, alunos }) => `
+<div class="cascata-ramo">
+<div class="cascata-instrutor-node">
+<i class="fas fa-user-graduate"></i>
+<strong>${escapeHTML(instrutor.nome || 'Instrutor')}</strong>
+<span class="cascata-contagem">${alunos.length} aluno${alunos.length === 1 ? '' : 's'}</span>
+</div>
+<div class="cascata-alunos-lista">${alunos.length ? alunos.map(chip).join('') : '<span class="cascata-vazio">Sem alunos atribuídos</span>'}</div>
+</div>`),
+diretos.length ? `
+<div class="cascata-ramo">
+<div class="cascata-instrutor-node cascata-direto">
+<i class="fas fa-user-shield"></i>
+<strong>Diretos do Mestre</strong>
+<span class="cascata-contagem">${diretos.length} aluno${diretos.length === 1 ? '' : 's'}</span>
+</div>
+<div class="cascata-alunos-lista">${diretos.map(chip).join('')}</div>
+</div>` : '',
+].filter(Boolean).join('');
+
+wrap.innerHTML = `
+<div class="cascata-mestre">
+<i class="fas fa-crown"></i>
+<strong>${escapeHTML(mestreInfo ? mestreInfo.nome : 'Mestre/Professor')}</strong>
+</div>
+<div class="cascata-ramos">${ramos || '<span class="cascata-vazio">Ainda não há instrutores ou alunos vinculados a este núcleo.</span>'}</div>
+`;
 }
 
 function renderizarGrid(alunos) {
