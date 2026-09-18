@@ -14,27 +14,15 @@ por Firebase Authentication (usuarios/{uid}.papeis). -->
 <body>
 <noscript>Este painel exige JavaScript habilitado para funcionar.</noscript>
 
-<!-- TELA DE LOGIN (gate) - some assim que a sessão é validada -->
-<div class="tela-login" id="telaLogin">
-<div class="card-padrao login-card">
+<!-- Não existe mais tela de login própria aqui — login.html é a única porta
+de entrada do sistema (aluno, responsável, admin, mestre, professor e
+instrutor todos entram por lá). Esta tela só aparece por um instante
+enquanto a sessão do Firebase é conferida; quem não estiver logado é
+redirecionado pra login.html por admin.js (ver checarSessaoOuRedirecionar). -->
+<div class="tela-login" id="telaCarregando">
+<div class="card-padrao login-card" style="text-align:center;">
 <img src="logo-liberdade150.png" alt="Logo Capoeira Liberdade" class="login-logo">
-<h2>Painel de Gestão</h2>
-<p class="login-sub">Acesso da administração, mestres, professores e instrutores.</p>
-<form id="formLogin" novalidate>
-<div class="form-group-mod">
-<label for="loginEmail">E-mail</label>
-<input type="email" id="loginEmail" class="input-padrao" required autocomplete="username" placeholder="seu@email.com">
-</div>
-<div class="form-group-mod" style="margin-top:12px;">
-<label for="loginSenha">Senha</label>
-<input type="password" id="loginSenha" class="input-padrao" required autocomplete="current-password" placeholder="Sua senha">
-</div>
-<button type="submit" class="btn-salvar-modal" id="btnEntrarPainel" style="width:100%; margin-top:18px;">
-<i class="fas fa-right-to-bracket"></i> Entrar
-</button>
-</form>
-<button type="button" id="btnEsqueciSenhaPainel" class="link-esqueci">Esqueci minha senha</button>
-<p id="loginMsg" class="login-msg" role="alert" aria-live="polite"></p>
+<p class="login-sub"><i class="fas fa-spinner fa-spin"></i> Verificando sua sessão...</p>
 </div>
 </div>
 

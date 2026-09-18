@@ -16,71 +16,80 @@ let tentativas = 0;
 let bloqueadoAte = 0;
 
 function mostrarErro(msg) {
-  infoBox.style.display = 'none';
-  erroTexto.textContent = msg;
-  erroBox.style.display = 'block';
-  form.classList.remove('shake');
-  void form.offsetWidth; // reinicia a animação
-  form.classList.add('shake');
+infoBox.style.display = 'none';
+erroTexto.textContent = msg;
+erroBox.style.display = 'block';
+form.classList.remove('shake');
+void form.offsetWidth; // reinicia a animação
+form.classList.add('shake');
 }
 
 function mostrarInfo(msg) {
-  erroBox.style.display = 'none';
-  infoTexto.textContent = msg;
-  infoBox.style.display = 'block';
+erroBox.style.display = 'none';
+infoTexto.textContent = msg;
+infoBox.style.display = 'block';
 }
 
 function destinoPorPapeis(papeis) {
-  if (!Array.isArray(papeis)) return 'app.html';
-  if (papeis.includes('admin') || papeis.includes('mestre')) return 'admin.html';
-  return 'app.html';
+if (!Array.isArray(papeis)) return 'app.html';
+if (papeis.includes('admin') || papeis.includes('mestre') || papeis.includes('instrutor')) return 'admin.html';
+return 'app.html';
+}
+
+// Painel de Gestão não tem mais login próprio — quem chega lá sem sessão
+// válida, ou logado mas sem papel de admin/mestre/instrutor, é mandado de
+// volta pra cá com um aviso na URL (?erro=...). Mostra a mensagem certa.
+const paramsUrl = new URLSearchParams(window.location.search);
+const erroUrl = paramsUrl.get('erro');
+if (erroUrl === 'sem-acesso') {
+mostrarErro('Essa conta não tem acesso ao Painel de Gestão. Se você é aluno ou responsável, entre normalmente aqui mesmo.');
 }
 
 form.addEventListener('submit', async (ev) => {
-  ev.preventDefault();
-  const agora = Date.now();
-  if (agora < bloqueadoAte) {
-    const seg = Math.ceil((bloqueadoAte - agora) / 1000);
-    mostrarErro(`Muitas tentativas. Tente novamente em ${seg}s.`);
-    return;
-  }
+ev.preventDefault();
+const agora = Date.now();
+if (agora < bloqueadoAte) {
+const seg = Math.ceil((bloqueadoAte - agora) / 1000);
+mostrarErro(`Muitas tentativas. Tente novamente em ${seg}s.`);
+return;
+}
 
-  const email = campoEmail.value.trim();
-  const senha = campoSenha.value;
-  if (!email || !senha) return;
+const email = campoEmail.value.trim();
+const senha = campoSenha.value;
+if (!email || !senha) return;
 
-  btn.disabled = true;
-  btn.innerHTML = 'Entrando... <i class="fas fa-spinner fa-spin"></i>';
-  try {
-    const perfil = await entrar(email, senha);
-    tentativas = 0;
-    window.location.href = destinoPorPapeis(perfil.papeis);
-  } catch (e) {
-    tentativas += 1;
-    if (tentativas >= 5) {
-      bloqueadoAte = Date.now() + 30000;
-      tentativas = 0;
-      mostrarErro('Muitas tentativas incorretas. Aguarde 30s antes de tentar de novo.');
-    } else {
-      // Mensagem genérica (não revela se o e-mail existe ou não).
-      mostrarErro('E-mail ou senha incorretos.');
-    }
-    btn.disabled = false;
-    btn.innerHTML = 'Acessar Painel <i class="fas fa-arrow-right"></i>';
-  }
+btn.disabled = true;
+btn.innerHTML = 'Entrando... <i class="fas fa-spinner fa-spin"></i>';
+try {
+const perfil = await entrar(email, senha);
+tentativas = 0;
+window.location.href = destinoPorPapeis(perfil.papeis);
+} catch (e) {
+tentativas += 1;
+if (tentativas >= 5) {
+bloqueadoAte = Date.now() + 30000;
+tentativas = 0;
+mostrarErro('Muitas tentativas incorretas. Aguarde 30s antes de tentar de novo.');
+} else {
+// Mensagem genérica (não revela se o e-mail existe ou não).
+mostrarErro('E-mail ou senha incorretos.');
+}
+btn.disabled = false;
+btn.innerHTML = 'Acessar Painel <i class="fas fa-arrow-right"></i>';
+}
 });
 
 linkEsqueci.addEventListener('click', async (ev) => {
-  ev.preventDefault();
-  const email = campoEmail.value.trim();
-  if (!email) {
-    mostrarErro('Digite seu e-mail no campo acima e clique em "Esqueci minha senha" de novo.');
-    return;
-  }
-  try {
-    await recuperarSenha(email);
-  } catch (e) {
-    // Não revela se o e-mail existe - mesma mensagem em qualquer caso.
-  }
-  mostrarInfo('Se esse e-mail estiver cadastrado, enviamos um link para redefinir a senha.');
+ev.preventDefault();
+const email = campoEmail.value.trim();
+if (!email) {
+mostrarErro('Digite seu e-mail no campo acima e clique em "Esqueci minha senha" de novo.');
+return;
+}
+try {
+await recuperarSenha(email);
+} catch (e) {
+// Não revela se o e-mail existe - mesma mensagem em qualquer caso.
+}
+mostrarInfo('Se esse e-mail estiver cadastrado, enviamos um link para redefinir a senha.');
 });

@@ -13,7 +13,7 @@ admin aprovar.
 ao conteúdo de Formação; sem ferramentas financeiras próprias.
 */
 import {
-observarSessao, entrar, recuperarSenha, sair,
+observarSessao, recuperarSenha, sair,
 buscar, listar, listarPorAcademia, salvar, atualizar,
 criarSolicitacao, minhasSolicitacoes, criarContaComoAdmin,
 solicitacoesPendentesDoNucleo, aprovarVinculoFamilia, transferenciasPendentesParaDestino,
@@ -59,14 +59,13 @@ setTimeout(() => el.remove(), 320);
 }
 
 /* ===================== LOGIN / SESSÃO ===================== */
-const telaLogin = document.getElementById('telaLogin');
+// login.html é a única porta de entrada do sistema agora — este painel não
+// tem mais formulário de login próprio. Quem chega aqui sem sessão válida
+// (ou logado mas sem papel de admin/mestre/instrutor) é mandado pra lá.
 const appPainel = document.getElementById('appPainel');
-const formLogin = document.getElementById('formLogin');
-const loginMsg = document.getElementById('loginMsg');
 
-function mostrarTelaLogin() {
-telaLogin.classList.remove('oculto');
-appPainel.classList.add('oculto');
+function irParaLogin(motivo) {
+window.location.href = motivo ? `login.html?erro=${motivo}` : 'login.html';
 }
 
 function temAcessoAoPainel(perfil) {
@@ -75,61 +74,26 @@ return p.includes('admin') || p.includes('mestre') || p.includes('instrutor');
 }
 
 observarSessao(async (user) => {
-if (!user) { sessaoAtual = null; mostrarTelaLogin(); return; }
+if (!user) { sessaoAtual = null; irParaLogin(); return; }
 try {
 const perfil = await buscar('usuarios', user.uid);
 if (!perfil || !temAcessoAoPainel(perfil)) {
-toast('Esta conta não tem acesso ao painel de gestão. Use o app do aluno.', 'error');
 await sair();
-mostrarTelaLogin();
+irParaLogin('sem-acesso');
 return;
 }
 sessaoAtual = { uid: user.uid, ...perfil };
 await iniciarPainel();
 } catch (e) {
 console.error(e);
-mostrarTelaLogin();
+irParaLogin();
 }
 });
 
-formLogin.addEventListener('submit', async (e) => {
-e.preventDefault();
-const btn = document.getElementById('btnEntrarPainel');
-const email = document.getElementById('loginEmail').value;
-const senha = document.getElementById('loginSenha').value;
-loginMsg.textContent = '';
-loginMsg.classList.remove('ok');
-btn.disabled = true;
-btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Entrando...';
-try {
-const perfil = await entrar(email, senha);
-if (!temAcessoAoPainel(perfil)) {
+document.getElementById('btnLogout').addEventListener('click', async () => {
+if (!confirm('Deseja realmente sair da conta?')) return;
 await sair();
-loginMsg.textContent = 'Esta conta é de aluno/responsável e não tem acesso a este painel.';
-return;
-}
-// observarSessao acima cuida de iniciar o painel.
-} catch (err) {
-console.error(err);
-loginMsg.textContent = 'E-mail ou senha inválidos.';
-} finally {
-btn.disabled = false;
-btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Entrar';
-}
-});
-
-document.getElementById('btnEsqueciSenhaPainel').addEventListener('click', async () => {
-const email = document.getElementById('loginEmail').value;
-if (!email) { loginMsg.textContent = 'Digite seu e-mail no campo acima primeiro.'; return; }
-try {
-await recuperarSenha(email);
-} catch (_) { /* mensagem genérica de qualquer forma, não revela se o e-mail existe */ }
-loginMsg.textContent = 'Se este e-mail existir em nossa base, enviamos um link de redefinição de senha.';
-loginMsg.classList.add('ok');
-});
-
-document.getElementById('btnLogout').addEventListener('click', () => {
-if (confirm('Deseja realmente sair da conta?')) sair();
+irParaLogin();
 });
 
 /* ===================== VISIBILIDADE POR PAPEL ===================== */
@@ -165,7 +129,8 @@ let chartsInstances = {};
 let solicitacoesCache = []; // última leitura de solicitações visíveis a esta sessão (evita listar('solicitacoes') sem filtro, que um gestor não-admin não tem permissão de ler por inteiro)
 
 async function iniciarPainel() {
-telaLogin.classList.add('oculto');
+const telaCarregando = document.getElementById('telaCarregando');
+if (telaCarregando) telaCarregando.classList.add('oculto');
 appPainel.classList.remove('oculto');
 
 aplicarVisibilidadePapeis();
