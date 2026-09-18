@@ -587,7 +587,7 @@ progressão de alunos formados, qualidade técnica, instrumental). --- */
 const ordemCordoes = [
 'Iniciante', 'Cinza Claro', 'Cinza e Bege', 'Bege',
 'Escravo', 'Fugitivo', 'Quilombola', 'Vagante',
-'Liberto', 'Instrutor', 'Professor', 'Mestre',
+'Liberto', 'Instrutor', 'Professor', 'Mestre', 'Mestre/Presidente',
 ];
 const cordoesAdulto = [
 { nome: 'Iniciante', cor: ['#CCC', '#CCC', '#CCC'] }, { nome: 'Escravo', cor: ['#4F4F4F', '#4F4F4F', '#4F4F4F'] },
@@ -595,6 +595,9 @@ const cordoesAdulto = [
 { nome: 'Vagante', cor: ['#D2691E', '#D32F2F', '#D2691E'] }, { nome: 'Liberto', cor: ['#D32F2F', '#D32F2F', '#D32F2F'] },
 { nome: 'Instrutor', cor: ['#4F4F4F', '#F5DEB3', '#D32F2F'] }, { nome: 'Professor', cor: ['#D32F2F', '#FFFFFF', '#D32F2F'] },
 { nome: 'Mestre', cor: ['#F5F5F5', '#F5F5F5', '#F5F5F5'] },
+// Rank mais alto, exclusivo do fundador do grupo (Mestre Profeta) — mostrado
+// só como opção pra quem já tem acessoGeral (ver abrirModal).
+{ nome: 'Mestre/Presidente', cor: ['#FFD700', '#002D72', '#FFD700'] },
 ];
 const cordoesKids = [
 { nome: 'Iniciante', cor: ['#CCC', '#CCC', '#CCC'] }, { nome: 'Cinza Claro', cor: ['#D3D3D3', '#D3D3D3', '#D3D3D3'] },
@@ -619,6 +622,7 @@ const criteriosFormador = [
 ];
 
 let notasAtuais = {};
+let notasFormadorAtuais = {};
 let criteriosAtivos = [];
 let avaliandoFormador = false;
 
@@ -660,46 +664,56 @@ selInstrutorDoAluno.innerHTML = '<option value="">Nenhum</option>' +
 instrutoresDoNucleo.map((u) => `<option value="${escapeHTML(u.id)}" ${u.id === usuarioSelecionado.instrutorUid ? 'selected' : ''}>${escapeHTML(u.nome)}</option>`).join('');
 }
 
-// Avaliação: alterna entre graduação de aluno e desempenho de formador.
+// Avaliação: todo mundo (inclusive mestre/professor/instrutor) treina e é
+// avaliado como aluno — a graduação/cordão SEMPRE aparece. Quem também tem
+// papel de mestre/instrutor ganha, ADICIONALMENTE, o bloco de Avaliação de
+// Formador logo abaixo (as duas seções juntas, nenhuma some a outra).
 avaliandoFormador = (usuarioSelecionado.papeis || []).some((p) => p === 'mestre' || p === 'instrutor');
-document.getElementById('cordaoContainerWrap').style.display = avaliandoFormador ? 'none' : 'block';
-document.getElementById('wrapModCordao').style.display = avaliandoFormador ? 'none' : 'block';
-document.getElementById('tituloCriteriosModal').textContent = avaliandoFormador
-? 'Avaliação de Formador (0 a 10)'
-: 'Critérios de Evolução (0 a 10)';
+document.getElementById('cordaoContainerWrap').style.display = 'block';
+document.getElementById('wrapModCordao').style.display = 'block';
+document.getElementById('tituloCriteriosModal').textContent = 'Critérios de Evolução (0 a 10)';
 
-if (avaliandoFormador) {
-notasAtuais = { ...(usuarioSelecionado.notasProfessor || {}) };
-criteriosAtivos = criteriosFormador;
-gerarCriteriosFormadorUI();
-} else {
 const selCordao = document.getElementById('modCordao');
 selCordao.innerHTML = '';
 const idadeNumero = Number(usuarioSelecionado.idade) || 0;
-const listaCordoesLocal = idadeNumero < 12 ? cordoesKids : cordoesAdulto;
+const listaCordoesBase = idadeNumero < 12 ? cordoesKids : cordoesAdulto;
+// "Mestre/Presidente" é o rank mais alto, exclusivo do fundador do grupo
+// (acessoGeral) — some da lista de opções pra qualquer outra pessoa.
+const listaCordoesLocal = usuarioSelecionado.acessoGeral
+? listaCordoesBase
+: listaCordoesBase.filter((c) => c.nome !== 'Mestre/Presidente');
 listaCordoesLocal.forEach((c, index) => { selCordao.innerHTML += `<option value="${escapeHTML(c.nome)}" data-idx="${index}">${escapeHTML(c.nome)}</option>`; });
 selCordao.value = usuarioSelecionado.cordaoAtual || 'Iniciante';
 notasAtuais = { ...(usuarioSelecionado.notas || {}) };
 gerarCriteriosUI(listaCordoesLocal, idadeNumero);
 selCordao.onchange = () => gerarCriteriosUI(listaCordoesLocal, idadeNumero);
+
+const wrapFormador = document.getElementById('wrapCriteriosFormador');
+if (avaliandoFormador) {
+wrapFormador.style.display = 'block';
+notasFormadorAtuais = { ...(usuarioSelecionado.notasProfessor || {}) };
+gerarCriteriosFormadorUI();
+} else {
+wrapFormador.style.display = 'none';
+notasFormadorAtuais = {};
 }
 
 document.getElementById('modalAvaliacao').style.display = 'flex';
 };
 
 function gerarCriteriosFormadorUI() {
-const grid = document.getElementById('gridCriterios');
+const grid = document.getElementById('gridCriteriosFormador');
 grid.innerHTML = criteriosFormador.map((crit) => {
-if (notasAtuais[crit.id] === undefined) notasAtuais[crit.id] = 0;
+if (notasFormadorAtuais[crit.id] === undefined) notasFormadorAtuais[crit.id] = 0;
 let htmlStars = '';
 for (let i = 1; i <= 10; i++) htmlStars += `<i class="fas fa-star" data-val="${i}"></i>`;
 return `<div class="crit-item"><span>${escapeHTML(crit.txt)}</span><div class="stars-row" data-id="${crit.id}">${htmlStars}</div></div>`;
 }).join('');
 
-document.querySelectorAll('.stars-row').forEach((row) => {
+grid.querySelectorAll('.stars-row').forEach((row) => {
 const idCrit = row.getAttribute('data-id');
 const stars = Array.from(row.querySelectorAll('i'));
-stars.forEach((s, idx) => { if (idx < notasAtuais[idCrit]) s.classList.add('ativa'); });
+stars.forEach((s, idx) => { if (idx < notasFormadorAtuais[idCrit]) s.classList.add('ativa'); });
 stars.forEach((star, index) => {
 star.addEventListener('mousedown', () => atualizarNotaFormador(idCrit, index + 1, stars));
 star.addEventListener('touchstart', (e) => { e.preventDefault(); atualizarNotaFormador(idCrit, index + 1, stars); });
@@ -707,7 +721,7 @@ star.addEventListener('touchstart', (e) => { e.preventDefault(); atualizarNotaFo
 });
 }
 function atualizarNotaFormador(idCrit, valor, starsArray) {
-notasAtuais[idCrit] = valor;
+notasFormadorAtuais[idCrit] = valor;
 starsArray.forEach((s, i) => { if (i < valor) s.classList.add('ativa'); else s.classList.remove('ativa'); });
 }
 
@@ -732,7 +746,7 @@ for (let i = 1; i <= 10; i++) htmlStars += `<i class="fas fa-star" data-val="${i
 return `<div class="crit-item"><span>${escapeHTML(crit.txt)}</span><div class="stars-row" data-id="${crit.id}">${htmlStars}</div></div>`;
 }).join('');
 
-document.querySelectorAll('.stars-row').forEach((row) => {
+grid.querySelectorAll('.stars-row').forEach((row) => {
 const idCrit = row.getAttribute('data-id');
 const stars = Array.from(row.querySelectorAll('i'));
 stars.forEach((s, idx) => { if (idx < notasAtuais[idCrit]) s.classList.add('ativa'); });
@@ -844,11 +858,14 @@ fotoUrl: novaFoto,
 statusAtual: document.getElementById('modStatus').value,
 };
 
-if (avaliandoFormador) {
-dadosAtualizados.notasProfessor = notasAtuais;
-} else {
+// Graduação/fundamentos de aluno: sempre grava (todo mundo treina, mesmo
+// quem também é mestre/professor/instrutor).
 dadosAtualizados.cordaoAtual = document.getElementById('modCordao').value;
 dadosAtualizados.notas = notasAtuais;
+// Avaliação de formador: grava só pra quem tem o papel de mestre/instrutor
+// (a seção só aparece nesse caso).
+if (avaliandoFormador) {
+dadosAtualizados.notasProfessor = notasFormadorAtuais;
 }
 
 if (ehGestor()) {
@@ -1421,6 +1438,7 @@ const mapa = {
 Iniciante: '#CCCCCC', 'Cinza Claro': '#D3D3D3', 'Cinza e Bege': '#C0C0C0', Bege: '#DEB887',
 Escravo: '#555555', Fugitivo: '#8B7D6B', Quilombola: '#DAA520', Vagante: '#CD5C5C',
 Liberto: '#D32F2F', Instrutor: '#800000', Professor: '#F08080', Mestre: '#F5F5F5',
+'Mestre/Presidente': '#FFD700',
 };
 return mapa[nome] || '#389E92';
 }
