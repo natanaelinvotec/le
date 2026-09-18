@@ -441,7 +441,14 @@ const txt = inputBusca ? inputBusca.value.toLowerCase() : '';
 
 const filtrados = alunos.filter((a) => (ac === '' || a.academiaId === ac) && (txt === '' || (a.nome || '').toLowerCase().includes(txt)));
 
-renderizarGrid(filtrados);
+// O fundador (Acesso Geral) também treina como aluno no próprio núcleo que
+// administra — em vez de misturar o registro dele no meio da grade normal,
+// ele ganha um cartão de destaque no topo (igual à tela que o próprio aluno
+// vê no app), e continua aparecendo também como um cartão comum logo abaixo,
+// pra manter o acesso rápido de "Avaliar/Editar" do próprio prontuário.
+const meuRegistro = souFundador(sessaoAtual) ? (filtrados.find((a) => a.id === sessaoAtual.uid) || null) : null;
+renderizarHeroFundador(meuRegistro);
+renderizarGrid(meuRegistro ? filtrados.filter((a) => a.id !== meuRegistro.id).concat([meuRegistro]) : filtrados);
 desenharGraficos(filtrados);
 renderizarCascata();
 }
@@ -558,6 +565,50 @@ ${htmlTransferencia}
 </div>
 </div>`;
 }).join('');
+}
+
+// Cartão de destaque do fundador (Acesso Geral) no topo de "Meus Alunos" —
+// mesmo visual de status que o próprio app.html mostra pro aluno: anel de
+// progresso, estrela viva do núcleo e o cordão "rodando" nas cores reais do
+// cordão atual dele (Mestre/Presidente = branco/verde/azul).
+function renderizarHeroFundador(a) {
+const wrap = document.getElementById('heroFundador');
+if (!wrap) return;
+if (!a) { wrap.classList.add('oculto'); wrap.innerHTML = ''; return; }
+
+const idade = Number(a.idade) || 0;
+const lista = idade < 12 ? cordoesKids : cordoesAdulto;
+let idx = lista.findIndex((c) => c.nome === (a.cordaoAtual || 'Iniciante'));
+if (idx === -1) idx = 0;
+const cor = lista[idx].cor;
+const porcentagem = calcularPorcentagemEvolucaoDe(a);
+const estrelaCount = a.academiaGerenciadaId ? calcularEstrelaViva(a.academiaGerenciadaId, todosUsuarios) : 0;
+const volta = (porcentagem / 100).toFixed(3);
+const estrelasHtml = estrelaCount > 0
+? `<span style="color:var(--star-filled)">${'★'.repeat(estrelaCount)}</span><span style="color:rgba(255,255,255,.32)">${'★'.repeat(7 - estrelaCount)}</span> <span class="hero-fundador-estrela-num">${estrelaCount}/7 estrela viva</span>`
+: '';
+
+wrap.innerHTML = `
+<div class="hero-fundador-card">
+<div class="hero-fundador-topo">
+<div class="hero-fundador-anel" style="background:conic-gradient(#00E676 0turn ${volta}turn, rgba(255,255,255,.16) ${volta}turn 1turn);">
+<div class="hero-fundador-anel-miolo">
+<img src="${escapeHTML(a.fotoUrl || 'https://via.placeholder.com/90')}" alt="Foto de ${escapeHTML(a.nome || 'Fundador')}">
+</div>
+</div>
+<div class="hero-fundador-info">
+<span class="hero-fundador-selo"><i class="fas fa-crown"></i> Acesso Geral · Fundador</span>
+<h2>${escapeHTML(a.nome || 'Fundador')}</h2>
+<span class="hero-fundador-cordao">Cordão ${escapeHTML(a.cordaoAtual || 'Iniciante')}</span>
+<div class="hero-fundador-estrelas">${estrelasHtml}</div>
+</div>
+<div class="hero-fundador-pct">${porcentagem}<span>%</span></div>
+</div>
+<div class="cordao-track hero-fundador-cordao-track">
+<div class="cordao-fill" style="width:${porcentagem}%; --c1:${cor[0]}; --c2:${cor[1]}; --c3:${cor[2]};"></div>
+</div>
+</div>`;
+wrap.classList.remove('oculto');
 }
 
 window.transferirAluno = async function (idAluno, novoNucleoId) {

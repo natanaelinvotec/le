@@ -278,6 +278,56 @@ white-space: nowrap;
 @media (max-width: 1100px) { .btn-fundador-label { display: none; } .btn-fundador-link { padding: 8px 12px; } }
 @media (max-width: 850px) { .btn-fundador-link { display: none; } }
 
+/* ===== v4.2: cartão de destaque do fundador em "Meus Alunos" (status de
+   aluno dele mesmo, no mesmo estilo moderno que o app.html mostra) ===== */
+.hero-fundador { margin-bottom: 24px; }
+.hero-fundador-card {
+position: relative; overflow: hidden; border-radius: 22px; padding: 26px 28px;
+background: radial-gradient(120% 160% at 0% 0%, #0A3E8C 0%, var(--primary-blue) 46%, #001A45 100%);
+box-shadow: 0 18px 42px rgba(0,45,114,0.32);
+animation: cardIn 0.5s var(--ease-standard) both;
+}
+.hero-fundador-card::before {
+content: ''; position: absolute; inset: 0; pointer-events: none;
+background: radial-gradient(60% 90% at 88% -10%, rgba(0,230,118,0.22), transparent 60%);
+}
+.hero-fundador-topo { position: relative; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.hero-fundador-anel {
+flex: none; width: 84px; height: 84px; border-radius: 50%;
+display: flex; align-items: center; justify-content: center;
+box-shadow: 0 0 0 1px rgba(255,255,255,0.12), 0 0 22px rgba(0,230,118,0.35);
+}
+.hero-fundador-anel-miolo {
+width: 68px; height: 68px; border-radius: 50%; overflow: hidden;
+border: 3px solid rgba(255,255,255,0.9); background: #0A3E8C;
+}
+.hero-fundador-anel-miolo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.hero-fundador-info { flex: 1; min-width: 180px; }
+.hero-fundador-selo {
+display: inline-flex; align-items: center; gap: 6px; margin-bottom: 6px;
+padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 800;
+letter-spacing: 0.4px; text-transform: uppercase;
+background: linear-gradient(90deg, #B9770E, var(--star-filled)); color: #fff;
+}
+.hero-fundador-info h2 { font-family: 'Montserrat', sans-serif; color: #fff; font-size: 1.28rem; line-height: 1.2; margin-bottom: 4px; }
+.hero-fundador-cordao { display: block; color: rgba(255,255,255,0.78); font-weight: 700; font-size: 0.88rem; }
+.hero-fundador-estrelas { margin-top: 6px; font-size: 0.9rem; letter-spacing: 1px; }
+.hero-fundador-estrela-num { font-size: 0.74rem; letter-spacing: normal; color: rgba(255,255,255,0.7); font-weight: 700; margin-left: 4px; }
+.hero-fundador-pct {
+flex: none; font-family: 'Montserrat', sans-serif; font-weight: 800; color: #00E676;
+font-size: 2.1rem; line-height: 1; text-shadow: 0 0 18px rgba(0,230,118,0.5);
+}
+.hero-fundador-pct span { font-size: 1.1rem; }
+.hero-fundador-cordao-track {
+position: relative; margin-top: 20px; height: 18px; border-radius: 20px;
+background: rgba(255,255,255,0.14); box-shadow: inset 0 2px 6px rgba(0,0,0,0.25);
+}
+.hero-fundador-cordao-track .cordao-fill { box-shadow: 0 0 16px rgba(0,230,118,0.55); }
+@media (max-width: 560px) {
+.hero-fundador-card { padding: 20px; }
+.hero-fundador-pct { font-size: 1.6rem; }
+}
+
 .cascata-section { margin-bottom: 10px; }
 .cascata-tree { display: flex; flex-direction: column; align-items: center; padding: 25px 15px 10px; }
 .cascata-mestre {

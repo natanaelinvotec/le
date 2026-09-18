@@ -707,10 +707,20 @@ a:hover{ color:#389E92; }
                       <span style="flex:1; text-align:left; font-weight:700; color:#2C3E50; font-size:.85rem;">{{ c.estadoTexto }}</span>
                     </button>
                   </sc-if>
+                  <sc-if value="{{ c.ehFoto }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex; align-items:center; gap:14px;">
+                      <img src="{{ c.valor }}" alt="Foto de perfil" style="width:64px; height:64px; border-radius:50%; object-fit:cover; border:2px solid #E0E6E5; flex:none; background:#F8FBFB;" />
+                      <div style="flex:1; min-width:0;">
+                        <button onClick="{{ c.abrirGaleria }}" style="padding:10px 16px; border:1px solid #389E92; border-radius:999px; background:#fff; color:#389E92; font-weight:800; font-size:.82rem; cursor:pointer; font-family:'Nunito',sans-serif;"><i class="fas fa-image"></i> Trocar foto</button>
+                        <div style="margin-top:6px; color:#7F8C8D; font-size:.74rem; min-height:14px;">{{ c.statusFoto }}</div>
+                      </div>
+                    </div>
+                  </sc-if>
                 </div>
               </sc-for>
             </div>
 
+            <input type="file" id="sheetFotoInput" accept="image/*" style="display:none" onChange="{{ sheetFotoMudar }}" />
             <button onClick="{{ confirmarSheet }}" style="margin-top:18px; width:100%; padding:16px; border:none; border-radius:20px; background:#002D72; color:#fff; font-family:'Montserrat',sans-serif; font-weight:700; font-size:.98rem; cursor:pointer;">{{ sheetBotao }}</button>
           </div>
         </div>
@@ -859,7 +869,7 @@ class Component extends DCLogic {
     carregando: true,
     perfil: null, papel: 'aluno', aba: 'inicio', atleta: 0, escolhendo: false, trocador: false,
     busca: '', filtro: 'Todos', filtroMaterial: 'Tudo', aviso: '', avaliando: null, notasAval: null,
-    observacao: '', historico: {}, sheet: null, sheetVals: {},
+    observacao: '', historico: {}, sheet: null, sheetVals: {}, sheetFotoStatus: '',
     pendentes: PENDENTES.slice(), alunos: ALUNOS.slice(), materiais: MATERIAIS.slice(),
   };
 
@@ -1019,7 +1029,22 @@ class Component extends DCLogic {
   }
 
   abrirSheet(id, vals) {
-    this.setState({ sheet: id, sheetVals: vals || {} });
+    this.setState({ sheet: id, sheetVals: vals || {}, sheetFotoStatus: '' });
+  }
+
+  async trocarFotoSheet(ev) {
+    const arquivo = ev.target.files && ev.target.files[0];
+    ev.target.value = '';
+    if (!arquivo || !this._FB) return;
+    this.setState({ sheetFotoStatus: 'Ajustando o tamanho da foto...' });
+    try {
+      const comprimida = await this._FB.arquivoParaDataUrlComprimido(arquivo, 540, 0.82);
+      this.setState((s) => ({ sheetVals: Object.assign({}, s.sheetVals, { foto: comprimida }), sheetFotoStatus: 'Foto pronta (será salva ao confirmar).' }));
+    } catch (e) {
+      console.error(e);
+      this.setState({ sheetFotoStatus: '' });
+      this.toast('Não foi possível usar essa imagem.');
+    }
   }
 
   renderVals() {
@@ -1061,9 +1086,10 @@ class Component extends DCLogic {
     const sheetDefs = {
       dados: {
         titulo: 'Meus dados',
-        ajuda: 'Atualize seu nome e telefone de contato. Para trocar de senha, use "Esqueci minha senha" na tela de login.',
+        ajuda: 'Atualize seu nome, foto e telefone de contato. Para trocar de senha, use "Esqueci minha senha" na tela de login.',
         botao: 'Salvar alterações',
         campos: [
+          { chave:'foto', rotulo:'Foto de perfil:', tipo:'foto', padrao: (perfilAtual && perfilAtual.foto) || 'assets/logo-liberdade.png' },
           { chave:'nome', rotulo:'Nome completo:', tipo:'texto', entrada:'text', padrao: perfilAtual ? perfilAtual.nome : '' },
           { chave:'email', rotulo:'E-mail de acesso:', tipo:'texto', entrada:'email', padrao: perfilAtual ? perfilAtual.email : '' },
           { chave:'telefone', rotulo:'Celular:', tipo:'texto', entrada:'tel', dica:'(67) 99129-3269', padrao:'' },
@@ -1352,23 +1378,34 @@ class Component extends DCLogic {
         const valor = bruto === undefined ? (c.tipo === 'select' ? (c.opcoes[0] ? c.opcoes[0].valor : '') : (c.padrao !== undefined ? c.padrao : '')) : bruto;
         return {
           rotulo: c.rotulo, dica: c.dica || '', tipo: c.entrada || 'text', valor: valor, opcoes: c.opcoes || [],
-          ehSelect: c.tipo === 'select', ehTexto: c.tipo === 'texto', ehArea: c.tipo === 'area', ehInterruptor: false,
+          ehSelect: c.tipo === 'select', ehTexto: c.tipo === 'texto', ehArea: c.tipo === 'area', ehInterruptor: false, ehFoto: c.tipo === 'foto',
           estadoTexto: '', trilho: '', bolinha: '',
+          statusFoto: this.state.sheetFotoStatus,
+          abrirGaleria: () => { const el = document.getElementById('sheetFotoInput'); if (el) el.click(); },
           alternar: () => {},
           mudar: (ev) => this.setState((s) => { const v = Object.assign({}, s.sheetVals); v[c.chave] = ev.target.value; return { sheetVals: v }; }),
         };
       }) : [],
-      fecharSheet: () => this.setState({ sheet: null, sheetVals: {} }),
+      sheetFotoMudar: (ev) => this.trocarFotoSheet(ev),
+      fecharSheet: () => this.setState({ sheet: null, sheetVals: {}, sheetFotoStatus: '' }),
       confirmarSheet: async () => {
         const tipo = this.state.sheet;
         const v = this.state.sheetVals;
         const pega = (chave, padrao) => (v[chave] === undefined ? padrao : v[chave]);
         if (tipo === 'dados') {
           try {
+            const novoNome = pega('nome', perfilAtual ? perfilAtual.nome : '');
+            const novaFoto = pega('foto', (perfilAtual && perfilAtual.foto) || '');
             await this._FB.atualizar('usuarios', this._uid, {
-              nome: pega('nome', perfilAtual ? perfilAtual.nome : ''),
+              nome: novoNome,
               telefone: pega('telefone', ''),
+              fotoUrl: novaFoto,
             });
+            // Atualiza na hora a foto/nome exibidos (cabeçalho, perfil) sem
+            // precisar recarregar a página inteira.
+            if (perfilAtual) { perfilAtual.foto = novaFoto; perfilAtual.nome = novoNome; }
+            const meuAtleta = ATLETAS.find((a) => a.uid === this._uid);
+            if (meuAtleta) { meuAtleta.foto = novaFoto; meuAtleta.nome = novoNome; meuAtleta.curto = novoNome.split(' ')[0]; }
             this.toast('Seus dados foram atualizados.');
           } catch (e) {
             console.error(e);
