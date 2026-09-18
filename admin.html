@@ -380,7 +380,7 @@ Escolha um aluno já cadastrado para virar responsável por este núcleo
 <div class="mod-secao-papeis" data-papel="admin">
 <h4><i class="fas fa-user-shield"></i> Papéis especiais (Admin)</h4>
 <label class="mod-checkbox-linha">
-<input type="checkbox" id="modPapelInstrutor"> Papel: Instrutor (em formação)
+<input type="checkbox" id="modPapelInstrutor"> Papel: Instrutor
 </label>
 <div class="form-group-mod" id="wrapSupervisorInstrutor" style="margin-top:8px;">
 <label for="modSupervisorInstrutor">Mestre responsável (financeiro/supervisão):</label>
@@ -422,6 +422,11 @@ Escolha um aluno já cadastrado para virar responsável por este núcleo
 <form id="formEditNucleo" style="display: grid; gap: 15px;">
 <div><label for="editNomeNucleo">Nome do Núcleo</label><input type="text" id="editNomeNucleo" class="input-padrao" required></div>
 <div><label for="editMensalidadeNucleo">Mensalidade (R$)</label><input type="number" id="editMensalidadeNucleo" class="input-padrao" min="0" step="0.01"></div>
+<div>
+<label for="editResponsavelNucleo">Responsável (mestre / professor / instrutor)</label>
+<select id="editResponsavelNucleo" class="input-padrao"></select>
+<p style="font-size:0.8rem; color:var(--text-muted); margin-top:6px;">Vincula essa pessoa a este núcleo e libera o painel completo de gestão dela (alunos, avaliação, financeiro, relatórios) — mesmo princípio de "Papéis especiais".</p>
+</div>
 <div>
 <label for="editAtivoNucleo">Status</label>
 <select id="editAtivoNucleo" class="input-padrao">

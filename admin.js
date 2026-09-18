@@ -338,6 +338,14 @@ if (!n) return;
 document.getElementById('editNomeNucleo').value = n.nome || '';
 document.getElementById('editMensalidadeNucleo').value = n.mensalidadeValor || '';
 document.getElementById('editAtivoNucleo').value = n.ativo === false ? 'false' : 'true';
+// Responsável: qualquer mestre/professor/instrutor (ou aluno) que ainda não
+// administra OUTRO núcleo, mais quem já administra este (pré-selecionado).
+const selResp = document.getElementById('editResponsavelNucleo');
+if (selResp) {
+const elegiveis = todosUsuarios.filter((u) => !u.academiaGerenciadaId || u.academiaGerenciadaId === n.id);
+selResp.innerHTML = '<option value="">— Nenhum —</option>' +
+elegiveis.map((u) => `<option value="${escapeHTML(u.id)}" ${u.id === n.professorUid ? 'selected' : ''}>${escapeHTML(u.nome)}${u.email ? ` (${escapeHTML(u.email)})` : ''}</option>`).join('');
+}
 document.getElementById('modalEditarNucleo').style.display = 'flex';
 };
 window.fecharModalNucleo = () => { document.getElementById('modalEditarNucleo').style.display = 'none'; };
@@ -349,14 +357,44 @@ e.preventDefault();
 const btn = formEditNucleo.querySelector('button[type="submit"]');
 btn.disabled = true;
 try {
+const nucleoAtual = todosNucleos.find((x) => x.id === nucleoEditandoID);
+const responsavelAnteriorId = nucleoAtual ? (nucleoAtual.professorUid || null) : null;
+const selResp = document.getElementById('editResponsavelNucleo');
+const novoResponsavelId = selResp ? (selResp.value || null) : responsavelAnteriorId;
+
 await atualizar('nucleos', nucleoEditandoID, {
 nome: sanitizeInput(document.getElementById('editNomeNucleo').value),
 mensalidadeValor: Number(document.getElementById('editMensalidadeNucleo').value) || 0,
 ativo: document.getElementById('editAtivoNucleo').value === 'true',
+professorUid: novoResponsavelId,
 });
+
+// Vínculo mudou: solta o responsável antigo (perde papel mestre + o núcleo
+// gerenciado) e concede ao novo (mesmo princípio de "Papéis especiais") —
+// a pessoa continua treinando normalmente como aluno, só ganha/perde o
+// painel de gestão do núcleo.
+if (novoResponsavelId !== responsavelAnteriorId) {
+if (responsavelAnteriorId) {
+const antigo = todosUsuarios.find((u) => u.id === responsavelAnteriorId);
+if (antigo) {
+await atualizar('usuarios', responsavelAnteriorId, {
+papeis: (antigo.papeis || []).filter((p) => p !== 'mestre'),
+academiaGerenciadaId: null,
+});
+}
+}
+if (novoResponsavelId) {
+const novo = todosUsuarios.find((u) => u.id === novoResponsavelId);
+await atualizar('usuarios', novoResponsavelId, {
+papeis: Array.from(new Set([...(novo?.papeis || ['aluno']), 'mestre'])),
+academiaGerenciadaId: nucleoEditandoID,
+});
+}
+}
+
 toast('Núcleo atualizado!');
 window.fecharModalNucleo();
-await carregarNucleos();
+await Promise.all([carregarNucleos(), carregarUsuarios()]);
 } catch (err) {
 console.error(err);
 toast('Erro ao editar núcleo.', 'error');
@@ -444,7 +482,7 @@ alunos: todosAlunosNucleo.filter((a) => a.instrutorUid === instr.id),
 }));
 const diretos = todosAlunosNucleo.filter((a) => !a.instrutorUid && !instrutorIds.has(a.id));
 
-const chip = (a) => `<img class="cascata-aluno-chip" src="${escapeHTML(a.fotoUrl || 'https://via.placeholder.com/34')}" title="${escapeHTML(a.nome || 'Aluno')} (${escapeHTML(a.cordaoAtual || 'Iniciante')})" alt="${escapeHTML(a.nome || 'Aluno')}">`;
+const chip = (a) => `<img class="cascata-aluno-chip" src="${escapeHTML(a.fotoUrl || 'https://via.placeholder.com/34')}" title="${escapeHTML(a.nome || 'Aluno')} (${escapeHTML(a.cordaoAtual || 'Iniciante')}) — ${calcularPorcentagemEvolucaoDe(a)}% de evolução" alt="${escapeHTML(a.nome || 'Aluno')}">`;
 
 const ramos = [
 ...porInstrutor.map(({ instrutor, alunos }) => `
@@ -550,23 +588,29 @@ selecionado é mestre/professor ou instrutor, a avaliação troca para os
 critérios de desempenho de formador (canto, condução de eventos,
 progressão de alunos formados, qualidade técnica, instrumental). --- */
 const ordemCordoes = [
-'Iniciante', 'Cinza Claro', 'Cinza e Bege', 'Bege',
-'Escravo', 'Fugitivo', 'Quilombola', 'Vagante',
+'Iniciante', 'Escravo', 'Fugitivo', 'Quilombola', 'Vagante',
 'Liberto', 'Instrutor', 'Professor', 'Mestre', 'Mestre/Presidente',
 ];
+// Cores atualizadas em 2026-09 — combinações "cor A e cor B" viram gradiente
+// [A, B, A]; combinações de 3 cores seguem a ordem citada literalmente.
+// "Bege" foi substituído por dourado em todo o código (não existe mais bege).
 const cordoesAdulto = [
 { nome: 'Iniciante', cor: ['#CCC', '#CCC', '#CCC'] }, { nome: 'Escravo', cor: ['#4F4F4F', '#4F4F4F', '#4F4F4F'] },
-{ nome: 'Fugitivo', cor: ['#4F4F4F', '#F5DEB3', '#4F4F4F'] }, { nome: 'Quilombola', cor: ['#DAA520', '#DAA520', '#DAA520'] },
-{ nome: 'Vagante', cor: ['#D2691E', '#D32F2F', '#D2691E'] }, { nome: 'Liberto', cor: ['#D32F2F', '#D32F2F', '#D32F2F'] },
-{ nome: 'Instrutor', cor: ['#4F4F4F', '#F5DEB3', '#D32F2F'] }, { nome: 'Professor', cor: ['#D32F2F', '#FFFFFF', '#D32F2F'] },
+{ nome: 'Fugitivo', cor: ['#4F4F4F', '#DAA520', '#4F4F4F'] }, { nome: 'Quilombola', cor: ['#DAA520', '#DAA520', '#DAA520'] },
+{ nome: 'Vagante', cor: ['#4F4F4F', '#D32F2F', '#4F4F4F'] }, { nome: 'Liberto', cor: ['#D32F2F', '#D32F2F', '#D32F2F'] },
+{ nome: 'Instrutor', cor: ['#4F4F4F', '#DAA520', '#D32F2F'] }, { nome: 'Professor', cor: ['#FFFFFF', '#D32F2F', '#FFFFFF'] },
 { nome: 'Mestre', cor: ['#F5F5F5', '#F5F5F5', '#F5F5F5'] },
 // Rank mais alto, exclusivo do fundador do grupo (Mestre Profeta) — mostrado
-// só como opção pra quem já tem acessoGeral (ver abrirModal).
-{ nome: 'Mestre/Presidente', cor: ['#FFD700', '#002D72', '#FFD700'] },
+// só como opção pra quem já tem acessoGeral (ver abrirModal). Cores da logo:
+// branco, verde e azul.
+{ nome: 'Mestre/Presidente', cor: ['#FFFFFF', '#00B140', '#002D72'] },
 ];
+// Infantil (<12 anos) reaproveita os MESMOS nomes de graduação do adulto
+// (Escravo/Fugitivo/Quilombola), só que em tons mais claros — o aluno segue
+// pra escada adulta normalmente ao completar 12 anos.
 const cordoesKids = [
-{ nome: 'Iniciante', cor: ['#CCC', '#CCC', '#CCC'] }, { nome: 'Cinza Claro', cor: ['#D3D3D3', '#D3D3D3', '#D3D3D3'] },
-{ nome: 'Cinza e Bege', cor: ['#D3D3D3', '#F5DEB3', '#D3D3D3'] }, { nome: 'Bege', cor: ['#F5DEB3', '#F5DEB3', '#F5DEB3'] },
+{ nome: 'Iniciante', cor: ['#CCC', '#CCC', '#CCC'] }, { nome: 'Escravo', cor: ['#D3D3D3', '#D3D3D3', '#D3D3D3'] },
+{ nome: 'Fugitivo', cor: ['#D3D3D3', '#EEDC82', '#D3D3D3'] }, { nome: 'Quilombola', cor: ['#EEDC82', '#EEDC82', '#EEDC82'] },
 ];
 const criteriosRegras = [
 { id: 'c1', txt: 'Ginga e Base', reqAdulto: 0, reqKids: true }, { id: 'c2', txt: 'Acrobacias', reqAdulto: 3, reqKids: false },
@@ -585,6 +629,24 @@ const criteriosFormador = [
 { id: 'f3', txt: 'Progressão de Alunos Formados' }, { id: 'f4', txt: 'Qualidade Técnica' },
 { id: 'f5', txt: 'Instrumental' },
 ];
+
+// Porcentagem de evolução de QUALQUER usuário (aluno, instrutor, mestre —
+// todo mundo treina como aluno), fora do contexto do modal aberto. Usada no
+// gráfico de pirâmide e no tooltip da Cascata de Formação.
+function calcularPorcentagemEvolucaoDe(usuario) {
+if (!usuario) return 0;
+const idade = Number(usuario.idade) || 0;
+const rank = usuario.cordaoAtual || 'Iniciante';
+let idx = (idade < 12 ? cordoesKids : cordoesAdulto).findIndex((c) => c.nome === rank);
+if (idx === -1) idx = 0;
+const ativos = criteriosRegras.filter((crit) => (idade < 12 ? crit.reqKids : idx >= (crit.reqAdulto - 1)));
+const maxPontos = ativos.length * 10;
+if (maxPontos === 0) return 0;
+let total = 0;
+if (usuario.notas) ativos.forEach((c) => { if (usuario.notas[c.id] !== undefined) total += Number(usuario.notas[c.id]) || 0; });
+const porc = (total / maxPontos) * 100;
+return Math.floor(porc > 100 ? 100 : porc);
+}
 
 let notasAtuais = {};
 let notasFormadorAtuais = {};
@@ -1400,10 +1462,10 @@ finally { btn.disabled = false; }
 /* ===================== GRÁFICOS ===================== */
 function obterCorPorCordao(nome) {
 const mapa = {
-Iniciante: '#CCCCCC', 'Cinza Claro': '#D3D3D3', 'Cinza e Bege': '#C0C0C0', Bege: '#DEB887',
-Escravo: '#555555', Fugitivo: '#8B7D6B', Quilombola: '#DAA520', Vagante: '#CD5C5C',
-Liberto: '#D32F2F', Instrutor: '#800000', Professor: '#F08080', Mestre: '#F5F5F5',
-'Mestre/Presidente': '#FFD700',
+Iniciante: '#CCCCCC',
+Escravo: '#4F4F4F', Fugitivo: '#DAA520', Quilombola: '#DAA520', Vagante: '#D32F2F',
+Liberto: '#D32F2F', Instrutor: '#DAA520', Professor: '#D32F2F', Mestre: '#F5F5F5',
+'Mestre/Presidente': '#00B140',
 };
 return mapa[nome] || '#389E92';
 }
