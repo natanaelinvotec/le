@@ -155,7 +155,7 @@ a:hover{ color:#389E92; }
                   </div>
                 </div>
                 <div style="margin-top:16px; width:100%; height:18px; border-radius:20px; background:#E6EDEC; overflow:hidden; box-shadow:inset 0 2px 5px rgba(0,0,0,.06);">
-                  <div style="height:100%; width:{{ progresso }}%; border-radius:20px; animation:apTranca 2s linear infinite; box-shadow:0 0 14px rgba(0,230,118,.6); background:repeating-linear-gradient(45deg,#D2691E 0,#D2691E 10px,#D32F2F 10px,#D32F2F 20px,#D2691E 20px,#D2691E 30px);"></div>
+                  <div style="{{ barraCordaoEstilo }}"></div>
                 </div>
               </div>
 
@@ -208,7 +208,7 @@ a:hover{ color:#389E92; }
                     <span style="font-family:'Montserrat',sans-serif; font-weight:800; color:#389E92; font-size:1.4rem;">{{ progresso }}%</span>
                   </div>
                   <div style="width:100%; height:22px; border-radius:20px; background:#E6EDEC; overflow:hidden;">
-                    <div style="height:100%; width:{{ progresso }}%; border-radius:20px; animation:apTranca 2s linear infinite; box-shadow:0 0 14px rgba(0,230,118,.55); background:repeating-linear-gradient(45deg,#D2691E 0,#D2691E 10px,#D32F2F 10px,#D32F2F 20px,#D2691E 20px,#D2691E 30px);"></div>
+                    <div style="{{ barraCordaoEstilo }}"></div>
                   </div>
                 </div>
 
@@ -751,7 +751,30 @@ a:hover{ color:#389E92; }
 </div>
 
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{}">const CORDOES = ['Iniciante','Cinza Claro','Cinza e Bege','Bege','Escravo','Fugitivo','Quilombola','Vagante','Liberto','Instrutor','Professor','Mestre'];
+<script type="text/x-dc" data-dc-script data-props="{}">// Cordões sincronizados com admin.js (2026-09): faixa etária decide a escada visível,
+// "bege" virou dourado em todo lugar e as combinações de cor seguem [corA, corB, corA].
+const CORDOES_ADULTO = [
+  { nome: 'Iniciante', cor: ['#CCC', '#CCC', '#CCC'] }, { nome: 'Escravo', cor: ['#4F4F4F', '#4F4F4F', '#4F4F4F'] },
+  { nome: 'Fugitivo', cor: ['#4F4F4F', '#DAA520', '#4F4F4F'] }, { nome: 'Quilombola', cor: ['#DAA520', '#DAA520', '#DAA520'] },
+  { nome: 'Vagante', cor: ['#4F4F4F', '#D32F2F', '#4F4F4F'] }, { nome: 'Liberto', cor: ['#D32F2F', '#D32F2F', '#D32F2F'] },
+  { nome: 'Instrutor', cor: ['#4F4F4F', '#DAA520', '#D32F2F'] }, { nome: 'Professor', cor: ['#FFFFFF', '#D32F2F', '#FFFFFF'] },
+  { nome: 'Mestre', cor: ['#F5F5F5', '#F5F5F5', '#F5F5F5'] },
+  { nome: 'Mestre/Presidente', cor: ['#FFFFFF', '#00B140', '#002D72'] },
+];
+const CORDOES_KIDS = [
+  { nome: 'Iniciante', cor: ['#CCC', '#CCC', '#CCC'] }, { nome: 'Escravo', cor: ['#D3D3D3', '#D3D3D3', '#D3D3D3'] },
+  { nome: 'Fugitivo', cor: ['#D3D3D3', '#EEDC82', '#D3D3D3'] }, { nome: 'Quilombola', cor: ['#EEDC82', '#EEDC82', '#EEDC82'] },
+];
+function cordoesPorIdade(idade) { return (Number(idade) || 0) < 12 ? CORDOES_KIDS : CORDOES_ADULTO; }
+function idxCordaoDe(idade, nomeCordao) {
+  const idx = cordoesPorIdade(idade).findIndex((c) => c.nome === (nomeCordao || 'Iniciante'));
+  return idx === -1 ? 0 : idx;
+}
+function corCordao(idade, nomeCordao) {
+  const lista = cordoesPorIdade(idade);
+  const item = lista.find((c) => c.nome === nomeCordao) || lista[0];
+  return (item && item.cor) || ['#389E92', '#389E92', '#389E92'];
+}
 const ACADEMIAS = ['Mestre Profeta · Buriti','Profª Taynara · Buriti','Profº Rafinha · Rancho Alegre','Mestre Omar · Guanandi','Instrutor Tigoy · Nova Lima'];
 
 const PRODUTOS = [
@@ -760,14 +783,8 @@ const PRODUTOS = [
   { nome:'Pandeiro Profissional', desc:'Pele natural, tarraxas reforçadas e ótima projeção.', preco:'R$ 180,00', img:'assets/bateria.jpg' }
 ];
 
-const MATERIAIS = [
-  { tipo:'Videoaula', titulo:'Módulo 1: Ginga e base perfeita', desc:'Fundamentos da movimentação e postura na roda.', link:'https://www.youtube.com/results?search_query=capoeira+ginga', capa:'assets/grupo-buriti.jpg', destino:'Todas as academias' },
-  { tipo:'Videoaula', titulo:'Módulo 2: Toques de berimbau', desc:'Ritmo, afinação e os toques que comandam a roda.', link:'https://www.youtube.com/results?search_query=toques+de+berimbau', capa:'assets/bateria.jpg', destino:'Todas as academias' },
-  { tipo:'Oficina de música', titulo:'Oficina de pandeiro e atabaque', desc:'Sábado, 15h, na sede do Buriti. Traga seu instrumento.', link:'https://www.youtube.com/results?search_query=oficina+pandeiro+capoeira', capa:'assets/bateria-externa.jpg', destino:'Mestre Profeta · Buriti' },
-  { tipo:'Oficina de canto', titulo:'Corridos e ladainhas para iniciantes', desc:'Letras, resposta de coro e a hora certa de cantar.', link:'https://www.youtube.com/results?search_query=ladainha+capoeira', capa:'', destino:'Todas as academias' },
-  { tipo:'Biblioteca', titulo:'Apostila de fundamentos (PDF)', desc:'História, cordões, regras da roda e vocabulário.', link:'https://drive.google.com/drive/folders/', capa:'', destino:'Todas as academias' },
-  { tipo:'Avaliação', titulo:'Prova teórica do cordão Vagante', desc:'Responda até 20/09 para liberar a avaliação prática.', link:'https://docs.google.com/forms/', capa:'', destino:'Mestre Profeta · Buriti' }
-];
+// Materiais fictícios removidos em 2026-09: agora vêm do Firestore (ver carregarMateriaisReais()).
+const MATERIAIS = [];
 
 const TIPOS_MATERIAL = ['Videoaula','Oficina de canto','Oficina de música','Biblioteca','Avaliação'];
 const MAT_ICONE = { 'Videoaula':'fas fa-play-circle', 'Oficina de canto':'fas fa-microphone', 'Oficina de música':'fas fa-drum', 'Biblioteca':'fas fa-file-pdf', 'Avaliação':'fas fa-clipboard-check' };
@@ -878,8 +895,7 @@ class Component extends DCLogic {
   async montarAtleta(u, uidDoAtleta) {
     const FB = this._FB;
     const idade = Number(u.idade) || 0;
-    let idx = CORDOES.indexOf(u.cordaoAtual || 'Iniciante');
-    if (idx === -1) idx = 0;
+    const idx = idxCordaoDe(idade, u.cordaoAtual);
     let mensalidadeValor = null;
     if (u.academiaId) {
       try {
@@ -942,19 +958,37 @@ class Component extends DCLogic {
     if (gestorPapel === 'mestre' && perfil.academiaGerenciadaId) {
       this.carregarTurma(perfil.academiaGerenciadaId);
     }
+
+    this.carregarMateriaisReais();
   }
 
   async carregarTurma(academiaId) {
     try {
       const { itens } = await this._FB.listarPorAcademia('usuarios', academiaId, 300);
       const lista = itens.filter((u) => (u.papeis || []).includes('aluno')).map((u) => {
-        let idx = CORDOES.indexOf(u.cordaoAtual || 'Iniciante'); if (idx === -1) idx = 0;
         const idade = Number(u.idade) || 0;
+        const idx = idxCordaoDe(idade, u.cordaoAtual);
         const { progresso } = progressoDe(idade, idx, u.notas);
         return { nome: u.nome || 'Aluno', cordao: u.cordaoAtual || 'Iniciante', idade, percentual: progresso, academia: 0, email: u.email || '' };
       });
       ALUNOS = lista;
       this.setState({ alunos: lista.slice() });
+    } catch (e) { console.error(e); }
+  }
+
+  async carregarMateriaisReais() {
+    try {
+      const lista = await this._FB.listarMateriais();
+      const materiais = (lista || []).map((m) => ({
+        id: m.id,
+        tipo: TIPOS_MATERIAL.indexOf(m.tipo) !== -1 ? m.tipo : (TIPOS_MATERIAL[0] || 'Videoaula'),
+        titulo: m.titulo || 'Material',
+        desc: m.descricao || '',
+        link: m.url || '#',
+        capa: '',
+        destino: 'Todas as academias',
+      }));
+      this.setState({ materiais });
     } catch (e) { console.error(e); }
   }
 
@@ -999,6 +1033,9 @@ class Component extends DCLogic {
     };
     const { ativos: criteriosAtivos, progresso } = progressoDe(atleta.idade, atleta.idxCordao, atleta.notasReais);
     const notas = criteriosAtivos.map((c) => [c.txt, Number(atleta.notasReais[c.id]) || 0]);
+    const listaCordoes = cordoesPorIdade(atleta.idade);
+    const corAtleta = corCordao(atleta.idade, atleta.cordao);
+    const barraCordaoEstilo = 'height:100%; width:' + progresso + '%; border-radius:20px; animation:apTranca 2s linear infinite; box-shadow:0 0 14px rgba(0,230,118,.6); background:repeating-linear-gradient(45deg,' + corAtleta[0] + ' 0,' + corAtleta[0] + ' 10px,' + corAtleta[1] + ' 10px,' + corAtleta[1] + ' 20px,' + corAtleta[2] + ' 20px,' + corAtleta[2] + ' 30px);';
     const ABAS = admin ? ABAS_ADMIN : (gestor ? ABAS_MESTRE : ABAS_ALUNO);
     const idx = Math.max(0, ABAS.map((a) => a.id).indexOf(this.state.aba));
 
@@ -1076,14 +1113,13 @@ class Component extends DCLogic {
       },
       publicar: {
         titulo: 'Publicar material',
-        ajuda: 'Chega na aba Material de todos os alunos daquele destino.',
+        ajuda: 'Chega na aba Material de todos os alunos de todas as academias.',
         botao: 'Publicar',
         campos: [
           { chave:'tipo', rotulo:'Tipo:', tipo:'select', opcoes: TIPOS_MATERIAL.map((t) => ({ valor:t, rotulo:t })) },
           { chave:'titulo', rotulo:'Título:', tipo:'texto', entrada:'text', dica:'Ex: Oficina de berimbau', padrao:'' },
           { chave:'desc', rotulo:'Descrição:', tipo:'area', dica:'Um resumo curto.', padrao:'' },
           { chave:'link', rotulo:'Link:', tipo:'texto', entrada:'text', dica:'https://...', padrao:'' },
-          { chave:'destino', rotulo:'Destino:', tipo:'select', opcoes:[{ valor:'Todas as academias', rotulo:'Todas as academias' }].concat(academiasOpcoes) },
         ],
       },
     };
@@ -1111,7 +1147,8 @@ class Component extends DCLogic {
       atletaNome: familia ? atleta.curto : (perfilAtual ? perfilAtual.nome.split(' ')[0] : ''),
       atletaAcademia: atleta.academia,
       atletaCordao: 'Cordão ' + atleta.cordao,
-      proximoCordao: CORDOES[Math.min(CORDOES.length - 1, atleta.idxCordao + 1)],
+      proximoCordao: (listaCordoes[Math.min(listaCordoes.length - 1, atleta.idxCordao + 1)] || { nome: atleta.cordao }).nome,
+      barraCordaoEstilo: barraCordaoEstilo,
       seloApto: 'display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; margin-bottom:6px; font-size:.72rem; font-weight:800; letter-spacing:.08em; color:' + (progresso >= 70 ? '#00A854' : '#C0700C') + '; background:' + (progresso >= 70 ? 'rgba(0,230,118,.14)' : 'rgba(243,156,18,.14)') + ';',
       rotuloApto: progresso >= 70 ? 'APTO À TROCA' : 'EM PREPARAÇÃO',
       fotoAtletaLista: [{ url: atleta.foto }],
@@ -1121,8 +1158,7 @@ class Component extends DCLogic {
 
       opcoesPerfil: [
         { rotulo:'Meus dados', ajuda:'Nome, e-mail e telefone de contato', icone:'fas fa-id-card', acao: () => this.abrirSheet('dados') },
-      ].concat(!gestor ? [{ rotulo:'Minha academia', ajuda:'Onde você treina', icone:'fas fa-map-marker-alt', acao: () => this.abrirSheet('academia') }] : [])
-        .concat(familia ? [{ rotulo:'Vincular familiar', ajuda:'Ligar outro dependente à conta', icone:'fas fa-link', acao: () => this.abrirSheet('vincular') }] : []),
+      ].concat(familia ? [{ rotulo:'Vincular familiar', ajuda:'Ligar outro dependente à conta', icone:'fas fa-link', acao: () => this.abrirSheet('vincular') }] : []),
 
       temVariosPapeis: !!perfilAtual && perfilAtual.papeis.length > 1 && !!perfilAtual.academia,
       papeisDisponiveis: (perfilAtual ? perfilAtual.papeis : []).map((r) => ({
@@ -1154,13 +1190,13 @@ class Component extends DCLogic {
         barra: 'display:block; width:100%; max-width:46px; border-radius:8px 8px 3px 3px; transform-origin:bottom; animation:apCresce .6s cubic-bezier(.16,1,.3,1) both; height:' + Math.round((h.valor / 100) * 70) + 'px; background:' + (h.valor >= 70 ? 'linear-gradient(180deg,#00E676,#389E92)' : 'linear-gradient(180deg,#F39C12,#D2691E)') + ';',
       })),
 
-      trilha: CORDOES.map((c, i) => ({
-        nome: c,
+      trilha: listaCordoes.map((c, i) => ({
+        nome: c.nome,
         estado: i < atleta.idxCordao ? 'Conquistado' : (i === atleta.idxCordao ? 'Atual' : 'A conquistar'),
         linha: i === atleta.idxCordao
           ? 'display:flex; align-items:center; gap:12px; background:#fff; border:2px solid #00E676; border-radius:14px; padding:12px 14px;'
           : 'display:flex; align-items:center; gap:12px; background:#fff; border:1px solid #E0E6E5; border-radius:14px; padding:12px 14px;',
-        faixa: 'width:10px; height:26px; border-radius:4px; flex:none; background:' + (i <= atleta.idxCordao ? '#389E92' : '#DCE5E3') + ';',
+        faixa: 'width:10px; height:26px; border-radius:4px; flex:none; background:' + (i <= atleta.idxCordao ? ('linear-gradient(180deg,' + c.cor[0] + ',' + c.cor[1] + ',' + c.cor[2] + ')') : '#DCE5E3') + ';',
         texto: i <= atleta.idxCordao ? 'flex:1; font-weight:800; color:#002D72; font-size:.9rem;' : 'flex:1; font-weight:700; color:#95A5A6; font-size:.9rem;',
         tag: i === atleta.idxCordao
           ? 'font-size:.72rem; font-weight:800; color:#00A854; background:rgba(0,230,118,.14); padding:4px 10px; border-radius:8px;'
@@ -1277,7 +1313,18 @@ class Component extends DCLogic {
       materiaisGestao: this.state.materiais.slice(0, 6).map((m) => ({
         titulo: m.titulo, tipo: m.tipo, destino: m.destino, icone: MAT_ICONE[m.tipo] || 'fas fa-book',
         bolha: 'width:38px; height:38px; border-radius:11px; flex:none; display:flex; align-items:center; justify-content:center; color:' + (MAT_COR[m.tipo] || '#002D72') + '; background:' + (MAT_COR[m.tipo] || '#002D72') + '1a;',
-        remover: () => this.setState((s) => ({ materiais: s.materiais.filter((x) => x !== m) })),
+        remover: async () => {
+          if (m.id) {
+            try {
+              await this._FB.removerMaterial(m.id);
+            } catch (e) {
+              console.error(e);
+              this.toast('Não foi possível remover o material agora.');
+              return;
+            }
+          }
+          this.setState((s) => ({ materiais: s.materiais.filter((x) => x !== m) }));
+        },
       })),
 
       avaliacaoAberta: !!alvo,
@@ -1330,9 +1377,19 @@ class Component extends DCLogic {
         } else if (tipo === 'publicar') {
           const titulo = pega('titulo', '').trim();
           if (!titulo) { this.toast('Dê um título ao material antes de publicar.'); return; }
-          const novo = { tipo: pega('tipo', TIPOS_MATERIAL[0]), titulo: titulo, desc: pega('desc', '') || 'Material publicado pelo grupo.', link: pega('link', '') || '#', capa: '', destino: pega('destino', 'Todas as academias') };
-          this.setState((s) => ({ materiais: [novo].concat(s.materiais) }));
-          this.toast('Material "' + titulo + '" publicado.');
+          try {
+            await this._FB.publicarMaterial({
+              tipo: pega('tipo', TIPOS_MATERIAL[0]),
+              titulo: titulo,
+              descricao: pega('desc', '') || 'Material publicado pelo grupo.',
+              url: pega('link', '') || '#',
+            });
+            await this.carregarMateriaisReais();
+            this.toast('Material "' + titulo + '" publicado.');
+          } catch (e) {
+            console.error(e);
+            this.toast('Não foi possível publicar o material agora.');
+          }
         } else {
           this.toast('Tudo certo.');
         }
