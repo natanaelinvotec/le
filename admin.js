@@ -442,13 +442,16 @@ const txt = inputBusca ? inputBusca.value.toLowerCase() : '';
 const filtrados = alunos.filter((a) => (ac === '' || a.academiaId === ac) && (txt === '' || (a.nome || '').toLowerCase().includes(txt)));
 
 // O fundador (Acesso Geral) também treina como aluno no próprio núcleo que
-// administra — em vez de misturar o registro dele no meio da grade normal,
-// ele ganha um cartão de destaque no topo (igual à tela que o próprio aluno
-// vê no app), e continua aparecendo também como um cartão comum logo abaixo,
-// pra manter o acesso rápido de "Avaliar/Editar" do próprio prontuário.
-const meuRegistro = souFundador(sessaoAtual) ? (filtrados.find((a) => a.id === sessaoAtual.uid) || null) : null;
+// administra — em vez de misturar o registro dele no meio da grade normal
+// da PRÓPRIA tela de gestão dele, ele ganha um cartão de destaque no topo
+// (igual à tela que o próprio aluno vê no app) e some da grade comum aqui,
+// sem duplicar. Isso só vale pra esta view (o próprio fundador logado); no
+// painel do Admin Master de verdade (outra conta, vendo "Todos os Alunos"),
+// o registro dele continua aparecendo normalmente na grade, como qualquer
+// outro aluno, pra manter o "Avaliar/Editar" acessível por lá.
+const meuRegistro = (souFundador(sessaoAtual) && !ehAdmin()) ? (filtrados.find((a) => a.id === sessaoAtual.uid) || null) : null;
 renderizarHeroFundador(meuRegistro);
-renderizarGrid(meuRegistro ? filtrados.filter((a) => a.id !== meuRegistro.id).concat([meuRegistro]) : filtrados);
+renderizarGrid(meuRegistro ? filtrados.filter((a) => a.id !== meuRegistro.id) : filtrados);
 desenharGraficos(filtrados);
 renderizarCascata();
 }
