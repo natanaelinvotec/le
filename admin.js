@@ -42,6 +42,8 @@ const ehGestor = () => ehAdmin() || ehMestre();
 function obterFormadorUid(pessoa, listaNucleos) {
 if (!pessoa) return null;
 if (pessoa.formadorUid) return pessoa.formadorUid;
+if (pessoa.instrutorUid && pessoa.instrutorUid !== pessoa.id) return pessoa.instrutorUid;
+if (pessoa.instrutorSupervisorUid && pessoa.instrutorSupervisorUid !== pessoa.id) return pessoa.instrutorSupervisorUid;
 const nucleoOrigem = (listaNucleos || []).find((n) => n.id === pessoa.academiaId);
 if (nucleoOrigem && nucleoOrigem.professorUid && nucleoOrigem.professorUid !== pessoa.id) {
 return nucleoOrigem.professorUid;
@@ -53,11 +55,12 @@ return null;
 // Pirâmide expansível por clique, a partir de quem formou quem (formadorUid).
 // Cada mestre/professor/instrutor só vê a própria rede pra baixo; o fundador
 // (acesso geral) vê a árvore inteira do grupo a partir dele mesmo.
-function construirArvoreFormacao(raizUid, listaUsuarios, profundidade) {
+function construirArvoreFormacao(raizUid, listaUsuarios, listaNucleos, profundidade) {
 profundidade = profundidade || 0;
+if (profundidade > 12) return '';
 const pessoa = listaUsuarios.find((u) => u.id === raizUid);
 if (!pessoa) return '';
-const filhos = listaUsuarios.filter((u) => u.formadorUid === raizUid);
+const filhos = listaUsuarios.filter((u) => u.id !== raizUid && obterFormadorUid(u, listaNucleos) === raizUid);
 const porc = calcularPorcentagemEvolucaoDe(pessoa);
 const corBorda = porc >= 70 ? 'arvore-no-verde' : 'arvore-no-azul';
 const temFilhos = filhos.length > 0;
@@ -69,7 +72,7 @@ return `
 <span class="arvore-no-cordao">${escapeHTML(pessoa.cordaoAtual || 'Iniciante')}</span>
 ${temFilhos ? '<span class="arvore-no-chevron"><i class="fas fa-chevron-down"></i></span>' : ''}
 </div>
-${temFilhos ? `<div class="arvore-filhos oculto">${filhos.map((f) => construirArvoreFormacao(f.id, listaUsuarios, profundidade + 1)).join('')}</div>` : ''}
+${temFilhos ? `<div class="arvore-filhos oculto">${filhos.map((f) => construirArvoreFormacao(f.id, listaUsuarios, listaNucleos, profundidade + 1)).join('')}</div>` : ''}
 </div>`;
 }
 
@@ -89,7 +92,7 @@ if (sessaoAtual && (souFundador(sessaoAtual) || ehMestre() || (sessaoAtual.papei
 raizUid = sessaoAtual.uid;
 }
 if (!raizUid) { wrap.innerHTML = ''; return; }
-wrap.innerHTML = construirArvoreFormacao(raizUid, todosUsuarios);
+wrap.innerHTML = construirArvoreFormacao(raizUid, todosUsuarios, todosNucleos);
 }
 
 /* ---------------------- TOASTS ---------------------- */
