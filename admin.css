@@ -354,3 +354,26 @@ padding: 12px 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); text-align: center;
 .cascata-aluno-chip { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--card-bg); box-shadow: 0 0 0 1px var(--border-color); }
 .cascata-vazio { font-size: 0.82rem; color: var(--text-muted); font-style: italic; }
 @media (max-width: 700px) { .cascata-ramos::before { display: none; } .cascata-ramo::before { display: none; } }
+
+
+/* ---------------------- CABEÇALHO POR NÚCLEO (lista de núcleos) ---------------------- */
+.nucleo-hero-mini { margin: 14px 0; transform: scale(0.92); transform-origin: top left; }
+.nucleo-hero-mini .hero-fundador-card { max-width: 100%; }
+.nucleo-sem-responsavel { margin: 14px 0; color: var(--text-muted); font-style: italic; font-size: 0.9em; }
+
+/* ---------------------- ÁRVORE DA CASCATA DE FORMAÇÃO ---------------------- */
+.arvore-formacao-subtitulo { margin: 28px 0 14px; padding-top: 18px; border-top: 1px dashed var(--border-color); font-weight: 700; color: var(--primary-blue); display: flex; align-items: center; gap: 8px; }
+.arvore-formacao-container { display: flex; flex-direction: column; gap: 6px; overflow-x: auto; padding-bottom: 8px; }
+.arvore-no-wrap { display: flex; flex-direction: column; }
+.arvore-no { display: inline-flex; align-items: center; gap: 8px; width: fit-content; max-width: 100%; background: var(--card-bg); border: 2px solid var(--border-color); border-radius: 999px; padding: 6px 14px 6px 6px; margin: 3px 0; transition: box-shadow 0.2s var(--ease-standard), transform 0.2s var(--ease-standard); }
+.arvore-no-azul { border-color: #2F80ED; box-shadow: 0 0 0 1px rgba(47,128,237,0.25); }
+.arvore-no-verde { border-color: var(--accent-green); box-shadow: 0 0 0 1px rgba(0,230,118,0.28); }
+.arvore-no-expansivel { cursor: pointer; }
+.arvore-no-expansivel:hover { transform: translateX(2px); box-shadow: 0 2px 10px rgba(0,0,0,0.12); }
+.arvore-no-foto { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--bg-app); }
+.arvore-no-nome { font-weight: 700; font-size: 0.92em; color: var(--text-dark); white-space: nowrap; }
+.arvore-no-cordao { font-size: 0.78em; color: var(--text-muted); white-space: nowrap; }
+.arvore-no-chevron { margin-left: 4px; font-size: 0.75em; color: var(--text-muted); transition: transform 0.2s var(--ease-standard); }
+.arvore-no-expandido .arvore-no-chevron { transform: rotate(180deg); }
+.arvore-filhos { display: flex; flex-direction: column; margin-left: 26px; padding-left: 16px; border-left: 2px solid var(--border-color); }
+@media (max-width: 700px) { .arvore-no-nome, .arvore-no-cordao { max-width: 120px; overflow: hidden; text-overflow: ellipsis; } .arvore-filhos { margin-left: 14px; padding-left: 10px; } }
