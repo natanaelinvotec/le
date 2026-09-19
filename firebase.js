@@ -232,6 +232,7 @@ export const listarAvisos = async (tamanho = 20) =>
 export const publicarMaterial = (dados) => addDoc(collection(db, 'materiais'), { ...dados, criadoEm: new Date().toISOString() });
 export const listarMateriais = () => listar('materiais');
 export const removerMaterial = (id) => deleteDoc(doc(db, 'materiais', id));
+export const excluirUsuarioPermanente = (id) => deleteDoc(doc(db, 'usuarios', id));
 
 // ===== Materiais de Formação (curados pelo Admin: vídeos, conduta, ética,
 // preparação de graduação) — visíveis ao admin, a mestre/professor e a
