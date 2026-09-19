@@ -34,6 +34,64 @@ const ehMestre = () => !!sessaoAtual && (sessaoAtual.papeis || []).includes('mes
 const ehInstrutorLogado = () => !!sessaoAtual && (sessaoAtual.papeis || []).includes('instrutor');
 const ehGestor = () => ehAdmin() || ehMestre();
 
+/* ---------------------- CASCATA DE FORMAÇÃO ---------------------- */
+// Quem formou esta pessoa: se já tiver formadorUid gravado, mantém (a posição na
+// cascata é permanente mesmo que a pessoa troque de núcleo depois). Senão,
+// deriva do professorUid do núcleo onde ela treinava (academiaId) no momento
+// da promoção.
+function obterFormadorUid(pessoa, listaNucleos) {
+if (!pessoa) return null;
+if (pessoa.formadorUid) return pessoa.formadorUid;
+const nucleoOrigem = (listaNucleos || []).find((n) => n.id === pessoa.academiaId);
+if (nucleoOrigem && nucleoOrigem.professorUid && nucleoOrigem.professorUid !== pessoa.id) {
+return nucleoOrigem.professorUid;
+}
+return null;
+}
+
+/* ---------------------- ÁRVORE DA CASCATA DE FORMAÇÃO ---------------------- */
+// Pirâmide expansível por clique, a partir de quem formou quem (formadorUid).
+// Cada mestre/professor/instrutor só vê a própria rede pra baixo; o fundador
+// (acesso geral) vê a árvore inteira do grupo a partir dele mesmo.
+function construirArvoreFormacao(raizUid, listaUsuarios, profundidade) {
+profundidade = profundidade || 0;
+const pessoa = listaUsuarios.find((u) => u.id === raizUid);
+if (!pessoa) return '';
+const filhos = listaUsuarios.filter((u) => u.formadorUid === raizUid);
+const porc = calcularPorcentagemEvolucaoDe(pessoa);
+const corBorda = porc >= 70 ? 'arvore-no-verde' : 'arvore-no-azul';
+const temFilhos = filhos.length > 0;
+return `
+<div class="arvore-no-wrap">
+<div class="arvore-no ${corBorda}${temFilhos ? ' arvore-no-expansivel' : ''}"${temFilhos ? ' onclick="window.__toggleArvoreNo(this)"' : ''}>
+<img class="arvore-no-foto" src="${escapeHTML(pessoa.fotoUrl || 'https://via.placeholder.com/64')}" alt="${escapeHTML(pessoa.nome || '')}">
+<span class="arvore-no-nome">${escapeHTML(pessoa.nome || 'Sem nome')}</span>
+<span class="arvore-no-cordao">${escapeHTML(pessoa.cordaoAtual || 'Iniciante')}</span>
+${temFilhos ? '<span class="arvore-no-chevron"><i class="fas fa-chevron-down"></i></span>' : ''}
+</div>
+${temFilhos ? `<div class="arvore-filhos oculto">${filhos.map((f) => construirArvoreFormacao(f.id, listaUsuarios, profundidade + 1)).join('')}</div>` : ''}
+</div>`;
+}
+
+window.__toggleArvoreNo = function (el) {
+const wrap = el.closest('.arvore-no-wrap');
+const filhosDiv = wrap ? wrap.querySelector(':scope > .arvore-filhos') : null;
+if (!filhosDiv) return;
+filhosDiv.classList.toggle('oculto');
+el.classList.toggle('arvore-no-expandido');
+};
+
+function renderizarArvoreFormacao() {
+const wrap = document.getElementById('arvoreFormacaoContainer');
+if (!wrap) return;
+let raizUid = null;
+if (sessaoAtual && (souFundador(sessaoAtual) || ehMestre() || (sessaoAtual.papeis || []).includes('instrutor'))) {
+raizUid = sessaoAtual.uid;
+}
+if (!raizUid) { wrap.innerHTML = ''; return; }
+wrap.innerHTML = construirArvoreFormacao(raizUid, todosUsuarios);
+}
+
 /* ---------------------- TOASTS ---------------------- */
 function garantirToastContainer() {
 let c = document.getElementById('toastContainer');
@@ -247,6 +305,7 @@ const estrelas = calcularEstrelaViva(n.id, todosUsuarios);
 return `
 <div class="academia-card" style="--card-index:${i}">
 <h4><i class="fas fa-map-marker-alt"></i> ${escapeHTML(n.nome)}</h4>
+${(() => { const resp = todosUsuarios.find((u) => u.id === n.professorUid); return resp ? `<div class="nucleo-hero-mini">${construirHeroCardHTML(resp, todosUsuarios)}</div>` : '<p class="nucleo-sem-responsavel">Sem responsável definido — use Editar para atribuir.</p>'; })()}
 <p><strong>Mensalidade:</strong> ${n.mensalidadeValor ? `R$ ${Number(n.mensalidadeValor).toFixed(2)}` : 'Não informada'}</p>
 <p><strong>Status:</strong> ${n.ativo ? 'Ativo' : 'Inativo'}</p>
 <p class="estrela-viva" style="margin-left:0; color:var(--text-dark);"><strong>Estrela:</strong> <span style="color:var(--star-filled)">${'★'.repeat(estrelas)}</span><span style="color:var(--star-empty)">${'★'.repeat(7 - estrelas)}</span> (${estrelas}/7)</p>
@@ -314,7 +373,8 @@ professorUid = novo.uid;
 professorUid = respSelecionado;
 const respAtual = todosUsuarios.find((u) => u.id === professorUid);
 const papeisNovos = Array.from(new Set([...(respAtual?.papeis || ['aluno']), 'mestre']));
-await atualizar('usuarios', professorUid, { papeis: papeisNovos, academiaGerenciadaId: slug });
+const formadorUidNovo = obterFormadorUid(respAtual, todosNucleos);
+await atualizar('usuarios', professorUid, { papeis: papeisNovos, academiaGerenciadaId: slug, ...(formadorUidNovo ? { formadorUid: formadorUidNovo } : {}) });
 }
 
 await salvar('nucleos', slug, { nome, mensalidadeValor, professorUid, ativo: true });
@@ -385,9 +445,11 @@ academiaGerenciadaId: null,
 }
 if (novoResponsavelId) {
 const novo = todosUsuarios.find((u) => u.id === novoResponsavelId);
+const formadorUidNovo = obterFormadorUid(novo, todosNucleos);
 await atualizar('usuarios', novoResponsavelId, {
 papeis: Array.from(new Set([...(novo?.papeis || ['aluno']), 'mestre'])),
 academiaGerenciadaId: nucleoEditandoID,
+...(formadorUidNovo ? { formadorUid: formadorUidNovo } : {}),
 });
 }
 }
@@ -449,8 +511,9 @@ const filtrados = alunos.filter((a) => (ac === '' || a.academiaId === ac) && (tx
 // painel do Admin Master de verdade (outra conta, vendo "Todos os Alunos"),
 // o registro dele continua aparecendo normalmente na grade, como qualquer
 // outro aluno, pra manter o "Avaliar/Editar" acessível por lá.
-const meuRegistro = (souFundador(sessaoAtual) && !ehAdmin()) ? (filtrados.find((a) => a.id === sessaoAtual.uid) || null) : null;
+const meuRegistro = ((souFundador(sessaoAtual) || ehMestre()) && !ehAdmin()) ? (filtrados.find((a) => a.id === sessaoAtual.uid) || null) : null;
 renderizarHeroFundador(meuRegistro);
+renderizarArvoreFormacao();
 renderizarGrid(meuRegistro ? filtrados.filter((a) => a.id !== meuRegistro.id) : filtrados);
 desenharGraficos(filtrados);
 renderizarCascata();
@@ -574,10 +637,7 @@ ${htmlTransferencia}
 // mesmo visual de status que o próprio app.html mostra pro aluno: anel de
 // progresso, estrela viva do núcleo e o cordão "rodando" nas cores reais do
 // cordão atual dele (Mestre/Presidente = branco/verde/azul).
-function renderizarHeroFundador(a) {
-const wrap = document.getElementById('heroFundador');
-if (!wrap) return;
-if (!a) { wrap.classList.add('oculto'); wrap.innerHTML = ''; return; }
+function construirHeroCardHTML(a, todosUsuarios) {
 
 const idade = Number(a.idade) || 0;
 const lista = idade < 12 ? cordoesKids : cordoesAdulto;
@@ -591,7 +651,7 @@ const estrelasHtml = estrelaCount > 0
 ? `<span style="color:var(--star-filled)">${'★'.repeat(estrelaCount)}</span><span style="color:rgba(255,255,255,.32)">${'★'.repeat(7 - estrelaCount)}</span> <span class="hero-fundador-estrela-num">${estrelaCount}/7 estrela viva</span>`
 : '';
 
-wrap.innerHTML = `
+return `
 <div class="hero-fundador-card">
 <div class="hero-fundador-topo">
 <div class="hero-fundador-anel" style="background:conic-gradient(#00E676 0turn ${volta}turn, rgba(255,255,255,.16) ${volta}turn 1turn);">
@@ -600,7 +660,7 @@ wrap.innerHTML = `
 </div>
 </div>
 <div class="hero-fundador-info">
-<span class="hero-fundador-selo"><i class="fas fa-crown"></i> Acesso Geral · Fundador</span>
+<span class="hero-fundador-selo">${souFundador(a) ? '<i class="fas fa-crown"></i> Acesso Geral · Fundador' : '<i class="fas fa-map-marker-alt"></i> Responsável do Núcleo'}</span>
 <h2>${escapeHTML(a.nome || 'Fundador')}</h2>
 <span class="hero-fundador-cordao">Cordão ${escapeHTML(a.cordaoAtual || 'Iniciante')}</span>
 <div class="hero-fundador-estrelas">${estrelasHtml}</div>
@@ -611,6 +671,13 @@ wrap.innerHTML = `
 <div class="cordao-fill" style="width:${porcentagem}%; --c1:${cor[0]}; --c2:${cor[1]}; --c3:${cor[2]};"></div>
 </div>
 </div>`;
+}
+
+function renderizarHeroFundador(a) {
+const wrap = document.getElementById('heroFundador');
+if (!wrap) return;
+if (!a) { wrap.classList.add('oculto'); wrap.innerHTML = ''; return; }
+wrap.innerHTML = construirHeroCardHTML(a, todosUsuarios);
 wrap.classList.remove('oculto');
 }
 
