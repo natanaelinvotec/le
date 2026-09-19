@@ -377,3 +377,62 @@ padding: 12px 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); text-align: center;
 .arvore-no-expandido .arvore-no-chevron { transform: rotate(180deg); }
 .arvore-filhos { display: flex; flex-direction: column; margin-left: 26px; padding-left: 16px; border-left: 2px solid var(--border-color); }
 @media (max-width: 700px) { .arvore-no-nome, .arvore-no-cordao { max-width: 120px; overflow: hidden; text-overflow: ellipsis; } .arvore-filhos { margin-left: 14px; padding-left: 10px; } }
+
+
+/* ---------------------- CASCATA DE FORMACAO (niveis agregados) ---------------------- */
+.hero-fundador-total-grupo { display: flex; align-items: center; gap: 6px; margin-top: 4px; color: #00E676; font-weight: 800; font-size: 0.82rem; text-shadow: 0 0 12px rgba(0,230,118,0.35); }
+.hero-fundador-total-grupo i { font-size: 0.85em; }
+
+.cascata-niveis-faixas { display: flex; flex-wrap: wrap; gap: 18px; margin: 4px 0 16px; padding: 10px 14px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; }
+.cascata-faixa-rotulo { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 700; color: var(--text-muted); }
+.cascata-faixa-rotulo i { color: var(--primary-teal); }
+
+.cascata-niveis-grid { display: flex; gap: 20px; overflow-x: auto; padding-bottom: 12px; align-items: flex-start; }
+.cascata-coluna { display: flex; flex-direction: column; gap: 10px; min-width: 220px; max-width: 240px; flex: none; }
+
+.cascata-pessoa-card { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; background: var(--card-bg); border: 2px solid var(--border-color); border-radius: 16px; padding: 14px 10px; text-align: center; cursor: pointer; transition: transform 0.2s var(--ease-standard), box-shadow 0.2s var(--ease-standard); }
+.cascata-pessoa-card:hover { transform: translateY(-3px); box-shadow: 0 10px 22px rgba(0,0,0,0.12); }
+.cascata-pessoa-card.cascata-azul { border-color: #2F80ED; box-shadow: 0 0 0 1px rgba(47,128,237,0.2); }
+.cascata-pessoa-card.cascata-verde { border-color: var(--accent-green); box-shadow: 0 0 0 1px rgba(0,230,118,0.24); }
+.cascata-pessoa-card.cascata-pessoa-propria { border-color: var(--star-filled); background: linear-gradient(180deg, rgba(245,176,65,0.08), var(--card-bg) 40%); }
+.cascata-pessoa-selo { position: absolute; top: -10px; right: -6px; width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(90deg, #B9770E, var(--star-filled)); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; box-shadow: 0 3px 8px rgba(0,0,0,0.25); }
+.cascata-pessoa-foto { width: 58px; height: 58px; border-radius: 50%; object-fit: cover; background: var(--bg-app); }
+.cascata-pessoa-nome { font-weight: 800; font-size: 0.88em; color: var(--text-dark); }
+.cascata-pessoa-cordao { font-size: 0.76em; color: var(--text-muted); }
+
+.cascata-contagem-card { display: flex; flex-direction: column; align-items: center; gap: 2px; background: var(--bg-app); border: 1px dashed var(--border-color); border-radius: 14px; padding: 12px 10px; text-align: center; cursor: pointer; transition: background 0.2s var(--ease-standard), transform 0.2s var(--ease-standard); }
+.cascata-contagem-card:hover { transform: translateY(-2px); background: var(--card-bg); box-shadow: 0 6px 16px rgba(0,0,0,0.08); }
+.cascata-contagem-card.cascata-contagem-vazia { cursor: default; opacity: 0.55; }
+.cascata-contagem-card.cascata-contagem-vazia:hover { transform: none; background: var(--bg-app); box-shadow: none; }
+.cascata-contagem-card i.fas { color: var(--primary-teal); font-size: 1.1rem; }
+.cascata-contagem-numero { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 1.3rem; color: var(--primary-blue); }
+.cascata-contagem-rotulo { font-size: 0.74em; color: var(--text-muted); line-height: 1.25; }
+.cascata-contagem-expandir { font-size: 0.7em; color: var(--text-muted); margin-top: 2px; transition: transform 0.2s var(--ease-standard); }
+.cascata-contagem-aberta .cascata-contagem-expandir { transform: rotate(180deg); }
+.cascata-avatares-grid { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 10px; }
+.cascata-avatar-mini { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 2px solid var(--card-bg); cursor: pointer; transition: transform 0.15s var(--ease-standard); }
+.cascata-avatar-mini:hover { transform: scale(1.15); }
+.cascata-avatar-mini.cascata-azul { box-shadow: 0 0 0 2px #2F80ED; }
+.cascata-avatar-mini.cascata-verde { box-shadow: 0 0 0 2px var(--accent-green); }
+
+.cascata-tooltip { position: fixed; z-index: 500; transform: translate(-50%, -100%); display: flex; flex-direction: column; gap: 2px; background: var(--primary-blue); color: #fff; padding: 8px 12px; border-radius: 10px; font-size: 0.78rem; box-shadow: 0 8px 20px rgba(0,0,0,0.28); pointer-events: none; opacity: 0; transition: opacity 0.15s var(--ease-standard); }
+.cascata-tooltip-visivel { opacity: 1; }
+.cascata-tooltip strong { font-size: 0.88rem; }
+.cascata-tooltip-status { display: flex; align-items: center; gap: 5px; font-weight: 700; }
+.cascata-tooltip-status i { font-size: 0.5rem; }
+.cascata-tooltip-verde i { color: var(--accent-green); }
+.cascata-tooltip-azul i { color: #5B9BFF; }
+
+.cascata-foto-modal { position: fixed; inset: 0; z-index: 600; display: none; align-items: center; justify-content: center; background: rgba(0,20,50,0.6); backdrop-filter: blur(3px); }
+.cascata-foto-modal.cascata-foto-modal-aberto { display: flex; animation: cardIn 0.2s var(--ease-standard) both; }
+.cascata-foto-modal-conteudo { background: var(--card-bg); border-radius: 18px; padding: 22px; max-width: 320px; width: 90%; text-align: center; position: relative; box-shadow: 0 24px 60px rgba(0,0,0,0.35); }
+.cascata-foto-modal-conteudo img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 14px; margin-bottom: 12px; }
+.cascata-foto-modal-conteudo h3 { font-family: 'Montserrat', sans-serif; color: var(--text-dark); margin-bottom: 2px; }
+.cascata-foto-modal-conteudo p { color: var(--text-muted); font-size: 0.85rem; }
+.cascata-foto-modal-fechar { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 50%; border: none; background: var(--bg-app); color: var(--text-dark); cursor: pointer; font-size: 0.9rem; }
+.cascata-foto-modal-fechar:hover { background: var(--border-color); }
+
+.btn-excluir-permanente { background: #c0392b; color: #fff; border-color: #c0392b; }
+.btn-excluir-permanente:hover { background: #a93226; }
+
+@media (max-width: 700px) { .cascata-coluna { min-width: 180px; } .cascata-pessoa-foto { width: 48px; height: 48px; } }
