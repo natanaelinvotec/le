@@ -20,7 +20,7 @@ solicitacoesPendentesDoNucleo, aprovarVinculoFamilia, transferenciasPendentesPar
 publicarAviso, listarAvisos,
 comprimirImagemDataUrl, arquivoParaDataUrlComprimido,
 calcularEstrelaViva, souFundador,
-publicarMaterial, listarMateriais, removerMaterial,
+publicarMaterial, listarMateriais, removerMaterial, excluirUsuarioPermanente,
 publicarMaterialFormacao, listarMateriaisFormacao, removerMaterialFormacao,
 lancarPagamento, listarPagamentosDoNucleo, marcarPagamento,
 lancarDespesaComRateio, todosRateios, marcarRateioPago,
@@ -51,49 +51,196 @@ return nucleoOrigem.professorUid;
 return null;
 }
 
-/* ---------------------- ÁRVORE DA CASCATA DE FORMAÇÃO ---------------------- */
-// Pirâmide expansível por clique, a partir de quem formou quem (formadorUid).
-// Cada mestre/professor/instrutor só vê a própria rede pra baixo; o fundador
-// (acesso geral) vê a árvore inteira do grupo a partir dele mesmo.
-function construirArvoreFormacao(raizUid, listaUsuarios, listaNucleos, profundidade) {
-profundidade = profundidade || 0;
-if (profundidade > 12) return '';
-const pessoa = listaUsuarios.find((u) => u.id === raizUid);
-if (!pessoa) return '';
-const filhos = listaUsuarios.filter((u) => u.id !== raizUid && obterFormadorUid(u, listaNucleos) === raizUid);
-const porc = calcularPorcentagemEvolucaoDe(pessoa);
-const corBorda = porc >= 70 ? 'arvore-no-verde' : 'arvore-no-azul';
-const temFilhos = filhos.length > 0;
-return `
-<div class="arvore-no-wrap">
-<div class="arvore-no ${corBorda}${temFilhos ? ' arvore-no-expansivel' : ''}"${temFilhos ? ' onclick="window.__toggleArvoreNo(this)"' : ''}>
-<img class="arvore-no-foto" src="${escapeHTML(pessoa.fotoUrl || 'https://via.placeholder.com/64')}" alt="${escapeHTML(pessoa.nome || '')}">
-<span class="arvore-no-nome">${escapeHTML(pessoa.nome || 'Sem nome')}</span>
-<span class="arvore-no-cordao">${escapeHTML(pessoa.cordaoAtual || 'Iniciante')}</span>
-${temFilhos ? '<span class="arvore-no-chevron"><i class="fas fa-chevron-down"></i></span>' : ''}
-</div>
-${temFilhos ? `<div class="arvore-filhos oculto">${filhos.map((f) => construirArvoreFormacao(f.id, listaUsuarios, listaNucleos, profundidade + 1)).join('')}</div>` : ''}
-</div>`;
+/* ---------------------- CASCATA DE FORMACAO (niveis agregados) ---------------------- */
+// Em vez de uma arvore pessoa-por-pessoa (que nao escala em nucleos com 80+ alunos),
+// a cascata agrupa por nivel: cartao individual so pro mestre/professor que administra
+// um nucleo; instrutor e aluno aparecem como cartoes agregados (contagem), calculados
+// ao vivo a partir de quem formou quem (formadorUid / instrutorUid / instrutorSupervisorUid
+// / nucleo.professorUid). O fundador ve o grupo inteiro a partir dele; cada mestre ve
+// a propria ramificacao pra baixo, do jeito que foi promovido.
+
+function obterFilhosDiretosFormacao(uid, listaUsuarios, listaNucleos) {
+  return listaUsuarios.filter((u) => u.id !== uid && obterFormadorUid(u, listaNucleos) === uid);
 }
 
-window.__toggleArvoreNo = function (el) {
-const wrap = el.closest('.arvore-no-wrap');
-const filhosDiv = wrap ? wrap.querySelector(':scope > .arvore-filhos') : null;
-if (!filhosDiv) return;
-filhosDiv.classList.toggle('oculto');
-el.classList.toggle('arvore-no-expandido');
+function coletarDescendentesFormacao(uid, listaUsuarios, listaNucleos, visitados) {
+  visitados = visitados || new Set();
+  const resultado = [];
+  const filhos = obterFilhosDiretosFormacao(uid, listaUsuarios, listaNucleos);
+  filhos.forEach((f) => {
+    if (visitados.has(f.id)) return;
+    visitados.add(f.id);
+    resultado.push(f);
+    resultado.push.apply(resultado, coletarDescendentesFormacao(f.id, listaUsuarios, listaNucleos, visitados));
+  });
+  return resultado;
+}
+
+function contarTotalAtletasGrupo(uid, listaUsuarios, listaNucleos) {
+  return coletarDescendentesFormacao(uid, listaUsuarios, listaNucleos).length;
+}
+
+function pessoaEhMestreFormacao(pessoa) {
+  return !!(pessoa && pessoa.papeis && pessoa.papeis.includes('mestre'));
+}
+
+function pessoaEhInstrutorFormacao(pessoa) {
+  return !!(pessoa && pessoa.papeis && pessoa.papeis.includes('instrutor'));
+}
+
+function construirColunaCascataDados(headPessoa, ehColunaPropria, descendentes) {
+  const professores = descendentes.filter((p) => pessoaEhMestreFormacao(p));
+  const instrutores = descendentes.filter((p) => !pessoaEhMestreFormacao(p) && pessoaEhInstrutorFormacao(p));
+  const alunos = descendentes.filter((p) => !pessoaEhMestreFormacao(p) && !pessoaEhInstrutorFormacao(p));
+  return { head: headPessoa, ehColunaPropria: ehColunaPropria, professores: professores, instrutores: instrutores, alunos: alunos };
+}
+
+function construirDadosCascataNiveis(raizUid, listaUsuarios, listaNucleos) {
+  const raiz = listaUsuarios.find((u) => u.id === raizUid);
+  if (!raiz) return null;
+  const filhosDiretos = obterFilhosDiretosFormacao(raizUid, listaUsuarios, listaNucleos);
+  const colunasFilhas = filhosDiretos.filter((p) => pessoaEhMestreFormacao(p));
+  const idsForaDaColunaRaiz = new Set();
+  colunasFilhas.forEach((p) => {
+    idsForaDaColunaRaiz.add(p.id);
+    coletarDescendentesFormacao(p.id, listaUsuarios, listaNucleos).forEach((d) => idsForaDaColunaRaiz.add(d.id));
+  });
+  const descendentesRaizTotal = coletarDescendentesFormacao(raizUid, listaUsuarios, listaNucleos);
+  const descendentesColunaRaiz = descendentesRaizTotal.filter((p) => !idsForaDaColunaRaiz.has(p.id));
+  const colunas = [construirColunaCascataDados(raiz, true, descendentesColunaRaiz)].concat(
+    colunasFilhas.map((p) => construirColunaCascataDados(p, false, coletarDescendentesFormacao(p.id, listaUsuarios, listaNucleos)))
+  );
+  return { raiz: raiz, colunas: colunas, totalGeral: descendentesRaizTotal.length };
+}
+
+function cascataCorPorEvolucao(pessoa) {
+  const porc = calcularPorcentagemEvolucaoDe(pessoa);
+  return porc >= 70 ? 'cascata-verde' : 'cascata-azul';
+}
+
+function construirCascataPersonCardHTML(pessoa, propria) {
+  const cor = cascataCorPorEvolucao(pessoa);
+  const classeExtra = propria ? ' cascata-pessoa-propria' : '';
+  return '<div class="cascata-pessoa-card ' + cor + classeExtra + '" data-cascata-uid="' + escapeHTML(pessoa.id) + '" onmouseenter="window.__cascataHoverPessoa(this)" onmouseleave="window.__cascataHoverFim()" onclick="window.__cascataAbrirFoto(this)">' +
+    (propria ? '<span class="cascata-pessoa-selo"><i class="fas fa-crown"></i></span>' : '') +
+    '<img class="cascata-pessoa-foto" src="' + escapeHTML(pessoa.fotoUrl || 'https://via.placeholder.com/64') + '" alt="' + escapeHTML(pessoa.nome || '') + '">' +
+    '<span class="cascata-pessoa-nome">' + escapeHTML(pessoa.nome || 'Sem nome') + '</span>' +
+    '<span class="cascata-pessoa-cordao">' + escapeHTML(pessoa.cordaoAtual || 'Iniciante') + '</span>' +
+    '</div>';
+}
+
+function construirCascataContagemCardHTML(lista, rotulo, icone) {
+  const vazio = lista.length === 0;
+  let avatares = '';
+  if (!vazio) {
+    avatares = lista.map((p) => {
+      const cor = cascataCorPorEvolucao(p);
+      return '<img class="cascata-avatar-mini ' + cor + '" data-cascata-uid="' + escapeHTML(p.id) + '" src="' + escapeHTML(p.fotoUrl || 'https://via.placeholder.com/64') + '" alt="' + escapeHTML(p.nome || '') + '" onmouseenter="window.__cascataHoverPessoa(this)" onmouseleave="window.__cascataHoverFim()" onclick="event.stopPropagation(); window.__cascataAbrirFoto(this)">';
+    }).join('');
+  }
+  return '<div class="cascata-contagem-card' + (vazio ? ' cascata-contagem-vazia' : '') + '"' + (vazio ? '' : ' onclick="window.__cascataToggleGrupo(this)"') + '>' +
+    '<i class="fas ' + icone + '"></i>' +
+    '<span class="cascata-contagem-numero">' + lista.length + '</span>' +
+    '<span class="cascata-contagem-rotulo">' + escapeHTML(rotulo) + '</span>' +
+    (vazio ? '' : '<span class="cascata-contagem-expandir"><i class="fas fa-chevron-down"></i></span><div class="cascata-avatares-grid oculto">' + avatares + '</div>') +
+    '</div>';
+}
+
+function construirCascataColunaHTML(coluna) {
+  const rotuloProfessor = coluna.ehColunaPropria ? 'professores no nucleo dele, cada um c/ nucleo proprio' : 'professores na ramificacao, cada um c/ nucleo proprio';
+  const rotuloInstrutor = 'instrutores ativos';
+  const rotuloAluno = 'alunos, todos os cordoes';
+  return '<div class="cascata-coluna">' +
+    construirCascataPersonCardHTML(coluna.head, coluna.ehColunaPropria) +
+    construirCascataContagemCardHTML(coluna.professores, rotuloProfessor, 'fa-chalkboard-teacher') +
+    construirCascataContagemCardHTML(coluna.instrutores, rotuloInstrutor, 'fa-user-tie') +
+    construirCascataContagemCardHTML(coluna.alunos, rotuloAluno, 'fa-users') +
+    '</div>';
+}
+
+function construirCascataNiveisHTML(dados) {
+  if (!dados) return '';
+  const colunasHTML = dados.colunas.map((c) => construirCascataColunaHTML(c)).join('');
+  return '<div class="cascata-niveis-faixas">' +
+    '<span class="cascata-faixa-rotulo"><i class="fas fa-crown"></i> Mestre / Professor</span>' +
+    '<span class="cascata-faixa-rotulo"><i class="fas fa-user-tie"></i> Instrutor</span>' +
+    '<span class="cascata-faixa-rotulo"><i class="fas fa-users"></i> Aluno</span>' +
+    '</div>' +
+    '<div class="cascata-niveis-grid">' + colunasHTML + '</div>';
+}
+
+window.__cascataToggleGrupo = function (el) {
+  el.classList.toggle('cascata-contagem-aberta');
+  const grid = el.querySelector('.cascata-avatares-grid');
+  if (grid) grid.classList.toggle('oculto');
+};
+
+window.__cascataHoverPessoa = function (el) {
+  const uid = el.getAttribute('data-cascata-uid');
+  const pessoa = (todosUsuarios || []).find((u) => u.id === uid);
+  if (!pessoa) return;
+  let tip = document.getElementById('cascataTooltip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'cascataTooltip';
+    tip.className = 'cascata-tooltip';
+    document.body.appendChild(tip);
+  }
+  const porc = calcularPorcentagemEvolucaoDe(pessoa);
+  const corStatus = porc >= 70 ? 'verde' : 'azul';
+  const textoStatus = porc >= 70 ? 'Evolucao em dia' : 'Evolucao em andamento';
+  tip.innerHTML = '<strong>' + escapeHTML(pessoa.nome || 'Sem nome') + '</strong>' +
+    '<span>' + escapeHTML(pessoa.cordaoAtual || 'Iniciante') + '</span>' +
+    '<span class="cascata-tooltip-status cascata-tooltip-' + corStatus + '"><i class="fas fa-circle"></i> ' + textoStatus + '</span>';
+  const rect = el.getBoundingClientRect();
+  tip.style.left = (rect.left + rect.width / 2) + 'px';
+  tip.style.top = (rect.top + window.scrollY - 12) + 'px';
+  tip.classList.add('cascata-tooltip-visivel');
+};
+
+window.__cascataHoverFim = function () {
+  const tip = document.getElementById('cascataTooltip');
+  if (tip) tip.classList.remove('cascata-tooltip-visivel');
+};
+
+window.__cascataFecharFoto = function () {
+  const modal = document.getElementById('cascataFotoModal');
+  if (modal) modal.classList.remove('cascata-foto-modal-aberto');
+};
+
+window.__cascataAbrirFoto = function (el) {
+  const uid = el.getAttribute('data-cascata-uid');
+  const pessoa = (todosUsuarios || []).find((u) => u.id === uid);
+  if (!pessoa) return;
+  let modal = document.getElementById('cascataFotoModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'cascataFotoModal';
+    modal.className = 'cascata-foto-modal';
+    modal.addEventListener('click', function (e) { if (e.target === modal) window.__cascataFecharFoto(); });
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = '<div class="cascata-foto-modal-conteudo">' +
+    '<button type="button" class="cascata-foto-modal-fechar" onclick="window.__cascataFecharFoto()"><i class="fas fa-times"></i></button>' +
+    '<img src="' + escapeHTML(pessoa.fotoUrl || 'https://via.placeholder.com/300') + '" alt="' + escapeHTML(pessoa.nome || '') + '">' +
+    '<h3>' + escapeHTML(pessoa.nome || 'Sem nome') + '</h3>' +
+    '<p>' + escapeHTML(pessoa.cordaoAtual || 'Iniciante') + '</p>' +
+    '</div>';
+  modal.classList.add('cascata-foto-modal-aberto');
 };
 
 function renderizarArvoreFormacao() {
-const wrap = document.getElementById('arvoreFormacaoContainer');
-if (!wrap) return;
-let raizUid = null;
-if (sessaoAtual && (souFundador(sessaoAtual) || ehMestre() || (sessaoAtual.papeis || []).includes('instrutor'))) {
-raizUid = sessaoAtual.uid;
+  const wrap = document.getElementById('arvoreFormacaoContainer');
+  if (!wrap) return;
+  let raizUid = null;
+  if (sessaoAtual && (souFundador(sessaoAtual) || ehMestre() || (sessaoAtual.papeis || []).includes('instrutor'))) {
+    raizUid = sessaoAtual.uid;
+  }
+  if (!raizUid) { wrap.innerHTML = ''; return; }
+  const dados = construirDadosCascataNiveis(raizUid, todosUsuarios, todosNucleos);
+  wrap.innerHTML = construirCascataNiveisHTML(dados);
 }
-if (!raizUid) { wrap.innerHTML = ''; return; }
-wrap.innerHTML = construirArvoreFormacao(raizUid, todosUsuarios, todosNucleos);
-}
+
 
 /* ---------------------- TOASTS ---------------------- */
 function garantirToastContainer() {
@@ -640,7 +787,7 @@ ${htmlTransferencia}
 // mesmo visual de status que o próprio app.html mostra pro aluno: anel de
 // progresso, estrela viva do núcleo e o cordão "rodando" nas cores reais do
 // cordão atual dele (Mestre/Presidente = branco/verde/azul).
-function construirHeroCardHTML(a, todosUsuarios) {
+function construirHeroCardHTML(a, todosUsuarios, mostrarTotalGrupo) {
 
 const idade = Number(a.idade) || 0;
 const lista = idade < 12 ? cordoesKids : cordoesAdulto;
@@ -665,6 +812,7 @@ return `
 <div class="hero-fundador-info">
 <span class="hero-fundador-selo">${souFundador(a) ? '<i class="fas fa-crown"></i> Acesso Geral · Fundador' : '<i class="fas fa-map-marker-alt"></i> Responsável do Núcleo'}</span>
 <h2>${escapeHTML(a.nome || 'Fundador')}</h2>
+${mostrarTotalGrupo ? `<span class="hero-fundador-total-grupo"><i class="fas fa-users"></i> Total de atletas do grupo: ${contarTotalAtletasGrupo(a.id, todosUsuarios, todosNucleos)}</span>` : ''}
 <span class="hero-fundador-cordao">Cordão ${escapeHTML(a.cordaoAtual || 'Iniciante')}</span>
 <div class="hero-fundador-estrelas">${estrelasHtml}</div>
 </div>
@@ -680,7 +828,7 @@ function renderizarHeroFundador(a) {
 const wrap = document.getElementById('heroFundador');
 if (!wrap) return;
 if (!a) { wrap.classList.add('oculto'); wrap.innerHTML = ''; return; }
-wrap.innerHTML = construirHeroCardHTML(a, todosUsuarios);
+wrap.innerHTML = construirHeroCardHTML(a, todosUsuarios, true);
 wrap.classList.remove('oculto');
 }
 
@@ -963,6 +1111,22 @@ toast('E-mail de redefinição enviado.');
 console.error(e);
 toast('Erro ao enviar redefinição de senha.', 'error');
 }
+};
+
+window.excluirAlunoPermanentemente = async function () {
+  if (!usuarioSelecionado) return;
+  const nomeAlvo = usuarioSelecionado.nome || 'este aluno';
+  if (!confirm('Excluir permanentemente ' + nomeAlvo + '? Essa acao apaga o cadastro, o historico de avaliacoes e NAO pode ser desfeita.')) return;
+  if (!confirm('Tem certeza mesmo? A exclusao de ' + nomeAlvo + ' e definitiva.')) return;
+  try {
+    await excluirUsuarioPermanente(usuarioSelecionado.id);
+    toast('Aluno excluido permanentemente.');
+    fecharModal();
+    await carregarUsuarios();
+  } catch (e) {
+    console.error(e);
+    toast('Erro ao excluir aluno permanentemente.', 'error');
+  }
 };
 
 // Upload de foto pela galeria no modal (admin/gestor editando qualquer perfil)
