@@ -134,6 +134,11 @@ Escolha um aluno já cadastrado para virar responsável por este núcleo
 <form id="formNovoNucleo" style="display: grid; gap: 15px;">
 <input type="text" id="nomeNucleo" placeholder="Nome do Núcleo (Ex: Academia Mestre Profeta)" class="input-padrao" required>
 <input type="number" id="mensalidadeNucleo" placeholder="Valor da mensalidade (R$)" class="input-padrao" min="0" step="0.01">
+            <input type="text" id="enderecoNucleo" placeholder="Endereço completo do núcleo" class="input-padrao">
+            <input type="number" id="latitudeNucleo" placeholder="Latitude (ex: -23.5505)" class="input-padrao" step="0.000001">
+            <input type="number" id="longitudeNucleo" placeholder="Longitude (ex: -46.6333)" class="input-padrao" step="0.000001">
+            <input type="number" id="raioNucleo" placeholder="Raio de check-in (metros)" class="input-padrao" min="5" value="15">
+            <button type="button" class="btn-mini" onclick="usarLocalizacaoAtual('latitudeNucleo','longitudeNucleo')">📍 Usar minha localização atual</button>
 <label for="responsavelNucleo" style="font-size:0.85rem; color:var(--text-muted);">Responsável (professor/mestre)</label>
 <select id="responsavelNucleo" class="input-padrao">
 <option value="__novo__">— Cadastrar pessoa nova —</option>
@@ -428,6 +433,11 @@ Escolha um aluno já cadastrado para virar responsável por este núcleo
 <form id="formEditNucleo" style="display: grid; gap: 15px;">
 <div><label for="editNomeNucleo">Nome do Núcleo</label><input type="text" id="editNomeNucleo" class="input-padrao" required></div>
 <div><label for="editMensalidadeNucleo">Mensalidade (R$)</label><input type="number" id="editMensalidadeNucleo" class="input-padrao" min="0" step="0.01"></div>
+            <div><label for="editEnderecoNucleo">Endereço completo do núcleo</label><input type="text" id="editEnderecoNucleo" class="input-padrao"></div>
+            <div><label for="editLatitudeNucleo">Latitude</label><input type="number" id="editLatitudeNucleo" class="input-padrao" step="0.000001"></div>
+            <div><label for="editLongitudeNucleo">Longitude</label><input type="number" id="editLongitudeNucleo" class="input-padrao" step="0.000001"></div>
+            <div><label for="editRaioNucleo">Raio de check-in (metros)</label><input type="number" id="editRaioNucleo" class="input-padrao" min="5"></div>
+            <button type="button" class="btn-mini" onclick="usarLocalizacaoAtual('editLatitudeNucleo','editLongitudeNucleo')">📍 Usar minha localização atual</button>
 <div>
 <label for="editResponsavelNucleo">Responsável (mestre / professor / instrutor)</label>
 <select id="editResponsavelNucleo" class="input-padrao"></select>

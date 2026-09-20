@@ -495,6 +495,10 @@ btn.disabled = true;
 try {
 const nome = sanitizeInput(document.getElementById('nomeNucleo').value);
 const mensalidadeValor = Number(document.getElementById('mensalidadeNucleo').value) || 0;
+      const endereco = sanitizeInput(document.getElementById('enderecoNucleo').value);
+      const latitude = parseFloat(document.getElementById('latitudeNucleo').value) || null;
+      const longitude = parseFloat(document.getElementById('longitudeNucleo').value) || null;
+      const raioMetros = Number(document.getElementById('raioNucleo').value) || 15;
 const slug = gerarSlug(nome);
 const respSelecionado = document.getElementById('responsavelNucleo').value;
 
@@ -527,7 +531,7 @@ const formadorUidNovo = obterFormadorUid(respAtual, todosNucleos);
 await atualizar('usuarios', professorUid, { papeis: papeisNovos, academiaGerenciadaId: slug, ...(formadorUidNovo ? { formadorUid: formadorUidNovo } : {}) });
 }
 
-await salvar('nucleos', slug, { nome, mensalidadeValor, professorUid, ativo: true });
+await salvar('nucleos', slug, { nome, mensalidadeValor, professorUid, ativo: true, endereco, latitude, longitude, raioMetros });
 toast('Núcleo criado com sucesso!');
 formNovoNucleo.reset();
 document.getElementById('camposNovoResponsavel').style.display = 'grid';
@@ -541,6 +545,19 @@ btn.disabled = false;
 });
 }
 
+window.usarLocalizacaoAtual = function (latId, lngId) {
+  if (!navigator.geolocation) { toast('Geolocalização não disponível neste navegador.'); return; }
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      document.getElementById(latId).value = pos.coords.latitude.toFixed(6);
+      document.getElementById(lngId).value = pos.coords.longitude.toFixed(6);
+      toast('Localização capturada!');
+    },
+    () => toast('Não foi possível obter sua localização.'),
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+};
+
 window.abrirEditarNucleo = function (id) {
 nucleoEditandoID = id;
 const n = todosNucleos.find((x) => x.id === id);
@@ -548,6 +565,10 @@ if (!n) return;
 document.getElementById('editNomeNucleo').value = n.nome || '';
 document.getElementById('editMensalidadeNucleo').value = n.mensalidadeValor || '';
 document.getElementById('editAtivoNucleo').value = n.ativo === false ? 'false' : 'true';
+      document.getElementById('editEnderecoNucleo').value = n.endereco || '';
+      document.getElementById('editLatitudeNucleo').value = n.latitude || '';
+      document.getElementById('editLongitudeNucleo').value = n.longitude || '';
+      document.getElementById('editRaioNucleo').value = n.raioMetros || 15;
 // Responsável: qualquer mestre/professor/instrutor (ou aluno) que ainda não
 // administra OUTRO núcleo, mais quem já administra este (pré-selecionado).
 const selResp = document.getElementById('editResponsavelNucleo');
@@ -577,6 +598,10 @@ nome: sanitizeInput(document.getElementById('editNomeNucleo').value),
 mensalidadeValor: Number(document.getElementById('editMensalidadeNucleo').value) || 0,
 ativo: document.getElementById('editAtivoNucleo').value === 'true',
 professorUid: novoResponsavelId,
+      endereco: sanitizeInput(document.getElementById('editEnderecoNucleo').value),
+      latitude: parseFloat(document.getElementById('editLatitudeNucleo').value) || null,
+      longitude: parseFloat(document.getElementById('editLongitudeNucleo').value) || null,
+      raioMetros: Number(document.getElementById('editRaioNucleo').value) || 15,
 });
 
 // Vínculo mudou: solta o responsável antigo (perde papel mestre + o núcleo
