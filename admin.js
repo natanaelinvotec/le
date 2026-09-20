@@ -1747,7 +1747,7 @@ finally { btn.disabled = false; }
 });
 }
 
-/* ===================== GRÁFICOS ===================== */
+/* ===================== GRÁFICOS ====================== */
 function obterCorPorCordao(nome) {
 const mapa = {
 Iniciante: '#CCCCCC',
