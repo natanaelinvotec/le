@@ -115,34 +115,38 @@ a:hover{ color:#389E92; }
 
           <sc-if value="{{ ehInicio }}" hint-placeholder-val="{{ false }}">
             <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
-              <div style="background:linear-gradient(158deg,#0B5C52 0%,#12796B 42%,#002D72 100%); padding:52px 20px 74px; border-radius:0 0 30px 30px; position:relative; overflow:hidden;">
-                <div style="position:absolute; right:-40px; top:-30px; width:180px; height:180px; border-radius:50%; background:rgba(255,255,255,.06);"></div>
-                <div style="position:absolute; top:-70px; left:-50px; width:220px; height:220px; border-radius:50%; background:#00E676; filter:blur(58px); opacity:.3; animation:apBlob 9s ease-in-out infinite;"></div>
-                <div style="position:absolute; bottom:-80px; right:-40px; width:200px; height:200px; border-radius:50%; background:#389E92; filter:blur(52px); opacity:.4; animation:apBlob 11s ease-in-out infinite reverse;"></div>
-                <div style="position:absolute; width:54px; height:54px; left:16%; bottom:-54px; border-radius:50%; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.22); animation:apSobe 15s linear infinite;"></div>
-                <div style="position:absolute; width:26px; height:26px; left:46%; bottom:-26px; border-radius:50%; background:rgba(0,230,118,.14); border:1px solid rgba(0,230,118,.3); animation:apSobe 11s linear infinite 1.6s;"></div>
-                <div style="position:absolute; width:38px; height:38px; left:72%; bottom:-38px; border-radius:50%; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); animation:apSobe 13s linear infinite 3.4s;"></div>
-                <div style="position:relative; display:flex; align-items:center; gap:12px;">
-                  <button onClick="{{ abrirTrocador }}" aria-label="Trocar de atleta" style="position:relative; width:48px; height:48px; padding:0; border:2px solid rgba(255,255,255,.7); border-radius:50%; background:none; cursor:pointer; flex:none;">
+              <div style="background:#fff; padding:52px 20px 22px; border-bottom:1px solid #E0E6E5;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <button onClick="{{ abrirTrocador }}" aria-label="Trocar de atleta" style="position:relative; width:48px; height:48px; padding:0; border:2px solid #389E92; border-radius:50%; background:none; cursor:pointer; flex:none;">
                     <sc-for list="{{ fotoAtletaLista }}" as="f" hint-placeholder-count="0">
                       <img src="{{ f.url }}" alt="Foto do atleta" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" />
                     </sc-for>
                     <sc-if value="{{ ehFamilia }}" hint-placeholder-val="{{ false }}">
-                      <span style="position:absolute; right:-3px; bottom:-3px; width:20px; height:20px; border-radius:50%; background:#00E676; color:#05070C; font-size:.6rem; display:flex; align-items:center; justify-content:center; border:2px solid #1E5A7F;"><i class="fas fa-repeat"></i></span>
+                      <span style="position:absolute; right:-3px; bottom:-3px; width:20px; height:20px; border-radius:50%; background:#00B140; color:#fff; font-size:.6rem; display:flex; align-items:center; justify-content:center; border:2px solid #fff;"><i class="fas fa-repeat"></i></span>
                     </sc-if>
                   </button>
                   <div style="flex:1; min-width:0;">
-                    <div style="color:#fff; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.08rem; line-height:1.1;">Olá, {{ atletaNome }}</div>
-                    <div style="color:rgba(255,255,255,.72); font-size:.82rem;">{{ atletaAcademia }}</div>
+                    <div style="color:#5B6B68; font-size:.72rem;">Bem-vindo de volta!</div>
+                    <div style="color:#002D72; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.08rem; line-height:1.15;">{{ atletaNome }}</div>
                   </div>
-                  <button onClick="{{ irPerfil }}" aria-label="Notificações" style="position:relative; width:42px; height:42px; border-radius:50%; border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.12); color:#fff; cursor:pointer;">
+                  <button onClick="{{ irPerfil }}" aria-label="Notificações" style="position:relative; width:42px; height:42px; border-radius:50%; border:1px solid #E0E6E5; background:#F5F9F8; color:#002D72; cursor:pointer;">
                     <i class="far fa-bell"></i>
-                    <span style="position:absolute; top:9px; right:11px; width:8px; height:8px; border-radius:50%; background:#00E676; border:2px solid #1E5A7F;"></span>
+                    <span style="position:absolute; top:9px; right:11px; width:8px; height:8px; border-radius:50%; background:#D32F2F; border:2px solid #fff;"></span>
                   </button>
                 </div>
+                <div style="margin-top:12px;">
+                  <span style="background:#eaf6f4; color:#0B5C52; font-size:.72rem; font-weight:700; padding:4px 10px; border-radius:999px;">{{ atletaAcademia }}</span>
+                </div>
+                <label for="buscaAppInicio" style="display:block; margin-top:12px;">
+                  <span style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0);">Buscar</span>
+                  <div style="display:flex; align-items:center; gap:8px; background:#F5F9F8; border:1px solid #E0E6E5; border-radius:999px; padding:10px 14px;">
+                    <i class="fas fa-search" style="color:#5B6B68; font-size:.85rem;"></i>
+                    <input id="buscaAppInicio" type="text" placeholder="Buscar aula, aviso, material..." style="background:transparent; border:none; font-size:.8rem; flex:1; outline:none; color:#0D211D; font-family:'Nunito',sans-serif;">
+                  </div>
+                </label>
               </div>
 
-              <div style="margin:-56px 16px 0; background:#fff; border-radius:22px; padding:20px; box-shadow:0 14px 34px rgba(0,45,114,.14);">
+              <div style="margin:16px 16px 0; background:#fff; border:1px solid #E0E6E5; border-radius:22px; padding:20px; box-shadow:0 14px 34px rgba(0,45,114,.14);">
                 <div style="display:flex; align-items:center; gap:16px;">
                   <div style="position:relative; width:78px; height:78px; flex:none;">
                     <div style="width:78px; height:78px; border-radius:50%; background:conic-gradient(#00E676 0turn {{ voltaProgresso }}, #E6EDEC {{ voltaProgresso }} 1turn);"></div>
@@ -1137,6 +1141,12 @@ class Component extends DCLogic {
         botao: 'Entendi',
         campos: [],
       },
+      faceid: {
+        titulo: 'Check-in por FaceID (tablet)',
+        ajuda: 'Ideia: deixar um tablet fixo na entrada do núcleo para os alunos confirmarem presença por identificação facial, sem precisar do celular — útil porque a calça de capoeira não tem bolsos. Ainda é só um espaço reservado: a captura facial em si não está ativada, para dar tempo de decidir como tratar o consentimento (inclusive de alunos menores de idade) antes de ligar de verdade. Pensado para funcionar do mesmo jeito em outras modalidades, como jiu-jitsu.',
+        botao: 'Entendi',
+        campos: [],
+      },
       publicar: {
         titulo: 'Publicar material',
         ajuda: 'Chega na aba Material de todos os alunos de todas as academias.',
@@ -1184,7 +1194,8 @@ class Component extends DCLogic {
 
       opcoesPerfil: [
         { rotulo:'Meus dados', ajuda:'Nome, e-mail e telefone de contato', icone:'fas fa-id-card', acao: () => this.abrirSheet('dados') },
-      ].concat(familia ? [{ rotulo:'Vincular familiar', ajuda:'Ligar outro dependente à conta', icone:'fas fa-link', acao: () => this.abrirSheet('vincular') }] : []),
+      ].concat(familia ? [{ rotulo:'Vincular familiar', ajuda:'Ligar outro dependente à conta', icone:'fas fa-link', acao: () => this.abrirSheet('vincular') }] : [])
+        .concat(gestor ? [{ rotulo:'Check-in por FaceID (tablet)', ajuda:'Deixar um tablet na entrada para presença por identificação facial', icone:'fas fa-camera', acao: () => this.abrirSheet('faceid') }] : []),
 
       temVariosPapeis: !!perfilAtual && perfilAtual.papeis.length > 1 && !!perfilAtual.academia,
       papeisDisponiveis: (perfilAtual ? perfilAtual.papeis : []).map((r) => ({
