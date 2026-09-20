@@ -54,6 +54,23 @@ allow read: if true;
 allow write: if ehAdmin();
 }
 
+    match /presencas/{id} {
+      allow read: if logado() && (
+        resource.data.uid == request.auth.uid ||
+        ehAdmin() ||
+        (ehGestor() && resource.data.nucleoId == minhaAcademiaGerenciada())
+      );
+      allow create: if logado() &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.confirmadoAos30 == false;
+      allow update: if logado() &&
+        resource.data.uid == request.auth.uid &&
+        request.resource.data.uid == resource.data.uid &&
+        request.resource.data.nucleoId == resource.data.nucleoId &&
+        request.resource.data.entradaEm == resource.data.entradaEm;
+      allow delete: if ehAdmin();
+    }
+
 match /solicitacoes/{id} {
 allow read: if ehAdmin() || (ehGestor() && resource.data.solicitanteUid == request.auth.uid);
 allow create: if ehGestor() &&
