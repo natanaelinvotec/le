@@ -24,6 +24,7 @@ publicarMaterial, listarMateriais, removerMaterial, excluirUsuarioPermanente,
 publicarMaterialFormacao, listarMateriaisFormacao, removerMaterialFormacao,
 lancarPagamento, listarPagamentosDoNucleo, marcarPagamento,
 lancarDespesaComRateio, todosRateios, marcarRateioPago,
+  presencasDoNucleo,
 } from './firebase.js';
 import { escapeHTML, sanitizeInput, debounce, gerarSlug } from './shared.js';
 
@@ -373,6 +374,7 @@ carregarMateriais(),
 carregarFormacao(),
 carregarFinanceiro(),
 carregarRateios(),
+  carregarPresencas(),
 ]);
 
 atualizarEstrelaHeader();
@@ -1773,6 +1775,68 @@ finally { btn.disabled = false; }
 }
 
 /* ===================== GRÁFICOS ====================== */
+async function carregarPresencas() {
+  const resumo = document.getElementById('presencaResumoCard');
+  const cont = document.getElementById('listaPresencas');
+  const sel = document.getElementById('filtroAcademiaPresenca');
+  if (!resumo || !cont) return;
+  let nucleoAlvo = sessaoAtual && sessaoAtual.academiaGerenciadaId ? sessaoAtual.academiaGerenciadaId : null;
+  if (ehAdmin()) {
+    if (sel) {
+      sel.style.display = '';
+      if (sel.options.length <= 1) {
+        sel.innerHTML = '<option value="">Selecione um núcleo</option>' + (todosNucleos || []).map((n) => `<option value="${n.id}">${escapeHTML(n.nome || n.id)}</option>`).join('');
+        sel.onchange = () => carregarPresencas();
+      }
+      nucleoAlvo = sel.value || null;
+    }
+  } else if (sel) {
+    sel.style.display = 'none';
+  }
+  if (!nucleoAlvo) {
+    resumo.innerHTML = '<p>Selecione um núcleo para ver as presenças.</p>';
+    cont.innerHTML = '';
+    return;
+  }
+  let itens = [];
+  try {
+    itens = await presencasDoNucleo(nucleoAlvo, 300);
+  } catch (e) {
+    resumo.innerHTML = '<p>Não foi possível carregar as presenças agora.</p>';
+    cont.innerHTML = '';
+    return;
+  }
+  const total = itens.length;
+  const confirmadas = itens.filter((p) => p.confirmadoAos30 === true).length;
+  const percentual = total > 0 ? Math.round((confirmadas / total) * 100) : 0;
+  resumo.innerHTML = `<div class="presenca-resumo-grid">
+    <div class="presenca-stat"><span class="presenca-stat-valor">${percentual}%</span><span class="presenca-stat-label">Confirmação de presença</span></div>
+    <div class="presenca-stat"><span class="presenca-stat-valor">${total}</span><span class="presenca-stat-label">Check-ins registrados</span></div>
+    <div class="presenca-stat"><span class="presenca-stat-valor">${confirmadas}</span><span class="presenca-stat-label">Confirmados após 30min</span></div>
+  </div>`;
+  const porAluno = {};
+  itens.forEach((p) => {
+    const key = p.uid || 'desconhecido';
+    if (!porAluno[key]) {
+      const u = (todosUsuarios || []).find((x) => x.id === key);
+      porAluno[key] = { total: 0, confirmadas: 0, ultima: 0, nome: u ? u.nome : 'Aluno' };
+    }
+    porAluno[key].total += 1;
+    if (p.confirmadoAos30 === true) porAluno[key].confirmadas += 1;
+    const t = p.entradaEm && p.entradaEm.toMillis ? p.entradaEm.toMillis() : 0;
+    if (t > porAluno[key].ultima) porAluno[key].ultima = t;
+  });
+  const linhas = Object.values(porAluno)
+    .sort((a, b) => b.ultima - a.ultima)
+    .map((a) => {
+      const pct = a.total > 0 ? Math.round((a.confirmadas / a.total) * 100) : 0;
+      const dataStr = a.ultima ? new Date(a.ultima).toLocaleDateString('pt-BR') : '-';
+      return `<div class="lista-item"><span>${escapeHTML(a.nome)}</span><span>${a.confirmadas}/${a.total} confirmadas (${pct}%) · última: ${dataStr}</span></div>`;
+    })
+    .join('');
+  cont.innerHTML = linhas || '<p>Nenhum check-in registrado ainda.</p>';
+}
+
 function obterCorPorCordao(nome) {
 const mapa = {
 Iniciante: '#CCCCCC',

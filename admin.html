@@ -46,6 +46,7 @@ redirecionado pra login.html por admin.js (ver checarSessaoOuRedirecionar). -->
 <a href="#" class="nav-item" data-papel="formacao" onclick="mudarAba('formacao', event)">Formação</a>
 <a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('financeiro', event)">Financeiro</a>
 <a href="#" class="nav-item" data-papel="admin" onclick="mudarAba('rateio', event)">Despesas</a>
+<a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('presenca', event)">Presenças</a>
 <a href="#" class="nav-item" data-papel="gestor" onclick="irParaRelatorios(event)">Relatórios</a>
 </nav>
 
@@ -310,6 +311,12 @@ Escolha um aluno já cadastrado para virar responsável por este núcleo
 </div>
 </section>
 
+<section id="aba-presenca" class="aba-content">
+<div class="section-header"><h2><i class="fas fa-map-marker-alt"></i> Presenças</h2></div>
+<select id="filtroAcademiaPresenca" class="input-padrao" style="max-width:320px;margin-bottom:14px;"></select>
+<div class="card-padrao" id="presencaResumoCard"><p>Carregando...</p></div>
+<div class="lista-simples" id="listaPresencas"></div>
+</section>
 <section id="aba-rateio" class="aba-content">
 <div class="section-header" style="background:#B9770E;"><h2><i class="fas fa-scale-balanced"></i> Despesas Administrativas &amp; Rateio</h2></div>
 <div class="card-padrao" style="margin-bottom:20px;">
