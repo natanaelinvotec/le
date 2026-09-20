@@ -1,0 +1,66 @@
+REGRA NOVA — coleção "presencas" (sistema de check-in por localização)
+========================================================================
+
+ONDE COLOCAR
+------------
+No arquivo firestore.rules do repositório (github.com/natanaelinvotec/le),
+dentro do bloco "match /databases/{database}/documents { ... }", cole o
+trecho abaixo em qualquer lugar ANTES da linha:
+
+    match /solicitacoes/{id} {
+
+(fica ao lado das outras coleções novas: usuarios, nucleos, solicitacoes,
+eventos, avisos — não mexe em mais nada do arquivo).
+
+Depois de colar no GitHub, o MESMO texto precisa ser colado também no
+Firebase Console → Firestore Database → Regras → colar → Publicar
+(as regras do repositório são só documentação; quem vale de verdade é o
+que está publicado no Console — os dois precisam ficar iguais).
+
+TRECHO A COLAR
+------------------------------------------------------------------------
+    match /presencas/{id} {
+      allow read: if logado() && (
+        resource.data.uid == request.auth.uid ||
+        ehAdmin() ||
+        (ehGestor() && resource.data.nucleoId == minhaAcademiaGerenciada())
+      );
+      allow create: if logado() &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.confirmadoAos30 == false;
+      allow update: if logado() &&
+        resource.data.uid == request.auth.uid &&
+        request.resource.data.uid == resource.data.uid &&
+        request.resource.data.nucleoId == resource.data.nucleoId &&
+        request.resource.data.entradaEm == resource.data.entradaEm;
+      allow delete: if ehAdmin();
+    }
+------------------------------------------------------------------------
+
+O QUE ESSA REGRA FAZ
+---------------------
+- Leitura: o próprio aluno vê os próprios registros; o Admin Master vê
+  tudo; o professor/mestre vê só os registros do núcleo que ele
+  administra (reaproveita minhaAcademiaGerenciada(), a mesma função já
+  usada nas outras regras do projeto).
+- Criação: só o próprio aluno pode criar o registro da própria presença,
+  e ele tem que nascer com confirmadoAos30 = false (a segunda checagem,
+  depois de 30 minutos, é sempre um passo separado, nunca decidida na
+  hora do check-in).
+- Atualização: só o próprio aluno pode alterar o próprio registro, e só
+  para confirmar a presença depois — ele não pode trocar o núcleo nem o
+  horário de entrada já gravados (uid/nucleoId/entradaEm ficam travados).
+- Exclusão: só o Admin Master.
+
+Formato de cada documento em "presencas/{id}" (o app vai gravar assim):
+  uid            -> uid do aluno
+  nucleoId       -> id do núcleo onde fez check-in
+  entradaEm      -> timestamp do check-in inicial
+  entradaCoords  -> { lat, lng } no momento do check-in
+  confirmadoAos30 -> false ao criar; true quando a segunda checagem confirma
+  confirmadoEm   -> timestamp da confirmação (preenchido na 2ª checagem)
+  confirmadoCoords -> { lat, lng } da 2ª checagem
+
+PRÓXIMO PASSO, depois de publicar isso nos dois lugares (repo + Console):
+adiciono os campos de localização no cadastro de núcleo (endereço,
+latitude, longitude, raio em metros) e a tela de check-in no app.html.
