@@ -1455,6 +1455,103 @@ class Component extends DCLogic {
     };
   }
 }
+
+<div id="widgetCheckinRoot"></div>
+<script type="module">
+import { observarSessao, buscar, listarNucleosAtivos, criar, atualizar } from './firebase.js';
+const CHECKIN_STORAGE_KEY = 'checkinPresencaId';
+const INTERVALO_VERIFICACAO_MS = 3 * 60 * 1000;
+const RECONFIRMACAO_MS = 30 * 60 * 1000;
+function distanciaMetros(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+function criarWidget() {
+  const el = document.createElement('div');
+  el.id = 'widgetCheckin';
+  el.style.cssText = 'position:fixed;left:16px;right:16px;bottom:16px;z-index:99999;display:none;background:#002D72;color:#fff;border-radius:16px;padding:16px 20px;box-shadow:0 8px 24px rgba(0,0,0,.28);font-family:inherit;max-width:480px;margin:0 auto;';
+  document.body.appendChild(el);
+  return el;
+}
+async function iniciarCheckin() {
+  const widget = criarWidget();
+  observarSessao(async (user) => {
+    if (!user) return;
+    let perfil;
+    try { perfil = await buscar('usuarios', user.uid); } catch (e) { return; }
+    if (!perfil || !Array.isArray(perfil.papeis) || !perfil.papeis.includes('aluno')) return;
+    if (!navigator.geolocation) return;
+    function mostrarConvite(nucleo, coords) {
+      if (localStorage.getItem(CHECKIN_STORAGE_KEY)) return;
+      widget.style.display = 'block';
+      widget.innerHTML =
+        '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">' +
+        '<div style="font-size:28px;">\uD83D\uDCCD</div>' +
+        '<div style="flex:1;min-width:180px;">' +
+        '<div style="font-weight:700;font-size:15px;">Você chegou em ' + nucleo.nome + '!</div>' +
+        '<div style="font-size:13px;opacity:.85;">Confirme sua presença para registrar no seu histórico.</div>' +
+        '</div>' +
+        '<button id="btnConfirmarPresenca" style="background:#00A854;color:#fff;border:none;border-radius:10px;padding:10px 18px;font-weight:700;font-size:14px;cursor:pointer;">Confirmar presença</button>' +
+        '<button id="btnFecharCheckin" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:10px;padding:10px 14px;font-size:13px;cursor:pointer;">Agora não</button>' +
+        '</div>';
+      document.getElementById('btnConfirmarPresenca').onclick = () => confirmarPresenca(nucleo, coords);
+      document.getElementById('btnFecharCheckin').onclick = () => { widget.style.display = 'none'; };
+    }
+    async function confirmarPresenca(nucleo, coords) {
+      widget.innerHTML = '<div style="text-align:center;">Registrando presença…</div>';
+      try {
+        const ref = await criar('presencas', {
+          uid: user.uid, nucleoId: nucleo.id, entradaEm: new Date(), entradaCoords: coords, confirmadoAos30: false,
+        });
+        localStorage.setItem(CHECKIN_STORAGE_KEY, ref.id);
+        widget.innerHTML =
+          '<div style="display:flex;align-items:center;gap:12px;">' +
+          '<div style="font-size:24px;">\u2705</div>' +
+          '<div><div style="font-weight:700;">Presença registrada em ' + nucleo.nome + '!</div>' +
+          '<div style="font-size:13px;opacity:.85;">Vamos confirmar novamente em 30 minutos.</div></div>' +
+          '</div>';
+        setTimeout(() => reconfirmar(ref.id), RECONFIRMACAO_MS);
+        setTimeout(() => { widget.style.display = 'none'; }, 6000);
+      } catch (e) {
+        widget.innerHTML = '<div>Não foi possível registrar sua presença agora. Tente novamente.</div>';
+      }
+    }
+    function reconfirmar(presencaId) {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        try {
+          await atualizar('presencas', presencaId, {
+            confirmadoAos30: true, confirmadoEm: new Date(),
+            confirmadoCoords: { lat: pos.coords.latitude, lng: pos.coords.longitude },
+          });
+        } catch (e) {}
+      }, () => {}, { enableHighAccuracy: true, timeout: 15000 });
+    }
+    async function verificarProximidade() {
+      if (localStorage.getItem(CHECKIN_STORAGE_KEY)) return;
+      let nucleos;
+      try { nucleos = await listarNucleosAtivos(); } catch (e) { return; }
+      nucleos = (nucleos || []).filter((n) => typeof n.latitude === 'number' && typeof n.longitude === 'number');
+      if (!nucleos.length) return;
+      navigator.geolocation.getCurrentPosition((pos) => {
+        const { latitude, longitude } = pos.coords;
+        let alvo = null;
+        for (const n of nucleos) {
+          const d = distanciaMetros(latitude, longitude, n.latitude, n.longitude);
+          if (d <= (n.raioMetros || 15)) { alvo = n; break; }
+        }
+        if (alvo) mostrarConvite(alvo, { lat: latitude, lng: longitude });
+      }, () => {}, { enableHighAccuracy: true, timeout: 15000 });
+    }
+    verificarProximidade();
+    setInterval(verificarProximidade, INTERVALO_VERIFICACAO_MS);
+  });
+}
+iniciarCheckin();
 </script>
 </body>
 </html>
