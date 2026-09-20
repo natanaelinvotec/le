@@ -466,3 +466,194 @@ padding: 12px 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); text-align: center;
   color: var(--text-muted);
   letter-spacing: 0.02em;
 }
+
+
+/* ======================================================================
+   MODERNIZAÇÃO VISUAL — redesign do cabeçalho e componentes dos painéis
+   (Admin Master / Mestre-Professor). Aplicado por cima das regras
+   originais acima (cascata CSS), sem remover nada — para reverter,
+   basta remover este bloco final ou voltar ao commit anterior.
+   ====================================================================== */
+:root {
+  --accent-gold: #DAA520;
+  --accent-red: #D32F2F;
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-pill: 999px;
+  --shadow-soft: 0 10px 28px -10px rgba(0, 45, 114, 0.22);
+}
+
+* { scrollbar-width: thin; }
+
+body {
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- Cabeçalho ---- */
+.top-nav {
+  background: color-mix(in srgb, var(--card-bg) 90%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: none;
+  padding: 12px 24px;
+}
+
+.logo-area { gap: 12px; }
+.nav-logo {
+  border-radius: 12px;
+  box-shadow: var(--shadow-soft);
+}
+
+.menu-toggle {
+  border-radius: var(--radius-pill);
+  transition: background 0.2s ease;
+}
+.menu-toggle:hover {
+  background: color-mix(in srgb, var(--primary-teal) 10%, transparent);
+}
+
+.nav-links { gap: 4px; }
+.nav-item {
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  border-radius: var(--radius-pill);
+  padding: 8px 16px;
+  font-weight: 600;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+.nav-item:hover {
+  background: color-mix(in srgb, var(--primary-teal) 8%, transparent);
+  color: var(--primary-teal);
+  transform: translateY(-1px);
+}
+.nav-item.active {
+  background: var(--primary-teal);
+  color: #fff;
+  border-bottom: none;
+  box-shadow: 0 6px 14px -6px color-mix(in srgb, var(--primary-teal) 65%, transparent);
+}
+
+.user-area { gap: 14px; }
+.search-bar {
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-color);
+  background: var(--bg-app);
+  padding: 8px 18px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.search-bar:focus-within {
+  border-color: var(--primary-teal);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-teal) 15%, transparent);
+}
+
+.admin-profile { gap: 10px; }
+.admin-avatar {
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--primary-teal);
+  box-shadow: var(--shadow-soft);
+}
+
+.btn-logout {
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--accent-red) 10%, transparent);
+  color: var(--accent-red);
+  border: none;
+  box-shadow: none;
+  min-width: 44px;
+  min-height: 44px;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+.btn-logout:hover {
+  background: var(--accent-red);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.faixa-admin-master {
+  background: linear-gradient(135deg, var(--primary-blue), #001c4a);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--primary-blue) 65%, transparent);
+}
+.faixa-fundador {
+  background: linear-gradient(135deg, var(--accent-gold), #a9790d);
+  color: #241900;
+  border: none;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--accent-gold) 55%, transparent);
+}
+
+.btn-fundador-link {
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.btn-fundador-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 26px -10px color-mix(in srgb, var(--accent-gold) 55%, transparent);
+}
+
+/* ---- Layout geral ---- */
+.main-layout { padding-top: 8px; }
+.content-area { padding: 24px; }
+
+.section-header {
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* ---- Cartões e listas ---- */
+.card-padrao {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-soft);
+}
+
+.lista-item {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.lista-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--primary-teal) 45%, transparent);
+  border-color: color-mix(in srgb, var(--primary-teal) 40%, var(--border-color));
+}
+
+.modal-content {
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px -16px rgba(0, 20, 50, 0.35);
+}
+
+/* ---- Formulários e botões ---- */
+.input-padrao {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.input-padrao:focus {
+  border-color: var(--primary-teal);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-teal) 15%, transparent);
+  outline: none;
+}
+
+.btn-mini {
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.btn-mini:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
+}
+
+.btn-detalhes {
+  border-radius: var(--radius-pill);
+  transition: transform 0.15s ease;
+}
+.btn-detalhes:hover { transform: translateY(-1px); }
