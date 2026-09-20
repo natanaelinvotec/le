@@ -335,3 +335,18 @@ export const meusRateios = async (uid) =>
   (await getDocs(query(collection(db, 'rateios'), where('responsavelUid', '==', uid), orderBy('criadoEm', 'desc')))).docs.map((d) => ({ id: d.id, ...d.data() }));
 export const todosRateios = () => listar('rateios');
 export const marcarRateioPago = (id, pago) => updateDoc(doc(db, 'rateios', id), { status: pago ? 'pago' : 'pendente' });
+
+// ===== Presenças (check-in por proximidade) =====
+export const presencasDoUsuario = async (uid, max = 200) => {
+  const snap = await getDocs(query(collection(db, 'presencas'), where('uid', '==', uid), limit(max)));
+  const itens = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  itens.sort((a, b) => (b.entradaEm?.toMillis?.() || 0) - (a.entradaEm?.toMillis?.() || 0));
+  return itens;
+};
+
+export const presencasDoNucleo = async (nucleoId, max = 300) => {
+  const snap = await getDocs(query(collection(db, 'presencas'), where('nucleoId', '==', nucleoId), limit(max)));
+  const itens = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  itens.sort((a, b) => (b.entradaEm?.toMillis?.() || 0) - (a.entradaEm?.toMillis?.() || 0));
+  return itens;
+};
