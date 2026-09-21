@@ -1,11 +1,14 @@
 :root {
---bg-app: #EAF2F1; --card-bg: #FFFFFF; --primary-teal: #389E92;
---primary-blue: #002D72; --accent-green: #00E676;
---text-dark: #2C3E50; --text-muted: #7F8C8D; --border-color: #E0E6E5;
---star-empty: #E0E0E0; --star-filled: #F5B041;
+/* Paleta e tipografia alinhadas ao Mockup Visual App (2026-09): navy/teal
+   herdados da marca, dourado e tipografia Sora/Manrope/JetBrains Mono novos. */
+--bg-app: #F5F9F8; --card-bg: #FFFFFF; --primary-teal: #0B5C52; --teal-light: #389E92;
+--primary-blue: #002D72; --navy-deep: #001A4D; --accent-green: #00E676;
+--text-dark: #0D211D; --text-muted: #5B6B68; --border-color: #E2E8E6;
+--star-empty: #E2E8E6; --star-filled: #DAA520; --gold-light: #F5B942;
 --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+--font-display: 'Sora', system-ui, sans-serif; --font-body: 'Manrope', system-ui, sans-serif; --font-mono: 'JetBrains Mono', monospace;
 }
-* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Nunito', sans-serif; }
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: var(--font-body); }
 
 body { background-color: var(--bg-app); color: var(--text-dark); overflow-x: hidden; scroll-behavior: smooth; }
 
@@ -66,7 +69,7 @@ box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
 .aba-content { display: none; animation: fadeIn 0.35s var(--ease-standard); }
 .aba-content.active { display: block; }
 @keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
-.section-header { background: var(--primary-teal); color: white; padding: 15px 20px; border-radius: 12px; margin-bottom: 20px; font-family: 'Montserrat', sans-serif; font-size: 1.1rem; display: flex; align-items: center; flex-wrap: wrap; }
+.section-header { background: var(--primary-teal); color: white; padding: 15px 20px; border-radius: 12px; margin-bottom: 20px; font-family: var(--font-display); font-size: 1.1rem; display: flex; align-items: center; flex-wrap: wrap; }
 
 .alunos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; margin-bottom: 30px; }
 
@@ -114,7 +117,7 @@ animation: shimmer 1.4s infinite;
 .charts-grid-layout::after { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: var(--border-color); z-index: 0; }
 .chart-box { background: var(--card-bg); padding: 20px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); border: 1px solid var(--border-color); z-index: 1; display: flex; flex-direction: column; animation: fadeIn 0.5s var(--ease-standard) both; }
 .chart-box.full-width { grid-column: 1 / -1; }
-.chart-box h3 { color: var(--primary-blue); margin-bottom: 15px; font-family: 'Montserrat', sans-serif; text-align: center; font-size: 1rem; }
+.chart-box h3 { color: var(--primary-blue); margin-bottom: 15px; font-family: var(--font-display); text-align: center; font-size: 1rem; }
 .canvas-container { height: 300px; width: 100%; position: relative; flex: 1; }
 @media (max-width: 900px) { .charts-grid-layout { grid-template-columns: 1fr; } .charts-grid-layout::after { display: none; } }
 
@@ -170,7 +173,7 @@ animation: shimmer 1.4s infinite;
 .tela-login { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background: var(--bg-app); }
 .login-card { width: 100%; max-width: 380px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.08); }
 .login-logo { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; }
-.login-card h2 { color: var(--primary-blue); font-family: 'Montserrat', sans-serif; margin-bottom: 6px; }
+.login-card h2 { color: var(--primary-blue); font-family: var(--font-display); margin-bottom: 6px; }
 .login-sub { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px; }
 .login-card form { text-align: left; }
 .form-group-mod label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px; font-weight: 600; }
@@ -203,7 +206,7 @@ animation: shimmer 1.4s infinite;
 display: inline-flex; align-items: center; gap: 6px;
 margin-left: 14px; padding: 5px 12px; border-radius: 20px;
 font-size: 0.75rem; font-weight: 800; letter-spacing: 0.3px;
-font-family: 'Montserrat', sans-serif;
+font-family: var(--font-display);
 }
 .faixa-admin-master { background: var(--primary-blue); color: #fff; }
 .faixa-fundador { background: linear-gradient(90deg, #B9770E, var(--star-filled)); color: #fff; }
@@ -219,7 +222,7 @@ margin: 18px 0; padding: 14px 16px; border-radius: 10px;
 background: #FBF6EC; border: 1px dashed #E0C89A;
 display: flex; flex-direction: column; gap: 10px;
 }
-.mod-secao-papeis h4 { font-size: 0.85rem; color: #B9770E; font-family: 'Montserrat', sans-serif; }
+.mod-secao-papeis h4 { font-size: 0.85rem; color: #B9770E; font-family: var(--font-display); }
 .mod-checkbox-linha { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer; }
 .mod-checkbox-fundador { color: #B9770E; }
 
@@ -233,7 +236,7 @@ transition: 0.2s var(--ease-standard);
 .financeiro-resumo { display: flex; gap: 36px; flex-wrap: wrap; }
 .financeiro-resumo > div { display: flex; flex-direction: column; gap: 4px; }
 .financeiro-resumo span { font-size: 0.8rem; color: var(--text-muted); }
-.financeiro-resumo strong { font-size: 1.5rem; font-family: 'Montserrat', sans-serif; }
+.financeiro-resumo strong { font-size: 1.5rem; font-family: var(--font-display); }
 
 @media (max-width: 700px) {
 #formNovoPagamento { grid-template-columns: 1fr !important; }
@@ -244,14 +247,14 @@ transition: 0.2s var(--ease-standard);
 .cordao-header {
 display: flex; align-items: center; justify-content: space-between;
 font-size: 0.85rem; font-weight: 700; color: var(--text-dark);
-margin-bottom: 8px; font-family: 'Montserrat', sans-serif;
+margin-bottom: 8px; font-family: var(--font-display);
 }
 .cordao-header #porcentagemEvolucao { color: var(--primary-teal); }
 
 .mod-left, .mod-right { min-width: 0; }
 .mod-input { width: 100%; }
 .mod-title-right {
-font-size: 1rem; font-family: 'Montserrat', sans-serif; color: var(--primary-blue);
+font-size: 1rem; font-family: var(--font-display); color: var(--primary-blue);
 margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid var(--border-color);
 }
 
@@ -271,7 +274,7 @@ display: inline-flex; align-items: center; gap: 8px;
 background: linear-gradient(90deg, #002D72, #389E92); color: #fff;
 padding: 8px 16px; border-radius: 20px; text-decoration: none;
 font-size: 0.82rem; font-weight: 800; letter-spacing: 0.2px;
-font-family: 'Montserrat', sans-serif; transition: 0.2s var(--ease-standard);
+font-family: var(--font-display); transition: 0.2s var(--ease-standard);
 white-space: nowrap;
 }
 .btn-fundador-link:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,45,114,0.35); }
@@ -309,12 +312,12 @@ padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 800;
 letter-spacing: 0.4px; text-transform: uppercase;
 background: linear-gradient(90deg, #B9770E, var(--star-filled)); color: #fff;
 }
-.hero-fundador-info h2 { font-family: 'Montserrat', sans-serif; color: #fff; font-size: 1.28rem; line-height: 1.2; margin-bottom: 4px; }
+.hero-fundador-info h2 { font-family: var(--font-display); color: #fff; font-size: 1.28rem; line-height: 1.2; margin-bottom: 4px; }
 .hero-fundador-cordao { display: block; color: rgba(255,255,255,0.78); font-weight: 700; font-size: 0.88rem; }
 .hero-fundador-estrelas { margin-top: 6px; font-size: 0.9rem; letter-spacing: 1px; }
 .hero-fundador-estrela-num { font-size: 0.74rem; letter-spacing: normal; color: rgba(255,255,255,0.7); font-weight: 700; margin-left: 4px; }
 .hero-fundador-pct {
-flex: none; font-family: 'Montserrat', sans-serif; font-weight: 800; color: #00E676;
+flex: none; font-family: var(--font-display); font-weight: 800; color: #00E676;
 font-size: 2.1rem; line-height: 1; text-shadow: 0 0 18px rgba(0,230,118,0.5);
 }
 .hero-fundador-pct span { font-size: 1.1rem; }
@@ -333,7 +336,7 @@ background: rgba(255,255,255,0.14); box-shadow: inset 0 2px 6px rgba(0,0,0,0.25)
 .cascata-mestre {
 display: flex; align-items: center; gap: 10px; position: relative;
 background: var(--primary-blue); color: #fff; padding: 12px 26px; border-radius: 14px;
-font-family: 'Montserrat', sans-serif; font-size: 1rem; box-shadow: 0 8px 20px rgba(0,45,114,0.25);
+font-family: var(--font-display); font-size: 1rem; box-shadow: 0 8px 20px rgba(0,45,114,0.25);
 margin-bottom: 30px;
 }
 .cascata-mestre i { color: var(--star-filled); }
@@ -405,7 +408,7 @@ padding: 12px 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); text-align: center;
 .cascata-contagem-card.cascata-contagem-vazia { cursor: default; opacity: 0.55; }
 .cascata-contagem-card.cascata-contagem-vazia:hover { transform: none; background: var(--bg-app); box-shadow: none; }
 .cascata-contagem-card i.fas { color: var(--primary-teal); font-size: 1.1rem; }
-.cascata-contagem-numero { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 1.3rem; color: var(--primary-blue); }
+.cascata-contagem-numero { font-family: var(--font-display); font-weight: 800; font-size: 1.3rem; color: var(--primary-blue); }
 .cascata-contagem-rotulo { font-size: 0.74em; color: var(--text-muted); line-height: 1.25; }
 .cascata-contagem-expandir { font-size: 0.7em; color: var(--text-muted); margin-top: 2px; transition: transform 0.2s var(--ease-standard); }
 .cascata-contagem-aberta .cascata-contagem-expandir { transform: rotate(180deg); }
@@ -427,7 +430,7 @@ padding: 12px 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); text-align: center;
 .cascata-foto-modal.cascata-foto-modal-aberto { display: flex; animation: cardIn 0.2s var(--ease-standard) both; }
 .cascata-foto-modal-conteudo { background: var(--card-bg); border-radius: 18px; padding: 22px; max-width: 320px; width: 90%; text-align: center; position: relative; box-shadow: 0 24px 60px rgba(0,0,0,0.35); }
 .cascata-foto-modal-conteudo img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 14px; margin-bottom: 12px; }
-.cascata-foto-modal-conteudo h3 { font-family: 'Montserrat', sans-serif; color: var(--text-dark); margin-bottom: 2px; }
+.cascata-foto-modal-conteudo h3 { font-family: var(--font-display); color: var(--text-dark); margin-bottom: 2px; }
 .cascata-foto-modal-conteudo p { color: var(--text-muted); font-size: 0.85rem; }
 .cascata-foto-modal-fechar { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 50%; border: none; background: var(--bg-app); color: var(--text-dark); cursor: pointer; font-size: 0.9rem; }
 .cascata-foto-modal-fechar:hover { background: var(--border-color); }

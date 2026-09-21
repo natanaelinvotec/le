@@ -28,6 +28,11 @@ if ('serviceWorker' in navigator) { window.addEventListener('load', function(){ 
 <x-dc>
 <helmet>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- Fonte própria do app (Mockup Visual App, 2026-09): Sora/Manrope/JetBrains
+     Mono substituem Montserrat/Nunito só aqui — index.html e gerenciar.html
+     continuam com a fonts.css compartilhada do _ds, sem mudança. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/tokens/fonts.css" />
 <link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/tokens/colors.css" />
 <link rel="stylesheet" href="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/tokens/typography.css" />
@@ -41,7 +46,7 @@ if ('serviceWorker' in navigator) { window.addEventListener('load', function(){ 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 <script src="_ds/capoeira-liberdade-e-express-o-design-sy-5cc6bd50-33da-41e1-9b81-f12daadb7620/_ds_bundle.js"></script>
 <style>
-body{ margin:0; background:#0A1020; color:#2C3E50; font-family:'Nunito',sans-serif; }
+body{ margin:0; background:#0A1020; color:#0D211D; font-family:'Manrope',sans-serif; }
 *{ box-sizing:border-box; }
 a{ color:#00E676; text-decoration:none; }
 a:hover{ color:#389E92; }
@@ -53,6 +58,9 @@ a:hover{ color:#389E92; }
 @keyframes apPulso{ 0%{ box-shadow:0 0 0 0 rgba(0,230,118,.45);} 70%{ box-shadow:0 0 0 18px rgba(0,230,118,0);} 100%{ box-shadow:0 0 0 0 rgba(0,230,118,0);} }
 @keyframes apSobe{ 0%{ transform:translate3d(0,0,0) scale(.85); opacity:0;} 12%{ opacity:1;} 50%{ transform:translate3d(16px,-130px,0) scale(1);} 88%{ opacity:1;} 100%{ transform:translate3d(-10px,-260px,0) scale(1.1); opacity:0;} }
 @keyframes apCresce{ from{ transform:scaleY(0);} to{ transform:scaleY(1);} }
+@keyframes girocordao{ from{ transform:rotate(0deg);} to{ transform:rotate(360deg);} }
+.cordao-anel{ animation:girocordao 6s linear infinite; }
+@media (prefers-reduced-motion: reduce){ .cordao-anel{ animation:none; } }
 </style>
 </helmet>
 
@@ -61,7 +69,7 @@ a:hover{ color:#389E92; }
   <div data-chrome="1" style="display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:10px; text-align:center;">
     <img src="assets/logo-liberdade.png" alt="" style="width:42px; height:42px; border-radius:50%; background:#fff;" />
     <div style="text-align:left;">
-      <div style="font-family:'Montserrat',sans-serif; font-weight:800; color:#fff; font-size:1.05rem; line-height:1.1;">App Capoeira Liberdade e Expressão</div>
+      <div style="font-family:'Sora',sans-serif; font-weight:800; color:#fff; font-size:1.05rem; line-height:1.1;">App Capoeira Liberdade e Expressão</div>
       <div style="color:rgba(255,255,255,.5); font-size:.8rem;">Acesso único: aluno, família, professor, mestre e master admin</div>
     </div>
   </div>
@@ -80,7 +88,7 @@ a:hover{ color:#389E92; }
 <div style="position:absolute; bottom:-90px; right:-80px; width:300px; height:300px; border-radius:50%; background:#00E676; filter:blur(64px); opacity:.32; animation:apBlob 9s ease-in-out infinite reverse;"></div>
 <img src="assets/logo-liberdade.png" alt="Brasão do Grupo Liberdade e Expressão" style="position:relative; width:112px; height:112px; border-radius:50%; background:#fff; border:3px solid #00E676; box-shadow:0 16px 40px rgba(0,0,0,.45);" />
 <div style="position:relative;">
-<h1 style="margin:0 0 4px; font-family:'Montserrat',sans-serif; font-size:1.3rem; color:#fff;">Portal do Aluno</h1>
+<h1 style="margin:0 0 4px; font-family:'Sora',sans-serif; font-size:1.3rem; color:#fff;">Portal do Aluno</h1>
 <p style="margin:0; color:rgba(255,255,255,.65); font-size:.86rem;">Grupo de Capoeira Liberdade e Expressão</p>
 </div>
 <i class="fas fa-spinner fa-spin" style="position:relative; color:#00E676; font-size:1.6rem;"></i>
@@ -91,7 +99,7 @@ a:hover{ color:#389E92; }
         <div style="flex:1; display:flex; flex-direction:column; justify-content:center; padding:60px 22px 40px; background:linear-gradient(160deg,#002D72 0%,#0B1C3C 60%,#05070C 100%); animation:apEntra .4s cubic-bezier(.16,1,.3,1) both;">
           <div style="text-align:center; margin-bottom:26px;">
             <div style="color:#00E676; font-size:.72rem; font-weight:800; letter-spacing:.18em; margin-bottom:8px;">CONTA FAMÍLIA</div>
-            <h1 style="margin:0 0 6px; color:#fff; font-family:'Montserrat',sans-serif; font-size:1.5rem;">Quem vai treinar?</h1>
+            <h1 style="margin:0 0 6px; color:#fff; font-family:'Sora',sans-serif; font-size:1.5rem;">Quem vai treinar?</h1>
             <p style="margin:0; color:rgba(255,255,255,.68); font-size:.88rem;">Escolha o atleta para ver o prontuário dele.</p>
           </div>
           <div style="display:flex; flex-direction:column; gap:12px;">
@@ -99,8 +107,8 @@ a:hover{ color:#389E92; }
               <button onClick="{{ a.selecionar }}" style="{{ a.cartao }}">
                 <img src="{{ a.foto }}" alt="" style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid #389E92; flex:none;" />
                 <span style="flex:1; min-width:0;">
-                  <span style="display:block; font-family:'Montserrat',sans-serif; font-weight:800; color:#002D72; font-size:1rem;">{{ a.curto }}</span>
-                  <span style="display:block; color:#7F8C8D; font-size:.8rem; margin-top:3px;">{{ a.papelFamilia }} · {{ a.cordao }}</span>
+                  <span style="display:block; font-family:'Sora',sans-serif; font-weight:800; color:#002D72; font-size:1rem;">{{ a.curto }}</span>
+                  <span style="display:block; color:#5B6B68; font-size:.8rem; margin-top:3px;">{{ a.papelFamilia }} · {{ a.cordao }}</span>
                 </span>
                 <span style="{{ a.chip }}">{{ a.mensalidade }}</span>
               </button>
@@ -115,85 +123,97 @@ a:hover{ color:#389E92; }
 
           <sc-if value="{{ ehInicio }}" hint-placeholder-val="{{ false }}">
             <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
-              <div style="background:#fff; padding:52px 20px 22px; border-bottom:1px solid #E0E6E5;">
+              <div style="background:#fff; padding:48px 20px 18px; border-bottom:1px solid #E2E8E6;">
                 <div style="display:flex; align-items:center; gap:12px;">
-                  <button onClick="{{ abrirTrocador }}" aria-label="Trocar de atleta" style="position:relative; width:48px; height:48px; padding:0; border:2px solid #389E92; border-radius:50%; background:none; cursor:pointer; flex:none;">
-                    <sc-for list="{{ fotoAtletaLista }}" as="f" hint-placeholder-count="0">
-                      <img src="{{ f.url }}" alt="Foto do atleta" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" />
-                    </sc-for>
+                  <button onClick="{{ abrirTrocador }}" aria-label="Trocar de atleta" style="position:relative; width:48px; height:48px; padding:0; border:none; background:none; cursor:pointer; flex:none;">
+                    <span class="cordao-anel" style="position:absolute; inset:0; border-radius:50%; background:conic-gradient(from 0deg,#ffffff 0deg 120deg,#00B140 120deg 240deg,#0057D9 240deg 360deg);"></span>
+                    <span style="position:absolute; inset:3px; border-radius:50%; overflow:hidden; background:#e8f4f2; display:flex; align-items:center; justify-content:center;">
+                      <sc-for list="{{ fotoAtletaLista }}" as="f" hint-placeholder-count="0">
+                        <img src="{{ f.url }}" alt="Foto do atleta" style="width:100%; height:100%; object-fit:cover;" />
+                      </sc-for>
+                    </span>
                     <sc-if value="{{ ehFamilia }}" hint-placeholder-val="{{ false }}">
                       <span style="position:absolute; right:-3px; bottom:-3px; width:20px; height:20px; border-radius:50%; background:#00B140; color:#fff; font-size:.6rem; display:flex; align-items:center; justify-content:center; border:2px solid #fff;"><i class="fas fa-repeat"></i></span>
                     </sc-if>
                   </button>
                   <div style="flex:1; min-width:0;">
                     <div style="color:#5B6B68; font-size:.72rem;">Bem-vindo de volta!</div>
-                    <div style="color:#002D72; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.08rem; line-height:1.15;">{{ atletaNome }}</div>
+                    <div style="color:#0D211D; font-family:'Sora',sans-serif; font-weight:800; font-size:1.08rem; line-height:1.15;">{{ atletaNome }}</div>
                   </div>
-                  <button onClick="{{ irPerfil }}" aria-label="Notificações" style="position:relative; width:42px; height:42px; border-radius:50%; border:1px solid #E0E6E5; background:#F5F9F8; color:#002D72; cursor:pointer;">
+                  <button onClick="{{ irPerfil }}" aria-label="Notificações" style="position:relative; width:40px; height:40px; border-radius:50%; border:1px solid #E2E8E6; background:#F5F9F8; color:#0D211D; cursor:pointer;">
                     <i class="far fa-bell"></i>
-                    <span style="position:absolute; top:9px; right:11px; width:8px; height:8px; border-radius:50%; background:#D32F2F; border:2px solid #fff;"></span>
+                    <span style="position:absolute; top:9px; right:11px; width:7px; height:7px; border-radius:50%; background:#D32F2F; border:1.5px solid #fff;"></span>
                   </button>
                 </div>
-                <div style="margin-top:12px;">
+                <div style="margin-top:13px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                   <span style="background:#eaf6f4; color:#0B5C52; font-size:.72rem; font-weight:700; padding:4px 10px; border-radius:999px;">{{ atletaAcademia }}</span>
+                  <span style="{{ seloApto }}"><span style="width:6px; height:6px; border-radius:50%; background:currentColor;"></span>{{ rotuloApto }}</span>
                 </div>
                 <label for="buscaAppInicio" style="display:block; margin-top:12px;">
                   <span style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0);">Buscar</span>
-                  <div style="display:flex; align-items:center; gap:8px; background:#F5F9F8; border:1px solid #E0E6E5; border-radius:999px; padding:10px 14px;">
+                  <div style="display:flex; align-items:center; gap:8px; background:#F5F9F8; border:1px solid #E2E8E6; border-radius:999px; padding:9px 14px;">
                     <i class="fas fa-search" style="color:#5B6B68; font-size:.85rem;"></i>
-                    <input id="buscaAppInicio" type="text" placeholder="Buscar aula, aviso, material..." style="background:transparent; border:none; font-size:.8rem; flex:1; outline:none; color:#0D211D; font-family:'Nunito',sans-serif;">
+                    <input id="buscaAppInicio" type="text" placeholder="Buscar aula, aviso, material..." style="background:transparent; border:none; font-size:.8rem; flex:1; outline:none; color:#0D211D; font-family:'Manrope',sans-serif;">
                   </div>
                 </label>
               </div>
 
-              <div style="margin:16px 16px 0; background:#fff; border:1px solid #E0E6E5; border-radius:22px; padding:20px; box-shadow:0 14px 34px rgba(0,45,114,.14);">
+              <div style="margin:16px 16px 0; background:#fff; border:1px solid #E2E8E6; border-radius:20px; padding:18px; box-shadow:0 10px 24px -16px rgba(0,45,114,.22);">
                 <div style="display:flex; align-items:center; gap:16px;">
-                  <div style="position:relative; width:78px; height:78px; flex:none;">
-                    <div style="width:78px; height:78px; border-radius:50%; background:conic-gradient(#00E676 0turn {{ voltaProgresso }}, #E6EDEC {{ voltaProgresso }} 1turn);"></div>
-                    <div style="position:absolute; inset:8px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; font-family:'Montserrat',sans-serif; font-weight:800; color:#002D72; font-size:1.05rem;">{{ progresso }}%</div>
+                  <div style="position:relative; width:72px; height:72px; flex:none;">
+                    <div style="width:72px; height:72px; border-radius:50%; background:conic-gradient(#00E676 0turn {{ voltaProgresso }}, #E2E8E6 {{ voltaProgresso }} 1turn);"></div>
+                    <div style="position:absolute; inset:7px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; font-family:'Sora',sans-serif; font-weight:800; color:#002D72; font-size:.98rem;">{{ progresso }}%</div>
                   </div>
                   <div style="min-width:0;">
-                    <div style="{{ seloApto }}"><span style="width:6px; height:6px; border-radius:50%; background:currentColor;"></span>{{ rotuloApto }}</div>
-                    <div style="font-family:'Montserrat',sans-serif; font-weight:800; color:#002D72; font-size:1.12rem; line-height:1.15;">{{ atletaCordao }}</div>
-                    <div style="color:#7F8C8D; font-size:.86rem; margin-top:3px;">Próximo: <strong style="color:#389E92;">{{ proximoCordao }}</strong> no batizado de 22/08</div>
+                    <div style="color:#5B6B68; font-size:.72rem; font-weight:600;">Minha evolução</div>
+                    <div style="font-family:'Sora',sans-serif; font-weight:800; color:#002D72; font-size:1.12rem; line-height:1.15;">{{ atletaCordao }}</div>
+                    <div style="color:#5B6B68; font-size:.86rem; margin-top:3px;">Próximo: <strong style="color:#0B5C52;">{{ proximoCordao }}</strong> no batizado de 22/08</div>
                   </div>
                 </div>
-                <div style="margin-top:16px; width:100%; height:18px; border-radius:20px; background:#E6EDEC; overflow:hidden; box-shadow:inset 0 2px 5px rgba(0,0,0,.06);">
+                <div style="margin-top:16px; width:100%; height:14px; border-radius:20px; background:#E2E8E6; overflow:hidden;">
                   <div style="{{ barraCordaoEstilo }}"></div>
                 </div>
               </div>
 
-              <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:16px 16px 0;">
+              <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:14px 16px 0;">
                 <sc-for list="{{ atalhos }}" as="a" hint-placeholder-count="0">
-                  <button onClick="{{ a.abrir }}" style="display:flex; flex-direction:column; align-items:center; gap:7px; padding:14px 4px; border:1px solid #E0E6E5; border-radius:16px; background:#fff; cursor:pointer; font-family:'Nunito',sans-serif; transition:.25s cubic-bezier(.16,1,.3,1);" style-hover="transform:translateY(-3px); box-shadow:0 10px 22px rgba(0,0,0,.08);">
-                    <span style="width:38px; height:38px; border-radius:50%; background:rgba(56,158,146,.12); color:#389E92; display:flex; align-items:center; justify-content:center; font-size:1rem;"><i class="{{ a.icone }}"></i></span>
-                    <span style="font-size:.72rem; font-weight:700; color:#2C3E50; text-align:center; line-height:1.2;">{{ a.rotulo }}</span>
+                  <button onClick="{{ a.abrir }}" style="display:flex; flex-direction:column; align-items:center; gap:7px; padding:14px 4px; border:1px solid #E2E8E6; border-radius:16px; background:#fff; cursor:pointer; font-family:'Manrope',sans-serif; transition:.25s cubic-bezier(.16,1,.3,1);" style-hover="transform:translateY(-3px); box-shadow:0 10px 22px rgba(0,0,0,.08);">
+                    <span style="width:36px; height:36px; border-radius:10px; background:rgba(11,92,82,.1); color:#0B5C52; display:flex; align-items:center; justify-content:center; font-size:.95rem;"><i class="{{ a.icone }}"></i></span>
+                    <span style="font-size:.72rem; font-weight:700; color:#0D211D; text-align:center; line-height:1.2;">{{ a.rotulo }}</span>
                   </button>
                 </sc-for>
               </div>
 
-              <div style="margin:22px 16px 0;">
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-                  <h2 style="margin:0; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.02rem;">Próxima roda</h2>
-                  <button onClick="{{ irAulas }}" style="border:none; background:none; color:#389E92; font-weight:800; font-size:.82rem; cursor:pointer; font-family:'Nunito',sans-serif;">Ver agenda</button>
+              <div style="margin:20px 16px 0; background:#fff; border:1px solid #E2E8E6; border-radius:18px; padding:16px 18px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:2px;">
+                  <div style="font-family:'Sora',sans-serif; font-weight:700; color:#0D211D; font-size:.92rem;">Presença</div>
+                  <span style="background:#eaf6f4; color:#0B5C52; font-size:.68rem; font-weight:700; padding:3px 9px; border-radius:999px;">acompanhe no app</span>
                 </div>
-                <div style="position:relative; border-radius:20px; overflow:hidden; height:150px;">
+                <p style="margin:2px 0 0; font-size:.76rem; color:#5B6B68;">Confirme presença nas próximas aulas e acompanhe frequência, sequência de treinos e conquistas em breve por aqui.</p>
+              </div>
+
+              <div style="margin:20px 16px 0;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                  <h2 style="margin:0; font-family:'Sora',sans-serif; color:#0D211D; font-size:1.02rem;">Próxima roda</h2>
+                  <button onClick="{{ irAulas }}" style="border:none; background:none; color:#0B5C52; font-weight:800; font-size:.82rem; cursor:pointer; font-family:'Manrope',sans-serif;">Ver agenda</button>
+                </div>
+                <div style="position:relative; border-radius:18px; overflow:hidden; height:150px;">
                   <img src="assets/roda-plateia.jpg" alt="Roda de capoeira" style="width:100%; height:100%; object-fit:cover;" />
                   <div style="position:absolute; inset:0; background:linear-gradient(180deg,rgba(5,7,12,.1),rgba(5,7,12,.86));"></div>
                   <div style="position:absolute; left:16px; right:16px; bottom:14px;">
                     <div style="color:#00E676; font-size:.72rem; font-weight:800; letter-spacing:.12em; margin-bottom:4px;">22 DE AGOSTO · 19:00H</div>
-                    <div style="color:#fff; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.05rem;">Batizado do Mestre Profeta</div>
+                    <div style="color:#fff; font-family:'Sora',sans-serif; font-weight:800; font-size:1.05rem;">Batizado do Mestre Profeta</div>
                     <div style="color:rgba(255,255,255,.75); font-size:.82rem; margin-top:2px;">R. Jaime Costa, 589 — Buriti</div>
                   </div>
                 </div>
               </div>
 
-              <div style="margin:22px 16px 0; background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:18px; display:flex; gap:14px; align-items:center;">
-                <img src="assets/retrato-profeta.jpg" alt="Mestre Profeta" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:3px solid #389E92; flex:none;" />
+              <div style="margin:20px 16px 0; background:#fff; border:1px solid #E2E8E6; border-radius:18px; padding:16px 18px; display:flex; gap:14px; align-items:center;">
+                <img src="assets/retrato-profeta.jpg" alt="Mestre Profeta" style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:3px solid #389E92; flex:none;" />
                 <div style="min-width:0;">
-                  <div style="font-family:'Montserrat',sans-serif; color:#002D72; font-weight:800; font-size:1rem;">Mestre Profeta</div>
-                  <div style="color:#389E92; font-weight:700; font-size:.8rem; margin:2px 0 5px;">Seu mestre responsável</div>
-                  <div style="color:#7F8C8D; font-size:.82rem; line-height:1.4;">Aulas segunda, quarta e sexta · 19h00 às 20h30</div>
+                  <div style="font-family:'Sora',sans-serif; color:#0D211D; font-weight:800; font-size:1rem;">Mestre Profeta</div>
+                  <div style="color:#0B5C52; font-weight:700; font-size:.8rem; margin:2px 0 5px;">Seu mestre responsável</div>
+                  <div style="color:#5B6B68; font-size:.82rem; line-height:1.4;">Aulas segunda, quarta e sexta · 19h00 às 20h30</div>
                 </div>
               </div>
             </div>
@@ -202,44 +222,44 @@ a:hover{ color:#389E92; }
           <sc-if value="{{ ehEvolucao }}" hint-placeholder-val="{{ false }}">
             <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
               <div style="background:#002D72; padding:52px 20px 24px; border-radius:0 0 26px 26px;">
-                <h1 style="margin:0 0 4px; color:#fff; font-family:'Montserrat',sans-serif; font-size:1.35rem;">Minha Evolução</h1>
+                <h1 style="margin:0 0 4px; color:#fff; font-family:'Sora',sans-serif; font-size:1.35rem;">Minha Evolução</h1>
                 <p style="margin:0; color:rgba(255,255,255,.7); font-size:.87rem;">Atinja 70% ou mais nos critérios avaliados pelo seu mestre para estar apto à nova fase!</p>
               </div>
               <div style="margin:16px;">
-                <div style="background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:18px;">
+                <div style="background:#fff; border:1px solid #E2E8E6; border-radius:20px; padding:18px;">
                   <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:12px;">
-                    <span style="font-weight:800; color:#2C3E50; font-size:.92rem;">Termômetro de prontidão</span>
-                    <span style="font-family:'Montserrat',sans-serif; font-weight:800; color:#389E92; font-size:1.4rem;">{{ progresso }}%</span>
+                    <span style="font-weight:800; color:#0D211D; font-size:.92rem;">Termômetro de prontidão</span>
+                    <span style="font-family:'Sora',sans-serif; font-weight:800; color:#389E92; font-size:1.4rem;">{{ progresso }}%</span>
                   </div>
-                  <div style="width:100%; height:22px; border-radius:20px; background:#E6EDEC; overflow:hidden;">
+                  <div style="width:100%; height:22px; border-radius:20px; background:#E2E8E6; overflow:hidden;">
                     <div style="{{ barraCordaoEstilo }}"></div>
                   </div>
                 </div>
 
-                <h2 style="margin:22px 0 10px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.02rem;">Histórico de avaliações</h2>
-                <div style="background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:18px;">
+                <h2 style="margin:22px 0 10px; font-family:'Sora',sans-serif; color:#002D72; font-size:1.02rem;">Histórico de avaliações</h2>
+                <div style="background:#fff; border:1px solid #E2E8E6; border-radius:20px; padding:18px;">
                   <div style="display:flex; align-items:flex-end; gap:10px; height:110px;">
                     <sc-for list="{{ historicoAluno }}" as="h" hint-placeholder-count="3">
                       <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:7px;">
                         <span style="font-weight:800; font-size:.74rem; color:#002D72;">{{ h.valor }}%</span>
                         <span style="{{ h.barra }}"></span>
-                        <span style="font-size:.68rem; color:#7F8C8D; font-weight:700;">{{ h.data }}</span>
+                        <span style="font-size:.68rem; color:#5B6B68; font-weight:700;">{{ h.data }}</span>
                       </div>
                     </sc-for>
                   </div>
                 </div>
 
-                <h2 style="margin:22px 0 10px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.02rem;">Notas por fundamento</h2>
+                <h2 style="margin:22px 0 10px; font-family:'Sora',sans-serif; color:#002D72; font-size:1.02rem;">Notas por fundamento</h2>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:9px;">
                   <sc-for list="{{ criterios }}" as="c" hint-placeholder-count="0">
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; background:#fff; border:1px solid #E0E6E5; border-radius:14px; padding:12px 13px;">
-                      <span style="font-weight:700; font-size:.8rem; color:#2C3E50; min-width:0;">{{ c.nome }}</span>
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; background:#fff; border:1px solid #E2E8E6; border-radius:14px; padding:12px 13px;">
+                      <span style="font-weight:700; font-size:.8rem; color:#0D211D; min-width:0;">{{ c.nome }}</span>
                       <span style="{{ c.chip }}">{{ c.nota }}</span>
                     </div>
                   </sc-for>
                 </div>
 
-                <h2 style="margin:22px 0 10px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.02rem;">Caminho do cordão</h2>
+                <h2 style="margin:22px 0 10px; font-family:'Sora',sans-serif; color:#002D72; font-size:1.02rem;">Caminho do cordão</h2>
                 <div style="display:flex; flex-direction:column; gap:8px;">
                   <sc-for list="{{ trilha }}" as="t" hint-placeholder-count="0">
                     <div style="{{ t.linha }}">
@@ -258,7 +278,7 @@ a:hover{ color:#389E92; }
 <div style="position:relative; overflow:hidden; background:linear-gradient(158deg,#0B5C52 0%,#12796B 42%,#002D72 100%); padding:52px 20px 34px; border-radius:0 0 30px 30px;">
 <div style="position:absolute; top:-70px; right:-50px; width:220px; height:220px; border-radius:50%; background:#00E676; filter:blur(58px); opacity:.28; animation:apBlob 10s ease-in-out infinite;"></div>
 <div style="position:relative; color:rgba(255,255,255,.6); font-size:.72rem; font-weight:800; letter-spacing:.16em;">SUA MENSALIDADE</div>
-<div style="position:relative; color:#fff; font-family:'Montserrat',sans-serif; font-weight:800; font-size:2.3rem; line-height:1.1; margin-top:6px;">{{ mensalidadeValor }}</div>
+<div style="position:relative; color:#fff; font-family:'Sora',sans-serif; font-weight:800; font-size:2.3rem; line-height:1.1; margin-top:6px;">{{ mensalidadeValor }}</div>
 <div style="position:relative; color:rgba(255,255,255,.72); font-size:.84rem; margin-top:4px;">{{ mensalidadeAcademia }}</div>
 </div>
 
@@ -268,19 +288,19 @@ a:hover{ color:#389E92; }
 <span style="font-size:.76rem; font-weight:800; letter-spacing:.12em; opacity:.85;">MENSALIDADE</span>
 <span style="padding:5px 11px; border-radius:999px; background:rgba(255,255,255,.16); font-size:.7rem; font-weight:800;">{{ statusMensalidade }}</span>
 </div>
-<div style="font-family:'Montserrat',sans-serif; font-weight:800; font-size:2rem; line-height:1.1;">{{ mensalidadeValor }}</div>
+<div style="font-family:'Sora',sans-serif; font-weight:800; font-size:2rem; line-height:1.1;">{{ mensalidadeValor }}</div>
 <div style="opacity:.78; font-size:.84rem; margin-top:2px;">{{ mensalidadeAjuda }}</div>
-<button onClick="{{ pagarPix }}" style="margin-top:16px; width:100%; padding:15px; border:none; border-radius:18px; background:#00E676; color:#05070C; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1rem; cursor:pointer;"><i class="fas fa-comment-dots"></i> Falar sobre o pagamento</button>
+<button onClick="{{ pagarPix }}" style="margin-top:16px; width:100%; padding:15px; border:none; border-radius:18px; background:#00E676; color:#05070C; font-family:'Sora',sans-serif; font-weight:800; font-size:1rem; cursor:pointer;"><i class="fas fa-comment-dots"></i> Falar sobre o pagamento</button>
 </div>
 
 <sc-if value="{{ ehFamilia }}" hint-placeholder-val="{{ false }}">
-<div style="margin-top:16px; background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:18px;">
-<h2 style="margin:0 0 14px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1rem;">Mensalidade por atleta</h2>
+<div style="margin-top:16px; background:#fff; border:1px solid #E2E8E6; border-radius:20px; padding:18px;">
+<h2 style="margin:0 0 14px; font-family:'Sora',sans-serif; color:#002D72; font-size:1rem;">Mensalidade por atleta</h2>
 <div style="display:flex; flex-direction:column; gap:14px;">
 <sc-for list="{{ comparativoFamilia }}" as="c" hint-placeholder-count="0">
 <div style="display:flex; align-items:center; gap:9px;">
 <img src="{{ c.foto }}" alt="" style="width:34px; height:34px; border-radius:50%; object-fit:cover; flex:none;" />
-<span style="flex:1; min-width:0; font-weight:700; color:#2C3E50; font-size:.88rem;">{{ c.nome }}</span>
+<span style="flex:1; min-width:0; font-weight:700; color:#0D211D; font-size:.88rem;">{{ c.nome }}</span>
 <span style="font-weight:800; color:#002D72; font-size:.88rem;">{{ c.valor }}</span>
 </div>
 </sc-for>
@@ -288,19 +308,19 @@ a:hover{ color:#389E92; }
 </div>
 </sc-if>
 
-<div style="margin-top:16px; background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:20px; text-align:center;">
+<div style="margin-top:16px; background:#fff; border:1px solid #E2E8E6; border-radius:20px; padding:20px; text-align:center;">
 <i class="fas fa-file-invoice" style="color:#95A5A6; font-size:1.4rem; margin-bottom:8px; display:block;"></i>
-<p style="margin:0; color:#7F8C8D; font-size:.84rem; line-height:1.5;">Histórico de pagamentos ainda não disponível por aqui. Confirme valores e vencimentos direto com a sua academia.</p>
+<p style="margin:0; color:#5B6B68; font-size:.84rem; line-height:1.5;">Histórico de pagamentos ainda não disponível por aqui. Confirme valores e vencimentos direto com a sua academia.</p>
 </div>
 
-<h2 style="margin:24px 0 10px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.02rem;">Loja oficial</h2>
+<h2 style="margin:24px 0 10px; font-family:'Sora',sans-serif; color:#002D72; font-size:1.02rem;">Loja oficial</h2>
 <div style="display:flex; flex-direction:column; gap:12px;">
 <sc-for list="{{ produtosProntos }}" as="p" hint-placeholder-count="0">
-<article style="display:flex; gap:14px; align-items:center; background:#fff; border:1px solid #E0E6E5; border-radius:18px; padding:12px;">
+<article style="display:flex; gap:14px; align-items:center; background:#fff; border:1px solid #E2E8E6; border-radius:18px; padding:12px;">
 <img src="{{ p.img }}" alt="{{ p.nome }}" style="width:74px; height:74px; border-radius:14px; object-fit:cover; flex:none;" />
 <div style="flex:1; min-width:0;">
-<div style="font-family:'Montserrat',sans-serif; color:#002D72; font-weight:800; font-size:.98rem;">{{ p.nome }}</div>
-<div style="color:#7F8C8D; font-size:.8rem; line-height:1.35; margin:3px 0 6px;">{{ p.desc }}</div>
+<div style="font-family:'Sora',sans-serif; color:#002D72; font-weight:800; font-size:.98rem;">{{ p.nome }}</div>
+<div style="color:#5B6B68; font-size:.8rem; line-height:1.35; margin:3px 0 6px;">{{ p.desc }}</div>
 <div style="font-weight:800; color:#389E92; font-size:1.05rem;">{{ p.preco }}</div>
 </div>
 <a href="{{ p.link }}" target="_blank" rel="noopener" aria-label="Comprar" style="width:46px; height:46px; border-radius:14px; background:#00E676; color:#05070C; display:flex; align-items:center; justify-content:center; font-size:1.05rem; flex:none;"><i class="fas fa-cart-plus"></i></a>
@@ -315,42 +335,42 @@ a:hover{ color:#389E92; }
               <div style="position:relative; overflow:hidden; background:linear-gradient(158deg,#0B5C52 0%,#12796B 42%,#002D72 100%); padding:52px 20px 30px; border-radius:0 0 30px 30px;">
                 <div style="position:absolute; top:-70px; right:-50px; width:220px; height:220px; border-radius:50%; background:#00E676; filter:blur(58px); opacity:.28; animation:apBlob 10s ease-in-out infinite;"></div>
                 <div style="position:relative; color:rgba(255,255,255,.6); font-size:.72rem; font-weight:800; letter-spacing:.16em;">RECEITA DE SETEMBRO</div>
-                <div style="position:relative; color:#fff; font-family:'Montserrat',sans-serif; font-weight:800; font-size:2.3rem; line-height:1.1; margin-top:6px;">{{ receitaMes }}</div>
+                <div style="position:relative; color:#fff; font-family:'Sora',sans-serif; font-weight:800; font-size:2.3rem; line-height:1.1; margin-top:6px;">{{ receitaMes }}</div>
                 <div style="position:relative; color:rgba(255,255,255,.72); font-size:.84rem; margin-top:4px;">{{ recebidoTexto }}</div>
                 <div style="position:relative; display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:18px;">
                   <div style="background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:16px; padding:13px;">
-                    <div style="color:#00E676; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.2rem;">{{ adimplencia }}%</div>
+                    <div style="color:#00E676; font-family:'Sora',sans-serif; font-weight:800; font-size:1.2rem;">{{ adimplencia }}%</div>
                     <div style="color:rgba(255,255,255,.6); font-size:.68rem; font-weight:700; letter-spacing:.06em; margin-top:4px;">ADIMPLÊNCIA</div>
                   </div>
                   <div style="background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:16px; padding:13px;">
-                    <div style="color:#F39C12; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.2rem;">{{ inadimplencia }}</div>
+                    <div style="color:#F39C12; font-family:'Sora',sans-serif; font-weight:800; font-size:1.2rem;">{{ inadimplencia }}</div>
                     <div style="color:rgba(255,255,255,.6); font-size:.68rem; font-weight:700; letter-spacing:.06em; margin-top:4px;">EM ATRASO</div>
                   </div>
                 </div>
               </div>
               <div style="margin:16px;">
-                <div style="background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:18px;">
-                  <h2 style="margin:0 0 14px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1rem;">Receita por academia</h2>
+                <div style="background:#fff; border:1px solid #E2E8E6; border-radius:20px; padding:18px;">
+                  <h2 style="margin:0 0 14px; font-family:'Sora',sans-serif; color:#002D72; font-size:1rem;">Receita por academia</h2>
                   <div style="display:flex; flex-direction:column; gap:13px;">
                     <sc-for list="{{ receitaAcademias }}" as="r" hint-placeholder-count="5">
                       <div>
                         <div style="display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:6px;">
-                          <span style="font-weight:700; color:#2C3E50; font-size:.85rem;">{{ r.nome }}</span>
+                          <span style="font-weight:700; color:#0D211D; font-size:.85rem;">{{ r.nome }}</span>
                           <span style="font-weight:800; color:#002D72; font-size:.85rem;">{{ r.valor }}</span>
                         </div>
-                        <div style="width:100%; height:9px; border-radius:6px; background:#E6EDEC; overflow:hidden;">
+                        <div style="width:100%; height:9px; border-radius:6px; background:#E2E8E6; overflow:hidden;">
                           <div style="{{ r.barra }}"></div>
                         </div>
-                        <div style="color:#7F8C8D; font-size:.74rem; margin-top:4px;">{{ r.alunos }} alunos · {{ r.atraso }} em atraso</div>
+                        <div style="color:#5B6B68; font-size:.74rem; margin-top:4px;">{{ r.alunos }} alunos · {{ r.atraso }} em atraso</div>
                       </div>
                     </sc-for>
                   </div>
                 </div>
 
-                <div style="margin-top:16px; background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:18px;">
+                <div style="margin-top:16px; background:#fff; border:1px solid #E2E8E6; border-radius:20px; padding:18px;">
                   <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px;">
-                    <h2 style="margin:0; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1rem;">Entradas mês a mês</h2>
-                    <span style="color:#7F8C8D; font-size:.76rem; font-weight:700;">12 meses</span>
+                    <h2 style="margin:0; font-family:'Sora',sans-serif; color:#002D72; font-size:1rem;">Entradas mês a mês</h2>
+                    <span style="color:#5B6B68; font-size:.76rem; font-weight:700;">12 meses</span>
                   </div>
                   <div style="display:flex; align-items:flex-end; gap:5px; height:116px;">
                     <sc-for list="{{ barrasGrupo }}" as="b" hint-placeholder-count="12">
@@ -363,13 +383,13 @@ a:hover{ color:#389E92; }
                 </div>
 
                 <div style="margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                  <button onClick="{{ abrirPagamento }}" style="display:flex; flex-direction:column; align-items:flex-start; gap:10px; padding:16px; border:1px solid #E0E6E5; border-radius:18px; background:#fff; cursor:pointer; text-align:left; font-family:'Nunito',sans-serif;">
+                  <button onClick="{{ abrirPagamento }}" style="display:flex; flex-direction:column; align-items:flex-start; gap:10px; padding:16px; border:1px solid #E2E8E6; border-radius:18px; background:#fff; cursor:pointer; text-align:left; font-family:'Manrope',sans-serif;">
                     <span style="width:40px; height:40px; border-radius:13px; display:flex; align-items:center; justify-content:center; color:#F39C12; background:rgba(243,156,18,.12);"><i class="fas fa-wallet"></i></span>
-                    <span style="font-weight:800; color:#2C3E50; font-size:.88rem;">Lançar pagamento</span>
+                    <span style="font-weight:800; color:#0D211D; font-size:.88rem;">Lançar pagamento</span>
                   </button>
-                  <button onClick="{{ gerarRelatorio }}" style="display:flex; flex-direction:column; align-items:flex-start; gap:10px; padding:16px; border:1px solid #E0E6E5; border-radius:18px; background:#fff; cursor:pointer; text-align:left; font-family:'Nunito',sans-serif;">
-                    <span style="width:40px; height:40px; border-radius:13px; display:flex; align-items:center; justify-content:center; color:#E74C3C; background:rgba(231,76,60,.12);"><i class="fas fa-file-pdf"></i></span>
-                    <span style="font-weight:800; color:#2C3E50; font-size:.88rem;">Relatório financeiro</span>
+                  <button onClick="{{ gerarRelatorio }}" style="display:flex; flex-direction:column; align-items:flex-start; gap:10px; padding:16px; border:1px solid #E2E8E6; border-radius:18px; background:#fff; cursor:pointer; text-align:left; font-family:'Manrope',sans-serif;">
+                    <span style="width:40px; height:40px; border-radius:13px; display:flex; align-items:center; justify-content:center; color:#D32F2F; background:rgba(211,47,47,.12);"><i class="fas fa-file-pdf"></i></span>
+                    <span style="font-weight:800; color:#0D211D; font-size:.88rem;">Relatório financeiro</span>
                   </button>
                 </div>
               </div>
@@ -379,7 +399,7 @@ a:hover{ color:#389E92; }
           <sc-if value="{{ ehAulas }}" hint-placeholder-val="{{ false }}">
             <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
               <div style="background:#002D72; padding:52px 20px 24px; border-radius:0 0 26px 26px;">
-                <h1 style="margin:0 0 4px; color:#fff; font-family:'Montserrat',sans-serif; font-size:1.35rem;">Material de Estudo</h1>
+                <h1 style="margin:0 0 4px; color:#fff; font-family:'Sora',sans-serif; font-size:1.35rem;">Material de Estudo</h1>
                 <p style="margin:0; color:rgba(255,255,255,.7); font-size:.87rem;">Videoaulas, oficinas, biblioteca e avaliações publicadas pelo grupo.</p>
               </div>
               <div style="margin:16px;">
@@ -390,7 +410,7 @@ a:hover{ color:#389E92; }
                 </div>
                 <div style="display:flex; flex-direction:column; gap:12px;">
                   <sc-for list="{{ materiais }}" as="m" hint-placeholder-count="4">
-                    <article style="border:1px solid #E0E6E5; border-radius:18px; overflow:hidden; background:#fff;">
+                    <article style="border:1px solid #E2E8E6; border-radius:18px; overflow:hidden; background:#fff;">
                       <sc-if value="{{ m.temCapa }}" hint-placeholder-val="{{ false }}">
                         <div style="position:relative; height:130px;">
                           <sc-for list="{{ m.capaLista }}" as="c" hint-placeholder-count="0">
@@ -405,8 +425,8 @@ a:hover{ color:#389E92; }
                         <span style="{{ m.bolha }}"><i class="{{ m.icone }}"></i></span>
                         <div style="flex:1; min-width:0;">
                           <span style="{{ m.selo }}">{{ m.tipo }}</span>
-                          <div style="font-family:'Montserrat',sans-serif; color:#002D72; font-weight:800; font-size:.96rem; margin-top:6px;">{{ m.titulo }}</div>
-                          <div style="color:#7F8C8D; font-size:.82rem; margin-top:4px; line-height:1.4;">{{ m.desc }}</div>
+                          <div style="font-family:'Sora',sans-serif; color:#002D72; font-weight:800; font-size:.96rem; margin-top:6px;">{{ m.titulo }}</div>
+                          <div style="color:#5B6B68; font-size:.82rem; margin-top:4px; line-height:1.4;">{{ m.desc }}</div>
                         </div>
                         <a href="{{ m.link }}" target="_blank" rel="noopener" aria-label="Abrir material" style="width:42px; height:42px; border-radius:13px; background:rgba(0,230,118,.14); color:#00A854; display:flex; align-items:center; justify-content:center; flex:none;"><i class="{{ m.acaoIcone }}"></i></a>
                       </div>
@@ -414,19 +434,19 @@ a:hover{ color:#389E92; }
                   </sc-for>
                 </div>
 
-                <h2 style="margin:24px 0 10px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.02rem;">Agenda do semestre</h2>
+                <h2 style="margin:24px 0 10px; font-family:'Sora',sans-serif; color:#002D72; font-size:1.02rem;">Agenda do semestre</h2>
                 <div style="display:flex; flex-direction:column; gap:10px;">
                   <sc-for list="{{ agenda }}" as="e" hint-placeholder-count="0">
                     <div style="{{ e.cartao }}">
                       <div style="{{ e.dataBox }}">
-                        <div style="font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.1rem; line-height:1;">{{ e.dia }}</div>
+                        <div style="font-family:'Sora',sans-serif; font-weight:800; font-size:1.1rem; line-height:1;">{{ e.dia }}</div>
                         <div style="font-size:.68rem; font-weight:800; letter-spacing:.1em; opacity:.8;">{{ e.mes }}</div>
                       </div>
                       <div style="flex:1; min-width:0;">
                         <div style="{{ e.tituloEstilo }}">{{ e.titulo }}</div>
-                        <div style="color:#7F8C8D; font-size:.79rem; margin-top:3px;">{{ e.local }} · {{ e.horario }}</div>
+                        <div style="color:#5B6B68; font-size:.79rem; margin-top:3px;">{{ e.local }} · {{ e.horario }}</div>
                       </div>
-                      <a href="{{ e.acaoLink }}" target="_blank" rel="noopener" aria-label="{{ e.acaoRotulo }}" style="width:42px; height:42px; border-radius:13px; border:1px solid #E0E6E5; background:#fff; color:#002D72; display:flex; align-items:center; justify-content:center; flex:none;"><i class="{{ e.acaoIcone }}"></i></a>
+                      <a href="{{ e.acaoLink }}" target="_blank" rel="noopener" aria-label="{{ e.acaoRotulo }}" style="width:42px; height:42px; border-radius:13px; border:1px solid #E2E8E6; background:#fff; color:#002D72; display:flex; align-items:center; justify-content:center; flex:none;"><i class="{{ e.acaoIcone }}"></i></a>
                     </div>
                   </sc-for>
                 </div>
@@ -444,14 +464,14 @@ a:hover{ color:#389E92; }
                 <sc-for list="{{ fotoPerfilLista }}" as="f" hint-placeholder-count="0">
                   <img src="{{ f.url }}" alt="Foto do perfil" style="position:relative; width:92px; height:92px; border-radius:50%; object-fit:cover; border:4px solid #fff; margin:0 auto 12px; box-shadow:0 10px 24px rgba(0,0,0,.3);" />
                 </sc-for>
-                <div style="position:relative; color:#fff; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.3rem;">{{ perfilNome }}</div>
+                <div style="position:relative; color:#fff; font-family:'Sora',sans-serif; font-weight:800; font-size:1.3rem;">{{ perfilNome }}</div>
                 <div style="position:relative; color:rgba(255,255,255,.78); font-size:.88rem; margin-top:4px;">{{ perfilSub }}</div>
               </div>
 
               <sc-if value="{{ temVariosPapeis }}" hint-placeholder-val="{{ false }}">
-                <div style="margin:16px 16px 0; background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:16px;">
-                  <div style="font-weight:800; color:#2C3E50; font-size:.9rem; margin-bottom:4px;">Trocar de papel</div>
-                  <p style="margin:0 0 12px; color:#7F8C8D; font-size:.8rem;">Você tem academia e também treina como aluno.</p>
+                <div style="margin:16px 16px 0; background:#fff; border:1px solid #E2E8E6; border-radius:20px; padding:16px;">
+                  <div style="font-weight:800; color:#0D211D; font-size:.9rem; margin-bottom:4px;">Trocar de papel</div>
+                  <p style="margin:0 0 12px; color:#5B6B68; font-size:.8rem;">Você tem academia e também treina como aluno.</p>
                   <div style="display:flex; gap:8px; flex-wrap:wrap;">
                     <sc-for list="{{ papeisDisponiveis }}" as="r" hint-placeholder-count="0">
                       <button onClick="{{ r.trocar }}" style="{{ r.estilo }}"><i class="{{ r.icone }}"></i> {{ r.rotulo }}</button>
@@ -462,16 +482,16 @@ a:hover{ color:#389E92; }
 
               <div style="margin:16px; display:flex; flex-direction:column; gap:10px;">
                 <sc-for list="{{ opcoesPerfil }}" as="o" hint-placeholder-count="0">
-                  <button onClick="{{ o.acao }}" style="display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:#fff; border:1px solid #E0E6E5; border-radius:16px; padding:16px; cursor:pointer; font-family:'Nunito',sans-serif; transition:.25s cubic-bezier(.16,1,.3,1);" style-hover="transform:translateY(-2px); box-shadow:0 10px 22px rgba(0,0,0,.07);">
+                  <button onClick="{{ o.acao }}" style="display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:#fff; border:1px solid #E2E8E6; border-radius:16px; padding:16px; cursor:pointer; font-family:'Manrope',sans-serif; transition:.25s cubic-bezier(.16,1,.3,1);" style-hover="transform:translateY(-2px); box-shadow:0 10px 22px rgba(0,0,0,.07);">
                     <span style="width:40px; height:40px; border-radius:12px; background:rgba(56,158,146,.12); color:#389E92; display:flex; align-items:center; justify-content:center;"><i class="{{ o.icone }}"></i></span>
                     <span style="flex:1; min-width:0;">
-                      <span style="display:block; font-weight:800; color:#2C3E50; font-size:.95rem;">{{ o.rotulo }}</span>
-                      <span style="display:block; color:#7F8C8D; font-size:.8rem; margin-top:2px;">{{ o.ajuda }}</span>
+                      <span style="display:block; font-weight:800; color:#0D211D; font-size:.95rem;">{{ o.rotulo }}</span>
+                      <span style="display:block; color:#5B6B68; font-size:.8rem; margin-top:2px;">{{ o.ajuda }}</span>
                     </span>
                     <i class="fas fa-chevron-right" style="color:#C4CFCD;"></i>
                   </button>
                 </sc-for>
-                <button onClick="{{ sair }}" style="margin-top:6px; display:flex; align-items:center; justify-content:center; gap:10px; padding:16px; border:none; border-radius:20px; background:#E74C3C; color:#fff; font-weight:800; cursor:pointer; font-family:'Nunito',sans-serif; box-shadow:0 8px 20px rgba(231,76,60,.25);"><i class="fas fa-sign-out-alt"></i>Sair da conta</button>
+                <button onClick="{{ sair }}" style="margin-top:6px; display:flex; align-items:center; justify-content:center; gap:10px; padding:16px; border:none; border-radius:20px; background:#D32F2F; color:#fff; font-weight:800; cursor:pointer; font-family:'Manrope',sans-serif; box-shadow:0 8px 20px rgba(211,47,47,.25);"><i class="fas fa-sign-out-alt"></i>Sair da conta</button>
               </div>
             </div>
           </sc-if>
@@ -484,11 +504,11 @@ a:hover{ color:#389E92; }
                 <div style="position:absolute; width:54px; height:54px; left:18%; bottom:-54px; border-radius:50%; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.22); animation:apSobe 15s linear infinite;"></div>
                 <div style="position:absolute; width:26px; height:26px; left:44%; bottom:-26px; border-radius:50%; background:rgba(0,230,118,.14); border:1px solid rgba(0,230,118,.3); animation:apSobe 11s linear infinite 1.6s;"></div>
                 <div style="position:relative; color:#00E676; font-size:.72rem; font-weight:800; letter-spacing:.16em; margin-bottom:6px;">{{ tituloPainel }}</div>
-                <h1 style="position:relative; margin:0 0 16px; color:#fff; font-family:'Montserrat',sans-serif; font-size:1.35rem;">{{ subtituloPainel }}</h1>
+                <h1 style="position:relative; margin:0 0 16px; color:#fff; font-family:'Sora',sans-serif; font-size:1.35rem;">{{ subtituloPainel }}</h1>
                 <div style="position:relative; display:grid; grid-template-columns:repeat(3,1fr); gap:9px;">
                   <sc-for list="{{ indicadores }}" as="i" hint-placeholder-count="0">
                     <div style="background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:13px;">
-                      <div style="font-family:'Montserrat',sans-serif; font-weight:800; color:{{ i.cor }}; font-size:1.35rem; line-height:1;">{{ i.valor }}</div>
+                      <div style="font-family:'Sora',sans-serif; font-weight:800; color:{{ i.cor }}; font-size:1.35rem; line-height:1;">{{ i.valor }}</div>
                       <div style="color:rgba(255,255,255,.6); font-size:.68rem; font-weight:700; letter-spacing:.06em; margin-top:5px;">{{ i.rotulo }}</div>
                     </div>
                   </sc-for>
@@ -496,8 +516,8 @@ a:hover{ color:#389E92; }
               </div>
               <div style="margin:16px;">
                 <div style="position:relative; margin-bottom:12px;">
-                  <i class="fas fa-search" style="position:absolute; left:15px; top:50%; transform:translateY(-50%); color:#7F8C8D;"></i>
-                  <input value="{{ busca }}" onInput="{{ mudarBusca }}" placeholder="Buscar aluno pelo nome" style="width:100%; padding:14px 14px 14px 42px; border:1px solid #E0E6E5; border-radius:16px; background:#fff; font-size:.95rem; font-family:'Nunito',sans-serif;" />
+                  <i class="fas fa-search" style="position:absolute; left:15px; top:50%; transform:translateY(-50%); color:#5B6B68;"></i>
+                  <input value="{{ busca }}" onInput="{{ mudarBusca }}" placeholder="Buscar aluno pelo nome" style="width:100%; padding:14px 14px 14px 42px; border:1px solid #E2E8E6; border-radius:16px; background:#fff; font-size:.95rem; font-family:'Manrope',sans-serif;" />
                 </div>
                 <div style="display:flex; flex-wrap:wrap; gap:8px; padding-bottom:12px;">
                   <sc-for list="{{ filtros }}" as="f" hint-placeholder-count="0">
@@ -506,18 +526,18 @@ a:hover{ color:#389E92; }
                 </div>
                 <div style="display:flex; flex-direction:column; gap:10px;">
                   <sc-for list="{{ alunos }}" as="al" hint-placeholder-count="0">
-                    <article style="display:flex; align-items:center; gap:13px; background:#fff; border:1px solid #E0E6E5; border-radius:18px; padding:14px;">
+                    <article style="display:flex; align-items:center; gap:13px; background:#fff; border:1px solid #E2E8E6; border-radius:18px; padding:14px;">
                       <span style="{{ al.avatar }}">{{ al.inicial }}</span>
                       <div style="flex:1; min-width:0;">
-                        <div style="font-family:'Montserrat',sans-serif; color:#002D72; font-weight:800; font-size:.95rem;">{{ al.nome }}</div>
-                        <div style="color:#7F8C8D; font-size:.79rem; margin:2px 0 7px;">{{ al.cordao }} · {{ al.idade }} anos · {{ al.academia }}</div>
-                        <div style="width:100%; height:7px; border-radius:6px; background:#E6EDEC; overflow:hidden;">
+                        <div style="font-family:'Sora',sans-serif; color:#002D72; font-weight:800; font-size:.95rem;">{{ al.nome }}</div>
+                        <div style="color:#5B6B68; font-size:.79rem; margin:2px 0 7px;">{{ al.cordao }} · {{ al.idade }} anos · {{ al.academia }}</div>
+                        <div style="width:100%; height:7px; border-radius:6px; background:#E2E8E6; overflow:hidden;">
                           <div style="{{ al.barra }}"></div>
                         </div>
                       </div>
                       <div style="text-align:right; flex:none;">
                         <div style="{{ al.chip }}">{{ al.percentual }}%</div>
-                        <button onClick="{{ al.avaliar }}" style="margin-top:7px; padding:7px 12px; border:1px solid #389E92; border-radius:999px; background:#fff; color:#389E92; font-weight:800; font-size:.74rem; cursor:pointer; font-family:'Nunito',sans-serif;">Avaliar</button>
+                        <button onClick="{{ al.avaliar }}" style="margin-top:7px; padding:7px 12px; border:1px solid #389E92; border-radius:999px; background:#fff; color:#389E92; font-weight:800; font-size:.74rem; cursor:pointer; font-family:'Manrope',sans-serif;">Avaliar</button>
                       </div>
                     </article>
                   </sc-for>
@@ -530,25 +550,25 @@ a:hover{ color:#389E92; }
             <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
               <div style="background:#002D72; padding:52px 20px 24px; border-radius:0 0 26px 26px;">
                 <div style="color:#00E676; font-size:.72rem; font-weight:800; letter-spacing:.16em; margin-bottom:6px;">{{ tituloPainel }}</div>
-                <h1 style="margin:0 0 4px; color:#fff; font-family:'Montserrat',sans-serif; font-size:1.35rem;">Gestão do grupo</h1>
+                <h1 style="margin:0 0 4px; color:#fff; font-family:'Sora',sans-serif; font-size:1.35rem;">Gestão do grupo</h1>
                 <p style="margin:0; color:rgba(255,255,255,.7); font-size:.87rem;">Tudo que você faz no painel web, agora pelo celular.</p>
               </div>
               <div style="margin:16px;">
                 <sc-if value="{{ temPendentes }}" hint-placeholder-val="{{ true }}">
-                  <div style="background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:18px; margin-bottom:16px;">
+                  <div style="background:#fff; border:1px solid #E2E8E6; border-radius:20px; padding:18px; margin-bottom:16px;">
                     <div style="display:flex; align-items:center; gap:9px; margin-bottom:4px;">
                       <span style="width:9px; height:9px; border-radius:50%; background:#F39C12;"></span>
-                      <h2 style="margin:0; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1rem;">Matrículas aguardando</h2>
+                      <h2 style="margin:0; font-family:'Sora',sans-serif; color:#002D72; font-size:1rem;">Matrículas aguardando</h2>
                     </div>
-                    <p style="margin:0 0 14px; color:#7F8C8D; font-size:.8rem;">Fichas enviadas pelo site e ainda não aprovadas.</p>
+                    <p style="margin:0 0 14px; color:#5B6B68; font-size:.8rem;">Fichas enviadas pelo site e ainda não aprovadas.</p>
                     <div style="display:flex; flex-direction:column; gap:10px;">
                       <sc-for list="{{ pendentes }}" as="p" hint-placeholder-count="2">
-                        <div style="background:#F8FBFB; border:1px solid #E0E6E5; border-radius:14px; padding:13px;">
-                          <div style="font-weight:800; color:#2C3E50; font-size:.9rem;">{{ p.nome }}</div>
-                          <div style="color:#7F8C8D; font-size:.78rem; margin:3px 0 10px;">{{ p.idade }} anos · {{ p.academia }}</div>
+                        <div style="background:#F8FBFB; border:1px solid #E2E8E6; border-radius:14px; padding:13px;">
+                          <div style="font-weight:800; color:#0D211D; font-size:.9rem;">{{ p.nome }}</div>
+                          <div style="color:#5B6B68; font-size:.78rem; margin:3px 0 10px;">{{ p.idade }} anos · {{ p.academia }}</div>
                           <div style="display:flex; gap:8px;">
-                            <button onClick="{{ p.aprovar }}" style="flex:1; padding:10px; border:none; border-radius:12px; background:#00B140; color:#fff; font-weight:800; font-size:.8rem; cursor:pointer; font-family:'Nunito',sans-serif;"><i class="fas fa-check"></i> Aprovar</button>
-                            <button onClick="{{ p.recusar }}" style="flex:1; padding:10px; border:1px solid #E0E6E5; border-radius:12px; background:#fff; color:#E74C3C; font-weight:800; font-size:.8rem; cursor:pointer; font-family:'Nunito',sans-serif;">Recusar</button>
+                            <button onClick="{{ p.aprovar }}" style="flex:1; padding:10px; border:none; border-radius:12px; background:#00B140; color:#fff; font-weight:800; font-size:.8rem; cursor:pointer; font-family:'Manrope',sans-serif;"><i class="fas fa-check"></i> Aprovar</button>
+                            <button onClick="{{ p.recusar }}" style="flex:1; padding:10px; border:1px solid #E2E8E6; border-radius:12px; background:#fff; color:#D32F2F; font-weight:800; font-size:.8rem; cursor:pointer; font-family:'Manrope',sans-serif;">Recusar</button>
                           </div>
                         </div>
                       </sc-for>
@@ -558,29 +578,29 @@ a:hover{ color:#389E92; }
 
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                   <sc-for list="{{ acoesGestao }}" as="g" hint-placeholder-count="6">
-                    <button onClick="{{ g.abrir }}" style="display:flex; flex-direction:column; align-items:flex-start; gap:10px; padding:16px; border:1px solid #E0E6E5; border-radius:18px; background:#fff; cursor:pointer; text-align:left; font-family:'Nunito',sans-serif; transition:.25s cubic-bezier(.16,1,.3,1);" style-hover="transform:translateY(-3px); box-shadow:0 10px 22px rgba(0,0,0,.08);">
+                    <button onClick="{{ g.abrir }}" style="display:flex; flex-direction:column; align-items:flex-start; gap:10px; padding:16px; border:1px solid #E2E8E6; border-radius:18px; background:#fff; cursor:pointer; text-align:left; font-family:'Manrope',sans-serif; transition:.25s cubic-bezier(.16,1,.3,1);" style-hover="transform:translateY(-3px); box-shadow:0 10px 22px rgba(0,0,0,.08);">
                       <span style="{{ g.bolha }}"><i class="{{ g.icone }}"></i></span>
-                      <span style="font-weight:800; color:#2C3E50; font-size:.88rem; line-height:1.25;">{{ g.rotulo }}</span>
-                      <span style="color:#7F8C8D; font-size:.75rem; line-height:1.3;">{{ g.ajuda }}</span>
+                      <span style="font-weight:800; color:#0D211D; font-size:.88rem; line-height:1.25;">{{ g.rotulo }}</span>
+                      <span style="color:#5B6B68; font-size:.75rem; line-height:1.3;">{{ g.ajuda }}</span>
                     </button>
                   </sc-for>
                 </div>
 
-                <div style="margin-top:16px; background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:18px;">
+                <div style="margin-top:16px; background:#fff; border:1px solid #E2E8E6; border-radius:20px; padding:18px;">
                   <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:4px;">
-                    <h2 style="margin:0; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1rem;">Materiais publicados</h2>
-                    <button onClick="{{ abrirPublicar }}" style="border:none; background:none; color:#389E92; font-weight:800; font-size:.82rem; cursor:pointer; font-family:'Nunito',sans-serif;">+ Publicar</button>
+                    <h2 style="margin:0; font-family:'Sora',sans-serif; color:#002D72; font-size:1rem;">Materiais publicados</h2>
+                    <button onClick="{{ abrirPublicar }}" style="border:none; background:none; color:#389E92; font-weight:800; font-size:.82rem; cursor:pointer; font-family:'Manrope',sans-serif;">+ Publicar</button>
                   </div>
-                  <p style="margin:0 0 14px; color:#7F8C8D; font-size:.8rem;">Videoaulas, oficinas, biblioteca e avaliações que os alunos veem no app.</p>
+                  <p style="margin:0 0 14px; color:#5B6B68; font-size:.8rem;">Videoaulas, oficinas, biblioteca e avaliações que os alunos veem no app.</p>
                   <div style="display:flex; flex-direction:column; gap:9px;">
                     <sc-for list="{{ materiaisGestao }}" as="m" hint-placeholder-count="3">
-                      <div style="display:flex; align-items:center; gap:11px; background:#F8FBFB; border:1px solid #E0E6E5; border-radius:13px; padding:11px 13px;">
+                      <div style="display:flex; align-items:center; gap:11px; background:#F8FBFB; border:1px solid #E2E8E6; border-radius:13px; padding:11px 13px;">
                         <span style="{{ m.bolha }}"><i class="{{ m.icone }}"></i></span>
                         <span style="flex:1; min-width:0;">
-                          <span style="display:block; font-weight:800; color:#2C3E50; font-size:.85rem;">{{ m.titulo }}</span>
-                          <span style="display:block; color:#7F8C8D; font-size:.74rem; margin-top:2px;">{{ m.tipo }} · {{ m.destino }}</span>
+                          <span style="display:block; font-weight:800; color:#0D211D; font-size:.85rem;">{{ m.titulo }}</span>
+                          <span style="display:block; color:#5B6B68; font-size:.74rem; margin-top:2px;">{{ m.tipo }} · {{ m.destino }}</span>
                         </span>
-                        <button onClick="{{ m.remover }}" aria-label="Remover material" style="width:34px; height:34px; border:none; border-radius:10px; background:rgba(231,76,60,.1); color:#E74C3C; cursor:pointer; flex:none;"><i class="fas fa-trash"></i></button>
+                        <button onClick="{{ m.remover }}" aria-label="Remover material" style="width:34px; height:34px; border:none; border-radius:10px; background:rgba(211,47,47,.1); color:#D32F2F; cursor:pointer; flex:none;"><i class="fas fa-trash"></i></button>
                       </div>
                     </sc-for>
                   </div>
@@ -610,38 +630,38 @@ a:hover{ color:#389E92; }
             <button onClick="{{ fecharAvaliacao }}" aria-label="Fechar prontuário" style="width:38px; height:38px; border-radius:50%; border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.12); color:#fff; cursor:pointer; flex:none; transition:.25s cubic-bezier(.16,1,.3,1);" style-hover="transform:rotate(90deg);"><i class="fas fa-times"></i></button>
             <div style="flex:1; min-width:0;">
               <div style="color:rgba(255,255,255,.6); font-size:.68rem; font-weight:800; letter-spacing:.14em;">PRONTUÁRIO DO ALUNO</div>
-              <div style="color:#fff; font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.1rem; line-height:1.2;">{{ avaliandoNome }}</div>
+              <div style="color:#fff; font-family:'Sora',sans-serif; font-weight:800; font-size:1.1rem; line-height:1.2;">{{ avaliandoNome }}</div>
             </div>
             <div style="text-align:right; flex:none;">
-              <div style="font-family:'Montserrat',sans-serif; font-weight:800; color:#00E676; font-size:1.5rem; line-height:1;">{{ avaliacaoPct }}%</div>
+              <div style="font-family:'Sora',sans-serif; font-weight:800; color:#00E676; font-size:1.5rem; line-height:1;">{{ avaliacaoPct }}%</div>
               <div style="color:rgba(255,255,255,.55); font-size:.64rem; font-weight:700;">PRONTIDÃO</div>
             </div>
           </div>
 
           <div style="flex:1; overflow-y:auto; padding:16px 16px 24px;">
-            <div style="background:#fff; border:1px solid #E0E6E5; border-radius:18px; padding:14px 16px; margin-bottom:14px; display:flex; align-items:center; gap:12px;">
+            <div style="background:#fff; border:1px solid #E2E8E6; border-radius:18px; padding:14px 16px; margin-bottom:14px; display:flex; align-items:center; gap:12px;">
               <span style="width:44px; height:44px; border-radius:50%; background:rgba(56,158,146,.12); color:#389E92; display:flex; align-items:center; justify-content:center; flex:none;"><i class="fas fa-thermometer-half"></i></span>
               <div style="min-width:0;">
-                <div style="font-weight:800; color:#2C3E50; font-size:.88rem;">{{ avaliandoResumo }}</div>
-                <div style="color:#7F8C8D; font-size:.78rem; margin-top:2px;">{{ avaliandoUltima }}</div>
+                <div style="font-weight:800; color:#0D211D; font-size:.88rem;">{{ avaliandoResumo }}</div>
+                <div style="color:#5B6B68; font-size:.78rem; margin-top:2px;">{{ avaliandoUltima }}</div>
               </div>
             </div>
 
             <sc-if value="{{ podeGerirSenha }}" hint-placeholder-val="{{ false }}">
-              <div style="background:#fff; border:1px solid #E0E6E5; border-radius:18px; padding:16px; margin-bottom:14px;">
-                <div style="font-weight:800; color:#2C3E50; font-size:.88rem; margin-bottom:4px;">Acesso do aluno</div>
-                <p style="margin:0 0 12px; color:#7F8C8D; font-size:.78rem; line-height:1.4;">{{ emailAluno }}</p>
+              <div style="background:#fff; border:1px solid #E2E8E6; border-radius:18px; padding:16px; margin-bottom:14px;">
+                <div style="font-weight:800; color:#0D211D; font-size:.88rem; margin-bottom:4px;">Acesso do aluno</div>
+                <p style="margin:0 0 12px; color:#5B6B68; font-size:.78rem; line-height:1.4;">{{ emailAluno }}</p>
                 <div style="display:flex; gap:8px;">
-                  <button onClick="{{ redefinirSenhaAluno }}" style="flex:1; padding:12px; border:1px solid #E0E6E5; border-radius:14px; background:#fff; color:#002D72; font-weight:800; font-size:.78rem; cursor:pointer; font-family:'Nunito',sans-serif;"><i class="fas fa-key"></i> Senha padrão</button>
-                  <button onClick="{{ reenviarAcesso }}" style="flex:1; padding:12px; border:1px solid #E0E6E5; border-radius:14px; background:#fff; color:#389E92; font-weight:800; font-size:.78rem; cursor:pointer; font-family:'Nunito',sans-serif;"><i class="fas fa-envelope"></i> Reenviar e-mail</button>
+                  <button onClick="{{ redefinirSenhaAluno }}" style="flex:1; padding:12px; border:1px solid #E2E8E6; border-radius:14px; background:#fff; color:#002D72; font-weight:800; font-size:.78rem; cursor:pointer; font-family:'Manrope',sans-serif;"><i class="fas fa-key"></i> Senha padrão</button>
+                  <button onClick="{{ reenviarAcesso }}" style="flex:1; padding:12px; border:1px solid #E2E8E6; border-radius:14px; background:#fff; color:#389E92; font-weight:800; font-size:.78rem; cursor:pointer; font-family:'Manrope',sans-serif;"><i class="fas fa-envelope"></i> Reenviar e-mail</button>
                 </div>
               </div>
             </sc-if>
 
             <div style="display:flex; flex-direction:column; gap:9px;">
               <sc-for list="{{ criteriosAvaliacao }}" as="c" hint-placeholder-count="15">
-                <div style="background:#fff; border:1px solid #E0E6E5; border-radius:14px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
-                  <span style="flex:1; min-width:0; font-weight:700; color:#2C3E50; font-size:.84rem;">{{ c.nome }}</span>
+                <div style="background:#fff; border:1px solid #E2E8E6; border-radius:14px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                  <span style="flex:1; min-width:0; font-weight:700; color:#0D211D; font-size:.84rem;">{{ c.nome }}</span>
                   <span style="display:flex; gap:3px; flex:none;">
                     <sc-for list="{{ c.estrelas }}" as="e" hint-placeholder-count="5">
                       <button onClick="{{ e.setar }}" aria-label="{{ e.rotulo }}" style="{{ e.estilo }}"><i class="fas fa-star"></i></button>
@@ -652,20 +672,20 @@ a:hover{ color:#389E92; }
               </sc-for>
             </div>
 
-            <div style="margin-top:16px; background:#fff; border:1px solid #E0E6E5; border-radius:18px; padding:16px;">
-              <label for="obsAval" style="display:block; font-weight:800; color:#2C3E50; font-size:.88rem; margin-bottom:8px;">Observações do mestre:</label>
-              <textarea id="obsAval" rows="4" placeholder="Ex: Evoluiu muito na ginga, precisa treinar o toque de berimbau." value="{{ observacao }}" onInput="{{ mudarObservacao }}" style="width:100%; padding:13px; border:1px solid #ccc; border-radius:12px; font-family:'Nunito',sans-serif; font-size:.9rem; resize:vertical;"></textarea>
+            <div style="margin-top:16px; background:#fff; border:1px solid #E2E8E6; border-radius:18px; padding:16px;">
+              <label for="obsAval" style="display:block; font-weight:800; color:#0D211D; font-size:.88rem; margin-bottom:8px;">Observações do mestre:</label>
+              <textarea id="obsAval" rows="4" placeholder="Ex: Evoluiu muito na ginga, precisa treinar o toque de berimbau." value="{{ observacao }}" onInput="{{ mudarObservacao }}" style="width:100%; padding:13px; border:1px solid #ccc; border-radius:12px; font-family:'Manrope',sans-serif; font-size:.9rem; resize:vertical;"></textarea>
             </div>
 
-            <div style="margin-top:16px; background:#fff; border:1px solid #E0E6E5; border-radius:18px; padding:16px;">
-              <h3 style="margin:0 0 12px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:.95rem;">Avaliações anteriores</h3>
+            <div style="margin-top:16px; background:#fff; border:1px solid #E2E8E6; border-radius:18px; padding:16px;">
+              <h3 style="margin:0 0 12px; font-family:'Sora',sans-serif; color:#002D72; font-size:.95rem;">Avaliações anteriores</h3>
               <div style="display:flex; flex-direction:column; gap:10px;">
                 <sc-for list="{{ historicoAvaliacoes }}" as="h" hint-placeholder-count="2">
-                  <div style="display:flex; align-items:center; gap:11px; background:#F8FBFB; border:1px solid #E0E6E5; border-radius:12px; padding:11px 13px;">
+                  <div style="display:flex; align-items:center; gap:11px; background:#F8FBFB; border:1px solid #E2E8E6; border-radius:12px; padding:11px 13px;">
                     <span style="{{ h.chip }}">{{ h.valor }}%</span>
                     <span style="flex:1; min-width:0;">
-                      <span style="display:block; font-weight:700; color:#2C3E50; font-size:.82rem;">{{ h.data }}</span>
-                      <span style="display:block; color:#7F8C8D; font-size:.76rem; margin-top:2px;">{{ h.obs }}</span>
+                      <span style="display:block; font-weight:700; color:#0D211D; font-size:.82rem;">{{ h.data }}</span>
+                      <span style="display:block; color:#5B6B68; font-size:.76rem; margin-top:2px;">{{ h.obs }}</span>
                     </span>
                   </div>
                 </sc-for>
@@ -673,9 +693,9 @@ a:hover{ color:#389E92; }
             </div>
           </div>
 
-          <div style="padding:14px 16px 20px; background:#fff; border-top:1px solid #E0E6E5; display:flex; gap:10px;">
-            <button onClick="{{ fecharAvaliacao }}" style="flex:none; padding:16px 18px; border:1px solid #E0E6E5; border-radius:20px; background:#fff; color:#7F8C8D; font-weight:800; cursor:pointer; font-family:'Nunito',sans-serif;">Cancelar</button>
-            <button onClick="{{ salvarAvaliacao }}" style="flex:1; padding:16px; border:none; border-radius:20px; background:#002D72; color:#fff; font-family:'Montserrat',sans-serif; font-weight:700; font-size:.98rem; cursor:pointer; box-shadow:0 10px 24px rgba(0,45,114,.3);"><i class="fas fa-save"></i> Atualizar Prontuário</button>
+          <div style="padding:14px 16px 20px; background:#fff; border-top:1px solid #E2E8E6; display:flex; gap:10px;">
+            <button onClick="{{ fecharAvaliacao }}" style="flex:none; padding:16px 18px; border:1px solid #E2E8E6; border-radius:20px; background:#fff; color:#5B6B68; font-weight:800; cursor:pointer; font-family:'Manrope',sans-serif;">Cancelar</button>
+            <button onClick="{{ salvarAvaliacao }}" style="flex:1; padding:16px; border:none; border-radius:20px; background:#002D72; color:#fff; font-family:'Sora',sans-serif; font-weight:700; font-size:.98rem; cursor:pointer; box-shadow:0 10px 24px rgba(0,45,114,.3);"><i class="fas fa-save"></i> Atualizar Prontuário</button>
           </div>
         </div>
       </sc-if>
@@ -685,38 +705,38 @@ a:hover{ color:#389E92; }
           <button onClick="{{ fecharSheet }}" aria-label="Fechar" style="position:absolute; inset:0; border:none; background:none; cursor:pointer;"></button>
           <div style="position:relative; max-height:86%; overflow-y:auto; background:#fff; border-radius:26px 26px 0 0; padding:20px 18px 26px; animation:apSobeSheet .3s cubic-bezier(.16,1,.3,1) both;">
             <div style="width:44px; height:5px; border-radius:3px; background:#DCE5E3; margin:0 auto 18px;"></div>
-            <h2 style="margin:0 0 4px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.1rem;">{{ sheetTitulo }}</h2>
-            <p style="margin:0 0 16px; color:#7F8C8D; font-size:.84rem; line-height:1.45;">{{ sheetAjuda }}</p>
+            <h2 style="margin:0 0 4px; font-family:'Sora',sans-serif; color:#002D72; font-size:1.1rem;">{{ sheetTitulo }}</h2>
+            <p style="margin:0 0 16px; color:#5B6B68; font-size:.84rem; line-height:1.45;">{{ sheetAjuda }}</p>
 
             <div style="display:flex; flex-direction:column; gap:12px;">
               <sc-for list="{{ sheetCampos }}" as="c" hint-placeholder-count="2">
                 <div>
                   <label style="display:block; font-weight:700; font-size:.84rem; margin-bottom:6px;">{{ c.rotulo }}</label>
                   <sc-if value="{{ c.ehSelect }}" hint-placeholder-val="{{ true }}">
-                    <select value="{{ c.valor }}" onChange="{{ c.mudar }}" style="width:100%; padding:13px; border:1px solid #ccc; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.92rem; background:#fff;">
+                    <select value="{{ c.valor }}" onChange="{{ c.mudar }}" style="width:100%; padding:13px; border:1px solid #ccc; border-radius:10px; font-family:'Manrope',sans-serif; font-size:.92rem; background:#fff;">
                       <sc-for list="{{ c.opcoes }}" as="o" hint-placeholder-count="3">
                         <option value="{{ o.valor }}">{{ o.rotulo }}</option>
                       </sc-for>
                     </select>
                   </sc-if>
                   <sc-if value="{{ c.ehTexto }}" hint-placeholder-val="{{ false }}">
-                    <input type="{{ c.tipo }}" value="{{ c.valor }}" onInput="{{ c.mudar }}" placeholder="{{ c.dica }}" style="width:100%; padding:13px; border:1px solid #ccc; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.92rem;" />
+                    <input type="{{ c.tipo }}" value="{{ c.valor }}" onInput="{{ c.mudar }}" placeholder="{{ c.dica }}" style="width:100%; padding:13px; border:1px solid #ccc; border-radius:10px; font-family:'Manrope',sans-serif; font-size:.92rem;" />
                   </sc-if>
                   <sc-if value="{{ c.ehArea }}" hint-placeholder-val="{{ false }}">
-                    <textarea rows="3" value="{{ c.valor }}" onInput="{{ c.mudar }}" placeholder="{{ c.dica }}" style="width:100%; padding:13px; border:1px solid #ccc; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.92rem; resize:vertical;"></textarea>
+                    <textarea rows="3" value="{{ c.valor }}" onInput="{{ c.mudar }}" placeholder="{{ c.dica }}" style="width:100%; padding:13px; border:1px solid #ccc; border-radius:10px; font-family:'Manrope',sans-serif; font-size:.92rem; resize:vertical;"></textarea>
                   </sc-if>
                   <sc-if value="{{ c.ehInterruptor }}" hint-placeholder-val="{{ false }}">
-                    <button onClick="{{ c.alternar }}" style="display:flex; align-items:center; gap:12px; width:100%; padding:12px 14px; border:1px solid #E0E6E5; border-radius:12px; background:#F8FBFB; cursor:pointer; font-family:'Nunito',sans-serif;">
+                    <button onClick="{{ c.alternar }}" style="display:flex; align-items:center; gap:12px; width:100%; padding:12px 14px; border:1px solid #E2E8E6; border-radius:12px; background:#F8FBFB; cursor:pointer; font-family:'Manrope',sans-serif;">
                       <span style="{{ c.trilho }}"><span style="{{ c.bolinha }}"></span></span>
-                      <span style="flex:1; text-align:left; font-weight:700; color:#2C3E50; font-size:.85rem;">{{ c.estadoTexto }}</span>
+                      <span style="flex:1; text-align:left; font-weight:700; color:#0D211D; font-size:.85rem;">{{ c.estadoTexto }}</span>
                     </button>
                   </sc-if>
                   <sc-if value="{{ c.ehFoto }}" hint-placeholder-val="{{ false }}">
                     <div style="display:flex; align-items:center; gap:14px;">
-                      <img src="{{ c.valor }}" alt="Foto de perfil" style="width:64px; height:64px; border-radius:50%; object-fit:cover; border:2px solid #E0E6E5; flex:none; background:#F8FBFB;" />
+                      <img src="{{ c.valor }}" alt="Foto de perfil" style="width:64px; height:64px; border-radius:50%; object-fit:cover; border:2px solid #E2E8E6; flex:none; background:#F8FBFB;" />
                       <div style="flex:1; min-width:0;">
-                        <button onClick="{{ c.abrirGaleria }}" style="padding:10px 16px; border:1px solid #389E92; border-radius:999px; background:#fff; color:#389E92; font-weight:800; font-size:.82rem; cursor:pointer; font-family:'Nunito',sans-serif;"><i class="fas fa-image"></i> Trocar foto</button>
-                        <div style="margin-top:6px; color:#7F8C8D; font-size:.74rem; min-height:14px;">{{ c.statusFoto }}</div>
+                        <button onClick="{{ c.abrirGaleria }}" style="padding:10px 16px; border:1px solid #389E92; border-radius:999px; background:#fff; color:#389E92; font-weight:800; font-size:.82rem; cursor:pointer; font-family:'Manrope',sans-serif;"><i class="fas fa-image"></i> Trocar foto</button>
+                        <div style="margin-top:6px; color:#5B6B68; font-size:.74rem; min-height:14px;">{{ c.statusFoto }}</div>
                       </div>
                     </div>
                   </sc-if>
@@ -725,7 +745,7 @@ a:hover{ color:#389E92; }
             </div>
 
             <input type="file" id="sheetFotoInput" accept="image/*" style="display:none" onChange="{{ sheetFotoMudar }}" />
-            <button onClick="{{ confirmarSheet }}" style="margin-top:18px; width:100%; padding:16px; border:none; border-radius:20px; background:#002D72; color:#fff; font-family:'Montserrat',sans-serif; font-weight:700; font-size:.98rem; cursor:pointer;">{{ sheetBotao }}</button>
+            <button onClick="{{ confirmarSheet }}" style="margin-top:18px; width:100%; padding:16px; border:none; border-radius:20px; background:#002D72; color:#fff; font-family:'Sora',sans-serif; font-weight:700; font-size:.98rem; cursor:pointer;">{{ sheetBotao }}</button>
           </div>
         </div>
       </sc-if>
@@ -735,15 +755,15 @@ a:hover{ color:#389E92; }
           <button onClick="{{ fecharTrocador }}" aria-label="Fechar" style="position:absolute; inset:0; border:none; background:none; cursor:pointer;"></button>
           <div style="position:relative; background:#fff; border-radius:26px 26px 0 0; padding:20px 18px 26px;">
             <div style="width:44px; height:5px; border-radius:3px; background:#DCE5E3; margin:0 auto 18px;"></div>
-            <h2 style="margin:0 0 4px; font-family:'Montserrat',sans-serif; color:#002D72; font-size:1.1rem;">Trocar de atleta</h2>
-            <p style="margin:0 0 16px; color:#7F8C8D; font-size:.85rem;">Os prontuários são separados — cada atleta só vê o próprio.</p>
+            <h2 style="margin:0 0 4px; font-family:'Sora',sans-serif; color:#002D72; font-size:1.1rem;">Trocar de atleta</h2>
+            <p style="margin:0 0 16px; color:#5B6B68; font-size:.85rem;">Os prontuários são separados — cada atleta só vê o próprio.</p>
             <div style="display:flex; flex-direction:column; gap:10px;">
               <sc-for list="{{ atletasProntos }}" as="a" hint-placeholder-count="0">
                 <button onClick="{{ a.selecionar }}" style="{{ a.cartao }}">
                   <img src="{{ a.foto }}" alt="" style="width:46px; height:46px; border-radius:50%; object-fit:cover; border:2px solid #389E92; flex:none;" />
                   <span style="flex:1; min-width:0;">
                     <span style="display:block; font-weight:800; color:#002D72; font-size:.95rem;">{{ a.curto }}</span>
-                    <span style="display:block; color:#7F8C8D; font-size:.78rem; margin-top:2px;">{{ a.papelFamilia }} · {{ a.academia }}</span>
+                    <span style="display:block; color:#5B6B68; font-size:.78rem; margin-top:2px;">{{ a.papelFamilia }} · {{ a.academia }}</span>
                   </span>
                   <span style="{{ a.chip }}">{{ a.mensalidade }}</span>
                 </button>
@@ -802,7 +822,7 @@ const MATERIAIS = [];
 
 const TIPOS_MATERIAL = ['Videoaula','Oficina de canto','Oficina de música','Biblioteca','Avaliação'];
 const MAT_ICONE = { 'Videoaula':'fas fa-play-circle', 'Oficina de canto':'fas fa-microphone', 'Oficina de música':'fas fa-drum', 'Biblioteca':'fas fa-file-pdf', 'Avaliação':'fas fa-clipboard-check' };
-const MAT_COR = { 'Videoaula':'#002D72', 'Oficina de canto':'#8E44AD', 'Oficina de música':'#D2691E', 'Biblioteca':'#E74C3C', 'Avaliação':'#00B140' };
+const MAT_COR = { 'Videoaula':'#002D72', 'Oficina de canto':'#8E44AD', 'Oficina de música':'#D2691E', 'Biblioteca':'#D32F2F', 'Avaliação':'#00B140' };
 
 const AGENDA = [
   { titulo:'Batizado do Profº Rafinha', local:'Rancho Alegre', horario:'19:00h', dia:'19', mes:'SET', quando:'2026-09-19' },
@@ -1202,8 +1222,8 @@ class Component extends DCLogic {
         rotulo: PAPEL_ROTULO[r], icone: PAPEL_ICONE[r],
         trocar: () => this.setState({ papel: r, aba: this.abaInicial(r), trocador: false }),
         estilo: r === papel
-          ? "display:flex; align-items:center; gap:7px; padding:10px 15px; border:none; border-radius:999px; background:#002D72; color:#fff; font-weight:800; font-size:.8rem; cursor:pointer; font-family:'Nunito',sans-serif;"
-          : "display:flex; align-items:center; gap:7px; padding:10px 15px; border:1px solid #E0E6E5; border-radius:999px; background:#fff; color:#5A6B72; font-weight:700; font-size:.8rem; cursor:pointer; font-family:'Nunito',sans-serif;",
+          ? "display:flex; align-items:center; gap:7px; padding:10px 15px; border:none; border-radius:999px; background:#002D72; color:#fff; font-weight:800; font-size:.8rem; cursor:pointer; font-family:'Manrope',sans-serif;"
+          : "display:flex; align-items:center; gap:7px; padding:10px 15px; border:1px solid #E2E8E6; border-radius:999px; background:#fff; color:#5A6B72; font-weight:700; font-size:.8rem; cursor:pointer; font-family:'Manrope',sans-serif;",
       })),
 
       atalhos: [
@@ -1232,7 +1252,7 @@ class Component extends DCLogic {
         estado: i < atleta.idxCordao ? 'Conquistado' : (i === atleta.idxCordao ? 'Atual' : 'A conquistar'),
         linha: i === atleta.idxCordao
           ? 'display:flex; align-items:center; gap:12px; background:#fff; border:2px solid #00E676; border-radius:14px; padding:12px 14px;'
-          : 'display:flex; align-items:center; gap:12px; background:#fff; border:1px solid #E0E6E5; border-radius:14px; padding:12px 14px;',
+          : 'display:flex; align-items:center; gap:12px; background:#fff; border:1px solid #E2E8E6; border-radius:14px; padding:12px 14px;',
         faixa: 'width:10px; height:26px; border-radius:4px; flex:none; background:' + (i <= atleta.idxCordao ? ('linear-gradient(180deg,' + c.cor[0] + ',' + c.cor[1] + ',' + c.cor[2] + ')') : '#DCE5E3') + ';',
         texto: i <= atleta.idxCordao ? 'flex:1; font-weight:800; color:#002D72; font-size:.9rem;' : 'flex:1; font-weight:700; color:#95A5A6; font-size:.9rem;',
         tag: i === atleta.idxCordao
@@ -1253,20 +1273,20 @@ class Component extends DCLogic {
         aplicar: () => this.setState({ filtroMaterial: t }),
         estilo: t === this.state.filtroMaterial
           ? 'padding:8px 14px; border:none; border-radius:999px; background:#002D72; color:#fff; font-weight:800; font-size:.78rem; cursor:pointer;'
-          : 'padding:8px 14px; border:1px solid #E0E6E5; border-radius:999px; background:#fff; color:#5A6B72; font-weight:700; font-size:.78rem; cursor:pointer;',
+          : 'padding:8px 14px; border:1px solid #E2E8E6; border-radius:999px; background:#fff; color:#5A6B72; font-weight:700; font-size:.78rem; cursor:pointer;',
       })),
       materiais: materiaisFiltrados.map(enfeiteMaterial),
       agenda: AGENDA.map((e) => {
         const passou = new Date(e.quando) < new Date();
         return {
           dia: e.dia, mes: e.mes, titulo: e.titulo, local: e.local, horario: e.horario,
-          cartao: 'display:flex; align-items:center; gap:14px; background:#fff; border:1px solid #E0E6E5; border-radius:16px; padding:13px;',
+          cartao: 'display:flex; align-items:center; gap:14px; background:#fff; border:1px solid #E2E8E6; border-radius:16px; padding:13px;',
           dataBox: passou
             ? 'width:52px; height:52px; border-radius:14px; background:#DDE5E4; color:#6B7A80; display:flex; flex-direction:column; align-items:center; justify-content:center; flex:none;'
             : 'width:52px; height:52px; border-radius:14px; background:#002D72; color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; flex:none;',
           tituloEstilo: passou
-            ? "font-family:'Montserrat',sans-serif; color:#8795A0; font-weight:800; font-size:.92rem; line-height:1.2;"
-            : "font-family:'Montserrat',sans-serif; color:#002D72; font-weight:800; font-size:.92rem; line-height:1.2;",
+            ? "font-family:'Sora',sans-serif; color:#8795A0; font-weight:800; font-size:.92rem; line-height:1.2;"
+            : "font-family:'Sora',sans-serif; color:#002D72; font-weight:800; font-size:.92rem; line-height:1.2;",
           acaoIcone: passou ? 'fas fa-images' : 'fas fa-map-marked-alt',
           acaoRotulo: passou ? 'Veja as fotos e vídeos' : 'Como chegar',
           acaoLink: passou ? 'https://drive.google.com/drive/folders/' : 'https://www.google.com/maps',
@@ -1283,13 +1303,13 @@ class Component extends DCLogic {
         selecionar: () => { this.setState({ atleta:i, escolhendo:false, trocador:false, aba:'inicio' }); const cx = document.querySelector('[data-rolagem]'); if (cx) cx.scrollTop = 0; },
         cartao: i === this.state.atleta
           ? 'display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:#fff; border:2px solid #00E676; border-radius:18px; padding:14px; cursor:pointer;'
-          : 'display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:#fff; border:1px solid #E0E6E5; border-radius:18px; padding:14px; cursor:pointer;',
+          : 'display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:#fff; border:1px solid #E2E8E6; border-radius:18px; padding:14px; cursor:pointer;',
         chip: 'font-size:.7rem; font-weight:800; color:#C0700C; background:rgba(243,156,18,.14); padding:4px 9px; border-radius:8px;',
       })),
 
       atletasProntosEscolha: ATLETAS.map((a, i) => ({
         selecionar: () => { this.setState({ atleta:i, escolhendo:false, aba:'inicio' }); },
-        cartao: 'display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:#fff; border:1px solid #E0E6E5; border-radius:20px; padding:16px; cursor:pointer;',
+        cartao: 'display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:#fff; border:1px solid #E2E8E6; border-radius:20px; padding:16px; cursor:pointer;',
         foto: a.foto, curto: a.curto, papelFamilia: a.papelFamilia, cordao: a.cordao,
         chip: 'font-size:.7rem; font-weight:800; color:#C0700C; background:rgba(243,156,18,.14); padding:4px 9px; border-radius:8px;',
         mensalidade: a.mensalidadeValor != null ? brl(a.mensalidadeValor) : 'A confirmar',
@@ -1309,7 +1329,7 @@ class Component extends DCLogic {
         rotulo: f, aplicar: () => this.setState({ filtro: f }),
         estilo: f === this.state.filtro
           ? 'padding:8px 14px; border:none; border-radius:999px; background:#002D72; color:#fff; font-weight:800; font-size:.78rem; cursor:pointer;'
-          : 'padding:8px 14px; border:1px solid #E0E6E5; border-radius:999px; background:#fff; color:#5A6B72; font-weight:700; font-size:.78rem; cursor:pointer;',
+          : 'padding:8px 14px; border:1px solid #E2E8E6; border-radius:999px; background:#fff; color:#5A6B72; font-weight:700; font-size:.78rem; cursor:pointer;',
       })),
       alunos: listaAlunos.map((a) => ({
         inicial: (a.nome || '?').charAt(0).toUpperCase(),
@@ -1452,7 +1472,7 @@ class Component extends DCLogic {
         }
         return {
           rotulo: t.rotulo, icone: t.icone, abrir: () => this.irPara(t.id),
-          botao: "position:relative; z-index:2; flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; padding:9px 2px; border:none; background:none; cursor:pointer; font-family:'Nunito',sans-serif;",
+          botao: "position:relative; z-index:2; flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; padding:9px 2px; border:none; background:none; cursor:pointer; font-family:'Manrope',sans-serif;",
           iconeEstilo: 'font-size:1.02rem; transition:.3s cubic-bezier(.16,1,.3,1); transform:translateY(' + (ativa ? '-2px' : '0') + '); color:' + (ativa ? '#00E676' : 'rgba(255,255,255,.5)') + ';',
           rotuloEstilo: 'font-size:.66rem; font-weight:800; letter-spacing:.02em; color:' + (ativa ? '#00E676' : 'rgba(255,255,255,.5)') + ';',
         };

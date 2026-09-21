@@ -792,7 +792,7 @@ grid.innerHTML = alunos.map((a, i) => {
 const htmlTransferencia = ehAdmin()
 ? `<select class="select-encaminhar" onchange="transferirAluno('${a.id}', this.value)">${optAc}</select>`
 : '';
-const statusCor = a.statusAtual === 'Ativo' ? '#389E92' : '#E74C3C';
+const statusCor = a.statusAtual === 'Ativo' ? '#389E92' : '#D32F2F';
 const ehMestreCard = (a.papeis || []).includes('mestre');
 const ehInstrutorCard = (a.papeis || []).includes('instrutor');
 const estrelaCount = ehMestreCard && a.academiaGerenciadaId ? calcularEstrelaViva(a.academiaGerenciadaId, todosUsuarios) : 0;
@@ -1899,7 +1899,7 @@ Object.keys(fundamentosSoma).forEach((crit) => {
 if (fundamentosQtd[crit] > 0) { labelFundamentos.push(crit); dataFundamentos.push((fundamentosSoma[crit] / fundamentosQtd[crit]).toFixed(1)); }
 });
 
-const colorTeal = '#389E92'; const colorBlue = '#002D72'; const colorGreen = '#00E676'; const colorRed = '#E74C3C'; const colorYellow = '#F5B041';
+const colorTeal = '#0B5C52'; const colorBlue = '#002D72'; const colorGreen = '#00E676'; const colorRed = '#D32F2F'; const colorYellow = '#DAA520';
 
 criarGrafico('chartTermometro', 'pie', ['Aptos (Candidatos Formatura)', 'Em Desenvolvimento'], [aptos, desenv], [colorGreen, colorYellow]);
 criarGrafico('chartStatus', 'doughnut', ['Ativos', 'Inativos/Pausa'], [ativos, inativos], [colorTeal, colorRed]);
