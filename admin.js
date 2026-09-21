@@ -515,6 +515,7 @@ const slug = gerarSlug(nome);
 const respSelecionado = document.getElementById('responsavelNucleo').value;
 
 let professorUid;
+let professorNome;
 if (respSelecionado === '__novo__') {
 const nomeResp = sanitizeInput(document.getElementById('nomeNovoResponsavel').value);
 const emailResp = sanitizeInput(document.getElementById('emailNovoResponsavel').value);
@@ -535,15 +536,21 @@ statusAtual: 'Ativo',
 fotoUrl: '',
 });
 professorUid = novo.uid;
+professorNome = nomeResp;
 } else {
 professorUid = respSelecionado;
 const respAtual = todosUsuarios.find((u) => u.id === professorUid);
+professorNome = (respAtual && respAtual.nome) || '';
 const papeisNovos = Array.from(new Set([...(respAtual?.papeis || ['aluno']), 'mestre']));
 const formadorUidNovo = obterFormadorUid(respAtual, todosNucleos);
 await atualizar('usuarios', professorUid, { papeis: papeisNovos, academiaGerenciadaId: slug, ...(formadorUidNovo ? { formadorUid: formadorUidNovo } : {}) });
 }
 
-await salvar('nucleos', slug, { nome, mensalidadeValor, professorUid, ativo: true, endereco, latitude, longitude, raioMetros });
+// professorNome fica salvo no próprio núcleo (denormalizado) porque o app
+// do aluno (app.html) não tem permissão para ler o documento de outro
+// usuário em usuarios/{uid} — só assim a tela de Núcleos consegue mostrar
+// o nome do professor sem exigir uma regra de leitura mais aberta.
+await salvar('nucleos', slug, { nome, mensalidadeValor, professorUid, professorNome, ativo: true, endereco, latitude, longitude, raioMetros });
 toast('Núcleo criado com sucesso!');
 formNovoNucleo.reset();
 document.getElementById('camposNovoResponsavel').style.display = 'grid';
@@ -605,12 +612,15 @@ const nucleoAtual = todosNucleos.find((x) => x.id === nucleoEditandoID);
 const responsavelAnteriorId = nucleoAtual ? (nucleoAtual.professorUid || null) : null;
 const selResp = document.getElementById('editResponsavelNucleo');
 const novoResponsavelId = selResp ? (selResp.value || null) : responsavelAnteriorId;
+const novoResponsavelUsuario = novoResponsavelId ? todosUsuarios.find((u) => u.id === novoResponsavelId) : null;
+const professorNome = novoResponsavelUsuario ? (novoResponsavelUsuario.nome || '') : (nucleoAtual ? (nucleoAtual.professorNome || '') : '');
 
 await atualizar('nucleos', nucleoEditandoID, {
 nome: sanitizeInput(document.getElementById('editNomeNucleo').value),
 mensalidadeValor: Number(document.getElementById('editMensalidadeNucleo').value) || 0,
 ativo: document.getElementById('editAtivoNucleo').value === 'true',
 professorUid: novoResponsavelId,
+professorNome,
       endereco: sanitizeInput(document.getElementById('editEnderecoNucleo').value),
       latitude: parseFloat(document.getElementById('editLatitudeNucleo').value) || null,
       longitude: parseFloat(document.getElementById('editLongitudeNucleo').value) || null,

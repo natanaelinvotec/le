@@ -119,7 +119,7 @@ a:hover{ color:#389E92; }
       </sc-if>
 
       <sc-if value="{{ telaApp }}" hint-placeholder-val="{{ false }}">
-        <div data-rolagem="1" style="flex:1; overflow-y:auto; overflow-x:hidden; padding-bottom:130px; background:#EAF2F1;">
+        <div data-rolagem="1" style="flex:1; overflow-y:auto; overflow-x:hidden; padding-bottom:104px; background:#EAF2F1;">
 
           <sc-if value="{{ ehInicio }}" hint-placeholder-val="{{ false }}">
             <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
@@ -175,11 +175,11 @@ a:hover{ color:#389E92; }
                 </div>
               </div>
 
-              <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:14px 16px 0;">
+              <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin:14px 16px 0;">
                 <sc-for list="{{ atalhos }}" as="a" hint-placeholder-count="0">
-                  <button onClick="{{ a.abrir }}" style="display:flex; flex-direction:column; align-items:center; gap:7px; padding:14px 4px; border:1px solid #E2E8E6; border-radius:16px; background:#fff; cursor:pointer; font-family:'Manrope',sans-serif; transition:.25s cubic-bezier(.16,1,.3,1);" style-hover="transform:translateY(-3px); box-shadow:0 10px 22px rgba(0,0,0,.08);">
-                    <span style="width:36px; height:36px; border-radius:10px; background:rgba(11,92,82,.1); color:#0B5C52; display:flex; align-items:center; justify-content:center; font-size:.95rem;"><i class="{{ a.icone }}"></i></span>
-                    <span style="font-size:.72rem; font-weight:700; color:#0D211D; text-align:center; line-height:1.2;">{{ a.rotulo }}</span>
+                  <button onClick="{{ a.abrir }}" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:12px 2px; border:1px solid #E2E8E6; border-radius:14px; background:#fff; cursor:pointer; font-family:'Manrope',sans-serif; transition:.25s cubic-bezier(.16,1,.3,1);" style-hover="transform:translateY(-3px); box-shadow:0 10px 22px rgba(0,0,0,.08);">
+                    <span style="width:32px; height:32px; border-radius:9px; background:rgba(11,92,82,.1); color:#0B5C52; display:flex; align-items:center; justify-content:center; font-size:.85rem;"><i class="{{ a.icone }}"></i></span>
+                    <span style="font-size:.62rem; font-weight:700; color:#0D211D; text-align:center; line-height:1.15;">{{ a.rotulo }}</span>
                   </button>
                 </sc-for>
               </div>
@@ -480,6 +480,19 @@ a:hover{ color:#389E92; }
                 </div>
               </sc-if>
 
+              <sc-if value="{{ ehAlunoPerfil }}" hint-placeholder-val="{{ false }}">
+                <div style="margin:16px 16px 0;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <h2 style="margin:0; font-size:.95rem; font-weight:700; color:#0D211D; font-family:'Sora',sans-serif;">Meus amigos</h2>
+                  </div>
+                  <div style="background:#fff; border:1.5px dashed #E2E8E6; border-radius:18px; padding:22px 18px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px;">
+                    <div style="width:44px; height:44px; border-radius:999px; background:#F5F9F8; display:flex; align-items:center; justify-content:center;"><i class="fas fa-user-friends" style="color:#5B6B68;"></i></div>
+                    <div style="font-size:.82rem; font-weight:700; color:#0D211D;">Chegando em breve</div>
+                    <p style="margin:0; font-size:.74rem; color:#5B6B68; line-height:1.5; max-width:260px;">Em breve você vai poder adicionar colegas da capoeira e acompanhar a evolução um do outro.</p>
+                  </div>
+                </div>
+              </sc-if>
+
               <div style="margin:16px; display:flex; flex-direction:column; gap:10px;">
                 <sc-for list="{{ opcoesPerfil }}" as="o" hint-placeholder-count="0">
                   <button onClick="{{ o.acao }}" style="display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:#fff; border:1px solid #E2E8E6; border-radius:16px; padding:16px; cursor:pointer; font-family:'Manrope',sans-serif; transition:.25s cubic-bezier(.16,1,.3,1);" style-hover="transform:translateY(-2px); box-shadow:0 10px 22px rgba(0,0,0,.07);">
@@ -608,10 +621,134 @@ a:hover{ color:#389E92; }
               </div>
             </div>
           </sc-if>
+
+          <sc-if value="{{ ehNucleos }}" hint-placeholder-val="{{ false }}">
+            <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
+              <div style="background:#fff; padding:48px 20px 18px; border-bottom:1px solid #E2E8E6;">
+                <div>
+                  <div style="font-size:.66rem; letter-spacing:.06em; color:#5B6B68; text-transform:uppercase;">Capoeira Liberdade</div>
+                  <h1 style="margin:0; font-size:1.15rem; font-weight:800; color:#0D211D; font-family:'Sora',sans-serif;">Núcleos</h1>
+                </div>
+              </div>
+              <div style="margin:16px 16px 0;">
+                <span style="font-size:.76rem; color:#5B6B68;">{{ totalNucleosAtivos }} núcleos ativos</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:12px; margin:10px 16px 0;">
+                <sc-for list="{{ nucleosCards }}" as="n" hint-placeholder-count="0">
+                  <button onClick="{{ n.abrir }}" style="{{ n.cartao }}">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                      <div style="display:flex; gap:11px;">
+                        <div style="width:44px; height:44px; border-radius:13px; background:linear-gradient(135deg,#002D72 0%,#0B5C52 100%); display:flex; align-items:center; justify-content:center; flex:none;">
+                          <i class="fas fa-map-marker-alt" style="color:#fff; font-size:1rem;"></i>
+                        </div>
+                        <div style="min-width:0;">
+                          <div style="font-size:.92rem; font-weight:700; color:#0D211D;">{{ n.nome }}</div>
+                          <div style="font-size:.74rem; color:#5B6B68; margin-top:1px;">{{ n.professor }}</div>
+                        </div>
+                      </div>
+                      <sc-if value="{{ n.meu }}" hint-placeholder-val="{{ false }}">
+                        <span style="background:#eaf6f4; color:#0B5C52; font-size:.6rem; font-weight:800; padding:4px 8px; border-radius:999px; flex:none;">SEU NÚCLEO</span>
+                      </sc-if>
+                    </div>
+                    <div style="display:flex; gap:8px; margin-top:13px;">
+                      <div style="flex:1; background:#F5F9F8; border-radius:11px; padding:8px 10px; min-width:0;">
+                        <div style="font-size:.68rem; color:#5B6B68;">local</div>
+                        <div style="font-size:.72rem; font-weight:700; color:#0D211D; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ n.endereco }}</div>
+                      </div>
+                      <div style="flex:1; background:#F5F9F8; border-radius:11px; padding:8px 10px;">
+                        <div style="font-size:.68rem; color:#5B6B68;">mensalidade</div>
+                        <div style="font-size:.72rem; font-weight:700; color:#0D211D; margin-top:2px;">{{ n.mensalidade }}</div>
+                      </div>
+                    </div>
+                  </button>
+                </sc-for>
+                <div style="border:1.5px dashed #E2E8E6; border-radius:18px; padding:20px; display:flex; flex-direction:column; align-items:center; gap:6px; color:#5B6B68; text-align:center;">
+                  <i class="fas fa-plus" style="font-size:1.1rem;"></i>
+                  <span style="font-size:.76rem; font-weight:600;">Novos núcleos aparecem aqui quando o admin conceder academia própria a um professor.</span>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ ehNucleoDetalhe }}" hint-placeholder-val="{{ false }}">
+            <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
+              <div style="background:#fff; padding:48px 20px 18px; border-bottom:1px solid #E2E8E6; display:flex; align-items:center; gap:10px;">
+                <button onClick="{{ voltarNucleos }}" aria-label="Voltar" style="width:34px; height:34px; border-radius:50%; background:#F5F9F8; border:1px solid #E2E8E6; color:#0D211D; cursor:pointer; flex:none;"><i class="fas fa-arrow-left"></i></button>
+                <div style="min-width:0;">
+                  <div style="font-size:.66rem; letter-spacing:.05em; color:#5B6B68; text-transform:uppercase;">Núcleo</div>
+                  <h1 style="margin:0; font-size:1.05rem; font-weight:800; color:#0D211D; font-family:'Sora',sans-serif;">{{ nucleoDetalhe.nome }}</h1>
+                </div>
+              </div>
+              <div style="margin:16px;">
+                <div style="background:#F5F9F8; border:1px solid #E2E8E6; border-radius:18px; padding:16px; display:flex; align-items:center; gap:13px;">
+                  <div style="width:50px; height:50px; border-radius:50%; background:linear-gradient(135deg,#DAA520,#F5B942); display:flex; align-items:center; justify-content:center; flex:none;">
+                    <i class="fas fa-chalkboard-teacher" style="color:#001A4D; font-size:1.1rem;"></i>
+                  </div>
+                  <div style="min-width:0;">
+                    <div style="font-size:.92rem; font-weight:700; color:#0D211D;">{{ nucleoDetalhe.professor }}</div>
+                    <div style="font-size:.74rem; color:#5B6B68; margin-top:1px;">Professor responsável</div>
+                  </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;">
+                  <div style="background:#fff; border:1px solid #E2E8E6; border-radius:14px; padding:13px;">
+                    <div style="font-size:.68rem; color:#5B6B68;">endereço</div>
+                    <div style="font-size:.8rem; font-weight:700; color:#0D211D; margin-top:3px;">{{ nucleoDetalhe.endereco }}</div>
+                  </div>
+                  <div style="background:#fff; border:1px solid #E2E8E6; border-radius:14px; padding:13px;">
+                    <div style="font-size:.68rem; color:#5B6B68;">mensalidade</div>
+                    <div style="font-size:.8rem; font-weight:700; color:#0D211D; margin-top:3px;">{{ nucleoDetalhe.mensalidade }}</div>
+                  </div>
+                </div>
+                <sc-if value="{{ nucleoDetalhe.meu }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:12px; background:#eaf6f4; border:1px solid #389E92; border-radius:14px; padding:12px 14px; font-size:.78rem; color:#0B5C52; font-weight:700;">Este é o núcleo onde você treina.</div>
+                </sc-if>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ ehTrofeus }}" hint-placeholder-val="{{ false }}">
+            <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
+              <div style="background:#fff; padding:48px 20px 18px; border-bottom:1px solid #E2E8E6;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <button onClick="{{ irPerfil }}" aria-label="Voltar" style="width:34px; height:34px; border-radius:50%; background:#F5F9F8; border:1px solid #E2E8E6; color:#0D211D; cursor:pointer; flex:none;"><i class="fas fa-arrow-left"></i></button>
+                  <div>
+                    <div style="font-size:.66rem; letter-spacing:.06em; color:#5B6B68; text-transform:uppercase;">Conquistas</div>
+                    <h1 style="margin:0; font-size:1.1rem; font-weight:800; color:#0D211D; font-family:'Sora',sans-serif;">Troféus &amp; Brasões</h1>
+                  </div>
+                </div>
+                <div style="margin-top:14px; display:flex; align-items:baseline; gap:8px;">
+                  <span style="font-family:'JetBrains Mono',monospace; font-size:1.5rem; font-weight:700; color:#DAA520;">{{ cordaoAtualNome }}</span>
+                  <span style="font-size:.78rem; color:#5B6B68;">{{ progresso }}% de prontidão para o próximo</span>
+                </div>
+                <div style="margin-top:9px; height:6px; border-radius:999px; background:#F5F9F8; overflow:hidden;">
+                  <div style="{{ barraCordaoEstilo }}"></div>
+                </div>
+              </div>
+              <div style="margin:18px 16px 0;">
+                <h2 style="margin:0 0 4px; font-size:.92rem; font-weight:700; color:#0D211D;">Meus brasões de corda</h2>
+                <p style="margin:0 0 12px; font-size:.72rem; color:#5B6B68;">A escada de cordoada, do Escravo ao Mestre.</p>
+                <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px;">
+                  <sc-for list="{{ brasoes }}" as="b" hint-placeholder-count="0">
+                    <div style="{{ b.cartao }}">
+                      <div style="{{ b.selo }}"></div>
+                      <span style="{{ b.rotuloEstilo }}">{{ b.nome }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="margin:20px 16px 0; background:#fff; border:1px solid #E2E8E6; border-radius:16px; padding:16px 18px;">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+                  <i class="fas fa-trophy" style="color:#DAA520;"></i>
+                  <h2 style="margin:0; font-size:.9rem; font-weight:700; color:#0D211D;">Troféus por conquistas</h2>
+                </div>
+                <p style="margin:0; font-size:.78rem; color:#5B6B68; line-height:1.5;">Em breve: troféus por sequência de presença, evolução de corda e participação em eventos — com o catálogo definido pelo seu mestre. Por enquanto, acompanhe sua evolução pelos brasões de corda acima e pelo termômetro de prontidão.</p>
+              </div>
+            </div>
+          </sc-if>
         </div>
 
         <div style="position:absolute; left:14px; right:14px; bottom:16px; z-index:30;">
-          <div style="position:relative; display:flex; align-items:flex-end; justify-content:space-between; gap:2px; background:linear-gradient(158deg,#0B5C52 0%,#12796B 42%,#002D72 100%); border-radius:26px; padding:10px 8px 12px; box-shadow:0 16px 34px rgba(0,45,114,.35);">
+          <div style="position:relative; display:flex; align-items:flex-end; justify-content:space-between; gap:2px; background:rgba(13,33,29,.94); backdrop-filter:blur(10px); border-radius:999px; padding:9px 8px; box-shadow:0 12px 28px -10px rgba(0,45,114,.4);">
             <div style="{{ pilulaEstilo }}"></div>
             <sc-for list="{{ abas }}" as="t" hint-placeholder-count="0">
               <button onClick="{{ t.abrir }}" style="{{ t.botao }}">
@@ -620,7 +757,6 @@ a:hover{ color:#389E92; }
               </button>
             </sc-for>
           </div>
-          <button onClick="{{ marcarPresenca }}" aria-label="{{ rotuloQr }}" style="position:absolute; left:50%; top:-24px; transform:translateX(-50%); width:58px; height:58px; border-radius:50%; border:4px solid #EAF2F1; background:linear-gradient(140deg,#00E676,#389E92); color:#05070C; font-size:1.2rem; cursor:pointer; box-shadow:0 12px 26px rgba(0,230,118,.42); transition:.25s cubic-bezier(.16,1,.3,1);" style-hover="transform:translateX(-50%) scale(1.06);"><i class="fas fa-qrcode"></i></button>
         </div>
       </sc-if>
 
@@ -842,22 +978,19 @@ const PAPEL_ICONE = { aluno:'fas fa-user', responsavel:'fas fa-users', mestre:'f
 
 const ABAS_ALUNO = [
   { id:'inicio', rotulo:'Início', icone:'fas fa-house' },
-  { id:'evolucao', rotulo:'Evolução', icone:'fas fa-chart-line' },
-  { id:'vazio', rotulo:'', icone:'' },
-  { id:'financeiro', rotulo:'Financeiro', icone:'fas fa-wallet' },
+  { id:'aulas', rotulo:'Materiais', icone:'fas fa-book-open' },
+  { id:'nucleos', rotulo:'Núcleos', icone:'fas fa-map-marker-alt' },
   { id:'perfil', rotulo:'Perfil', icone:'fas fa-user' }
 ];
 const ABAS_MESTRE = [
   { id:'turma', rotulo:'Turma', icone:'fas fa-users' },
   { id:'aulas', rotulo:'Material', icone:'fas fa-book-open' },
-  { id:'vazio', rotulo:'', icone:'' },
   { id:'gestao', rotulo:'Gestão', icone:'fas fa-sliders' },
   { id:'perfil', rotulo:'Perfil', icone:'fas fa-user' }
 ];
 const ABAS_ADMIN = [
   { id:'gestao', rotulo:'Gestão', icone:'fas fa-sliders' },
   { id:'turma', rotulo:'Alunos', icone:'fas fa-users' },
-  { id:'vazio', rotulo:'', icone:'' },
   { id:'financeiro', rotulo:'Financeiro', icone:'fas fa-wallet' },
   { id:'perfil', rotulo:'Perfil', icone:'fas fa-user' }
 ];
@@ -895,6 +1028,7 @@ class Component extends DCLogic {
     busca: '', filtro: 'Todos', filtroMaterial: 'Tudo', aviso: '', avaliando: null, notasAval: null,
     observacao: '', historico: {}, sheet: null, sheetVals: {}, sheetFotoStatus: '',
     pendentes: PENDENTES.slice(), alunos: ALUNOS.slice(), materiais: MATERIAIS.slice(),
+    nucleosLista: [], nucleoAberto: null,
   };
 
   componentDidMount() {
@@ -994,6 +1128,18 @@ class Component extends DCLogic {
     }
 
     this.carregarMateriaisReais();
+    this.carregarNucleos();
+  }
+
+  async carregarNucleos() {
+    try {
+      // O nome do professor já vem salvo no próprio documento do núcleo
+      // (campo professorNome, gravado pelo admin.html). Alunos não têm
+      // permissão para ler o cadastro de outro usuário em usuarios/{uid},
+      // então evitamos essa leitura cruzada aqui de propósito.
+      const lista = await this._FB.listarNucleosAtivos();
+      this.setState({ nucleosLista: lista });
+    } catch (e) { console.error(e); }
   }
 
   async carregarTurma(academiaId) {
@@ -1086,7 +1232,8 @@ class Component extends DCLogic {
     const corAtleta = corCordao(atleta.idade, atleta.cordao);
     const barraCordaoEstilo = 'height:100%; width:' + progresso + '%; border-radius:20px; animation:apTranca 2s linear infinite; box-shadow:0 0 14px rgba(0,230,118,.6); background:repeating-linear-gradient(45deg,' + corAtleta[0] + ' 0,' + corAtleta[0] + ' 10px,' + corAtleta[1] + ' 10px,' + corAtleta[1] + ' 20px,' + corAtleta[2] + ' 20px,' + corAtleta[2] + ' 30px);';
     const ABAS = admin ? ABAS_ADMIN : (gestor ? ABAS_MESTRE : ABAS_ALUNO);
-    const idx = Math.max(0, ABAS.map((a) => a.id).indexOf(this.state.aba));
+    const abaParaPilula = this.state.aba === 'nucleoDetalhe' ? 'nucleos' : (this.state.aba === 'trofeus' ? 'perfil' : this.state.aba);
+    const idx = Math.max(0, ABAS.map((a) => a.id).indexOf(abaParaPilula));
 
     const termo = this.state.busca.trim().toLowerCase();
     const listaAlunos = this.state.alunos.filter((a) => {
@@ -1203,6 +1350,7 @@ class Component extends DCLogic {
       atletaNome: familia ? atleta.curto : (perfilAtual ? perfilAtual.nome.split(' ')[0] : ''),
       atletaAcademia: atleta.academia,
       atletaCordao: 'Cordão ' + atleta.cordao,
+      cordaoAtualNome: atleta.cordao,
       proximoCordao: (listaCordoes[Math.min(listaCordoes.length - 1, atleta.idxCordao + 1)] || { nome: atleta.cordao }).nome,
       barraCordaoEstilo: barraCordaoEstilo,
       seloApto: 'display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; margin-bottom:6px; font-size:.72rem; font-weight:800; letter-spacing:.08em; color:' + (progresso >= 70 ? '#00A854' : '#C0700C') + '; background:' + (progresso >= 70 ? 'rgba(0,230,118,.14)' : 'rgba(243,156,18,.14)') + ';',
@@ -1214,7 +1362,9 @@ class Component extends DCLogic {
 
       opcoesPerfil: [
         { rotulo:'Meus dados', ajuda:'Nome, e-mail e telefone de contato', icone:'fas fa-id-card', acao: () => this.abrirSheet('dados') },
-      ].concat(familia ? [{ rotulo:'Vincular familiar', ajuda:'Ligar outro dependente à conta', icone:'fas fa-link', acao: () => this.abrirSheet('vincular') }] : [])
+      ].concat(!gestor ? [{ rotulo:'Troféus & Brasões', ajuda:'Sua escada de cordoada e conquistas', icone:'fas fa-trophy', acao: () => this.irPara('trofeus') }] : [])
+        .concat(!gestor ? [{ rotulo:'Núcleos', ajuda:'Veja o seu núcleo e os demais do grupo', icone:'fas fa-map-marker-alt', acao: () => this.irPara('nucleos') }] : [])
+        .concat(familia ? [{ rotulo:'Vincular familiar', ajuda:'Ligar outro dependente à conta', icone:'fas fa-link', acao: () => this.abrirSheet('vincular') }] : [])
         .concat(gestor ? [{ rotulo:'Check-in por FaceID (tablet)', ajuda:'Deixar um tablet na entrada para presença por identificação facial', icone:'fas fa-camera', acao: () => this.abrirSheet('faceid') }] : []),
 
       temVariosPapeis: !!perfilAtual && perfilAtual.papeis.length > 1 && !!perfilAtual.academia,
@@ -1230,10 +1380,13 @@ class Component extends DCLogic {
         { rotulo:'Evolução', icone:'fas fa-award', abrir: () => this.irPara('evolucao') },
         { rotulo:'Financeiro', icone:'fas fa-wallet', abrir: () => this.irPara('financeiro') },
         { rotulo:'Material', icone:'fas fa-book-open', abrir: () => this.irPara('aulas') },
+        { rotulo:'Núcleos', icone:'fas fa-map-marker-alt', abrir: () => this.irPara('nucleos') },
         { rotulo:'Perfil', icone:'fas fa-user', abrir: () => this.irPara('perfil') },
       ],
       irAulas: () => this.irPara('aulas'),
       irPerfil: () => this.irPara('perfil'),
+      irNucleos: () => this.irPara('nucleos'),
+      irTrofeus: () => this.irPara('trofeus'),
 
       criterios: notas.map((n) => ({
         nome: n[0], nota: n[1] + '/10',
@@ -1259,6 +1412,47 @@ class Component extends DCLogic {
           ? 'font-size:.72rem; font-weight:800; color:#00A854; background:rgba(0,230,118,.14); padding:4px 10px; border-radius:8px;'
           : 'font-size:.72rem; font-weight:700; color:#95A5A6;',
       })),
+
+      brasoes: listaCordoes.map((c, i) => ({
+        nome: c.nome,
+        atual: i === atleta.idxCordao,
+        cartao: i === atleta.idxCordao
+          ? 'background:#fff9ec; border:1.5px solid #DAA520; border-radius:14px; padding:10px 6px; text-align:center; position:relative;'
+          : (i <= atleta.idxCordao
+              ? 'background:#fff; border:1px solid #E2E8E6; border-radius:14px; padding:10px 6px; text-align:center;'
+              : 'background:#fff; border:1px dashed #E2E8E6; border-radius:14px; padding:10px 6px; text-align:center; opacity:.55;'),
+        selo: 'width:26px; height:26px; margin:0 auto; border-radius:7px; background:linear-gradient(180deg,' + c.cor[0] + ',' + c.cor[1] + ',' + c.cor[2] + ');' + (i > atleta.idxCordao ? ' opacity:.5;' : ''),
+        rotuloEstilo: i === atleta.idxCordao
+          ? 'font-size:.62rem; font-weight:800; color:#002D72; margin-top:5px; display:block;'
+          : (i <= atleta.idxCordao ? 'font-size:.62rem; font-weight:600; color:#0D211D; margin-top:5px; display:block;' : 'font-size:.62rem; font-weight:600; color:#5B6B68; margin-top:5px; display:block;'),
+      })),
+
+      nucleosCards: (this.state.nucleosLista || []).map((n) => ({
+        id: n.id,
+        nome: n.nome || 'Núcleo',
+        professor: n.professorNome ? ('Prof. ' + n.professorNome) : 'Professor a confirmar',
+        endereco: n.endereco || 'Endereço a confirmar com o professor',
+        mensalidade: n.mensalidadeValor != null ? brl(n.mensalidadeValor) : 'A confirmar',
+        meu: !!atleta.academiaId && n.id === atleta.academiaId,
+        cartao: (!!atleta.academiaId && n.id === atleta.academiaId)
+          ? 'background:#fff; border:1.5px solid #389E92; border-radius:18px; padding:16px 16px 14px; display:block; width:100%; text-align:left; cursor:pointer; font-family:\'Manrope\',sans-serif;'
+          : 'background:#fff; border:1px solid #E2E8E6; border-radius:18px; padding:16px 16px 14px; display:block; width:100%; text-align:left; cursor:pointer; font-family:\'Manrope\',sans-serif;',
+        abrir: () => { this.setState({ nucleoAberto: n.id }); this.irPara('nucleoDetalhe'); },
+      })),
+      totalNucleosAtivos: (this.state.nucleosLista || []).length,
+
+      voltarNucleos: () => this.irPara('nucleos'),
+      nucleoDetalhe: (() => {
+        const n = (this.state.nucleosLista || []).find((x) => x.id === this.state.nucleoAberto);
+        if (!n) return { nome:'Núcleo', professor:'', endereco:'Endereço a confirmar com o professor', mensalidade:'A confirmar', meu:false };
+        return {
+          nome: n.nome || 'Núcleo',
+          professor: n.professorNome || 'A confirmar',
+          endereco: n.endereco || 'Endereço a confirmar com o professor',
+          mensalidade: n.mensalidadeValor != null ? brl(n.mensalidadeValor) : 'A confirmar',
+          meu: !!atleta.academiaId && n.id === atleta.academiaId,
+        };
+      })(),
 
       mensalidadeValor: atleta.mensalidadeValor != null ? brl(atleta.mensalidadeValor) : 'A confirmar',
       mensalidadeAcademia: atleta.academia,
@@ -1322,6 +1516,10 @@ class Component extends DCLogic {
       ehPerfil: this.state.aba === 'perfil',
       ehTurma: gestor && this.state.aba === 'turma',
       ehGestao: gestor && this.state.aba === 'gestao',
+      ehNucleos: !gestor && this.state.aba === 'nucleos',
+      ehNucleoDetalhe: !gestor && this.state.aba === 'nucleoDetalhe',
+      ehTrofeus: !gestor && this.state.aba === 'trofeus',
+      ehAlunoPerfil: !gestor,
 
       busca: this.state.busca,
       mudarBusca: (ev) => this.setState({ busca: ev.target.value }),
@@ -1464,9 +1662,9 @@ class Component extends DCLogic {
         this.setState({ sheet: null, sheetVals: {} });
       },
 
-      pilulaEstilo: 'position:absolute; top:8px; bottom:8px; width:19%; left:' + (idx * 20 + 0.5) + '%; border-radius:20px; background:rgba(0,230,118,.16); border:1px solid rgba(0,230,118,.35); transition:left .38s cubic-bezier(.16,1,.3,1);',
+      pilulaEstilo: 'position:absolute; top:6px; bottom:6px; width:' + (100 / ABAS.length - 1.5) + '%; left:' + (idx * (100 / ABAS.length) + 0.75) + '%; border-radius:999px; background:rgba(0,230,118,.16); border:1px solid rgba(0,230,118,.35); transition:left .38s cubic-bezier(.16,1,.3,1);',
       abas: ABAS.map((t) => {
-        const ativa = t.id === this.state.aba;
+        const ativa = t.id === abaParaPilula;
         if (t.id === 'vazio') {
           return { rotulo:'', icone:'', abrir: () => {}, botao:'flex:1; height:52px; border:none; background:none; pointer-events:none;', iconeEstilo:'display:none;', rotuloEstilo:'display:none;' };
         }
@@ -1477,8 +1675,6 @@ class Component extends DCLogic {
           rotuloEstilo: 'font-size:.66rem; font-weight:800; letter-spacing:.02em; color:' + (ativa ? '#00E676' : 'rgba(255,255,255,.5)') + ';',
         };
       }),
-      marcarPresenca: () => this.toast('Presença registrada pelo painel de gestão (admin.html) por enquanto.'),
-      rotuloQr: 'Marcar presença',
 
       sair: () => { try { this._FB && this._FB.sair(); } catch (_) {} window.location.href = 'login.html'; },
       carregando: this.state.carregando,
