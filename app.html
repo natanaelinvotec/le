@@ -146,8 +146,9 @@ a:hover{ color:#389E92; }
                   </button>
                 </div>
                 <div style="margin-top:13px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                  <span style="background:#eaf6f4; color:#0B5C52; font-size:.72rem; font-weight:700; padding:4px 10px; border-radius:999px;">{{ atletaAcademia }}</span>
-                  <span style="{{ seloApto }}"><span style="width:6px; height:6px; border-radius:50%; background:currentColor;"></span>{{ rotuloApto }}</span>
+                  <span style="background:#eaf6f4; color:#0B5C52; font-size:.72rem; font-weight:700; padding:4px 10px; border-radius:999px;">Corda: {{ cordaoAtualNome }}</span>
+                  <span style="background:#fff6e0; color:#8a6a10; font-size:.72rem; font-weight:600; padding:4px 10px; border-radius:999px;">{{ atletaAcademia }}</span>
+                  <span style="font-size:.7rem; color:#5B6B68;">próxima: <strong style="color:#0D211D;">{{ proximoCordao }}</strong></span>
                 </div>
                 <label for="buscaAppInicio" style="display:block; margin-top:12px;">
                   <span style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0);">Buscar</span>
@@ -158,62 +159,110 @@ a:hover{ color:#389E92; }
                 </label>
               </div>
 
-              <div style="margin:16px 16px 0; background:#fff; border:1px solid #E2E8E6; border-radius:20px; padding:18px; box-shadow:0 10px 24px -16px rgba(0,45,114,.22);">
-                <div style="display:flex; align-items:center; gap:16px;">
-                  <div style="position:relative; width:72px; height:72px; flex:none;">
-                    <div style="width:72px; height:72px; border-radius:50%; background:conic-gradient(#00E676 0turn {{ voltaProgresso }}, #E2E8E6 {{ voltaProgresso }} 1turn);"></div>
-                    <div style="position:absolute; inset:7px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; font-family:'Sora',sans-serif; font-weight:800; color:#002D72; font-size:.98rem;">{{ progresso }}%</div>
-                  </div>
-                  <div style="min-width:0;">
-                    <div style="color:#5B6B68; font-size:.72rem; font-weight:600;">Minha evolução</div>
-                    <div style="font-family:'Sora',sans-serif; font-weight:800; color:#002D72; font-size:1.12rem; line-height:1.15;">{{ atletaCordao }}</div>
-                    <div style="color:#5B6B68; font-size:.86rem; margin-top:3px;">Próximo: <strong style="color:#0B5C52;">{{ proximoCordao }}</strong> no batizado de 22/08</div>
-                  </div>
+              <div style="display:flex; gap:10px; margin:16px 16px 0;">
+                <button onClick="{{ irEvolucaoCard }}" style="flex:1; background:#fff; border:1px solid #E2E8E6; border-radius:18px; padding:14px; display:flex; flex-direction:column; gap:8px; text-align:left; cursor:pointer; font-family:'Manrope',sans-serif; box-shadow:0 10px 24px -16px rgba(0,45,114,.16);">
+                  <span style="width:34px; height:34px; border-radius:10px; background:#eaf6f4; display:flex; align-items:center; justify-content:center; color:#0B5C52;"><i class="fas fa-chart-line"></i></span>
+                  <span>
+                    <span style="display:block; font-size:.8rem; font-weight:700; color:#0D211D;">Minha evolução</span>
+                    <span style="display:block; font-size:.68rem; color:#5B6B68; margin-top:1px;">estatísticas e cordas</span>
+                  </span>
+                </button>
+                <button onClick="{{ irFinanceiroCard }}" style="flex:1; background:#fff; border:1px solid #E2E8E6; border-radius:18px; padding:14px; display:flex; flex-direction:column; gap:8px; text-align:left; cursor:pointer; font-family:'Manrope',sans-serif; box-shadow:0 10px 24px -16px rgba(0,45,114,.16);">
+                  <span style="width:34px; height:34px; border-radius:10px; background:#e9f9ef; display:flex; align-items:center; justify-content:center; color:#00B140;"><i class="fas fa-wallet"></i></span>
+                  <span>
+                    <span style="display:block; font-size:.8rem; font-weight:700; color:#0D211D;">Financeiro</span>
+                    <span style="display:block; font-size:.68rem; color:#5B6B68; font-weight:600; margin-top:1px;">{{ statusMensalidade }}</span>
+                  </span>
+                </button>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:12px 16px 0;">
+                <button onClick="{{ toggleStats }}" aria-expanded="{{ statsExpandido }}" style="position:relative; background:#fff; border:1px solid #E2E8E6; border-radius:16px; padding:13px 14px; text-align:left; cursor:pointer; font-family:'Manrope',sans-serif;">
+                  <div style="font-family:'JetBrains Mono',monospace; font-size:1.25rem; font-weight:700; color:#0B5C52;">{{ presencaPct }}%</div>
+                  <div style="font-size:.66rem; color:#5B6B68; margin-top:2px;">presença</div>
+                  <i class="fas fa-chevron-right" style="position:absolute; top:14px; right:12px; color:#5B6B68; font-size:.7rem; transition:transform .15s; transform:rotate({{ chevronDeg }}deg);"></i>
+                </button>
+                <div style="background:#fff; border:1px solid #E2E8E6; border-radius:16px; padding:13px 14px;">
+                  <div style="font-family:'JetBrains Mono',monospace; font-size:1.25rem; font-weight:700; color:#DAA520;">{{ semanasSeguidas }}</div>
+                  <div style="font-size:.66rem; color:#5B6B68; margin-top:2px;">semanas seguidas</div>
                 </div>
-                <div style="margin-top:16px; width:100%; height:14px; border-radius:20px; background:#E2E8E6; overflow:hidden;">
-                  <div style="{{ barraCordaoEstilo }}"></div>
+                <button onClick="{{ irTrofeus }}" style="background:#fff; border:1px solid #E2E8E6; border-radius:16px; padding:13px 14px; text-align:left; cursor:pointer; font-family:'Manrope',sans-serif;">
+                  <div style="font-family:'JetBrains Mono',monospace; font-size:1.25rem; font-weight:700; color:#002D72;">0</div>
+                  <div style="font-size:.66rem; color:#5B6B68; margin-top:2px;">troféus</div>
+                </button>
+                <div style="background:#fff; border:1px solid #E2E8E6; border-radius:16px; padding:13px 14px;">
+                  <div style="font-family:'JetBrains Mono',monospace; font-size:1.25rem; font-weight:700; color:#8E44AD;">0</div>
+                  <div style="font-size:.66rem; color:#5B6B68; margin-top:2px;">parceiros visitados</div>
                 </div>
               </div>
 
-              <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin:14px 16px 0;">
-                <sc-for list="{{ atalhos }}" as="a" hint-placeholder-count="0">
-                  <button onClick="{{ a.abrir }}" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:12px 2px; border:1px solid #E2E8E6; border-radius:14px; background:#fff; cursor:pointer; font-family:'Manrope',sans-serif; transition:.25s cubic-bezier(.16,1,.3,1);" style-hover="transform:translateY(-3px); box-shadow:0 10px 22px rgba(0,0,0,.08);">
-                    <span style="width:32px; height:32px; border-radius:9px; background:rgba(11,92,82,.1); color:#0B5C52; display:flex; align-items:center; justify-content:center; font-size:.85rem;"><i class="{{ a.icone }}"></i></span>
-                    <span style="font-size:.62rem; font-weight:700; color:#0D211D; text-align:center; line-height:1.15;">{{ a.rotulo }}</span>
-                  </button>
-                </sc-for>
-              </div>
-
-              <div style="margin:20px 16px 0; background:#fff; border:1px solid #E2E8E6; border-radius:18px; padding:16px 18px;">
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:2px;">
-                  <div style="font-family:'Sora',sans-serif; font-weight:700; color:#0D211D; font-size:.92rem;">Presença</div>
-                  <span style="background:#eaf6f4; color:#0B5C52; font-size:.68rem; font-weight:700; padding:3px 9px; border-radius:999px;">acompanhe no app</span>
+              <sc-if value="{{ statsExpandido }}" hint-placeholder-val="{{ false }}">
+                <div style="margin:12px 16px 0; background:#fff; border:1px solid #E2E8E6; border-radius:18px; padding:16px 17px;">
+                  <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <h3 style="margin:0; font-size:.86rem; font-weight:700; color:#0D211D;">Meus últimos check-ins</h3>
+                    <span style="font-size:.68rem; color:#5B6B68;">{{ presencaConfirmadas }} confirmadas</span>
+                  </div>
+                  <sc-if value="{{ temPresencaRecente }}" hint-placeholder-val="{{ false }}">
+                    <div>
+                      <sc-for list="{{ presencaRecentesView }}" as="p" hint-placeholder-count="0">
+                        <div style="{{ p.estiloLinha }}">
+                          <span style="color:#5B6B68;">{{ p.data }}</span>
+                          <span style="{{ p.estiloStatus }}">{{ p.status }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                  <p style="margin:8px 0 0; font-size:.7rem; color:#5B6B68;">O check-in é automático quando você chega perto do núcleo — sem precisar abrir o app.</p>
                 </div>
-                <p style="margin:2px 0 0; font-size:.76rem; color:#5B6B68;">Confirme presença nas próximas aulas e acompanhe frequência, sequência de treinos e conquistas em breve por aqui.</p>
-              </div>
+              </sc-if>
 
               <div style="margin:20px 16px 0;">
                 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-                  <h2 style="margin:0; font-family:'Sora',sans-serif; color:#0D211D; font-size:1.02rem;">Próxima roda</h2>
-                  <button onClick="{{ irAulas }}" style="border:none; background:none; color:#0B5C52; font-weight:800; font-size:.82rem; cursor:pointer; font-family:'Manrope',sans-serif;">Ver agenda</button>
+                  <h2 style="margin:0; font-family:'Sora',sans-serif; color:#0D211D; font-size:1.02rem;">Minha evolução</h2>
+                  <button onClick="{{ irTrofeus }}" style="border:none; background:none; color:#0B5C52; font-weight:800; font-size:.82rem; cursor:pointer; font-family:'Manrope',sans-serif;">Ver brasões</button>
                 </div>
-                <div style="position:relative; border-radius:18px; overflow:hidden; height:150px;">
-                  <img src="assets/roda-plateia.jpg" alt="Roda de capoeira" style="width:100%; height:100%; object-fit:cover;" />
-                  <div style="position:absolute; inset:0; background:linear-gradient(180deg,rgba(5,7,12,.1),rgba(5,7,12,.86));"></div>
-                  <div style="position:absolute; left:16px; right:16px; bottom:14px;">
-                    <div style="color:#00E676; font-size:.72rem; font-weight:800; letter-spacing:.12em; margin-bottom:4px;">22 DE AGOSTO · 19:00H</div>
-                    <div style="color:#fff; font-family:'Sora',sans-serif; font-weight:800; font-size:1.05rem;">Batizado do Mestre Profeta</div>
-                    <div style="color:rgba(255,255,255,.75); font-size:.82rem; margin-top:2px;">R. Jaime Costa, 589 — Buriti</div>
+                <div style="background:#fff; border:1px solid #E2E8E6; border-radius:18px; padding:16px 14px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <sc-for list="{{ trilhaResumo }}" as="p" hint-placeholder-count="0">
+                      <div style="display:flex; flex-direction:column; align-items:center; gap:5px; flex:1;">
+                        <div style="{{ p.ponto }}"></div>
+                        <span style="{{ p.rotuloEstilo }}">{{ p.nome }}</span>
+                      </div>
+                    </sc-for>
                   </div>
                 </div>
               </div>
 
-              <div style="margin:20px 16px 0; background:#fff; border:1px solid #E2E8E6; border-radius:18px; padding:16px 18px; display:flex; gap:14px; align-items:center;">
-                <img src="assets/retrato-profeta.jpg" alt="Mestre Profeta" style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:3px solid #389E92; flex:none;" />
-                <div style="min-width:0;">
-                  <div style="font-family:'Sora',sans-serif; color:#0D211D; font-weight:800; font-size:1rem;">Mestre Profeta</div>
-                  <div style="color:#0B5C52; font-weight:700; font-size:.8rem; margin:2px 0 5px;">Seu mestre responsável</div>
-                  <div style="color:#5B6B68; font-size:.82rem; line-height:1.4;">Aulas segunda, quarta e sexta · 19h00 às 20h30</div>
+              <sc-if value="{{ temProximaAula }}" hint-placeholder-val="{{ false }}">
+                <div style="margin:20px 16px 0; background:#fff; border:1px solid #E2E8E6; border-radius:18px; padding:15px 17px;">
+                  <div style="display:flex; gap:12px; align-items:center;">
+                    <div style="width:44px; height:44px; border-radius:12px; background:#eaf6f4; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#0B5C52; flex:none;">
+                      <span style="font-size:.6rem; font-weight:800; text-transform:uppercase;">{{ proximaAula.mes }}</span>
+                      <span style="font-family:'JetBrains Mono',monospace; font-size:.95rem; font-weight:700;">{{ proximaAula.dia }}</span>
+                    </div>
+                    <div style="flex:1; min-width:0;">
+                      <div style="font-size:.9rem; font-weight:700; color:#0D211D;">{{ proximaAula.titulo }}</div>
+                      <div style="font-size:.76rem; color:#5B6B68; margin-top:1px;">{{ proximaAula.horario }} · {{ proximaAula.local }}</div>
+                    </div>
+                  </div>
+                  <button onClick="{{ irAulas }}" style="width:100%; margin-top:12px; background:#00B140; color:#fff; border:none; border-radius:12px; padding:11px; font-size:.8rem; font-weight:700; cursor:pointer; font-family:'Manrope',sans-serif;">Ver detalhes na agenda</button>
+                  <p style="margin:8px 0 0; font-size:.68rem; color:#5B6B68; text-align:center;">O check-in por presença é automático — feito pelo app quando você chega perto do núcleo.</p>
+                </div>
+              </sc-if>
+
+              <div style="margin:20px 16px 0;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                  <h2 style="margin:0; font-family:'Sora',sans-serif; color:#0D211D; font-size:1.02rem;">Avisos</h2>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:9px;">
+                  <div style="background:#fff; border:1px solid #E2E8E6; border-left:3px solid #DAA520; border-radius:14px; padding:12px 14px;">
+                    <div style="font-size:.82rem; font-weight:700; color:#0D211D;">Batizado marcado</div>
+                    <div style="font-size:.74rem; color:#5B6B68; margin-top:2px;">Data e detalhes serão confirmados pelo seu mestre.</div>
+                  </div>
+                  <div style="background:#fff; border:1px solid #E2E8E6; border-left:3px solid #0B5C52; border-radius:14px; padding:12px 14px;">
+                    <div style="font-size:.82rem; font-weight:700; color:#0D211D;">Mensalidade</div>
+                    <div style="font-size:.74rem; color:#5B6B68; margin-top:2px;">{{ mensalidadeAjuda }}</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -398,43 +447,74 @@ a:hover{ color:#389E92; }
 
           <sc-if value="{{ ehAulas }}" hint-placeholder-val="{{ false }}">
             <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
-              <div style="background:#002D72; padding:52px 20px 24px; border-radius:0 0 26px 26px;">
-                <h1 style="margin:0 0 4px; color:#fff; font-family:'Sora',sans-serif; font-size:1.35rem;">Material de Estudo</h1>
-                <p style="margin:0; color:rgba(255,255,255,.7); font-size:.87rem;">Videoaulas, oficinas, biblioteca e avaliações publicadas pelo grupo.</p>
+              <div style="background:#fff; padding:20px 20px 18px; border-bottom:1px solid #E2E8E6;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <button onClick="{{ irInicio }}" aria-label="Voltar" style="width:32px; height:32px; border-radius:999px; background:#F5F9F8; border:1px solid #E2E8E6; display:flex; align-items:center; justify-content:center; flex:none; cursor:pointer;"><i class="fas fa-chevron-left" style="font-size:.7rem; color:#0D211D;"></i></button>
+                  <div>
+                    <div style="font-size:10.5px; letter-spacing:.06em; color:#5B6B68; text-transform:uppercase;">Sua academia</div>
+                    <h1 style="margin:0; font-size:18px; font-weight:800; color:#0D211D; font-family:'Sora',sans-serif;">Materiais</h1>
+                  </div>
+                </div>
+                <label style="display:block; margin-top:14px;">
+                  <span style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0);">Buscar material</span>
+                  <div style="display:flex; align-items:center; gap:8px; background:#F5F9F8; border:1px solid #E2E8E6; border-radius:999px; padding:9px 14px;">
+                    <i class="fas fa-search" style="font-size:.72rem; color:#5B6B68;"></i>
+                    <input type="text" value="{{ buscaMaterial }}" onInput="{{ mudarBuscaMaterial }}" placeholder="Buscar apostila, vídeo, música..." style="background:transparent; border:none; color:#0D211D; font-size:12.5px; flex:1; outline:none; font-family:'Manrope',sans-serif;" />
+                  </div>
+                </label>
               </div>
-              <div style="margin:16px;">
-                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
-                  <sc-for list="{{ filtrosMaterial }}" as="f" hint-placeholder-count="0">
-                    <button onClick="{{ f.aplicar }}" style="{{ f.estilo }}">{{ f.rotulo }}</button>
-                  </sc-for>
-                </div>
-                <div style="display:flex; flex-direction:column; gap:12px;">
-                  <sc-for list="{{ materiais }}" as="m" hint-placeholder-count="4">
-                    <article style="border:1px solid #E2E8E6; border-radius:18px; overflow:hidden; background:#fff;">
-                      <sc-if value="{{ m.temCapa }}" hint-placeholder-val="{{ false }}">
-                        <div style="position:relative; height:130px;">
-                          <sc-for list="{{ m.capaLista }}" as="c" hint-placeholder-count="0">
-                            <img src="{{ c.url }}" alt="" style="width:100%; height:100%; object-fit:cover;" />
-                          </sc-for>
-                          <div style="position:absolute; inset:0; background:rgba(5,7,12,.34); display:flex; align-items:center; justify-content:center;">
-                            <span style="width:52px; height:52px; border-radius:50%; background:rgba(255,255,255,.92); color:#002D72; display:flex; align-items:center; justify-content:center; font-size:1.1rem;"><i class="fas fa-play"></i></span>
-                          </div>
-                        </div>
-                      </sc-if>
-                      <div style="padding:14px 16px; display:flex; gap:13px; align-items:flex-start;">
-                        <span style="{{ m.bolha }}"><i class="{{ m.icone }}"></i></span>
-                        <div style="flex:1; min-width:0;">
-                          <span style="{{ m.selo }}">{{ m.tipo }}</span>
-                          <div style="font-family:'Sora',sans-serif; color:#002D72; font-weight:800; font-size:.96rem; margin-top:6px;">{{ m.titulo }}</div>
-                          <div style="color:#5B6B68; font-size:.82rem; margin-top:4px; line-height:1.4;">{{ m.desc }}</div>
-                        </div>
-                        <a href="{{ m.link }}" target="_blank" rel="noopener" aria-label="Abrir material" style="width:42px; height:42px; border-radius:13px; background:rgba(0,230,118,.14); color:#00A854; display:flex; align-items:center; justify-content:center; flex:none;"><i class="{{ m.acaoIcone }}"></i></a>
-                      </div>
-                    </article>
-                  </sc-for>
-                </div>
 
-                <h2 style="margin:24px 0 10px; font-family:'Sora',sans-serif; color:#002D72; font-size:1.02rem;">Agenda do semestre</h2>
+              <div style="padding:18px 20px 24px; display:flex; flex-direction:column; gap:18px;">
+
+                <section>
+                  <h2 style="margin:0 0 10px; font-size:13px; font-weight:700; color:#5B6B68; text-transform:uppercase; letter-spacing:.04em;">Categorias</h2>
+                  <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;">
+                    <sc-for list="{{ categoriasMaterial }}" as="c" hint-placeholder-count="4">
+                      <button onClick="{{ c.aplicar }}" style="{{ c.cartao }}">
+                        <span style="{{ c.bolha }}"><i class="{{ c.icone }}"></i></span>
+                        <div style="font-size:12.5px; font-weight:700; color:#0D211D;">{{ c.rotulo }}</div>
+                        <div style="font-size:10px; color:#5B6B68; margin-top:2px;">{{ c.sub }}</div>
+                      </button>
+                    </sc-for>
+                  </div>
+                </section>
+
+                <sc-if value="{{ temMateriaisFiltrados }}" hint-placeholder-val="{{ false }}">
+                  <section style="display:flex; flex-direction:column; gap:12px;">
+                    <sc-for list="{{ materiais }}" as="m" hint-placeholder-count="4">
+                      <article style="border:1px solid #E2E8E6; border-radius:18px; overflow:hidden; background:#fff;">
+                        <sc-if value="{{ m.temCapa }}" hint-placeholder-val="{{ false }}">
+                          <div style="position:relative; height:130px;">
+                            <sc-for list="{{ m.capaLista }}" as="c" hint-placeholder-count="0">
+                              <img src="{{ c.url }}" alt="" style="width:100%; height:100%; object-fit:cover;" />
+                            </sc-for>
+                            <div style="position:absolute; inset:0; background:rgba(5,7,12,.34); display:flex; align-items:center; justify-content:center;">
+                              <span style="width:52px; height:52px; border-radius:50%; background:rgba(255,255,255,.92); color:#002D72; display:flex; align-items:center; justify-content:center; font-size:1.1rem;"><i class="fas fa-play"></i></span>
+                            </div>
+                          </div>
+                        </sc-if>
+                        <div style="padding:14px 16px; display:flex; gap:13px; align-items:flex-start;">
+                          <span style="{{ m.bolha }}"><i class="{{ m.icone }}"></i></span>
+                          <div style="flex:1; min-width:0;">
+                            <span style="{{ m.selo }}">{{ m.tipo }}</span>
+                            <div style="font-family:'Sora',sans-serif; color:#002D72; font-weight:800; font-size:.96rem; margin-top:6px;">{{ m.titulo }}</div>
+                            <div style="color:#5B6B68; font-size:.82rem; margin-top:4px; line-height:1.4;">{{ m.desc }}</div>
+                          </div>
+                          <a href="{{ m.link }}" target="_blank" rel="noopener" aria-label="Abrir material" style="width:42px; height:42px; border-radius:13px; background:rgba(0,230,118,.14); color:#00A854; display:flex; align-items:center; justify-content:center; flex:none;"><i class="{{ m.acaoIcone }}"></i></a>
+                        </div>
+                      </article>
+                    </sc-for>
+                  </section>
+                </sc-if>
+                <sc-if value="{{ temMateriaisFiltrados }}" hint-placeholder-val="{{ true }}">
+                  <section style="background:#fff; border:1.5px dashed #E2E8E6; border-radius:18px; padding:24px 20px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px;">
+                    <div style="width:46px; height:46px; border-radius:999px; background:#F5F9F8; display:flex; align-items:center; justify-content:center;"><i class="fas fa-book" style="font-size:1.1rem; color:#5B6B68;"></i></div>
+                    <div style="font-size:13px; font-weight:700; color:#0D211D;">{{ tituloVazioMaterial }}</div>
+                    <p style="margin:0; font-size:11px; color:#5B6B68; line-height:1.5; max-width:260px;">Quando o professor ou o admin subir apostilas, vídeos e músicas, eles aparecem aqui organizados por categoria.</p>
+                  </section>
+                </sc-if>
+
+                <h2 style="margin:6px 0 10px; font-family:'Sora',sans-serif; color:#002D72; font-size:1.02rem;">Agenda do semestre</h2>
                 <div style="display:flex; flex-direction:column; gap:10px;">
                   <sc-for list="{{ agenda }}" as="e" hint-placeholder-count="0">
                     <div style="{{ e.cartao }}">
@@ -456,16 +536,47 @@ a:hover{ color:#389E92; }
 
           <sc-if value="{{ ehPerfil }}" hint-placeholder-val="{{ false }}">
             <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
-              <div style="position:relative; overflow:hidden; background:linear-gradient(158deg,#0B5C52 0%,#12796B 42%,#002D72 100%); padding:56px 20px 30px; border-radius:0 0 26px 26px; text-align:center;">
-                <div style="position:absolute; top:-70px; left:-50px; width:220px; height:220px; border-radius:50%; background:#00E676; filter:blur(58px); opacity:.3; animation:apBlob 9s ease-in-out infinite;"></div>
-                <div style="position:absolute; bottom:-80px; right:-40px; width:200px; height:200px; border-radius:50%; background:#389E92; filter:blur(52px); opacity:.4; animation:apBlob 11s ease-in-out infinite reverse;"></div>
-                <div style="position:absolute; width:44px; height:44px; left:12%; bottom:-44px; border-radius:50%; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2); animation:apSobe 14s linear infinite;"></div>
-                <div style="position:absolute; width:22px; height:22px; left:80%; bottom:-22px; border-radius:50%; background:rgba(0,230,118,.14); border:1px solid rgba(0,230,118,.3); animation:apSobe 10s linear infinite 2.2s;"></div>
-                <sc-for list="{{ fotoPerfilLista }}" as="f" hint-placeholder-count="0">
-                  <img src="{{ f.url }}" alt="Foto do perfil" style="position:relative; width:92px; height:92px; border-radius:50%; object-fit:cover; border:4px solid #fff; margin:0 auto 12px; box-shadow:0 10px 24px rgba(0,0,0,.3);" />
-                </sc-for>
-                <div style="position:relative; color:#fff; font-family:'Sora',sans-serif; font-weight:800; font-size:1.3rem;">{{ perfilNome }}</div>
-                <div style="position:relative; color:rgba(255,255,255,.78); font-size:.88rem; margin-top:4px;">{{ perfilSub }}</div>
+              <div style="background:#fff; padding:48px 20px 18px; border-bottom:1px solid #E2E8E6;">
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                  <span style="width:32px; height:32px;"></span>
+                  <h1 style="margin:0; font-size:1rem; font-weight:800; color:#0D211D; font-family:'Sora',sans-serif;">Perfil</h1>
+                  <button onClick="{{ abrirDados }}" aria-label="Configurações" style="width:32px; height:32px; border-radius:999px; background:#F5F9F8; border:1px solid #E2E8E6; display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none;"><i class="fas fa-cog" style="font-size:.78rem; color:#0D211D;"></i></button>
+                </div>
+              </div>
+              <div style="padding:22px 20px 0; display:flex; flex-direction:column; align-items:center; text-align:center; gap:10px;">
+                <div style="position:relative; width:88px; height:88px;">
+                  <div class="cordao-anel" style="position:absolute; inset:0; border-radius:999px; background:conic-gradient(from 0deg,#ffffff 0deg 120deg,#00B140 120deg 240deg,#0057D9 240deg 360deg);"></div>
+                  <sc-for list="{{ fotoPerfilLista }}" as="f" hint-placeholder-count="0">
+                    <img src="{{ f.url }}" alt="Foto do perfil" style="position:absolute; inset:4px; width:80px; height:80px; border-radius:999px; object-fit:cover;" />
+                  </sc-for>
+                </div>
+                <div>
+                  <div style="font-family:'Sora',sans-serif; font-size:1.2rem; font-weight:800; color:#0D211D;">{{ perfilNome }}</div>
+                  <div style="font-size:.76rem; color:#5B6B68; margin-top:2px;">{{ perfilSub }}</div>
+                </div>
+                <sc-if value="{{ ehAlunoPerfil }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:center;">
+                    <span style="background:#eaf6f4; color:#0B5C52; font-size:.72rem; font-weight:700; padding:4px 10px; border-radius:999px;">Corda: {{ cordaoAtualNome }}</span>
+                    <span style="font-size:.7rem; color:#5B6B68;">próxima: <strong style="color:#0D211D;">{{ proximoCordao }}</strong></span>
+                  </div>
+                </sc-if>
+                <button onClick="{{ compartilharPerfil }}" style="margin-top:2px; display:flex; align-items:center; gap:7px; background:#001A4D; color:#fff; border:none; border-radius:999px; padding:10px 20px; font-size:.78rem; font-weight:700; cursor:pointer; font-family:'Manrope',sans-serif;"><i class="fas fa-share-alt"></i> Compartilhar perfil</button>
+                <sc-if value="{{ ehAlunoPerfil }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:100%; margin-top:6px;">
+                    <div style="background:#fff; border:1px solid #E2E8E6; border-radius:14px; padding:12px 8px; text-align:center;">
+                      <div style="font-family:'JetBrains Mono',monospace; font-size:1.05rem; font-weight:700; color:#0B5C52;">{{ presencaPct }}%</div>
+                      <div style="font-size:.62rem; color:#5B6B68; margin-top:2px;">presença</div>
+                    </div>
+                    <div style="background:#fff; border:1px solid #E2E8E6; border-radius:14px; padding:12px 8px; text-align:center;">
+                      <div style="font-family:'JetBrains Mono',monospace; font-size:1.05rem; font-weight:700; color:#002D72;">{{ semanasSeguidas }}</div>
+                      <div style="font-size:.62rem; color:#5B6B68; margin-top:2px;">semanas seguidas</div>
+                    </div>
+                    <button onClick="{{ irTrofeus }}" style="background:#fff; border:1px solid #E2E8E6; border-radius:14px; padding:12px 8px; text-align:center; cursor:pointer; font-family:inherit;">
+                      <div style="font-family:'JetBrains Mono',monospace; font-size:1.05rem; font-weight:700; color:#DAA520;">{{ trofeusCount }}</div>
+                      <div style="font-size:.62rem; color:#5B6B68; margin-top:2px;">troféus</div>
+                    </button>
+                  </div>
+                </sc-if>
               </div>
 
               <sc-if value="{{ temVariosPapeis }}" hint-placeholder-val="{{ false }}">
@@ -484,11 +595,13 @@ a:hover{ color:#389E92; }
                 <div style="margin:16px 16px 0;">
                   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                     <h2 style="margin:0; font-size:.95rem; font-weight:700; color:#0D211D; font-family:'Sora',sans-serif;">Meus amigos</h2>
+                    <button onClick="{{ avisarAmigos }}" style="display:flex; align-items:center; gap:5px; background:none; border:none; color:#0B5C52; font-size:.76rem; font-weight:700; cursor:pointer; font-family:'Manrope',sans-serif;"><i class="fas fa-plus" style="font-size:.65rem;"></i> Adicionar</button>
                   </div>
                   <div style="background:#fff; border:1.5px dashed #E2E8E6; border-radius:18px; padding:22px 18px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px;">
                     <div style="width:44px; height:44px; border-radius:999px; background:#F5F9F8; display:flex; align-items:center; justify-content:center;"><i class="fas fa-user-friends" style="color:#5B6B68;"></i></div>
-                    <div style="font-size:.82rem; font-weight:700; color:#0D211D;">Chegando em breve</div>
+                    <div style="font-size:.82rem; font-weight:700; color:#0D211D;">Convide amigos para acompanhar sua evolução</div>
                     <p style="margin:0; font-size:.74rem; color:#5B6B68; line-height:1.5; max-width:260px;">Em breve você vai poder adicionar colegas da capoeira e acompanhar a evolução um do outro.</p>
+                    <button onClick="{{ avisarAmigos }}" style="margin-top:4px; background:#0B5C52; color:#fff; border:none; border-radius:999px; padding:9px 18px; font-size:.76rem; font-weight:700; cursor:pointer; font-family:'Manrope',sans-serif;">Adicionar amigo</button>
                   </div>
                 </div>
               </sc-if>
@@ -629,10 +742,21 @@ a:hover{ color:#389E92; }
                   <div style="font-size:.66rem; letter-spacing:.06em; color:#5B6B68; text-transform:uppercase;">Capoeira Liberdade</div>
                   <h1 style="margin:0; font-size:1.15rem; font-weight:800; color:#0D211D; font-family:'Sora',sans-serif;">Núcleos</h1>
                 </div>
+                <label style="display:block; margin-top:14px;">
+                  <span style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0);">Buscar núcleo</span>
+                  <div style="display:flex; align-items:center; gap:8px; background:#F5F9F8; border:1px solid #E2E8E6; border-radius:999px; padding:9px 14px;">
+                    <i class="fas fa-search" style="font-size:.72rem; color:#5B6B68;"></i>
+                    <input type="text" value="{{ buscaNucleo }}" onInput="{{ mudarBuscaNucleo }}" placeholder="Buscar por nome ou professor" style="background:transparent; border:none; color:#0D211D; font-size:12.5px; flex:1; outline:none; font-family:'Manrope',sans-serif;" />
+                  </div>
+                </label>
               </div>
-              <div style="margin:16px 16px 0;">
+              <div style="margin:16px 16px 0; display:flex; justify-content:space-between; align-items:center; gap:10px;">
                 <span style="font-size:.76rem; color:#5B6B68;">{{ totalNucleosAtivos }} núcleos ativos</span>
+                <button onClick="{{ solicitarTransferencia }}" style="border:none; background:none; color:#0B5C52; font-weight:700; font-size:.72rem; display:flex; align-items:center; gap:3px; cursor:pointer; font-family:'Manrope',sans-serif; flex:none;">Solicitar transferência <i class="fas fa-chevron-right" style="font-size:.6rem;"></i></button>
               </div>
+              <sc-if value="{{ temNucleoAtualFrase }}" hint-placeholder-val="{{ false }}">
+                <p style="margin:6px 16px 0; font-size:.66rem; color:#5B6B68;">{{ nucleoAtualFrase }}</p>
+              </sc-if>
               <div style="display:flex; flex-direction:column; gap:12px; margin:10px 16px 0;">
                 <sc-for list="{{ nucleosCards }}" as="n" hint-placeholder-count="0">
                   <button onClick="{{ n.abrir }}" style="{{ n.cartao }}">
@@ -646,9 +770,12 @@ a:hover{ color:#389E92; }
                           <div style="font-size:.74rem; color:#5B6B68; margin-top:1px;">{{ n.professor }}</div>
                         </div>
                       </div>
-                      <sc-if value="{{ n.meu }}" hint-placeholder-val="{{ false }}">
-                        <span style="background:#eaf6f4; color:#0B5C52; font-size:.6rem; font-weight:800; padding:4px 8px; border-radius:999px; flex:none;">SEU NÚCLEO</span>
-                      </sc-if>
+                      <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex:none;">
+                        <sc-if value="{{ n.meu }}" hint-placeholder-val="{{ false }}">
+                          <span style="background:#eaf6f4; color:#0B5C52; font-size:.6rem; font-weight:800; padding:4px 8px; border-radius:999px;">SEU NÚCLEO</span>
+                        </sc-if>
+                        <span style="background:#e9f9ef; color:#0b7a34; font-size:.6rem; font-weight:700; padding:3px 7px; border-radius:999px;">ATIVO</span>
+                      </div>
                     </div>
                     <div style="display:flex; gap:8px; margin-top:13px;">
                       <div style="flex:1; background:#F5F9F8; border-radius:11px; padding:8px 10px; min-width:0;">
@@ -736,12 +863,33 @@ a:hover{ color:#389E92; }
                   </sc-for>
                 </div>
               </div>
-              <div style="margin:20px 16px 0; background:#fff; border:1px solid #E2E8E6; border-radius:16px; padding:16px 18px;">
-                <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
-                  <i class="fas fa-trophy" style="color:#DAA520;"></i>
-                  <h2 style="margin:0; font-size:.9rem; font-weight:700; color:#0D211D;">Troféus por conquistas</h2>
+              <div style="margin:20px 16px 0;">
+                <h2 style="margin:0 0 10px; font-size:.92rem; font-weight:700; color:#0D211D;">Troféus conquistados</h2>
+                <sc-if value="{{ temTrofeuStreak }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; flex-direction:column; gap:10px;">
+                    <div style="background:#fff; border:1px solid #E2E8E6; border-radius:16px; padding:13px 14px; display:flex; align-items:center; gap:12px;">
+                      <div style="width:44px; height:44px; border-radius:12px; background:#fff6e0; display:flex; align-items:center; justify-content:center; flex:none;"><i class="fas fa-star" style="color:#DAA520; font-size:1.1rem;"></i></div>
+                      <div style="flex:1;">
+                        <div style="font-size:.92rem; font-weight:700; color:#0D211D;">Estrela cadente!</div>
+                        <div style="font-size:.76rem; color:#5B6B68; margin-top:1px;">6 semanas seguidas de presença confirmada.</div>
+                      </div>
+                    </div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ temTrofeuStreak }}" hint-placeholder-val="{{ true }}">
+                  <div style="background:#fff; border:1px solid #E2E8E6; border-radius:16px; padding:16px 18px;">
+                    <p style="margin:0; font-size:.78rem; color:#5B6B68; line-height:1.5;">Seus troféus aparecem aqui conforme você conquista: sequência de presença, evolução de corda e participação em eventos. Acompanhe seu progresso pelos brasões acima e pelo termômetro de prontidão.</p>
+                  </div>
+                </sc-if>
+              </div>
+              <div style="margin:20px 16px 0;">
+                <h2 style="margin:0 0 12px; font-size:.92rem; font-weight:700; color:#0D211D;">Em curadoria pelo grupo</h2>
+                <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:9px;">
+                  <sc-for list="{{ trofeusBloqueados }}" as="tb" hint-placeholder-count="4">
+                    <div style="background:#eef2f1; border:1px dashed #E2E8E6; border-radius:14px; aspect-ratio:1; display:flex; align-items:center; justify-content:center;"><i class="fas fa-lock" style="color:#5B6B68; font-size:.85rem;"></i></div>
+                  </sc-for>
                 </div>
-                <p style="margin:0; font-size:.78rem; color:#5B6B68; line-height:1.5;">Em breve: troféus por sequência de presença, evolução de corda e participação em eventos — com o catálogo definido pelo seu mestre. Por enquanto, acompanhe sua evolução pelos brasões de corda acima e pelo termômetro de prontidão.</p>
+                <p style="margin:10px 0 0; font-size:.72rem; color:#5B6B68;">Catálogo completo de troféus ainda em aprovação com o seu mestre.</p>
               </div>
             </div>
           </sc-if>
@@ -959,6 +1107,15 @@ const MATERIAIS = [];
 const TIPOS_MATERIAL = ['Videoaula','Oficina de canto','Oficina de música','Biblioteca','Avaliação'];
 const MAT_ICONE = { 'Videoaula':'fas fa-play-circle', 'Oficina de canto':'fas fa-microphone', 'Oficina de música':'fas fa-drum', 'Biblioteca':'fas fa-file-pdf', 'Avaliação':'fas fa-clipboard-check' };
 const MAT_COR = { 'Videoaula':'#002D72', 'Oficina de canto':'#8E44AD', 'Oficina de música':'#D2691E', 'Biblioteca':'#D32F2F', 'Avaliação':'#00B140' };
+// Categorias de conteúdo (como no mockup aprovado). Não existe esse campo salvo no Firestore
+// ainda, então a busca por categoria é feita por palavra-chave real em cima do título/descrição
+// do material — nunca inventa contagem ou marca um material em uma categoria que ele não bate.
+const CATEGORIAS_MATERIAL = [
+  { chave:'fundamentos', rotulo:'Fundamentos', sub:'base, ginga, esquivas', icone:'fas fa-shapes', cor:'#0B5C52', bg:'#eaf6f4', termos:['fundamento','ginga','esquiva','base','queda','role'] },
+  { chave:'musica', rotulo:'Música e ladainhas', sub:'berimbau, cantigas', icone:'fas fa-music', cor:'#DAA520', bg:'#fff6e0', termos:['música','musica','ladainha','berimbau','cantiga','canto','toque'] },
+  { chave:'historia', rotulo:'História e filosofia', sub:'origem, mestres, cultura', icone:'fas fa-book', cor:'#8E44AD', bg:'#f5ecfa', termos:['história','historia','filosofia','origem','mestre','cultura'] },
+  { chave:'cordas', rotulo:'Cordas e graduação', sub:'requisitos por nível', icone:'fas fa-check-double', cor:'#00B140', bg:'#e9f9ef', termos:['corda','cordão','cordao','graduação','graduacao','requisito','nível','nivel'] },
+];
 
 const AGENDA = [
   { titulo:'Batizado do Profº Rafinha', local:'Rancho Alegre', horario:'19:00h', dia:'19', mes:'SET', quando:'2026-09-19' },
@@ -1025,10 +1182,12 @@ class Component extends DCLogic {
   state = {
     carregando: true,
     perfil: null, papel: 'aluno', aba: 'inicio', atleta: 0, escolhendo: false, trocador: false,
-    busca: '', filtro: 'Todos', filtroMaterial: 'Tudo', aviso: '', avaliando: null, notasAval: null,
+    busca: '', filtro: 'Todos', buscaMaterial: '', categoriaMaterial: null, buscaNucleo: '', aviso: '', avaliando: null, notasAval: null,
     observacao: '', historico: {}, sheet: null, sheetVals: {}, sheetFotoStatus: '',
     pendentes: PENDENTES.slice(), alunos: ALUNOS.slice(), materiais: MATERIAIS.slice(),
     nucleosLista: [], nucleoAberto: null,
+    presencaPct: 0, presencaTotal: 0, presencaConfirmadas: 0, semanasSeguidas: 0, presencaRecentes: [],
+    statsExpandido: false,
   };
 
   componentDidMount() {
@@ -1129,6 +1288,42 @@ class Component extends DCLogic {
 
     this.carregarMateriaisReais();
     this.carregarNucleos();
+    if (!gestorPapel) this.carregarPresenca();
+  }
+
+  async carregarPresenca() {
+    try {
+      const itens = await this._FB.presencasDoUsuario(this._uid, 120);
+      const confirmadas = itens.filter((p) => p.confirmadoAos30 === true);
+      const total = itens.length;
+      const pct = total > 0 ? Math.round((confirmadas.length / total) * 100) : 0;
+
+      const semanaDe = (data) => {
+        const onejan = new Date(data.getFullYear(), 0, 1);
+        const semana = Math.ceil((((data - onejan) / 86400000) + onejan.getDay() + 1) / 7);
+        return data.getFullYear() + '-' + semana;
+      };
+      const semanasComPresenca = new Set(confirmadas.map((p) => {
+        const d = p.entradaEm && p.entradaEm.toDate ? p.entradaEm.toDate() : new Date(p.entradaEm);
+        return semanaDe(d);
+      }));
+      let streak = 0;
+      for (let i = 0; i < 52; i++) {
+        const ref = new Date(Date.now() - i * 7 * 86400000);
+        if (semanasComPresenca.has(semanaDe(ref))) { streak++; } else { break; }
+      }
+
+      const recentes = itens.slice(0, 8).map((p) => {
+        const d = p.entradaEm && p.entradaEm.toDate ? p.entradaEm.toDate() : new Date(p.entradaEm);
+        return {
+          data: isNaN(d) ? '-' : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+          status: p.confirmadoAos30 === true ? 'presente' : 'pendente',
+          cor: p.confirmadoAos30 === true ? '#0B5C52' : '#C0700C',
+        };
+      });
+
+      this.setState({ presencaPct: pct, presencaTotal: total, presencaConfirmadas: confirmadas.length, semanasSeguidas: streak, presencaRecentes: recentes });
+    } catch (e) { console.error(e); }
   }
 
   async carregarNucleos() {
@@ -1184,6 +1379,27 @@ class Component extends DCLogic {
     if (cx) cx.scrollTop = 0;
   }
 
+  toggleStats() {
+    this.setState((s) => ({ statsExpandido: !s.statsExpandido }));
+  }
+
+  async compartilharPerfilAcao() {
+    const nome = this.state.perfil ? (PERFIS.find((p) => p.id === this.state.perfil) || {}).nome : '';
+    const texto = 'Perfil de capoeira de ' + (nome || 'aluno') + ' — Capoeira Liberdade';
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Capoeira Liberdade', text: texto });
+        return;
+      }
+    } catch (e) { /* usuário cancelou o compartilhamento nativo */ return; }
+    try {
+      await navigator.clipboard.writeText(texto);
+      this.toast('Copiado! Cole para compartilhar seu perfil.');
+    } catch (e) {
+      this.toast('Não foi possível compartilhar agora.');
+    }
+  }
+
   abaInicial(papel) {
     if (papel === 'admin') return 'gestao';
     if (papel === 'mestre') return 'turma';
@@ -1229,6 +1445,8 @@ class Component extends DCLogic {
     const { ativos: criteriosAtivos, progresso } = progressoDe(atleta.idade, atleta.idxCordao, atleta.notasReais);
     const notas = criteriosAtivos.map((c) => [c.txt, Number(atleta.notasReais[c.id]) || 0]);
     const listaCordoes = cordoesPorIdade(atleta.idade);
+    const futurosAgenda = AGENDA.filter((e) => new Date(e.quando) >= new Date()).sort((a, b) => new Date(a.quando) - new Date(b.quando));
+    const proximoEvento = futurosAgenda[0] || null;
     const corAtleta = corCordao(atleta.idade, atleta.cordao);
     const barraCordaoEstilo = 'height:100%; width:' + progresso + '%; border-radius:20px; animation:apTranca 2s linear infinite; box-shadow:0 0 14px rgba(0,230,118,.6); background:repeating-linear-gradient(45deg,' + corAtleta[0] + ' 0,' + corAtleta[0] + ' 10px,' + corAtleta[1] + ' 10px,' + corAtleta[1] + ' 20px,' + corAtleta[2] + ' 20px,' + corAtleta[2] + ' 30px);';
     const ABAS = admin ? ABAS_ADMIN : (gestor ? ABAS_MESTRE : ABAS_ALUNO);
@@ -1328,7 +1546,14 @@ class Component extends DCLogic {
     };
     const sheetDef = this.state.sheet ? sheetDefs[this.state.sheet] : null;
 
-    const materiaisFiltrados = this.state.materiais.filter((m) => this.state.filtroMaterial === 'Tudo' || m.tipo === this.state.filtroMaterial);
+    const categoriaAtivaMaterial = CATEGORIAS_MATERIAL.find((c) => c.chave === this.state.categoriaMaterial) || null;
+    const termoBuscaMaterial = (this.state.buscaMaterial || '').trim().toLowerCase();
+    const materiaisFiltrados = this.state.materiais.filter((m) => {
+      const texto = ((m.titulo || '') + ' ' + (m.desc || '') + ' ' + (m.tipo || '')).toLowerCase();
+      const passaBusca = !termoBuscaMaterial || texto.includes(termoBuscaMaterial);
+      const passaCategoria = !categoriaAtivaMaterial || categoriaAtivaMaterial.termos.some((t) => texto.includes(t));
+      return passaBusca && passaCategoria;
+    });
     const enfeiteMaterial = (m) => ({
       tipo: m.tipo, titulo: m.titulo, desc: m.desc, link: m.link || '#', destino: m.destino,
       temCapa: !!m.capa, capaLista: m.capa ? [{ url: m.capa }] : [],
@@ -1376,17 +1601,17 @@ class Component extends DCLogic {
           : "display:flex; align-items:center; gap:7px; padding:10px 15px; border:1px solid #E2E8E6; border-radius:999px; background:#fff; color:#5A6B72; font-weight:700; font-size:.8rem; cursor:pointer; font-family:'Manrope',sans-serif;",
       })),
 
-      atalhos: [
-        { rotulo:'Evolução', icone:'fas fa-award', abrir: () => this.irPara('evolucao') },
-        { rotulo:'Financeiro', icone:'fas fa-wallet', abrir: () => this.irPara('financeiro') },
-        { rotulo:'Material', icone:'fas fa-book-open', abrir: () => this.irPara('aulas') },
-        { rotulo:'Núcleos', icone:'fas fa-map-marker-alt', abrir: () => this.irPara('nucleos') },
-        { rotulo:'Perfil', icone:'fas fa-user', abrir: () => this.irPara('perfil') },
-      ],
       irAulas: () => this.irPara('aulas'),
+      irInicio: () => this.irPara('inicio'),
       irPerfil: () => this.irPara('perfil'),
+      abrirDados: () => this.abrirSheet('dados'),
+      compartilharPerfil: () => this.compartilharPerfilAcao(),
+      trofeusCount: this.state.semanasSeguidas >= 6 ? 1 : 0,
+      avisarAmigos: () => this.toast('Em breve você vai poder adicionar colegas da capoeira por aqui.'),
       irNucleos: () => this.irPara('nucleos'),
       irTrofeus: () => this.irPara('trofeus'),
+      irEvolucaoCard: () => this.irPara('evolucao'),
+      irFinanceiroCard: () => this.irPara('financeiro'),
 
       criterios: notas.map((n) => ({
         nome: n[0], nota: n[1] + '/10',
@@ -1426,19 +1651,72 @@ class Component extends DCLogic {
           ? 'font-size:.62rem; font-weight:800; color:#002D72; margin-top:5px; display:block;'
           : (i <= atleta.idxCordao ? 'font-size:.62rem; font-weight:600; color:#0D211D; margin-top:5px; display:block;' : 'font-size:.62rem; font-weight:600; color:#5B6B68; margin-top:5px; display:block;'),
       })),
+      temTrofeuStreak: this.state.semanasSeguidas >= 6,
+      trofeusBloqueados: [1, 2, 3, 4],
 
-      nucleosCards: (this.state.nucleosLista || []).map((n) => ({
-        id: n.id,
-        nome: n.nome || 'Núcleo',
-        professor: n.professorNome ? ('Prof. ' + n.professorNome) : 'Professor a confirmar',
-        endereco: n.endereco || 'Endereço a confirmar com o professor',
-        mensalidade: n.mensalidadeValor != null ? brl(n.mensalidadeValor) : 'A confirmar',
-        meu: !!atleta.academiaId && n.id === atleta.academiaId,
-        cartao: (!!atleta.academiaId && n.id === atleta.academiaId)
-          ? 'background:#fff; border:1.5px solid #389E92; border-radius:18px; padding:16px 16px 14px; display:block; width:100%; text-align:left; cursor:pointer; font-family:\'Manrope\',sans-serif;'
-          : 'background:#fff; border:1px solid #E2E8E6; border-radius:18px; padding:16px 16px 14px; display:block; width:100%; text-align:left; cursor:pointer; font-family:\'Manrope\',sans-serif;',
-        abrir: () => { this.setState({ nucleoAberto: n.id }); this.irPara('nucleoDetalhe'); },
-      })),
+      trilhaResumo: (() => {
+        const janela = 2;
+        const ini = Math.max(0, Math.min(atleta.idxCordao - janela, listaCordoes.length - (janela * 2 + 1)));
+        const fim = Math.min(listaCordoes.length, ini + (janela * 2 + 1));
+        return listaCordoes.slice(ini, fim).map((c, k) => {
+          const i = ini + k;
+          return {
+            nome: c.nome,
+            ponto: i === atleta.idxCordao
+              ? 'width:24px; height:24px; border-radius:50%; background:#DAA520; border:3px solid #F5B942; box-shadow:0 0 0 2px #DAA520; flex:none;'
+              : (i < atleta.idxCordao
+                  ? 'width:20px; height:20px; border-radius:50%; background:#0B5C52; flex:none;'
+                  : 'width:20px; height:20px; border-radius:50%; background:#fff; border:2px solid #E2E8E6; flex:none;'),
+            rotuloEstilo: i === atleta.idxCordao ? 'font-size:.66rem; color:#002D72; font-weight:800;' : 'font-size:.66rem; color:#5B6B68; font-weight:600;',
+          };
+        });
+      })(),
+      trilhaLinha: 'background:linear-gradient(90deg,#0B5C52 ' + Math.round((Math.min(2, atleta.idxCordao) / 4) * 100) + '%,#E2E8E6 0);',
+
+      statsExpandido: this.state.statsExpandido,
+      toggleStats: () => this.toggleStats(),
+      chevronDeg: this.state.statsExpandido ? 90 : 0,
+      presencaPct: this.state.presencaPct,
+      semanasSeguidas: this.state.semanasSeguidas,
+      presencaRecentesView: this.state.presencaRecentes.length
+        ? this.state.presencaRecentes.map((p) => ({
+            data: p.data,
+            estiloLinha: 'display:flex; justify-content:space-between; padding:7px 0; border-top:1px solid #E2E8E6; font-size:.78rem;',
+            estiloStatus: 'font-weight:700; color:' + p.cor + ';',
+            status: p.status,
+          }))
+        : [],
+      temPresencaRecente: this.state.presencaRecentes.length > 0,
+
+      temProximaAula: !!proximoEvento,
+      proximaAula: proximoEvento
+        ? { titulo: proximoEvento.titulo, local: proximoEvento.local, horario: proximoEvento.horario, dia: proximoEvento.dia, mes: proximoEvento.mes }
+        : { titulo:'', local:'', horario:'', dia:'', mes:'' },
+
+      buscaNucleo: this.state.buscaNucleo || '',
+      mudarBuscaNucleo: (ev) => this.setState({ buscaNucleo: ev.target.value }),
+      solicitarTransferencia: () => this.toast('Fale com o seu professor ou com o admin para solicitar a transferência de núcleo.'),
+      temNucleoAtualFrase: !gestor && !!atleta.academiaId,
+      nucleoAtualFrase: 'Você já treina em ' + (atleta.academia || 'um núcleo') + '. Trocar de núcleo depende de solicitação ao professor ou ao admin.',
+      nucleosCards: (this.state.nucleosLista || [])
+        .filter((n) => {
+          const termo = (this.state.buscaNucleo || '').trim().toLowerCase();
+          if (!termo) return true;
+          const texto = ((n.nome || '') + ' ' + (n.professorNome || '')).toLowerCase();
+          return texto.includes(termo);
+        })
+        .map((n) => ({
+          id: n.id,
+          nome: n.nome || 'Núcleo',
+          professor: n.professorNome ? ('Prof. ' + n.professorNome) : 'Professor a confirmar',
+          endereco: n.endereco || 'Endereço a confirmar com o professor',
+          mensalidade: n.mensalidadeValor != null ? brl(n.mensalidadeValor) : 'A confirmar',
+          meu: !!atleta.academiaId && n.id === atleta.academiaId,
+          cartao: (!!atleta.academiaId && n.id === atleta.academiaId)
+            ? 'background:#fff; border:1.5px solid #389E92; border-radius:18px; padding:16px 16px 14px; display:block; width:100%; text-align:left; cursor:pointer; font-family:\'Manrope\',sans-serif;'
+            : 'background:#fff; border:1px solid #E2E8E6; border-radius:18px; padding:16px 16px 14px; display:block; width:100%; text-align:left; cursor:pointer; font-family:\'Manrope\',sans-serif;',
+          abrir: () => { this.setState({ nucleoAberto: n.id }); this.irPara('nucleoDetalhe'); },
+        })),
       totalNucleosAtivos: (this.state.nucleosLista || []).length,
 
       voltarNucleos: () => this.irPara('nucleos'),
@@ -1462,13 +1740,19 @@ class Component extends DCLogic {
       comparativoFamilia: ATLETAS.map((a) => ({ nome: a.curto, foto: a.foto, valor: a.mensalidadeValor != null ? brl(a.mensalidadeValor) : 'A confirmar' })),
       produtosProntos: PRODUTOS,
 
-      filtrosMaterial: TIPOS_MATERIAL.concat(['Tudo']).reduce((acc, t) => acc, ['Tudo'].concat(TIPOS_MATERIAL)).map((t) => ({
-        rotulo: t,
-        aplicar: () => this.setState({ filtroMaterial: t }),
-        estilo: t === this.state.filtroMaterial
-          ? 'padding:8px 14px; border:none; border-radius:999px; background:#002D72; color:#fff; font-weight:800; font-size:.78rem; cursor:pointer;'
-          : 'padding:8px 14px; border:1px solid #E2E8E6; border-radius:999px; background:#fff; color:#5A6B72; font-weight:700; font-size:.78rem; cursor:pointer;',
-      })),
+      buscaMaterial: this.state.buscaMaterial || '',
+      mudarBuscaMaterial: (ev) => this.setState({ buscaMaterial: ev.target.value }),
+      categoriasMaterial: CATEGORIAS_MATERIAL.map((c) => {
+        const ativa = c.chave === this.state.categoriaMaterial;
+        return {
+          rotulo: c.rotulo, sub: c.sub, icone: c.icone,
+          aplicar: () => this.setState((s) => ({ categoriaMaterial: s.categoriaMaterial === c.chave ? null : c.chave })),
+          cartao: 'text-align:left; border:1.5px solid ' + (ativa ? c.cor : '#E2E8E6') + '; background:#fff; border-radius:16px; padding:14px; cursor:pointer; font-family:inherit;',
+          bolha: 'width:34px; height:34px; border-radius:10px; background:' + c.bg + '; display:flex; align-items:center; justify-content:center; margin-bottom:10px; color:' + c.cor + '; font-size:.85rem;',
+        };
+      }),
+      temMateriaisFiltrados: materiaisFiltrados.length > 0,
+      tituloVazioMaterial: this.state.materiais.length === 0 ? 'Sua academia ainda não enviou materiais' : 'Nenhum material encontrado',
       materiais: materiaisFiltrados.map(enfeiteMaterial),
       agenda: AGENDA.map((e) => {
         const passou = new Date(e.quando) < new Date();
@@ -1780,60 +2064,6 @@ async function iniciarCheckin() {
   });
 }
 iniciarCheckin();
-</script>
-<div id="cardMinhaPresenca" style="display:none;"></div>
-<script type="module">
-import { observarSessao, buscar, presencasDoUsuario } from './firebase.js';
-function montarCardPresenca() {
-  const el = document.getElementById('cardMinhaPresenca');
-  el.style.cssText = 'display:block;max-width:480px;margin:16px auto;background:#0B5C52;color:#fff;border-radius:16px;padding:18px 20px;font-family:inherit;box-shadow:0 4px 16px rgba(0,0,0,.18);';
-  return el;
-}
-function formatarData(campo) {
-  try {
-    const d = campo && campo.toDate ? campo.toDate() : (campo ? new Date(campo) : null);
-    return d ? d.toLocaleDateString('pt-BR') : '-';
-  } catch (e) {
-    return '-';
-  }
-}
-async function iniciarPainelPresenca() {
-  observarSessao(async (user) => {
-    if (!user) return;
-    let perfil;
-    try {
-      perfil = await buscar('usuarios', user.uid);
-    } catch (e) {
-      return;
-    }
-    if (!perfil || !Array.isArray(perfil.papeis) || !perfil.papeis.includes('aluno')) return;
-    let itens = [];
-    try {
-      itens = await presencasDoUsuario(user.uid, 60);
-    } catch (e) {
-      itens = [];
-    }
-    const el = montarCardPresenca();
-    const total = itens.length;
-    const confirmadas = itens.filter((p) => p.confirmadoAos30 === true).length;
-    const pct = total > 0 ? Math.round((confirmadas / total) * 100) : 0;
-    const recentes = itens
-      .slice(0, 5)
-      .map((p) => {
-        const status = p.confirmadoAos30 === true ? '✓ confirmada' : 'pendente';
-        return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid rgba(255,255,255,.15);font-size:.85rem;"><span>' + formatarData(p.entradaEm) + '</span><span>' + status + '</span></div>';
-      })
-      .join('');
-    el.innerHTML =
-      '<div style="font-weight:700;font-size:1.05rem;margin-bottom:10px;">Minha Presença</div>' +
-      '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px;">' +
-      '<span style="font-size:2rem;font-weight:700;color:#00E676;">' + pct + '%</span>' +
-      '<span style="font-size:.8rem;opacity:.85;">de confirmação (' + confirmadas + '/' + total + ' check-ins)</span>' +
-      '</div>' +
-      (recentes || '<div style="opacity:.7;font-size:.85rem;margin-top:8px;">Nenhum check-in ainda.</div>');
-  });
-}
-iniciarPainelPresenca();
 </script>
 <style id="modernizacao-cabecalho">
 /* ======================================================================
