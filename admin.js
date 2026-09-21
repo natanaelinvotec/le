@@ -377,6 +377,7 @@ carregarRateios(),
   carregarPresencas(),
 ]);
 
+renderizarNucleosUI();
 atualizarEstrelaHeader();
 }
 
@@ -425,7 +426,20 @@ setTimeout(() => { document.getElementById('secao-graficos').scrollIntoView({ be
 async function carregarNucleos() {
 try {
 todosNucleos = await listar('nucleos');
+renderizarNucleosUI();
+} catch (e) {
+console.error(e);
+toast('Não foi possível carregar os núcleos.', 'error');
+}
+}
 
+// Renderiza toda a UI dependente de núcleos (selects + cards + estrela viva).
+// Separado de carregarNucleos() para poder ser chamado de novo depois que
+// todosUsuarios terminar de carregar (carregarNucleos() e carregarUsuarios()
+// rodam em paralelo via Promise.all, então na primeira passada todosUsuarios
+// pode ainda estar vazio/desatualizado — isso fazia o select de "responsável"
+// nunca mostrar pessoas existentes e a estrela viva aparecer sempre em 0/7).
+function renderizarNucleosUI() {
 // Select de filtro (sidebar, admin)
 const filtro = document.getElementById('filtroAcademia');
 if (filtro) {
@@ -474,10 +488,6 @@ if (selResp) {
 const disponiveis = todosUsuarios.filter((u) => !u.academiaGerenciadaId);
 selResp.innerHTML = '<option value="__novo__">— Cadastrar pessoa nova —</option>' +
 disponiveis.map((u) => `<option value="${escapeHTML(u.id)}">${escapeHTML(u.nome)} (${escapeHTML(u.email)})</option>`).join('');
-}
-} catch (e) {
-console.error(e);
-toast('Não foi possível carregar os núcleos.', 'error');
 }
 }
 
@@ -538,6 +548,7 @@ toast('Núcleo criado com sucesso!');
 formNovoNucleo.reset();
 document.getElementById('camposNovoResponsavel').style.display = 'grid';
 await Promise.all([carregarNucleos(), carregarUsuarios()]);
+renderizarNucleosUI();
 } catch (err) {
 console.error(err);
 toast(err && err.code === 'auth/email-already-in-use' ? 'Este e-mail já tem cadastro.' : 'Erro ao criar núcleo.', 'error');
@@ -634,6 +645,7 @@ academiaGerenciadaId: nucleoEditandoID,
 toast('Núcleo atualizado!');
 window.fecharModalNucleo();
 await Promise.all([carregarNucleos(), carregarUsuarios()]);
+renderizarNucleosUI();
 } catch (err) {
 console.error(err);
 toast('Erro ao editar núcleo.', 'error');
@@ -1453,6 +1465,7 @@ await aprovarVinculoFamilia(sol.solicitanteUid, sol.dadosPedido.alunoRelacionado
 await atualizar('solicitacoes', id, { status: 'aprovado' });
 toast('Solicitação aprovada e aplicada!');
 await Promise.all([carregarSolicitacoes(), carregarUsuarios(), carregarNucleos()]);
+renderizarNucleosUI();
 } catch (e) {
 console.error(e);
 toast('Erro ao aprovar solicitação.', 'error');
