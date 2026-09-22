@@ -10,7 +10,7 @@ por Firebase Authentication (usuarios/{uid}.papeis). -->
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<link rel="stylesheet" href="admin.css?v=20260921a">
+<link rel="stylesheet" href="admin.css?v=20260922b">
 </head>
 <body>
 <noscript>Este painel exige JavaScript habilitado para funcionar.</noscript>
@@ -73,17 +73,28 @@ redirecionado pra login.html por admin.js (ver checarSessaoOuRedirecionar). -->
 
 <section id="aba-alunos" class="aba-content active">
 <div class="section-header">
+<div>
+<span class="eyebrow" id="eyebrowAbaAlunos">Painel de gestão</span>
 <h2 id="tituloAbaAlunos">Alunos</h2>
+</div>
 <span id="estrelaHeaderAlunos" class="estrela-viva oculto"></span>
 </div>
 
 <div id="heroFundador" class="hero-fundador oculto"></div>
 
+<!-- Visão geral: só números reais já carregados nesta sessão (alunos,
+solicitações, avisos, presença). Enquanto um dado não carregou, mostra "—". -->
+<div class="kpi-grid" id="kpisGestao" aria-live="polite"></div>
+
+<div class="secao-titulo"><h3 id="tituloGridAlunos">Alunos</h3></div>
 <div class="alunos-grid" id="gridAlunos" aria-live="polite"></div>
 
 <div id="secao-cascata" class="cascata-section" data-papel="gestor" style="margin-top: 40px;">
-<div class="section-header" style="background: var(--primary-blue);">
+<div class="section-header">
+<div>
+<span class="eyebrow">Formação</span>
 <h2><i class="fas fa-sitemap"></i> Cascata de Formação</h2>
+</div>
 </div>
 <p id="cascataAvisoSelecione" class="empty-state oculto"><i class="fas fa-hand-pointer"></i>Selecione um núcleo em "Filtros Avançados" para ver a cascata de formação dele.</p>
 <div id="cascataContainer" class="cascata-tree"></div>
@@ -92,8 +103,11 @@ redirecionado pra login.html por admin.js (ver checarSessaoOuRedirecionar). -->
 </div>
 
 <div id="secao-graficos" class="chart-section" style="margin-top: 50px;">
-<div class="section-header" style="background: #002D72;">
+<div class="section-header">
+<div>
+<span class="eyebrow">Relatórios</span>
 <h2><i class="fas fa-chart-pie"></i> Inteligência de Dados e Evolução</h2>
+</div>
 </div>
 
 <div class="charts-grid-layout">
@@ -126,7 +140,7 @@ redirecionado pra login.html por admin.js (ver checarSessaoOuRedirecionar). -->
 </section>
 
 <section id="aba-nucleos" class="aba-content">
-<div class="section-header"><h2>Gestão de Núcleos e Permissões</h2></div>
+<div class="section-header"><div><span class="eyebrow">Admin Master</span><h2><i class="fas fa-building"></i> Núcleos e Permissões</h2></div></div>
 <div class="card-padrao" style="margin-bottom: 20px;">
 <h3>Criar Núcleo / Conceder Academia Própria</h3>
 <p style="font-size:0.85rem; color:var(--text-muted); margin:8px 0 15px;">
@@ -140,7 +154,7 @@ Escolha um aluno já cadastrado para virar responsável por este núcleo
             <input type="number" id="latitudeNucleo" placeholder="Latitude (ex: -23.5505)" class="input-padrao" step="0.000001">
             <input type="number" id="longitudeNucleo" placeholder="Longitude (ex: -46.6333)" class="input-padrao" step="0.000001">
             <input type="number" id="raioNucleo" placeholder="Raio de check-in (metros)" class="input-padrao" min="5" value="15">
-            <button type="button" class="btn-mini" onclick="usarLocalizacaoAtual('latitudeNucleo','longitudeNucleo')">📍 Usar minha localização atual</button>
+            <button type="button" class="btn-mini" onclick="usarLocalizacaoAtual('latitudeNucleo','longitudeNucleo')"><i class="fas fa-location-crosshairs"></i> Usar minha localização atual</button>
 <label for="responsavelNucleo" style="font-size:0.85rem; color:var(--text-muted);">Responsável (professor/mestre)</label>
 <select id="responsavelNucleo" class="input-padrao">
 <option value="__novo__">— Cadastrar pessoa nova —</option>
@@ -153,19 +167,19 @@ Escolha um aluno já cadastrado para virar responsável por este núcleo
 <button type="submit" class="btn-detalhes" style="width: 280px;">Criar Núcleo</button>
 </form>
 </div>
-<h3>Núcleos Cadastrados</h3>
+<div class="secao-titulo"><h3>Núcleos cadastrados</h3></div>
 <div class="academias-grid" id="listaNucleosPainel"></div>
 </section>
 
 <section id="aba-solicitacoes" class="aba-content">
-<div class="section-header"><h2 id="tituloAbaSolicitacoes">Solicitações</h2></div>
+<div class="section-header"><div><span class="eyebrow">Gestão</span><h2 id="tituloAbaSolicitacoes"><i class="fas fa-clipboard-check"></i> Solicitações</h2></div></div>
 
 <div id="painelSolicitarMestre" data-papel="mestre" class="card-padrao" style="margin-bottom:20px;">
 <h3>Nova Solicitação</h3>
 <div style="display:flex; gap:10px; flex-wrap:wrap; margin:15px 0;">
-<button type="button" class="btn-detalhes" onclick="abrirFormSolicitacao('mensalidade')">Alterar Mensalidade</button>
-<button type="button" class="btn-detalhes" onclick="abrirFormSolicitacao('evento')">Criar Evento/Batizado</button>
-<button type="button" class="btn-detalhes" onclick="abrirFormSolicitacao('transferencia')">Transferir Aluno</button>
+<button type="button" class="btn-detalhes btn-soft" onclick="abrirFormSolicitacao('mensalidade')">Alterar Mensalidade</button>
+<button type="button" class="btn-detalhes btn-soft" onclick="abrirFormSolicitacao('evento')">Criar Evento/Batizado</button>
+<button type="button" class="btn-detalhes btn-soft" onclick="abrirFormSolicitacao('transferencia')">Transferir Aluno</button>
 </div>
 
 <form id="formSolicMensalidade" class="form-solicitacao" style="display:none; gap:15px;" data-tipo="mensalidade">
@@ -193,26 +207,26 @@ Escolha um aluno já cadastrado para virar responsável por este núcleo
 </form>
 </div>
 
-<h3 data-papel="mestre" style="margin-bottom:10px;">Minhas Solicitações</h3>
+<div class="secao-titulo" data-papel="mestre"><h3>Minhas solicitações</h3></div>
 <div class="lista-simples" id="listaMinhasSolic" data-papel="mestre"></div>
 
-<h3 data-papel="mestre" style="margin:20px 0 10px;"><i class="fas fa-user-group"></i> Vínculos de Parentesco Pendentes</h3>
-<p data-papel="mestre" style="font-size:0.85rem; color:var(--text-muted); margin:-8px 0 12px;">Pedidos dos seus próprios alunos para linkar o perfil de outro aluno (ex.: mãe e filho) — você aprova direto, sem precisar do admin.</p>
+<div class="secao-titulo" data-papel="mestre"><h3><i class="fas fa-user-group"></i> Vínculos de parentesco pendentes</h3></div>
+<p data-papel="mestre" style="font-size:0.85rem; color:var(--text-muted); margin:-4px 0 12px;">Pedidos dos seus próprios alunos para linkar o perfil de outro aluno (ex.: mãe e filho) — você aprova direto, sem precisar do admin.</p>
 <div class="lista-simples" id="listaSolicFamiliaPendentes" data-papel="mestre"></div>
 
-<h3 data-papel="mestre" style="margin:20px 0 10px;"><i class="fas fa-right-left"></i> Transferências Aguardando Seu Aceite</h3>
-<p data-papel="mestre" style="font-size:0.85rem; color:var(--text-muted); margin:-8px 0 12px;">Alunos que o admin ou outro professor pediu para transferir para o seu núcleo — o aluno só muda de academia depois que você aceita aqui.</p>
+<div class="secao-titulo" data-papel="mestre"><h3><i class="fas fa-right-left"></i> Transferências aguardando seu aceite</h3></div>
+<p data-papel="mestre" style="font-size:0.85rem; color:var(--text-muted); margin:-4px 0 12px;">Alunos que o admin ou outro professor pediu para transferir para o seu núcleo — o aluno só muda de academia depois que você aceita aqui.</p>
 <div class="lista-simples" id="listaTransferPendentes" data-papel="mestre"></div>
 
-<h3 data-papel="admin" style="margin-bottom:10px;">Solicitações Pendentes</h3>
+<div class="secao-titulo" data-papel="admin"><h3>Solicitações pendentes</h3></div>
 <div class="lista-simples" id="listaSolicPendentes" data-papel="admin"></div>
 
-<h3 data-papel="admin" style="margin:20px 0 10px;">Histórico</h3>
+<div class="secao-titulo" data-papel="admin"><h3>Histórico</h3></div>
 <div class="lista-simples" id="listaSolicHistorico" data-papel="admin"></div>
 </section>
 
 <section id="aba-avisos" class="aba-content">
-<div class="section-header"><h2>Avisos</h2></div>
+<div class="section-header"><div><span class="eyebrow">Comunicação</span><h2><i class="fas fa-bell"></i> Avisos</h2></div></div>
 <div class="card-padrao" data-papel="gestor" style="margin-bottom:20px;">
 <h3>Publicar Aviso</h3>
 <form id="formNovoAviso" style="display:grid; gap:15px; margin-top:15px;">
@@ -241,12 +255,12 @@ Escolha um aluno já cadastrado para virar responsável por este núcleo
 <button type="submit" class="btn-detalhes" style="width:220px;">Publicar</button>
 </form>
 </div>
-<h3 style="margin-bottom:10px;">Avisos Recentes</h3>
+<div class="secao-titulo"><h3>Avisos ativos</h3></div>
 <div class="lista-simples" id="listaAvisos"></div>
 </section>
 
 <section id="aba-materiais" class="aba-content">
-<div class="section-header"><h2><i class="fas fa-folder-open"></i> Materiais</h2></div>
+<div class="section-header"><div><span class="eyebrow">Estudo</span><h2><i class="fas fa-folder-open"></i> Materiais</h2></div></div>
 <div class="card-padrao" data-papel="admin" style="margin-bottom:20px;">
 <h3>Publicar Material</h3>
 <p style="font-size:0.85rem; color:var(--text-muted); margin:8px 0 15px;">Visível a todos os cadastrados — vídeos, apostilas, documentos, links úteis.</p>
@@ -264,12 +278,12 @@ Escolha um aluno já cadastrado para virar responsável por este núcleo
 <button type="submit" class="btn-detalhes" style="width:220px;">Publicar</button>
 </form>
 </div>
-<h3 style="margin-bottom:10px;">Materiais Publicados</h3>
+<div class="secao-titulo"><h3>Materiais publicados</h3></div>
 <div class="lista-simples" id="listaMateriais"></div>
 </section>
 
 <section id="aba-formacao" class="aba-content">
-<div class="section-header" style="background:var(--primary-blue);"><h2><i class="fas fa-graduation-cap"></i> Formação</h2></div>
+<div class="section-header"><div><span class="eyebrow">Formadores</span><h2><i class="fas fa-graduation-cap"></i> Formação</h2></div></div>
 <div class="card-padrao" data-papel="admin" style="margin-bottom:20px;">
 <h3>Publicar Conteúdo de Formação</h3>
 <p style="font-size:0.85rem; color:var(--text-muted); margin:8px 0 15px;">Vídeos, conduta, ética e preparação de graduação — visível a instrutores, mestres/professores e ao Admin.</p>
@@ -286,12 +300,12 @@ Escolha um aluno já cadastrado para virar responsável por este núcleo
 <button type="submit" class="btn-detalhes" style="width:260px;">Publicar</button>
 </form>
 </div>
-<h3 style="margin-bottom:10px;">Conteúdo de Formação</h3>
+<div class="secao-titulo"><h3>Conteúdo de formação</h3></div>
 <div class="lista-simples" id="listaFormacao"></div>
 </section>
 
 <section id="aba-financeiro" class="aba-content">
-<div class="section-header" style="background:#00B140;"><h2><i class="fas fa-sack-dollar"></i> Financeiro</h2></div>
+<div class="section-header"><div><span class="eyebrow">Mensalidades</span><h2><i class="fas fa-sack-dollar"></i> Financeiro</h2></div></div>
 <div id="financeiroBloqueado" class="card-padrao" style="text-align:center; padding:40px 20px;">
 <i class="fas fa-lock" style="font-size:2rem; color:var(--text-muted); margin-bottom:12px; display:block;"></i>
 <h3 style="color:var(--text-muted);">Disponível quando você tiver uma academia própria</h3>
@@ -307,7 +321,7 @@ Escolha um aluno já cadastrado para virar responsável por este núcleo
 <button type="submit" class="btn-detalhes">Lançar</button>
 </form>
 </div>
-<div class="card-padrao financeiro-resumo" style="margin-bottom:20px;">
+<div class="financeiro-resumo" style="margin-bottom:20px;">
 <div><span>Recebido no mês</span><strong id="finTotalPago" style="color:#00B140;">R$ 0,00</strong></div>
 <div><span>Pendente</span><strong id="finTotalPendente" style="color:#E74C3C;">R$ 0,00</strong></div>
 <div><span>Alunos em dia</span><strong id="finAlunosDia" style="color:var(--primary-blue);">0</strong></div>
@@ -325,13 +339,13 @@ Escolha um aluno já cadastrado para virar responsável por este núcleo
 </section>
 
 <section id="aba-presenca" class="aba-content">
-<div class="section-header"><h2><i class="fas fa-map-marker-alt"></i> Presenças</h2></div>
+<div class="section-header"><div><span class="eyebrow">Check-in por proximidade</span><h2><i class="fas fa-map-marker-alt"></i> Presenças</h2></div></div>
 <select id="filtroAcademiaPresenca" class="input-padrao" style="max-width:320px;margin-bottom:14px;"></select>
 <div class="card-padrao" id="presencaResumoCard"><p>Carregando...</p></div>
 <div class="lista-simples" id="listaPresencas"></div>
 </section>
 <section id="aba-rateio" class="aba-content">
-<div class="section-header" style="background:#B9770E;"><h2><i class="fas fa-scale-balanced"></i> Despesas Administrativas &amp; Rateio</h2></div>
+<div class="section-header"><div><span class="eyebrow">Admin Master</span><h2><i class="fas fa-scale-balanced"></i> Despesas &amp; Rateio</h2></div></div>
 <div class="card-padrao" style="margin-bottom:20px;">
 <h3>Lançar Despesa</h3>
 <p style="font-size:0.85rem; color:var(--text-muted); margin:8px 0 15px;">O valor é dividido automaticamente entre os responsáveis de núcleo, proporcional à capacidade financeira de cada um (alunos ativos × mensalidade) — quem tem mais estrutura paga uma fatia maior.</p>
@@ -347,7 +361,7 @@ Escolha um aluno já cadastrado para virar responsável por este núcleo
 <button type="submit" class="btn-detalhes" style="width:220px;">Lançar e Ratear</button>
 </form>
 </div>
-<h3 style="margin-bottom:10px;">Rateios Lançados</h3>
+<div class="secao-titulo"><h3>Rateios lançados</h3></div>
 <div class="lista-simples" id="listaRateios"></div>
 </section>
 </main>
@@ -449,7 +463,8 @@ Escolha um aluno já cadastrado para virar responsável por este núcleo
 <div class="modal-overlay" id="modalEditarNucleo" role="dialog" aria-modal="true">
 <div class="modal-content" style="max-width: 500px;">
 <button class="close-modal" onclick="fecharModalNucleo()" aria-label="Fechar"><i class="fas fa-times"></i></button>
-<h2 style="color: var(--primary-blue); margin-bottom: 20px;">Editar Núcleo</h2>
+<span class="eyebrow">Núcleo</span>
+<h2 style="margin-bottom: 20px;">Editar núcleo</h2>
 <form id="formEditNucleo" style="display: grid; gap: 15px;">
 <div><label for="editNomeNucleo">Nome do Núcleo</label><input type="text" id="editNomeNucleo" class="input-padrao" required></div>
 <div><label for="editMensalidadeNucleo">Mensalidade (R$)</label><input type="number" id="editMensalidadeNucleo" class="input-padrao" min="0" step="0.01"></div>
@@ -457,7 +472,7 @@ Escolha um aluno já cadastrado para virar responsável por este núcleo
             <div><label for="editLatitudeNucleo">Latitude</label><input type="number" id="editLatitudeNucleo" class="input-padrao" step="0.000001"></div>
             <div><label for="editLongitudeNucleo">Longitude</label><input type="number" id="editLongitudeNucleo" class="input-padrao" step="0.000001"></div>
             <div><label for="editRaioNucleo">Raio de check-in (metros)</label><input type="number" id="editRaioNucleo" class="input-padrao" min="5"></div>
-            <button type="button" class="btn-mini" onclick="usarLocalizacaoAtual('editLatitudeNucleo','editLongitudeNucleo')">📍 Usar minha localização atual</button>
+            <button type="button" class="btn-mini" onclick="usarLocalizacaoAtual('editLatitudeNucleo','editLongitudeNucleo')"><i class="fas fa-location-crosshairs"></i> Usar minha localização atual</button>
 <div>
 <label for="editResponsavelNucleo">Responsável (mestre / professor / instrutor)</label>
 <select id="editResponsavelNucleo" class="input-padrao"></select>
@@ -476,6 +491,6 @@ Escolha um aluno já cadastrado para virar responsável por este núcleo
 </div>
 </div>
 
-<script type="module" src="admin.js?v=20260921a"></script>
+<script type="module" src="admin.js?v=20260922b"></script>
 </body>
 </html>

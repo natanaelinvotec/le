@@ -19,7 +19,7 @@ criarSolicitacao, minhasSolicitacoes, criarContaComoAdmin,
 solicitacoesPendentesDoNucleo, aprovarVinculoFamilia, transferenciasPendentesParaDestino,
 publicarAviso, listarAvisos,
 comprimirImagemDataUrl, arquivoParaDataUrlComprimido,
-calcularEstrelaViva, souFundador,
+calcularEstrelaViva, souFundador, ORDEM_ESTRELA,
 publicarMaterial, listarMateriais, removerMaterial, excluirUsuarioPermanente,
 publicarMaterialFormacao, listarMateriaisFormacao, removerMaterialFormacao,
 lancarPagamento, listarPagamentosDoNucleo, marcarPagamento,
@@ -327,6 +327,11 @@ let nucleoEditandoID = null;
 let statusToggleConfirm = false;
 let chartsInstances = {};
 let solicitacoesCache = []; // última leitura de solicitações visíveis a esta sessão (evita listar('solicitacoes') sem filtro, que um gestor não-admin não tem permissão de ler por inteiro)
+// Caches usados pela "Visão geral" (tiles de KPI da aba Alunos). Só guardam
+// o que já foi lido de verdade nesta sessão — nada aqui é estimado.
+let avisosVisiveisCache = null;     // array de avisos ativos visíveis (null = ainda não carregou)
+let presencaResumoCache = null;     // { nucleoId, percentual, total } da última leitura de presenças
+let eventosCache = null;            // eventos/{id} (null = ainda não carregou)
 
 async function iniciarPainel() {
 const telaCarregando = document.getElementById('telaCarregando');
@@ -346,16 +351,32 @@ const nuc = await buscar('nucleos', sessaoAtual.academiaGerenciadaId);
 nomeNucleoProprio = nuc ? nuc.nome : sessaoAtual.academiaGerenciadaId;
 }
 const instrutorSolo = !ehGestor() && ehInstrutorLogado();
-document.getElementById('tituloAbaAlunos').textContent = ehAdmin()
-? 'Todos os Alunos'
-: (instrutorSolo ? 'Meus Alunos (Instrutor)' : `Meus Alunos — ${nomeNucleoProprio}`);
-document.getElementById('tituloAbaSolicitacoes').textContent = ehAdmin() ? 'Solicitações Recebidas' : 'Minhas Solicitações';
+// Cabeçalho no padrão do mockup: eyebrow em caixa alta + título forte
+// (sem faixa colorida). Admin vê o grupo todo; mestre/professor vê o
+// próprio núcleo; instrutor sem núcleo vê só a turma dele.
+const eyebrowAlunos = document.getElementById('eyebrowAbaAlunos');
+const tituloGrid = document.getElementById('tituloGridAlunos');
+if (ehAdmin()) {
+if (eyebrowAlunos) eyebrowAlunos.textContent = 'Admin Master · visão geral';
+document.getElementById('tituloAbaAlunos').textContent = 'Todos os Alunos';
+if (tituloGrid) tituloGrid.textContent = 'Todos os alunos do grupo';
+} else if (instrutorSolo) {
+if (eyebrowAlunos) eyebrowAlunos.textContent = 'Instrutor';
+document.getElementById('tituloAbaAlunos').textContent = 'Meus Alunos';
+if (tituloGrid) tituloGrid.textContent = 'Alunos sob minha responsabilidade';
+} else {
+if (eyebrowAlunos) eyebrowAlunos.textContent = souFundador(sessaoAtual) ? 'Núcleo · sede do grupo' : 'Meu núcleo';
+document.getElementById('tituloAbaAlunos').textContent = nomeNucleoProprio || 'Meus Alunos';
+if (tituloGrid) tituloGrid.textContent = 'Alunos do núcleo';
+}
+document.getElementById('tituloAbaSolicitacoes').innerHTML = '<i class="fas fa-clipboard-check"></i> ' + (ehAdmin() ? 'Solicitações recebidas' : 'Solicitações');
 
 document.getElementById('mobile-menu-btn').addEventListener('click', () => {
 document.getElementById('nav-links').classList.toggle('show');
 });
 
 mostrarSkeletons();
+renderizarKpisGestao();
 await Promise.all([
 carregarNucleos(),
 carregarUsuarios(),
@@ -366,16 +387,65 @@ carregarFormacao(),
 carregarFinanceiro(),
 carregarRateios(),
   carregarPresencas(),
+carregarEventosResumo(),
 ]);
 
 renderizarNucleosUI();
 atualizarEstrelaHeader();
+renderizarKpisGestao();
+}
+
+// Eventos/batizados marcados — leitura real de eventos/{id} (allow read: if
+// logado()), só pra contar os futuros no tile da Visão geral.
+async function carregarEventosResumo() {
+try {
+eventosCache = await listar('eventos');
+} catch (e) {
+console.warn('Eventos indisponíveis para a visão geral.', e);
+eventosCache = null;
+}
+}
+
+/* ===================== VISÃO GERAL (tiles de KPI, mockup p.4/5) =====================
+   Regra de ouro: cada número vem de dados já lidos do Firestore nesta sessão.
+   Enquanto uma fonte não carregou (cache null) o tile mostra "—" — nunca um
+   número inventado. Cada tile leva para a aba que detalha aquele número. */
+function renderizarKpisGestao() {
+const wrap = document.getElementById('kpisGestao');
+if (!wrap || !sessaoAtual) return;
+const instrutorSolo = !ehGestor() && ehInstrutorLogado();
+const hoje = new Date().toISOString().slice(0, 10);
+const alunos = todosUsuarios.filter((u) => (u.papeis || []).includes('aluno'));
+const alunosAtivos = alunos.filter((a) => a.statusAtual !== 'Inativo');
+const pendentes = solicitacoesCache.filter((s) => s.status === 'pendente');
+const eventosFuturos = eventosCache ? eventosCache.filter((e) => (e.data || '') >= hoje) : null;
+const nucleoProprio = sessaoAtual.academiaGerenciadaId || null;
+const presenca = presencaResumoCache && (ehAdmin() || presencaResumoCache.nucleoId === nucleoProprio) ? presencaResumoCache : null;
+
+const tiles = [];
+const tile = (cor, valor, rotulo, aba, icone, nota) => tiles.push({ cor, valor, rotulo, aba, icone, nota });
+
+tile('teal', todosUsuarios.length ? String(alunosAtivos.length) : '—', ehAdmin() ? 'alunos ativos no grupo' : (instrutorSolo ? 'alunos sob minha responsabilidade' : 'alunos ativos no núcleo'), null, 'fa-user-group');
+if (ehAdmin()) tile('navy', todosNucleos.length ? String(todosNucleos.filter((n) => n.ativo).length) : '—', 'núcleos ativos', 'nucleos', 'fa-building');
+if (ehGestor()) tile(pendentes.length ? 'gold' : 'teal', String(pendentes.length), 'solicitações pendentes', 'solicitacoes', 'fa-clock');
+tile(presenca ? 'green' : 'teal', presenca ? presenca.percentual + '%' : '—', presenca ? 'presença confirmada' : 'presença confirmada', 'presenca', 'fa-location-dot', presenca ? `${presenca.total} check-ins` : (ehAdmin() ? 'selecione um núcleo em Presenças' : 'sem check-ins lidos ainda'));
+tile('navy', avisosVisiveisCache ? String(avisosVisiveisCache.length) : '—', 'avisos ativos', 'avisos', 'fa-bell');
+tile(eventosFuturos && eventosFuturos.length ? 'red' : 'teal', eventosFuturos ? String(eventosFuturos.length) : '—', eventosFuturos && eventosFuturos.length === 1 ? 'evento/batizado marcado' : 'eventos/batizados marcados', null, 'fa-calendar-day');
+
+wrap.innerHTML = tiles.map((t, i) => `
+<div class="kpi-tile kpi-${t.cor}" style="--card-index:${i}" ${t.aba ? `data-aba="${t.aba}" role="button" tabindex="0" onclick="mudarAba('${t.aba}')" onkeydown="if(event.key==='Enter')mudarAba('${t.aba}')"` : ''}>
+<i class="fas ${t.icone}"></i>
+<span class="kpi-valor">${escapeHTML(t.valor)}</span>
+<span class="kpi-rotulo">${escapeHTML(t.rotulo)}</span>
+${t.nota ? `<span class="kpi-nota">${escapeHTML(t.nota)}</span>` : ''}
+</div>`).join('');
 }
 
 function atualizarEstrelaHeader() {
 const span = document.getElementById('estrelaHeaderAlunos');
 if (!span) return;
-if (ehAdmin() || !sessaoAtual.academiaGerenciadaId) { span.classList.add('oculto'); return; }
+const heroVisivel = !document.getElementById('heroFundador')?.classList.contains('oculto');
+if (ehAdmin() || !sessaoAtual.academiaGerenciadaId || heroVisivel) { span.classList.add('oculto'); return; }
 const n = calcularEstrelaViva(sessaoAtual.academiaGerenciadaId, todosUsuarios);
 span.innerHTML = `<span style="color:var(--star-filled)">${'★'.repeat(n)}</span><span style="color:var(--star-empty)">${'★'.repeat(7 - n)}</span> ${n}/7`;
 span.classList.remove('oculto');
@@ -402,10 +472,21 @@ grid.innerHTML = html;
 }
 
 window.mudarAba = function (abaId, evt) {
+if (evt && evt.preventDefault) evt.preventDefault();
 document.querySelectorAll('.aba-content, .nav-item').forEach((el) => el.classList.remove('active'));
-document.getElementById(`aba-${abaId}`).classList.add('active');
-if (evt && evt.currentTarget) evt.currentTarget.classList.add('active');
+const alvo = document.getElementById(`aba-${abaId}`);
+if (!alvo) return;
+alvo.classList.add('active');
+if (evt && evt.currentTarget && evt.currentTarget.classList) {
+evt.currentTarget.classList.add('active');
+} else {
+// Chamado por um tile da Visão geral (sem evento de clique no menu):
+// acende o item do menu correspondente mesmo assim.
+const item = Array.from(document.querySelectorAll('.nav-item')).find((a) => (a.getAttribute('onclick') || '').includes(`mudarAba('${abaId}'`));
+if (item) item.classList.add('active');
+}
 document.getElementById('nav-links').classList.remove('show');
+window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
 window.irParaRelatorios = function (evt) {
@@ -457,17 +538,42 @@ const lista = document.getElementById('listaNucleosPainel');
 if (todosNucleos.length === 0) {
 lista.innerHTML = '<div class="empty-state"><i class="fas fa-school"></i>Nenhum núcleo cadastrado ainda.</div>';
 } else {
+// Cartão de núcleo no padrão do mockup (p.3/p.6): ícone, nome, responsável ·
+// cordão, chips (SEDE / ATIVO), três mini-stats e a faixa navy das estrelas.
+// Tudo real: alunos ativos e estrela viva vêm de todosUsuarios; mensalidade
+// e endereço do próprio documento do núcleo — o que não existe fica "—".
+const cores = ['', 'verde', 'dourado'];
 lista.innerHTML = todosNucleos.map((n, i) => {
 const estrelas = calcularEstrelaViva(n.id, todosUsuarios);
+const resp = todosUsuarios.find((u) => u.id === n.professorUid);
+const alunosAtivos = todosUsuarios.filter((u) => (u.papeis || []).includes('aluno') && u.academiaId === n.id && u.statusAtual !== 'Inativo').length;
+const ehSede = !!(resp && souFundador(resp));
+const cordaoMaisAlta = estrelas > 0 ? (ORDEM_ESTRELA[estrelas - 1] || '') : '';
 return `
-<div class="academia-card" style="--card-index:${i}">
-<h4><i class="fas fa-map-marker-alt"></i> ${escapeHTML(n.nome)}</h4>
-${(() => { const resp = todosUsuarios.find((u) => u.id === n.professorUid); return resp ? `<div class="nucleo-hero-mini">${construirHeroCardHTML(resp, todosUsuarios)}</div>` : '<p class="nucleo-sem-responsavel">Sem responsável definido — use Editar para atribuir.</p>'; })()}
-<p><strong>Mensalidade:</strong> ${n.mensalidadeValor ? `R$ ${Number(n.mensalidadeValor).toFixed(2)}` : 'Não informada'}</p>
-<p><strong>Status:</strong> ${n.ativo ? 'Ativo' : 'Inativo'}</p>
-<p class="estrela-viva" style="margin-left:0; color:var(--text-dark);"><strong>Estrela:</strong> <span style="color:var(--star-filled)">${'★'.repeat(estrelas)}</span><span style="color:var(--star-empty)">${'★'.repeat(7 - estrelas)}</span> (${estrelas}/7)</p>
+<div class="academia-card ${ehSede ? 'nucleo-sede' : ''}" style="--card-index:${i}">
+<div class="nucleo-topo">
+<div class="nucleo-icone ${cores[i % cores.length]}"><i class="fas fa-${ehSede ? 'crown' : 'building'}"></i></div>
+<div class="nucleo-titulo">
+<h4>${escapeHTML(n.nome)}</h4>
+<p>${resp ? `${escapeHTML(resp.nome || 'Responsável')} · Cordão ${escapeHTML(resp.cordaoAtual || '—')}` : 'Sem responsável definido'}</p>
+</div>
+<div class="nucleo-chips">
+${ehSede ? '<span class="pill pill-gold">SEDE</span>' : ''}
+<span class="pill ${n.ativo ? 'pill-aprovado' : 'pill-neutra'}">${n.ativo ? 'ATIVO' : 'INATIVO'}</span>
+</div>
+</div>
+${resp ? `<div class="nucleo-responsavel"><img src="${escapeHTML(resp.fotoUrl || 'https://via.placeholder.com/36')}" alt=""><span><strong>${escapeHTML(resp.nome || '')}</strong>${souFundador(resp) ? 'Acesso Geral · Fundador' : 'Responsável do núcleo'}</span></div>` : '<p class="nucleo-sem-responsavel">Use "Editar" para atribuir um responsável.</p>'}
+<div class="nucleo-stats">
+<div class="nucleo-stat"><strong class="teal">${alunosAtivos}</strong><small>alunos ativos</small></div>
+<div class="nucleo-stat"><strong class="navy">${n.mensalidadeValor ? `R$ ${Number(n.mensalidadeValor).toFixed(0)}` : '—'}</strong><small>mensalidade</small></div>
+<div class="nucleo-stat"><strong title="${escapeHTML(n.endereco || '')}">${n.endereco ? escapeHTML(n.endereco.split(',')[0]) : '—'}</strong><small>local</small></div>
+</div>
+<div class="nucleo-estrelas">
+<div><strong>${estrelas} ${estrelas === 1 ? 'estrela' : 'estrelas'}</strong><small>${cordaoMaisAlta ? `corda mais alta: ${escapeHTML(cordaoMaisAlta)}` : 'nenhuma corda formada ainda'}</small></div>
+<span class="estrelas"><span class="on">${'★'.repeat(estrelas)}</span><span class="off">${'★'.repeat(7 - estrelas)}</span></span>
+</div>
 <div class="academia-actions">
-<button class="btn-edit-ac" onclick="abrirEditarNucleo('${n.id}')"><i class="fas fa-edit"></i> Editar</button>
+<button class="btn-edit-ac" onclick="abrirEditarNucleo('${n.id}')"><i class="fas fa-pen"></i> Editar núcleo</button>
 </div>
 </div>`;
 }).join('');
@@ -705,14 +811,14 @@ const filtrados = alunos.filter((a) => (ac === '' || a.academiaId === ac) && (tx
 // o cartão de destaque, e o instrutor via a tela sem cabeçalho nenhum.
 const meuRegistro = ((souFundador(sessaoAtual) || ehMestre() || ehInstrutorLogado()) && !ehAdmin()) ? (filtrados.find((a) => a.id === sessaoAtual.uid) || null) : null;
 renderizarHeroFundador(meuRegistro);
-// A faixa verde "Meus Alunos — Academia X ★★★★★★★ N/7" (section-header) só
-// faz sentido pra quem NÃO tem o cartão de destaque (Admin Master vendo
-// "Todos os Alunos") — pra quem tem o cartão, ela duplicava nome/estrela que
-// já aparecem no próprio cartão, então some daqui.
-const headerAlunos = document.querySelector('#aba-alunos .section-header');
-if (headerAlunos) headerAlunos.classList.toggle('oculto', !!meuRegistro);
+// A antiga faixa verde virou um título simples (eyebrow + nome do núcleo, sem
+// fundo colorido). A estrela viva do cabeçalho só aparece pra quem NÃO tem o
+// cartão de destaque — pra quem tem, ela já está dentro do cartão.
+const estrelaHeader = document.getElementById('estrelaHeaderAlunos');
+if (estrelaHeader && meuRegistro) estrelaHeader.classList.add('oculto');
 renderizarArvoreFormacao();
 renderizarGrid(meuRegistro ? filtrados.filter((a) => a.id !== meuRegistro.id) : filtrados);
+renderizarKpisGestao();
 desenharGraficos(filtrados);
 renderizarCascata();
 }
@@ -1343,6 +1449,17 @@ if (s.tipo === 'vinculo_familia') return `Vínculo de parentesco com ${s.dadosPe
 return s.tipo;
 }
 
+// Ícone à esquerda por tipo de pedido (visual do mockup p.5) + rótulo curto.
+const ICONE_SOLIC = { mensalidade: 'green fa-credit-card', evento: 'gold fa-calendar-day', transferencia: 'red fa-right-left', vinculo_familia: 'purple fa-user-group' };
+const ROTULO_SOLIC = { mensalidade: 'mensalidade', evento: 'evento', transferencia: 'transferência', vinculo_familia: 'vínculo de família' };
+function iconeSolicitacaoHTML(s) {
+const def = (ICONE_SOLIC[s.tipo] || 'navy fa-clipboard').split(' ');
+return `<span class="lista-icone ${def[0]}"><i class="fas ${def[1]}"></i></span>`;
+}
+function pillTipoSolicitacao(s) {
+return `<span class="pill pill-teal">${escapeHTML(ROTULO_SOLIC[s.tipo] || s.tipo || 'pedido')}</span>`;
+}
+
 async function carregarSolicitacoes() {
 try {
 if (ehAdmin()) {
@@ -1356,8 +1473,9 @@ const listaP = document.getElementById('listaSolicPendentes');
 listaP.innerHTML = pendentes.length
 ? pendentes.map((s) => `
 <div class="lista-item">
+${iconeSolicitacaoHTML(s)}
 <div class="lista-item-info">
-<strong>${escapeHTML(s.solicitanteNome || 'Mestre/Professor')}</strong>
+<strong>${escapeHTML(s.solicitanteNome || 'Mestre/Professor')} ${pillTipoSolicitacao(s)}</strong>
 <span>${escapeHTML(descreverSolicitacao(s))}</span>
 </div>
 <div class="lista-item-actions">
@@ -1371,8 +1489,9 @@ const listaH = document.getElementById('listaSolicHistorico');
 listaH.innerHTML = historico.length
 ? historico.slice(0, 30).map((s) => `
 <div class="lista-item">
+${iconeSolicitacaoHTML(s)}
 <div class="lista-item-info">
-<strong>${escapeHTML(s.solicitanteNome || 'Mestre/Professor')}</strong>
+<strong>${escapeHTML(s.solicitanteNome || 'Mestre/Professor')} ${pillTipoSolicitacao(s)}</strong>
 <span>${escapeHTML(descreverSolicitacao(s))}</span>
 </div>
 <span class="pill pill-${s.status}">${s.status === 'aprovado' ? 'Aprovado' : 'Rejeitado'}</span>
@@ -1385,12 +1504,15 @@ const lista = document.getElementById('listaMinhasSolic');
 lista.innerHTML = minhas.length
 ? minhas.map((s) => `
 <div class="lista-item">
+${iconeSolicitacaoHTML(s)}
 <div class="lista-item-info">
 <strong>${escapeHTML(descreverSolicitacao(s))}</strong>
-<span>${new Date(s.criadoEm).toLocaleDateString('pt-BR')}</span>
+<span>${s.criadoEm ? new Date(s.criadoEm).toLocaleDateString('pt-BR') : ''}</span>
 </div>
+<div class="lista-item-actions">
 <span class="pill pill-${s.status}">${s.status === 'pendente' ? 'Pendente' : (s.status === 'aprovado' ? 'Aprovado' : 'Rejeitado')}</span>
 ${s.status === 'pendente' ? `<button class="btn-mini btn-mini-rejeitar" onclick="cancelarSolicitacao('${s.id}')">Cancelar</button>` : ''}
+</div>
 </div>`).join('')
 : '<div class="empty-state"><i class="fas fa-inbox"></i>Você ainda não enviou nenhuma solicitação.</div>';
 
@@ -1404,6 +1526,7 @@ solicitacoesCache = solicitacoesCache.concat(pendentesNucleo.filter((s) => !soli
 listaFam.innerHTML = pendentesNucleo.length
 ? pendentesNucleo.map((s) => `
 <div class="lista-item">
+${iconeSolicitacaoHTML(s)}
 <div class="lista-item-info">
 <strong>${escapeHTML(s.solicitanteNome || 'Aluno')}</strong>
 <span>${escapeHTML(descreverSolicitacao(s))}</span>
@@ -1428,6 +1551,7 @@ solicitacoesCache = solicitacoesCache.concat(transferPendentes.filter((s) => !so
 listaTransfer.innerHTML = transferPendentes.length
 ? transferPendentes.map((s) => `
 <div class="lista-item">
+${iconeSolicitacaoHTML(s)}
 <div class="lista-item-info">
 <strong>${escapeHTML(s.dadosPedido?.alunoNome || 'Aluno')}</strong>
 <span>Pedido por ${escapeHTML(s.solicitanteNome || 'alguém do grupo')} · vem de ${escapeHTML(s.dadosPedido?.academiaOrigemNome || 'outro núcleo')}</span>
@@ -1442,6 +1566,7 @@ listaTransfer.innerHTML = transferPendentes.length
 listaTransfer.innerHTML = '<div class="empty-state"><i class="fas fa-right-left"></i>Este cadastro ainda não administra um núcleo próprio.</div>';
 }
 }
+renderizarKpisGestao();
 } catch (e) {
 console.error(e);
 toast('Não foi possível carregar as solicitações.', 'error');
@@ -1525,6 +1650,8 @@ try {
 const avisos = await listarAvisos(20);
 const doNucleo = ehAdmin() ? avisos : avisos.filter((a) => !a.academiaId || a.academiaId === sessaoAtual.academiaGerenciadaId);
 const visiveis = doNucleo.filter((a) => !avisoExpirado(a));
+avisosVisiveisCache = visiveis;
+renderizarKpisGestao();
 const lista = document.getElementById('listaAvisos');
 const podeExcluir = ehAdmin() || souFundador(sessaoAtual);
 lista.innerHTML = visiveis.length
@@ -1534,10 +1661,12 @@ a.data ? new Date(a.data + 'T00:00:00').toLocaleDateString('pt-BR') : '',
 a.hora || '',
 a.local ? escapeHTML(a.local) : '',
 ].filter(Boolean).join(' · ');
+const iconeTipo = { evento: 'gold fa-calendar-day', financeiro: 'green fa-credit-card', geral: 'navy fa-bell' }[a.tipo] || 'navy fa-bell';
 return `
 <div class="lista-item">
+<span class="lista-icone ${iconeTipo.split(' ')[0]}"><i class="fas ${iconeTipo.split(' ')[1]}"></i></span>
 <div class="lista-item-info">
-<strong>${escapeHTML(a.titulo)} <span class="pill pill-aprovado">${escapeHTML(a.tipo || 'geral')}</span></strong>
+<strong>${escapeHTML(a.titulo)} <span class="pill pill-teal">${escapeHTML(a.tipo || 'geral')}</span>${a.academiaId ? '' : ' <span class="pill pill-neutra">todos os núcleos</span>'}</strong>
 <span>${escapeHTML(a.texto)}</span>
 ${detalhes ? `<span style="color:var(--primary-teal); font-weight:700;"><i class="fas fa-calendar-days"></i> ${detalhes}</span>` : ''}
 </div>
@@ -1883,6 +2012,8 @@ async function carregarPresencas() {
   const total = itens.length;
   const confirmadas = itens.filter((p) => p.confirmadoAos30 === true).length;
   const percentual = total > 0 ? Math.round((confirmadas / total) * 100) : 0;
+  presencaResumoCache = { nucleoId: nucleoAlvo, percentual, total };
+  renderizarKpisGestao();
   resumo.innerHTML = `<div class="presenca-resumo-grid">
     <div class="presenca-stat"><span class="presenca-stat-valor">${percentual}%</span><span class="presenca-stat-label">Confirmação de presença</span></div>
     <div class="presenca-stat"><span class="presenca-stat-valor">${total}</span><span class="presenca-stat-label">Check-ins registrados</span></div>

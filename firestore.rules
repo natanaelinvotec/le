@@ -34,8 +34,13 @@ allow create: if ehAdmin() ||
 // poder aplicar o efeito de uma transferência aprovada (muda academiaId do
 // aluno) em qualquer núcleo do grupo, igual ao admin já podia — mesmo nível
 // de confiança que ele já tem em leitura (souFundador() acima).
+// Cláusula "aceitar transferência": o gestor do núcleo de DESTINO pode mover
+// um aluno PARA o próprio núcleo (request academiaId == o núcleo dele), sem
+// mexer em papéis, notas, acesso geral nem no núcleo que o aluno administra.
+// É o efeito do botão "Aceitar aluno" em Solicitações → Transferências.
 allow update: if ehAdmin() || souFundador() ||
 (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada() && academiaInalterada() && papeisInalterados() && acessoGeralInalterado()) ||
+(ehGestor() && request.resource.data.academiaId == minhaAcademiaGerenciada() && papeisInalterados() && academiaGerenciadaInalterada() && notasInalteradas() && acessoGeralInalterado()) ||
 (souInstrutorDoAluno() && academiaInalterada() && papeisInalterados() && academiaGerenciadaInalterada() && acessoGeralInalterado()) ||
 (request.auth.uid == uid && papeisInalterados() && academiaInalterada() && academiaGerenciadaInalterada() && notasInalteradas() && acessoGeralInalterado());
 
@@ -91,7 +96,15 @@ match /solicitacoes/{id} {
 // literal 'admin') precisa enxergar as solicitações de TODOS os núcleos pra
 // o Painel do Fundador mostrar números reais do grupo inteiro — só leitura,
 // aprovar/rejeitar continua exigindo ehAdmin() ou ser o gestor do próprio núcleo.
-allow read: if ehAdmin() || souFundador() || (ehGestor() && (resource.data.solicitanteUid == request.auth.uid || resource.data.academiaId == minhaAcademiaGerenciada()));
+// Última cláusula (dadosPedido.destinoId): o professor do núcleo de DESTINO
+// de uma transferência precisa ler o pedido pra aceitar/recusar o aluno —
+// ele não é o solicitante nem o gestor do núcleo de origem, então sem isso
+// a lista "Transferências aguardando seu aceite" era negada pelas regras.
+allow read: if ehAdmin() || souFundador() || (ehGestor() && (
+resource.data.solicitanteUid == request.auth.uid ||
+resource.data.academiaId == minhaAcademiaGerenciada() ||
+resource.data.dadosPedido.destinoId == minhaAcademiaGerenciada()
+));
 allow create: if ehGestor() &&
 request.resource.data.solicitanteUid == request.auth.uid &&
 request.resource.data.academiaId == minhaAcademiaGerenciada() &&
@@ -107,6 +120,13 @@ allow update: if ehAdmin() || souFundador() || (
 ehGestor() &&
 resource.data.academiaId == minhaAcademiaGerenciada() &&
 resource.data.tipo in ['vinculo_familia', 'transferencia'] &&
+request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+) || (
+// Professor do núcleo de DESTINO aceitando/recusando uma transferência
+// dirigida a ele — só pode mudar o campo status.
+ehGestor() &&
+resource.data.tipo == 'transferencia' &&
+resource.data.dadosPedido.destinoId == minhaAcademiaGerenciada() &&
 request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
 );
 // Quem enviou o pedido pode cancelar (apagar) enquanto ele ainda estiver

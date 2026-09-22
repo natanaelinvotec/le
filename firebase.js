@@ -190,14 +190,23 @@ export const listarNucleosAtivos = async () =>
 // caso de vínculo de parentesco) =====
 export const criarSolicitacao = (dados) =>
   addDoc(collection(db, 'solicitacoes'), { ...dados, status: 'pendente', criadoEm: new Date().toISOString() });
+// Sem orderBy nas consultas de solicitações: "where + orderBy em outro campo"
+// exige um índice composto no Firestore, e sem ele a consulta inteira falha
+// ("The query requires an index") — era isso que derrubava a aba de
+// Solicitações de todo mestre/professor ("Não foi possível carregar..."). A
+// ordenação por data é feita aqui no cliente (listas pequenas).
+const ordenarPorCriadoEmDesc = (docs) => docs
+  .map((d) => ({ id: d.id, ...d.data() }))
+  .sort((a, b) => String(b.criadoEm || '').localeCompare(String(a.criadoEm || '')));
+
 export const minhasSolicitacoes = async (uid) =>
-  (await getDocs(query(collection(db, 'solicitacoes'), where('solicitanteUid', '==', uid), orderBy('criadoEm', 'desc')))).docs.map((d) => ({ id: d.id, ...d.data() }));
+  ordenarPorCriadoEmDesc((await getDocs(query(collection(db, 'solicitacoes'), where('solicitanteUid', '==', uid)))).docs);
 
 // Solicitações pendentes de um núcleo (usado pelo mestre/professor para
 // aprovar vínculos de parentesco dos próprios alunos, sem precisar do admin).
 export const solicitacoesPendentesDoNucleo = async (academiaId) =>
-  (await getDocs(query(collection(db, 'solicitacoes'),
-    where('academiaId', '==', academiaId), where('status', '==', 'pendente'), orderBy('criadoEm', 'desc')))).docs.map((d) => ({ id: d.id, ...d.data() }));
+  ordenarPorCriadoEmDesc((await getDocs(query(collection(db, 'solicitacoes'),
+    where('academiaId', '==', academiaId), where('status', '==', 'pendente')))).docs);
 
 // Vínculo de parentesco entre dois cadastros de aluno já existentes (ex.: mãe
 // e filho que treinam juntos) — um pede, o mestre/professor do núcleo (ou o
@@ -218,9 +227,12 @@ export async function aprovarVinculoFamilia(alunoUid, alunoRelacionadoUid) {
 // — o aluno só muda de fato de academia depois que o professor de destino
 // aceita, mesmo que quem pediu a transferência já tenha sido o admin ou o
 // professor de origem.
+// Precisa da cláusula de leitura por dadosPedido.destinoId no firestore.rules
+// (bloco solicitacoes): o professor de DESTINO não é o solicitante nem o
+// gestor do núcleo de origem, então sem ela a consulta é negada.
 export const transferenciasPendentesParaDestino = async (destinoId) =>
-  (await getDocs(query(collection(db, 'solicitacoes'),
-    where('tipo', '==', 'transferencia'), where('dadosPedido.destinoId', '==', destinoId), where('status', '==', 'pendente'), orderBy('criadoEm', 'desc')))).docs.map((d) => ({ id: d.id, ...d.data() }));
+  ordenarPorCriadoEmDesc((await getDocs(query(collection(db, 'solicitacoes'),
+    where('tipo', '==', 'transferencia'), where('dadosPedido.destinoId', '==', destinoId), where('status', '==', 'pendente')))).docs);
 
 // ===== Avisos (notificações dentro do app) =====
 export const publicarAviso = (dados) =>
@@ -332,7 +344,7 @@ export async function lancarDespesaComRateio(dadosDespesa, responsaveis) {
   return despesaRef.id;
 }
 export const meusRateios = async (uid) =>
-  (await getDocs(query(collection(db, 'rateios'), where('responsavelUid', '==', uid), orderBy('criadoEm', 'desc')))).docs.map((d) => ({ id: d.id, ...d.data() }));
+  ordenarPorCriadoEmDesc((await getDocs(query(collection(db, 'rateios'), where('responsavelUid', '==', uid)))).docs);
 export const todosRateios = () => listar('rateios');
 export const marcarRateioPago = (id, pago) => updateDoc(doc(db, 'rateios', id), { status: pago ? 'pago' : 'pendente' });
 

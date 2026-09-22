@@ -1,12 +1,12 @@
-/* master.js — Painel do Fundador (Admin Master). Rota própria, exclusiva de
-quem tem papel 'admin' em usuarios/{uid}.papeis. Visão consolidada da rede
+/* master.js — Painel do Fundador (Admin Master / Fundador com acessoGeral).
+Rota própria, exclusiva de quem tem papel 'admin' OU acessoGeral. Visão consolidada da rede
 inteira (todos os núcleos): alunos ativos, estrela viva, pendências
 financeiras e quem tem acessoGeral (fundador) ligado. Não duplica a gestão
 operacional (isso continua em admin.html) — é só o painel de cima, de
 observação e auditoria.
 */
 import {
-observarSessao, entrar, sair, buscar, listar, calcularEstrelaViva, souFundador,
+observarSessao, entrar, sair, buscar, listar, calcularEstrelaViva, souFundador, ORDEM_ESTRELA,
 atualizar, salvar, aprovarVinculoFamilia,
 } from './firebase.js';
 import { escapeHTML } from './shared.js';
@@ -65,6 +65,33 @@ document.getElementById('btnSairBloqueado').addEventListener('click', () => sair
 
 let todosUsuariosMaster = [];
 let solicitacoesCacheMaster = [];
+let perfilMaster = null; // perfil de quem está logado (pra o cabeçalho)
+
+const ICONE_SOLIC_MASTER = { mensalidade: 'green fa-credit-card', evento: 'gold fa-calendar-day', transferencia: 'red fa-right-left', vinculo_familia: 'purple fa-user-group' };
+
+function iniciais(nome) {
+return String(nome || '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join('') || 'CL';
+}
+
+// Cabeçalho do mockup: anel nas cores do grupo, nome, chips (ACESSO GERAL /
+// ADMIN / cordão). Tudo lido do próprio cadastro em usuarios/{uid}.
+function renderizarCabecalhoFundador(perfil) {
+const wrap = document.getElementById('cabecalhoFundador');
+if (!wrap || !perfil) return;
+const ehAdminLiteral = (perfil.papeis || []).includes('admin');
+wrap.innerHTML = `
+<div class="fundador-anel"><div class="fundador-anel-miolo">${perfil.fotoUrl ? `<img src="${escapeHTML(perfil.fotoUrl)}" alt="">` : escapeHTML(iniciais(perfil.nome))}</div></div>
+<div class="fundador-cabecalho-info">
+<span class="eyebrow">Painel do Fundador</span>
+<h1>${escapeHTML(perfil.nome || perfil.email || 'Fundador')}</h1>
+<div class="fundador-chips">
+${souFundador(perfil) ? '<span class="pill pill-gold"><i class="fas fa-star"></i> Acesso Geral</span>' : ''}
+${ehAdminLiteral ? '<span class="pill pill-navy">Admin Master</span>' : ''}
+${perfil.cordaoAtual ? `<span class="pill pill-neutra">Cordão ${escapeHTML(perfil.cordaoAtual)}</span>` : ''}
+</div>
+<p>Cordão giratório nas cores do grupo (azul, verde e dourado) — o mesmo selo de identidade usado no perfil de cada membro. Os números abaixo são da rede inteira, lidos direto do cadastro.</p>
+</div>`;
+}
 
 const ROTULOS_TIPO_SOLIC = { mensalidade: 'mensalidade', evento: 'evento', transferencia: 'transferência', vinculo_familia: 'vínculo de família' };
 
@@ -78,20 +105,26 @@ return 'Solicitação';
 }
 
 async function carregarVisaoGeral(perfilLogado) {
+if (perfilLogado) perfilMaster = perfilLogado;
+renderizarCabecalhoFundador(perfilMaster);
 const kpis = document.getElementById('kpisMaster');
 const tabela = document.getElementById('tabelaNucleosMaster');
 const listaF = document.getElementById('listaFundadores');
 const listaSolic = document.getElementById('listaSolicitacoesMaster');
+const indicador = document.getElementById('indicadorEstrelas');
+const contador = document.getElementById('contadorSolicMaster');
 kpis.innerHTML = '<div class="skeleton-card"><div class="skeleton-line w-60"></div><div class="skeleton-line w-40"></div></div>'.repeat(4);
 tabela.innerHTML = '';
 listaF.innerHTML = '';
 if (listaSolic) listaSolic.innerHTML = '';
 
 try {
-const [usuarios, nucleos, pagamentos, solicitacoes, presencas] = await Promise.all([
-listar('usuarios'), listar('nucleos'), listar('pagamentos'), listar('solicitacoes'), listar('presencas'),
+const [usuarios, nucleos, pagamentos, solicitacoes, presencas, eventos] = await Promise.all([
+listar('usuarios'), listar('nucleos'), listar('pagamentos'), listar('solicitacoes'), listar('presencas'), listar('eventos'),
 ]);
 todosUsuariosMaster = usuarios;
+const hojeStr = new Date().toISOString().slice(0, 10);
+const eventosFuturos = eventos.filter((e) => (e.data || '') >= hojeStr);
 
 const alunos = usuarios.filter((u) => (u.papeis || []).includes('aluno'));
 const alunosAtivos = alunos.filter((a) => a.statusAtual !== 'Inativo');
@@ -104,14 +137,39 @@ solicitacoesCacheMaster = solicPendentes;
 const confirmadas = presencas.filter((p) => p.confirmadoAos30 === true);
 const presencaGeralPct = presencas.length ? Math.round((confirmadas.length / presencas.length) * 100) : null;
 
-kpis.innerHTML = `
-<div class="kpi-card"><span>Núcleos Ativos</span><strong>${nucleosAtivos.length}</strong></div>
-<div class="kpi-card kpi-sucesso"><span>Alunos Ativos na Rede</span><strong>${alunosAtivos.length}</strong></div>
-<div class="kpi-card"><span>Presença Geral</span><strong>${presencaGeralPct != null ? presencaGeralPct + '%' : '—'}</strong></div>
-<div class="kpi-card ${solicPendentes.length > 0 ? 'kpi-alerta' : ''}"><span>Solicitações Pendentes</span><strong>${solicPendentes.length}</strong></div>
-<div class="kpi-card ${totalPendente > 0 ? 'kpi-alerta' : ''}"><span>Pendências Financeiras</span><strong>R$ ${totalPendente.toFixed(2)}</strong></div>
-<div class="kpi-card"><span>Contas com Acesso Geral</span><strong>${fundadores.length}</strong></div>
-`;
+// Tiles do mockup (p.4): núcleos ativos, presença geral, solicitações
+// pendentes, batizados/eventos marcados — e mais três da rede. Tudo real.
+const tiles = [
+{ cor: 'navy', valor: String(nucleosAtivos.length), rotulo: 'núcleos ativos', icone: 'fa-building' },
+{ cor: 'teal', valor: presencaGeralPct != null ? presencaGeralPct + '%' : '—', rotulo: 'presença geral', icone: 'fa-location-dot', nota: presencas.length ? `${presencas.length} check-ins na rede` : 'sem check-ins registrados' },
+{ cor: solicPendentes.length ? 'gold' : 'teal', valor: String(solicPendentes.length), rotulo: 'solicitações pendentes', icone: 'fa-clock' },
+{ cor: eventosFuturos.length ? 'red' : 'teal', valor: String(eventosFuturos.length), rotulo: eventosFuturos.length === 1 ? 'evento/batizado marcado' : 'eventos/batizados marcados', icone: 'fa-calendar-day' },
+{ cor: 'green', valor: String(alunosAtivos.length), rotulo: 'alunos ativos na rede', icone: 'fa-user-group' },
+{ cor: totalPendente > 0 ? 'red' : 'green', valor: 'R$ ' + totalPendente.toFixed(0), rotulo: 'pendências financeiras', icone: 'fa-credit-card', nota: `${pendentes.length} mensalidade${pendentes.length === 1 ? '' : 's'} em aberto` },
+{ cor: 'gold', valor: String(fundadores.length), rotulo: 'contas com acesso geral', icone: 'fa-crown' },
+];
+kpis.innerHTML = tiles.map((t, i) => `
+<div class="kpi-tile kpi-${t.cor}" style="--card-index:${i}">
+<i class="fas ${t.icone}"></i>
+<span class="kpi-valor">${escapeHTML(t.valor)}</span>
+<span class="kpi-rotulo">${escapeHTML(t.rotulo)}</span>
+${t.nota ? `<span class="kpi-nota">${escapeHTML(t.nota)}</span>` : ''}
+</div>`).join('');
+
+// Indicador 7 estrelas (cartão navy do mockup): uma linha por núcleo ativo,
+// com a estrela viva real e a corda mais alta já formada nele.
+if (indicador) {
+const linhas = nucleosAtivos.map((n) => {
+const e = calcularEstrelaViva(n.id, usuarios);
+const corda = e > 0 ? ORDEM_ESTRELA[e - 1] : null;
+return `<div class="card-navy-linha"><div><strong>${escapeHTML(n.nome || n.id)}</strong><small>${e}/7${corda ? ' · ' + escapeHTML(corda) : ' · nenhuma corda formada ainda'}</small></div><span class="estrelas"><span class="on">${'★'.repeat(e)}</span><span class="off">${'★'.repeat(7 - e)}</span></span></div>`;
+}).join('');
+indicador.innerHTML = `
+<h3><i class="fas fa-star"></i> Indicador 7 estrelas</h3>
+<p>As 7 estrelas seguem a escada de cordas (Escravo → Professor). Cada núcleo acende uma estrela para cada corda já formada entre seus alunos ativos.</p>
+${linhas ? `<div class="card-navy-lista">${linhas}</div>` : '<p class="vazio">Nenhum núcleo ativo cadastrado ainda.</p>'}`;
+}
+if (contador) contador.textContent = `${solicPendentes.length} pendente${solicPendentes.length === 1 ? '' : 's'}`;
 
 if (listaSolic) {
 if (!solicPendentes.length) {
@@ -120,13 +178,15 @@ listaSolic.innerHTML = '<div class="empty-state"><i class="fas fa-circle-check">
 listaSolic.innerHTML = solicPendentes.map((s) => {
 const nucleo = nucleos.find((n) => n.id === s.academiaId);
 const solicitante = usuarios.find((u) => u.id === s.solicitanteUid);
+const ic = (ICONE_SOLIC_MASTER[s.tipo] || 'navy fa-clipboard').split(' ');
 return `
 <div class="lista-item">
+<span class="lista-icone ${ic[0]}"><i class="fas ${ic[1]}"></i></span>
 <div class="lista-item-info">
 <strong>${escapeHTML(ROTULOS_TIPO_SOLIC[s.tipo] || s.tipo || 'Solicitação')} — ${escapeHTML(nucleo ? nucleo.nome : (s.academiaId || ''))} <span class="pill pill-pendente">pendente</span></strong>
 <span>${descreverSolicitacaoMaster(s)} · pedido por ${escapeHTML(solicitante ? solicitante.nome : 'alguém do núcleo')}</span>
 </div>
-<div style="display:flex; gap:8px;">
+<div class="lista-item-actions">
 <button class="btn-mini btn-mini-aprovar" onclick="window.__masterAprovarSolicitacao('${s.id}')">Aprovar</button>
 <button class="btn-mini btn-mini-rejeitar" onclick="window.__masterRejeitarSolicitacao('${s.id}')">Rejeitar</button>
 </div>
@@ -138,22 +198,35 @@ return `
 if (!nucleos.length) {
 tabela.innerHTML = '<div class="empty-state"><i class="fas fa-building"></i>Nenhum núcleo cadastrado ainda.</div>';
 } else {
+const cores = ['', 'verde', 'dourado'];
 tabela.innerHTML = nucleos.map((n, i) => {
 const responsavel = usuarios.find((u) => u.id === n.professorUid);
 const alunosDoNucleo = alunos.filter((a) => a.academiaId === n.id && a.statusAtual !== 'Inativo');
 const estrela = calcularEstrelaViva(n.id, usuarios);
 const pendenteNucleo = pendentes.filter((p) => p.academiaId === n.id).reduce((s, p) => s + (Number(p.valor) || 0), 0);
-const estrelasHtml = estrela > 0
-? `<span class="estrela-viva"><span style="color:var(--star-filled)">${'★'.repeat(estrela)}</span><span style="color:var(--star-empty)">${'★'.repeat(7 - estrela)}</span></span>`
-: '';
+const ehSede = !!(responsavel && souFundador(responsavel));
 return `
-<div class="academia-card nucleo-master-card" style="--card-index:${i}">
-<h4>${escapeHTML(n.nome || 'Núcleo')}${!n.ativo ? ' <span class="badge" style="background:#999;">Inativo</span>' : ''}</h4>
-<p>Responsável: <strong>${escapeHTML(responsavel ? responsavel.nome : '—')}</strong></p>
-<p>Alunos ativos: <strong>${alunosDoNucleo.length}</strong></p>
-<p>Mensalidade: <strong>R$ ${Number(n.mensalidadeValor || 0).toFixed(2)}</strong></p>
-<p>Pendências: <strong style="color:${pendenteNucleo > 0 ? '#E74C3C' : '#00B140'}">R$ ${pendenteNucleo.toFixed(2)}</strong></p>
-${estrelasHtml}
+<div class="academia-card ${ehSede ? 'nucleo-sede' : ''}" style="--card-index:${i}">
+<div class="nucleo-topo">
+<div class="nucleo-icone ${cores[i % cores.length]}"><i class="fas fa-${ehSede ? 'crown' : 'building'}"></i></div>
+<div class="nucleo-titulo">
+<h4>${escapeHTML(n.nome || 'Núcleo')}</h4>
+<p>${responsavel ? `${escapeHTML(responsavel.nome)} · Cordão ${escapeHTML(responsavel.cordaoAtual || '—')}` : 'Sem responsável definido'}</p>
+</div>
+<div class="nucleo-chips">
+${ehSede ? '<span class="pill pill-gold">SEDE</span>' : ''}
+<span class="pill ${n.ativo ? 'pill-aprovado' : 'pill-neutra'}">${n.ativo ? 'ATIVO' : 'INATIVO'}</span>
+</div>
+</div>
+<div class="nucleo-stats">
+<div class="nucleo-stat"><strong class="teal">${alunosDoNucleo.length}</strong><small>alunos ativos</small></div>
+<div class="nucleo-stat"><strong class="navy">R$ ${Number(n.mensalidadeValor || 0).toFixed(0)}</strong><small>mensalidade</small></div>
+<div class="nucleo-stat"><strong style="color:${pendenteNucleo > 0 ? 'var(--accent-red)' : 'var(--green)'}">R$ ${pendenteNucleo.toFixed(0)}</strong><small>pendências</small></div>
+</div>
+<div class="nucleo-estrelas">
+<div><strong>${estrela} ${estrela === 1 ? 'estrela' : 'estrelas'}</strong><small>${estrela > 0 ? 'corda mais alta: ' + escapeHTML(ORDEM_ESTRELA[estrela - 1]) : 'nenhuma corda formada ainda'}</small></div>
+<span class="estrelas"><span class="on">${'★'.repeat(estrela)}</span><span class="off">${'★'.repeat(7 - estrela)}</span></span>
+</div>
 </div>`;
 }).join('');
 }
@@ -163,8 +236,9 @@ listaF.innerHTML = '<div class="empty-state"><i class="fas fa-crown"></i>Nenhuma
 } else {
 listaF.innerHTML = fundadores.map((f) => `
 <div class="lista-item">
-<div class="lista-item-info"><strong>${escapeHTML(f.nome || f.email || 'Sem nome')}</strong><span>${escapeHTML(f.email || '')}</span></div>
-<span class="pill pill-aprovado">Acesso Geral</span>
+<span class="lista-icone gold"><i class="fas fa-crown"></i></span>
+<div class="lista-item-info"><strong>${escapeHTML(f.nome || f.email || 'Sem nome')}</strong><span>${escapeHTML(f.email || '')}${f.cordaoAtual ? ' · Cordão ' + escapeHTML(f.cordaoAtual) : ''}</span></div>
+<span class="pill pill-gold"><i class="fas fa-star"></i> Acesso Geral</span>
 </div>`).join('');
 }
 } catch (e) {

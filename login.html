@@ -1,78 +1,95 @@
-<!-- login.html — v2 -->
+<!-- login.html — v3: porta única de entrada (aluno, responsável, admin, mestre,
+professor e instrutor). Visual do "App Capoeira Liberdade — Mockup Visual":
+fundo menta, cartão branco de canto largo, Sora/Manrope, botão verde. -->
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Capoeira Liberdade</title><link rel="icon" type="image/png" href="assets/icon-192.png"><link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>Entrar - Capoeira Liberdade</title><link rel="icon" type="image/png" href="assets/icon-192.png"><link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --primary-teal: #389E92; --primary-blue: #002D72; --bg-app: #EAF2F1; --text-dark: #2C3E50; --accent-green: #00E676; }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Nunito', sans-serif; }
+        :root {
+            --bg-app: #F5F9F8; --card-bg: #FFFFFF; --border-color: #E2E8E6;
+            --text-dark: #0D211D; --text-muted: #5B6B68; --text-soft: #8795A0;
+            --primary-teal: #0B5C52; --teal-light: #389E92; --teal-soft: #E6F2EF;
+            --primary-blue: #002D72; --green: #00B140; --accent-green: #00E676; --accent-gold: #DAA520;
+            --accent-red: #D32F2F; --red-soft: #FDECEC; --green-soft: #E4F7EA;
+            --ease: cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Manrope', system-ui, sans-serif; }
+        body { background: var(--bg-app); color: var(--text-dark); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; -webkit-font-smoothing: antialiased; }
 
-        body { background: linear-gradient(135deg, var(--primary-blue), var(--primary-teal)); min-height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 20px; }
-        .shape { position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.55; z-index: 1; }
-        .shape-1 { background: #00E676; width: 300px; height: 300px; top: -60px; left: -60px; animation: float 7s cubic-bezier(0.45,0,0.55,1) infinite; }
-        .shape-2 { background: #389E92; width: 400px; height: 400px; bottom: -110px; right: -60px; animation: float 9s cubic-bezier(0.45,0,0.55,1) infinite reverse; }
-        @keyframes float { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-22px) scale(1.04); } }
+        .login-container { background: var(--card-bg); border: 1px solid var(--border-color); padding: 34px 30px 28px; border-radius: 24px; box-shadow: 0 1px 2px rgba(13,33,29,.04), 0 24px 48px -28px rgba(0,45,114,.35); width: 100%; max-width: 420px; animation: rise 0.6s var(--ease); }
+        @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+        @media (prefers-reduced-motion: reduce) { .login-container { animation: none; } }
 
-        .login-container { background: rgba(255, 255, 255, 0.97); padding: 40px; border-radius: 22px; box-shadow: 0 25px 60px rgba(0,0,0,0.25); width: 100%; max-width: 400px; z-index: 10; position: relative; animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
-        @keyframes rise { from { opacity: 0; transform: translateY(36px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .header-login { text-align: center; margin-bottom: 26px; }
+        .header-login img { width: 76px; height: 76px; object-fit: cover; margin-bottom: 14px; border-radius: 22px; box-shadow: 0 8px 22px -12px rgba(0,45,114,.5); }
+        .eyebrow { display: block; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+        .header-login h2 { color: var(--text-dark); font-family: 'Sora', sans-serif; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.01em; }
+        .header-login p { color: var(--text-muted); font-size: 0.88rem; margin-top: 6px; }
 
-        .header-login { text-align: center; margin-bottom: 30px; }
-        .header-login img { width: 84px; margin-bottom: 15px; border-radius: 50%; box-shadow: 0 6px 18px rgba(0,45,114,0.2); }
-        .header-login h2 { color: var(--primary-blue); font-family: 'Montserrat', sans-serif; font-size: 1.5rem; }
-        .header-login p { color: #7F8C8D; font-size: 0.9rem; margin-top: 5px; }
+        .input-group { position: relative; margin-bottom: 14px; }
+        .input-group label { display: block; font-size: 0.76rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; }
+        .input-group i { position: absolute; left: 15px; bottom: 15px; color: var(--text-soft); font-size: 0.9rem; }
+        .input-group input { width: 100%; padding: 13px 14px 13px 42px; border: 1px solid var(--border-color); border-radius: 14px; font-size: 0.95rem; outline: none; transition: 0.2s var(--ease); background: var(--card-bg); color: var(--text-dark); }
+        .input-group input::placeholder { color: var(--text-soft); }
+        .input-group input:focus { border-color: var(--teal-light); box-shadow: 0 0 0 3px rgba(56, 158, 146, 0.16); }
+        .input-group:focus-within i { color: var(--primary-teal); }
 
-        .input-group { position: relative; margin-bottom: 20px; }
-        .input-group i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--primary-teal); }
-        .input-group input { width: 100%; padding: 15px 15px 15px 45px; border: 2px solid #E0E6E5; border-radius: 12px; font-size: 1rem; outline: none; transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1); background: #F8FBFB; color: var(--text-dark); }
-        .input-group input:focus { border-color: var(--primary-teal); box-shadow: 0 0 0 4px rgba(56, 158, 146, 0.12); background: #FFF; }
+        .btn-login { width: 100%; padding: 14px; margin-top: 6px; background: var(--green); color: #fff; border: none; border-radius: 14px; font-size: 0.98rem; font-weight: 800; cursor: pointer; transition: 0.2s var(--ease); display: flex; justify-content: center; align-items: center; gap: 10px; }
+        .btn-login:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 12px 24px -12px rgba(0,177,64,.8); }
+        .btn-login:disabled { opacity: 0.7; cursor: progress; }
 
-        .btn-login { width: 100%; padding: 15px; background: var(--primary-teal); color: white; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; font-family: 'Montserrat', sans-serif; cursor: pointer; transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1); display: flex; justify-content: center; align-items: center; gap: 10px; }
-        .btn-login:hover:not(:disabled) { background: var(--primary-blue); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,45,114,0.3); }
-        .btn-login:disabled { opacity: 0.75; cursor: progress; }
-
-        .error-msg { color: #E74C3C; background: #FDEDEC; border: 1px solid #F5B7B1; font-size: 0.85rem; text-align: center; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: none; font-weight: 700; }
+        .error-msg { color: var(--accent-red); background: var(--red-soft); border: 1px solid #F5C2C2; font-size: 0.84rem; text-align: center; padding: 11px 12px; border-radius: 12px; margin-bottom: 14px; display: none; font-weight: 700; }
+        .error-msg.info { color: #1E8449; background: var(--green-soft); border-color: #B9E8C8; }
         #loginForm.shake { animation: shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
         @keyframes shake { 10%, 90% { transform: translateX(-2px); } 20%, 80% { transform: translateX(4px); } 30%, 50%, 70% { transform: translateX(-8px); } 40%, 60% { transform: translateX(8px); } }
 
-        .link-inscricao { text-align: center; margin-top: 15px; font-size: 0.9rem; }
-        .link-inscricao a { color: var(--primary-teal); text-decoration: none; font-weight: bold; transition: color 0.2s; }
-        .link-inscricao a:hover { color: var(--primary-blue); text-decoration: underline; }
+        .link-inscricao { text-align: center; margin-top: 16px; font-size: 0.88rem; color: var(--text-muted); }
+        .link-inscricao a { color: var(--primary-teal); text-decoration: none; font-weight: 800; transition: color 0.2s; }
+        .link-inscricao a:hover { text-decoration: underline; }
+        .divisor { height: 1px; background: var(--border-color); margin: 18px 0 2px; }
+        .rodape-login { text-align: center; font-size: 0.72rem; color: var(--text-soft); margin-top: 18px; }
+        .rodape-login a { color: var(--text-muted); text-decoration: none; font-weight: 700; }
     </style>
 </head>
 <body>
-    <div class="shape shape-1"></div>
-    <div class="shape shape-2"></div>
     <div class="login-container">
         <div class="header-login">
             <img src="logo-liberdade150.png" alt="Logo Capoeira Liberdade e Expressão">
-            <h2>Portal Capoeira Liberdade</h2>
-            <p>Acesse com E-mail ou Celular e Senha</p>
+            <span class="eyebrow">Capoeira Liberdade</span>
+            <h2>Entrar no app</h2>
+            <p>Uma única porta para alunos, famílias, professores e o admin.</p>
         </div>
         <div class="error-msg" id="errorMsg" role="alert"><i class="fas fa-exclamation-circle"></i> <span id="errorMsgText">Credenciais incorretas.</span></div>
-        <div class="error-msg" id="infoMsg" role="status" style="display:none; color:#00695C; background:#E0F2F1; border-color:#80CBC4;"><i class="fas fa-check-circle"></i> <span id="infoMsgText"></span></div>
+        <div class="error-msg info" id="infoMsg" role="status" style="display:none;"><i class="fas fa-check-circle"></i> <span id="infoMsgText"></span></div>
         <form id="loginForm" autocomplete="on" novalidate>
             <div class="input-group">
+                <label for="loginIdentificador">E-mail</label>
                 <i class="fas fa-envelope"></i>
-                <input type="email" id="loginIdentificador" name="username" placeholder="Seu e-mail" autocomplete="username" required>
+                <input type="email" id="loginIdentificador" name="username" placeholder="seu@email.com" autocomplete="username" required>
             </div>
             <div class="input-group">
+                <label for="senha">Senha</label>
                 <i class="fas fa-lock"></i>
-                <input type="password" id="senha" name="password" placeholder="Sua Senha" autocomplete="current-password" required>
+                <input type="password" id="senha" name="password" placeholder="Sua senha" autocomplete="current-password" required>
             </div>
             <button type="submit" class="btn-login" id="btnAcessar">
-                Acessar Painel <i class="fas fa-arrow-right"></i>
+                Entrar <i class="fas fa-arrow-right"></i>
             </button>
         </form>
         <div class="link-inscricao">
             <a href="#" id="linkEsqueciSenha">Esqueci minha senha</a>
         </div>
+        <div class="divisor"></div>
         <div class="link-inscricao">
-            Não tem cadastro? <a href="inscricao.html">Inscreva-se aqui</a>
+            Ainda não treina com a gente? <a href="inscricao.html">Fazer inscrição</a>
         </div>
+        <p class="rodape-login"><a href="index.html"><i class="fas fa-arrow-left"></i> Voltar ao site</a></p>
     </div>
     <script type="module" src="login.js"></script>
 </body>
