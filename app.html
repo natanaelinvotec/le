@@ -383,64 +383,142 @@ a:hover{ color:#389E92; }
             <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
               <div style="position:relative; overflow:hidden; background:linear-gradient(158deg,#0B5C52 0%,#12796B 42%,#002D72 100%); padding:52px 20px 30px; border-radius:0 0 30px 30px;">
                 <div style="position:absolute; top:-70px; right:-50px; width:220px; height:220px; border-radius:50%; background:#00E676; filter:blur(58px); opacity:.28; animation:apBlob 10s ease-in-out infinite;"></div>
-                <div style="position:relative; color:rgba(255,255,255,.6); font-size:.72rem; font-weight:800; letter-spacing:.16em;">RECEITA DE SETEMBRO</div>
-                <div style="position:relative; color:#fff; font-family:'Sora',sans-serif; font-weight:800; font-size:2.3rem; line-height:1.1; margin-top:6px;">{{ receitaMes }}</div>
-                <div style="position:relative; color:rgba(255,255,255,.72); font-size:.84rem; margin-top:4px;">{{ recebidoTexto }}</div>
+                <div style="position:relative; display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+                  <button onClick="{{ voltarFinanceiro }}" aria-label="Voltar" style="width:32px; height:32px; border-radius:999px; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.22); display:flex; align-items:center; justify-content:center; flex:none; cursor:pointer;"><i class="fas fa-chevron-left" style="font-size:.7rem; color:#fff;"></i></button>
+                  <h1 style="margin:0; color:#fff; font-family:'Sora',sans-serif; font-size:1.1rem;">{{ tituloFinanceiro }}</h1>
+                </div>
+                <div style="position:relative; color:rgba(255,255,255,.6); font-size:.72rem; font-weight:800; letter-spacing:.16em; text-transform:uppercase;">Recebido em {{ mesReferenciaTexto }}</div>
+                <div style="position:relative; color:#fff; font-family:'Sora',sans-serif; font-weight:800; font-size:2.1rem; line-height:1.1; margin-top:6px;">{{ recebidoMesTexto }}</div>
+                <sc-if value="{{ semLancamentosMes }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:relative; color:rgba(255,255,255,.72); font-size:.82rem; margin-top:4px;">Nenhuma mensalidade lançada neste mês ainda.</div>
+                </sc-if>
                 <div style="position:relative; display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:18px;">
                   <div style="background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:16px; padding:13px;">
-                    <div style="color:#00E676; font-family:'Sora',sans-serif; font-weight:800; font-size:1.2rem;">{{ adimplencia }}%</div>
-                    <div style="color:rgba(255,255,255,.6); font-size:.68rem; font-weight:700; letter-spacing:.06em; margin-top:4px;">ADIMPLÊNCIA</div>
+                    <div style="color:#00E676; font-family:'Sora',sans-serif; font-weight:800; font-size:1.2rem;">{{ adimplenciaMesTexto }}</div>
+                    <div style="color:rgba(255,255,255,.6); font-size:.68rem; font-weight:700; letter-spacing:.06em; margin-top:4px;">MENSALIDADES EM DIA</div>
                   </div>
                   <div style="background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:16px; padding:13px;">
-                    <div style="color:#F39C12; font-family:'Sora',sans-serif; font-weight:800; font-size:1.2rem;">{{ inadimplencia }}</div>
-                    <div style="color:rgba(255,255,255,.6); font-size:.68rem; font-weight:700; letter-spacing:.06em; margin-top:4px;">EM ATRASO</div>
+                    <div style="color:#F39C12; font-family:'Sora',sans-serif; font-weight:800; font-size:1.2rem;">{{ pendenteMesTexto }}</div>
+                    <div style="color:rgba(255,255,255,.6); font-size:.68rem; font-weight:700; letter-spacing:.06em; margin-top:4px;">EM ABERTO NO MÊS</div>
                   </div>
                 </div>
               </div>
               <div style="margin:16px;">
-                <div style="background:#fff; border:1px solid #E2E8E6; border-radius:20px; padding:18px;">
-                  <h2 style="margin:0 0 14px; font-family:'Sora',sans-serif; color:#002D72; font-size:1rem;">Receita por academia</h2>
-                  <div style="display:flex; flex-direction:column; gap:13px;">
-                    <sc-for list="{{ receitaAcademias }}" as="r" hint-placeholder-count="5">
-                      <div>
-                        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:6px;">
-                          <span style="font-weight:700; color:#0D211D; font-size:.85rem;">{{ r.nome }}</span>
-                          <span style="font-weight:800; color:#002D72; font-size:.85rem;">{{ r.valor }}</span>
-                        </div>
-                        <div style="width:100%; height:9px; border-radius:6px; background:#E2E8E6; overflow:hidden;">
-                          <div style="{{ r.barra }}"></div>
-                        </div>
-                        <div style="color:#5B6B68; font-size:.74rem; margin-top:4px;">{{ r.alunos }} alunos · {{ r.atraso }} em atraso</div>
+                <sc-if value="{{ ehAdminFinanceiro }}" hint-placeholder-val="{{ false }}">
+                  <sc-if value="{{ temReceitaAcademias }}" hint-placeholder-val="{{ false }}">
+                    <div style="background:#fff; border:1px solid #E2E8E6; border-radius:20px; padding:18px; margin-bottom:16px;">
+                      <h2 style="margin:0 0 14px; font-family:'Sora',sans-serif; color:#002D72; font-size:1rem;">Recebido por núcleo</h2>
+                      <div style="display:flex; flex-direction:column; gap:13px;">
+                        <sc-for list="{{ receitaAcademias }}" as="r" hint-placeholder-count="5">
+                          <div>
+                            <div style="display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:6px;">
+                              <span style="font-weight:700; color:#0D211D; font-size:.85rem;">{{ r.nome }}</span>
+                              <span style="font-weight:800; color:#002D72; font-size:.85rem;">{{ r.valor }}</span>
+                            </div>
+                            <div style="width:100%; height:9px; border-radius:6px; background:#E2E8E6; overflow:hidden;">
+                              <div style="{{ r.barra }}"></div>
+                            </div>
+                            <div style="color:#5B6B68; font-size:.74rem; margin-top:4px;">{{ r.alunos }} alunos com pagamento lançado · {{ r.atraso }}</div>
+                          </div>
+                        </sc-for>
                       </div>
-                    </sc-for>
-                  </div>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{ temHistoricoMensal }}" hint-placeholder-val="{{ false }}">
+                    <div style="background:#fff; border:1px solid #E2E8E6; border-radius:20px; padding:18px; margin-bottom:16px;">
+                      <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px;">
+                        <h2 style="margin:0; font-family:'Sora',sans-serif; color:#002D72; font-size:1rem;">Entradas mês a mês</h2>
+                        <span style="color:#5B6B68; font-size:.76rem; font-weight:700;">recebido, pago</span>
+                      </div>
+                      <div style="display:flex; align-items:flex-end; gap:5px; height:116px;">
+                        <sc-for list="{{ barrasGrupo }}" as="b" hint-placeholder-count="6">
+                          <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:6px; min-width:0; height:100%;">
+                            <span style="{{ b.barra }}"></span>
+                            <span style="font-size:.58rem; color:#95A5A6; font-weight:700; text-transform:uppercase;">{{ b.mes }}</span>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </div>
+                  </sc-if>
+                </sc-if>
+
+                <div style="background:#fff; border:1px solid #E2E8E6; border-radius:20px; padding:18px; margin-bottom:16px;">
+                  <h2 style="margin:0 0 14px; font-family:'Sora',sans-serif; color:#002D72; font-size:1rem;">Mensalidades lançadas</h2>
+                  <sc-if value="{{ temPagamentosLista }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex; flex-direction:column; gap:9px;">
+                      <sc-for list="{{ pagamentosRecentes }}" as="p" hint-placeholder-count="6">
+                        <div style="background:#F8FBFB; border:1px solid #E2E8E6; border-radius:14px; padding:12px 13px;">
+                          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                            <span style="font-weight:800; color:#0D211D; font-size:.86rem;">{{ p.nome }}</span>
+                            <span style="{{ p.selo }}">{{ p.statusTexto }}</span>
+                          </div>
+                          <div style="color:#5B6B68; font-size:.76rem; margin:3px 0 10px;">{{ p.competencia }} · {{ p.valorTexto }}</div>
+                          <button onClick="{{ p.alternar }}" style="width:100%; padding:9px; border:1px solid #E2E8E6; border-radius:11px; background:#fff; color:#0B5C52; font-weight:800; font-size:.76rem; cursor:pointer; font-family:'Manrope',sans-serif;">{{ p.botaoTexto }}</button>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ temPagamentosLista }}" hint-placeholder-val="{{ true }}">
+                    <div style="border:1.5px dashed #E2E8E6; border-radius:16px; padding:20px; text-align:center; color:#5B6B68; font-size:.8rem;">Nenhuma mensalidade lançada ainda.</div>
+                  </sc-if>
                 </div>
 
-                <div style="margin-top:16px; background:#fff; border:1px solid #E2E8E6; border-radius:20px; padding:18px;">
-                  <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px;">
-                    <h2 style="margin:0; font-family:'Sora',sans-serif; color:#002D72; font-size:1rem;">Entradas mês a mês</h2>
-                    <span style="color:#5B6B68; font-size:.76rem; font-weight:700;">12 meses</span>
-                  </div>
-                  <div style="display:flex; align-items:flex-end; gap:5px; height:116px;">
-                    <sc-for list="{{ barrasGrupo }}" as="b" hint-placeholder-count="12">
-                      <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; min-width:0;">
-                        <span style="{{ b.barra }}"></span>
-                        <span style="font-size:.58rem; color:#95A5A6; font-weight:700;">{{ b.mes }}</span>
-                      </div>
-                    </sc-for>
-                  </div>
-                </div>
-
-                <div style="margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                   <button onClick="{{ abrirPagamento }}" style="display:flex; flex-direction:column; align-items:flex-start; gap:10px; padding:16px; border:1px solid #E2E8E6; border-radius:18px; background:#fff; cursor:pointer; text-align:left; font-family:'Manrope',sans-serif;">
                     <span style="width:40px; height:40px; border-radius:13px; display:flex; align-items:center; justify-content:center; color:#F39C12; background:rgba(243,156,18,.12);"><i class="fas fa-wallet"></i></span>
-                    <span style="font-weight:800; color:#0D211D; font-size:.88rem;">Lançar pagamento</span>
+                    <span style="font-weight:800; color:#0D211D; font-size:.88rem;">Lançar mensalidade</span>
                   </button>
                   <button onClick="{{ gerarRelatorio }}" style="display:flex; flex-direction:column; align-items:flex-start; gap:10px; padding:16px; border:1px solid #E2E8E6; border-radius:18px; background:#fff; cursor:pointer; text-align:left; font-family:'Manrope',sans-serif;">
                     <span style="width:40px; height:40px; border-radius:13px; display:flex; align-items:center; justify-content:center; color:#D32F2F; background:rgba(211,47,47,.12);"><i class="fas fa-file-pdf"></i></span>
                     <span style="font-weight:800; color:#0D211D; font-size:.88rem;">Relatório financeiro</span>
                   </button>
                 </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ ehArvore }}" hint-placeholder-val="{{ false }}">
+            <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
+              <div style="background:#002D72; padding:52px 20px 24px; border-radius:0 0 26px 26px; display:flex; align-items:center; gap:10px;">
+                <button onClick="{{ voltarArvore }}" aria-label="Voltar" style="width:32px; height:32px; border-radius:999px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center; flex:none; cursor:pointer;"><i class="fas fa-chevron-left" style="font-size:.7rem; color:#fff;"></i></button>
+                <div>
+                  <div style="color:#00E676; font-size:.7rem; font-weight:800; letter-spacing:.14em;">ÁRVORE DO GRUPO</div>
+                  <h1 style="margin:0; color:#fff; font-family:'Sora',sans-serif; font-size:1.15rem;">{{ totalNucleosArvore }} núcleos · {{ totalAlunosArvore }} alunos ativos</h1>
+                </div>
+              </div>
+              <div style="margin:16px;">
+                <p style="margin:0 0 14px; color:#5B6B68; font-size:.78rem; line-height:1.5;">Estrela viva reflete a graduação mais alta entre os alunos ativos de cada núcleo — o mesmo cálculo usado no painel de gestão (admin.html).</p>
+                <sc-if value="{{ temArvoreGrupo }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; flex-direction:column; gap:10px;">
+                    <sc-for list="{{ arvoreGrupoCards }}" as="n" hint-placeholder-count="6">
+                      <div style="background:#fff; border:1px solid #E2E8E6; border-radius:18px; padding:15px;">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                          <div style="width:44px; height:44px; border-radius:13px; background:linear-gradient(135deg,#002D72 0%,#0B5C52 100%); display:flex; align-items:center; justify-content:center; flex:none;">
+                            <i class="fas fa-sitemap" style="color:#fff; font-size:1rem;"></i>
+                          </div>
+                          <div style="min-width:0; flex:1;">
+                            <div style="font-size:.92rem; font-weight:700; color:#0D211D;">{{ n.nome }}</div>
+                            <div style="font-size:.74rem; color:#5B6B68; margin-top:1px;">{{ n.professor }}</div>
+                          </div>
+                        </div>
+                        <div style="display:flex; gap:8px; margin-top:12px;">
+                          <div style="flex:1; background:#F5F9F8; border-radius:11px; padding:8px 10px;">
+                            <div style="font-size:.68rem; color:#5B6B68;">alunos ativos</div>
+                            <div style="font-size:.8rem; font-weight:700; color:#0D211D; margin-top:2px;">{{ n.alunos }}</div>
+                          </div>
+                          <div style="flex:1; background:#F5F9F8; border-radius:11px; padding:8px 10px;">
+                            <div style="font-size:.68rem; color:#5B6B68;">estrela viva</div>
+                            <div style="font-size:.8rem; font-weight:700; color:#DAA520; margin-top:2px;">{{ n.estrela }}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ temArvoreGrupo }}" hint-placeholder-val="{{ true }}">
+                  <div style="border:1.5px dashed #E2E8E6; border-radius:16px; padding:24px 20px; text-align:center; color:#5B6B68; font-size:.82rem;">Carregando a árvore do grupo...</div>
+                </sc-if>
               </div>
             </div>
           </sc-if>
@@ -680,6 +758,34 @@ a:hover{ color:#389E92; }
                 <p style="margin:0; color:rgba(255,255,255,.7); font-size:.87rem;">Tudo que você faz no painel web, agora pelo celular.</p>
               </div>
               <div style="margin:16px;">
+                <sc-if value="{{ temMeuNucleo }}" hint-placeholder-val="{{ false }}">
+                  <div style="background:#fff; border:1px solid #E2E8E6; border-radius:20px; padding:18px; margin-bottom:16px;">
+                    <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:2px;">
+                      <h2 style="margin:0; font-family:'Sora',sans-serif; color:#002D72; font-size:1rem;">Meu núcleo</h2>
+                      <button onClick="{{ abrirMeuNucleoTurma }}" style="border:none; background:none; color:#0B5C52; font-weight:800; font-size:.78rem; cursor:pointer; font-family:'Manrope',sans-serif;">Ver turma <i class="fas fa-chevron-right" style="font-size:.6rem;"></i></button>
+                    </div>
+                    <p style="margin:0 0 14px; color:#5B6B68; font-size:.8rem;">{{ meuNucleoNome }}</p>
+                    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px;">
+                      <div style="background:#F5F9F8; border:1px solid #E2E8E6; border-radius:14px; padding:12px 8px; text-align:center;">
+                        <div style="font-family:'JetBrains Mono',monospace; font-size:1.05rem; font-weight:700; color:#002D72;">{{ meuNucleoAlunos }}</div>
+                        <div style="font-size:.62rem; color:#5B6B68; margin-top:2px;">alunos ativos</div>
+                      </div>
+                      <div style="background:#F5F9F8; border:1px solid #E2E8E6; border-radius:14px; padding:12px 8px; text-align:center;">
+                        <sc-if value="{{ temMeuNucleoPresenca }}" hint-placeholder-val="{{ true }}">
+                          <div style="font-family:'JetBrains Mono',monospace; font-size:1.05rem; font-weight:700; color:#0B5C52;">{{ meuNucleoPresenca }}</div>
+                        </sc-if>
+                        <sc-if value="{{ temMeuNucleoPresenca }}" hint-placeholder-val="{{ false }}">
+                          <div style="font-size:.66rem; font-weight:700; color:#95A5A6; line-height:1.3;">{{ meuNucleoPresenca }}</div>
+                        </sc-if>
+                        <div style="font-size:.62rem; color:#5B6B68; margin-top:2px;">presença média</div>
+                      </div>
+                      <div style="background:#F5F9F8; border:1px solid #E2E8E6; border-radius:14px; padding:12px 8px; text-align:center;">
+                        <div style="font-family:'Sora',sans-serif; font-size:.86rem; font-weight:800; color:#DAA520;">{{ meuNucleoEstrela }}</div>
+                        <div style="font-size:.62rem; color:#5B6B68; margin-top:2px;">estrela viva</div>
+                      </div>
+                    </div>
+                  </div>
+                </sc-if>
                 <sc-if value="{{ temPendentes }}" hint-placeholder-val="{{ true }}">
                   <div style="background:#fff; border:1px solid #E2E8E6; border-radius:20px; padding:18px; margin-bottom:16px;">
                     <div style="display:flex; align-items:center; gap:9px; margin-bottom:4px;">
@@ -731,6 +837,119 @@ a:hover{ color:#389E92; }
                     </sc-for>
                   </div>
                 </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ ehSolicitacoes }}" hint-placeholder-val="{{ false }}">
+            <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
+              <div style="background:#fff; padding:48px 20px 18px; border-bottom:1px solid #E2E8E6; display:flex; align-items:center; gap:10px;">
+                <button onClick="{{ voltarGestao }}" aria-label="Voltar" style="width:34px; height:34px; border-radius:50%; background:#F5F9F8; border:1px solid #E2E8E6; color:#0D211D; cursor:pointer; flex:none;"><i class="fas fa-arrow-left"></i></button>
+                <div>
+                  <div style="font-size:.66rem; letter-spacing:.05em; color:#5B6B68; text-transform:uppercase;">{{ tituloPainel }}</div>
+                  <h1 style="margin:0; font-size:1.05rem; font-weight:800; color:#0D211D; font-family:'Sora',sans-serif;">Solicitações</h1>
+                </div>
+              </div>
+              <div style="margin:16px; display:flex; flex-direction:column; gap:20px;">
+
+                <sc-if value="{{ ehAdminSolicitacoes }}" hint-placeholder-val="{{ false }}">
+                  <div>
+                    <h2 style="margin:0 0 10px; font-size:.92rem; font-weight:700; color:#0D211D;">Pendentes</h2>
+                    <sc-if value="{{ temSolicPendentes }}" hint-placeholder-val="{{ true }}">
+                      <div style="display:flex; flex-direction:column; gap:10px;">
+                        <sc-for list="{{ solicPendentes }}" as="s" hint-placeholder-count="0">
+                          <div style="background:#fff; border:1px solid #E2E8E6; border-radius:16px; padding:14px;">
+                            <div style="font-weight:800; color:#0D211D; font-size:.88rem;">{{ s.solicitante }}</div>
+                            <div style="color:#5B6B68; font-size:.78rem; margin:3px 0 10px;">{{ s.descricao }}</div>
+                            <div style="display:flex; gap:8px;">
+                              <button onClick="{{ s.aprovar }}" style="flex:1; padding:9px; border:none; border-radius:11px; background:#00B140; color:#fff; font-weight:800; font-size:.76rem; cursor:pointer; font-family:'Manrope',sans-serif;"><i class="fas fa-check"></i> Aprovar</button>
+                              <button onClick="{{ s.rejeitar }}" style="flex:1; padding:9px; border:1px solid #E2E8E6; border-radius:11px; background:#fff; color:#D32F2F; font-weight:800; font-size:.76rem; cursor:pointer; font-family:'Manrope',sans-serif;">Rejeitar</button>
+                            </div>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ temSolicPendentes }}" hint-placeholder-val="{{ false }}">
+                      <div style="background:#fff; border:1.5px dashed #E2E8E6; border-radius:16px; padding:20px; text-align:center; color:#5B6B68; font-size:.8rem;"><i class="fas fa-inbox" style="display:block; margin-bottom:6px; font-size:1.1rem;"></i>Nenhuma solicitação pendente.</div>
+                    </sc-if>
+                  </div>
+                  <div>
+                    <h2 style="margin:0 0 10px; font-size:.92rem; font-weight:700; color:#0D211D;">Histórico</h2>
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                      <sc-for list="{{ solicHistorico }}" as="s" hint-placeholder-count="0">
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; background:#F8FBFB; border:1px solid #E2E8E6; border-radius:14px; padding:12px 14px;">
+                          <div style="min-width:0;">
+                            <div style="font-weight:700; color:#0D211D; font-size:.82rem;">{{ s.solicitante }}</div>
+                            <div style="color:#5B6B68; font-size:.74rem; margin-top:2px;">{{ s.descricao }}</div>
+                          </div>
+                          <span style="{{ s.selo }}">{{ s.status }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ ehAdminSolicitacoes }}" hint-placeholder-val="{{ true }}">
+                  <div>
+                    <h2 style="margin:0 0 10px; font-size:.92rem; font-weight:700; color:#0D211D;">Vínculo de parentesco pendente</h2>
+                    <sc-if value="{{ temSolicFamilia }}" hint-placeholder-val="{{ true }}">
+                      <div style="display:flex; flex-direction:column; gap:10px;">
+                        <sc-for list="{{ solicFamilia }}" as="s" hint-placeholder-count="0">
+                          <div style="background:#fff; border:1px solid #E2E8E6; border-radius:16px; padding:14px;">
+                            <div style="font-weight:800; color:#0D211D; font-size:.88rem;">{{ s.solicitante }}</div>
+                            <div style="color:#5B6B68; font-size:.78rem; margin:3px 0 10px;">{{ s.descricao }}</div>
+                            <div style="display:flex; gap:8px;">
+                              <button onClick="{{ s.aprovar }}" style="flex:1; padding:9px; border:none; border-radius:11px; background:#00B140; color:#fff; font-weight:800; font-size:.76rem; cursor:pointer; font-family:'Manrope',sans-serif;"><i class="fas fa-check"></i> Aprovar</button>
+                              <button onClick="{{ s.rejeitar }}" style="flex:1; padding:9px; border:1px solid #E2E8E6; border-radius:11px; background:#fff; color:#D32F2F; font-weight:800; font-size:.76rem; cursor:pointer; font-family:'Manrope',sans-serif;">Rejeitar</button>
+                            </div>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ temSolicFamilia }}" hint-placeholder-val="{{ false }}">
+                      <div style="background:#fff; border:1.5px dashed #E2E8E6; border-radius:16px; padding:20px; text-align:center; color:#5B6B68; font-size:.8rem;"><i class="fas fa-user-group" style="display:block; margin-bottom:6px; font-size:1.1rem;"></i>Nenhum pedido de vínculo de parentesco pendente.</div>
+                    </sc-if>
+                  </div>
+                  <div>
+                    <h2 style="margin:0 0 10px; font-size:.92rem; font-weight:700; color:#0D211D;">Transferências aguardando aceite</h2>
+                    <sc-if value="{{ temSolicTransfer }}" hint-placeholder-val="{{ true }}">
+                      <div style="display:flex; flex-direction:column; gap:10px;">
+                        <sc-for list="{{ solicTransfer }}" as="s" hint-placeholder-count="0">
+                          <div style="background:#fff; border:1px solid #E2E8E6; border-radius:16px; padding:14px;">
+                            <div style="font-weight:800; color:#0D211D; font-size:.88rem;">{{ s.solicitante }}</div>
+                            <div style="color:#5B6B68; font-size:.78rem; margin:3px 0 10px;">{{ s.descricao }}</div>
+                            <div style="display:flex; gap:8px;">
+                              <button onClick="{{ s.aprovar }}" style="flex:1; padding:9px; border:none; border-radius:11px; background:#00B140; color:#fff; font-weight:800; font-size:.76rem; cursor:pointer; font-family:'Manrope',sans-serif;"><i class="fas fa-check"></i> Aceitar aluno</button>
+                              <button onClick="{{ s.rejeitar }}" style="flex:1; padding:9px; border:1px solid #E2E8E6; border-radius:11px; background:#fff; color:#D32F2F; font-weight:800; font-size:.76rem; cursor:pointer; font-family:'Manrope',sans-serif;">Recusar</button>
+                            </div>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ temSolicTransfer }}" hint-placeholder-val="{{ false }}">
+                      <div style="background:#fff; border:1.5px dashed #E2E8E6; border-radius:16px; padding:20px; text-align:center; color:#5B6B68; font-size:.8rem;"><i class="fas fa-right-left" style="display:block; margin-bottom:6px; font-size:1.1rem;"></i>Nenhuma transferência aguardando seu aceite.</div>
+                    </sc-if>
+                  </div>
+                  <div>
+                    <h2 style="margin:0 0 10px; font-size:.92rem; font-weight:700; color:#0D211D;">Minhas solicitações</h2>
+                    <sc-if value="{{ temSolicMinhas }}" hint-placeholder-val="{{ true }}">
+                      <div style="display:flex; flex-direction:column; gap:8px;">
+                        <sc-for list="{{ solicMinhas }}" as="s" hint-placeholder-count="0">
+                          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; background:#F8FBFB; border:1px solid #E2E8E6; border-radius:14px; padding:12px 14px;">
+                            <div style="min-width:0;">
+                              <div style="font-weight:700; color:#0D211D; font-size:.82rem;">{{ s.descricao }}</div>
+                              <div style="color:#5B6B68; font-size:.74rem; margin-top:2px;">{{ s.data }}</div>
+                            </div>
+                            <span style="{{ s.selo }}">{{ s.status }}</span>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ temSolicMinhas }}" hint-placeholder-val="{{ false }}">
+                      <div style="background:#fff; border:1.5px dashed #E2E8E6; border-radius:16px; padding:20px; text-align:center; color:#5B6B68; font-size:.8rem;">Você ainda não enviou nenhuma solicitação.</div>
+                    </sc-if>
+                  </div>
+                </sc-if>
               </div>
             </div>
           </sc-if>
@@ -1187,6 +1406,7 @@ class Component extends DCLogic {
     pendentes: PENDENTES.slice(), alunos: ALUNOS.slice(), materiais: MATERIAIS.slice(),
     nucleosLista: [], nucleoAberto: null,
     presencaPct: 0, presencaTotal: 0, presencaConfirmadas: 0, semanasSeguidas: 0, presencaRecentes: [],
+    solicitacoesLista: [], pagamentosLista: [], despesasLista: [],
     statsExpandido: false,
   };
 
@@ -1250,6 +1470,9 @@ class Component extends DCLogic {
     const papeis = perfil.papeis || ['aluno'];
     const ehResp = papeis.includes('responsavel');
     const gestorPapel = papeis.includes('mestre') ? 'mestre' : (papeis.includes('admin') ? 'admin' : null);
+    this._academiaGerenciadaId = perfil.academiaGerenciadaId || null;
+    this._ehAdmin = gestorPapel === 'admin';
+    this._acessoGeral = !!perfil.acessoGeral;
 
     if (ehResp) {
       const filhos = Array.isArray(perfil.responsavelDe) ? perfil.responsavelDe : [];
@@ -1277,19 +1500,29 @@ class Component extends DCLogic {
       atleta: 0,
       academia: gestorPapel ? (perfil.academiaNome || perfil.academiaGerenciadaId || '') : undefined,
       academiaGerenciadaId: perfil.academiaGerenciadaId || null,
+      acessoGeral: !!perfil.acessoGeral,
     }];
 
     this.setState({ carregando: false });
     this.entrarComPerfil(PERFIS[0]);
 
-    if (gestorPapel === 'mestre' && perfil.academiaGerenciadaId) {
+    if (gestorPapel && perfil.academiaGerenciadaId) {
       this.carregarTurma(perfil.academiaGerenciadaId);
+      this.carregarMeuNucleoStats();
     }
 
     this.carregarMateriaisReais();
     this.carregarNucleos();
     if (!gestorPapel) this.carregarPresenca();
+    if (gestorPapel) { this.carregarSolicitacoes(); this.carregarFinanceiro(); }
   }
+
+  // Alcance "grupo todo": admin de verdade (papel literal) OU o fundador
+  // (Mestre Profeta, acessoGeral) — ambos leem solicitações/pagamentos de
+  // todos os núcleos agora que o firestore.rules foi ajustado (ver
+  // comentário em firestore.rules, bloco solicitacoes/pagamentos). Um mestre
+  // comum continua só com o próprio núcleo.
+  get _grupoTodo() { return !!(this._ehAdmin || this._acessoGeral); }
 
   async carregarPresenca() {
     try {
@@ -1334,6 +1567,128 @@ class Component extends DCLogic {
       // então evitamos essa leitura cruzada aqui de propósito.
       const lista = await this._FB.listarNucleosAtivos();
       this.setState({ nucleosLista: lista });
+    } catch (e) { console.error(e); }
+  }
+
+  // Solicitações: mesma lógica de permissão do admin.js — admin lê a coleção
+  // inteira; um mestre/professor não-admin não tem permissão pra isso, só lê
+  // as próprias (minhasSolicitacoes) + o que espera aprovação dele (vínculo de
+  // família e transferências direcionadas ao próprio núcleo).
+  async carregarSolicitacoes() {
+    try {
+      let cache = [];
+      if (this._grupoTodo) {
+        cache = await this._FB.listar('solicitacoes');
+      } else if (this._academiaGerenciadaId) {
+        const minhas = await this._FB.minhasSolicitacoes(this._uid);
+        cache = minhas.slice();
+        const pendentesNucleo = await this._FB.solicitacoesPendentesDoNucleo(this._academiaGerenciadaId);
+        cache = cache.concat(pendentesNucleo.filter((s) => !cache.some((c) => c.id === s.id)));
+        const transferPendentes = await this._FB.transferenciasPendentesParaDestino(this._academiaGerenciadaId);
+        cache = cache.concat(transferPendentes.filter((s) => !cache.some((c) => c.id === s.id)));
+      }
+      cache.sort((a, b) => (b.criadoEm || '').localeCompare(a.criadoEm || ''));
+      this.setState({ solicitacoesLista: cache });
+    } catch (e) { console.error(e); }
+  }
+
+  async aprovarSolicitacaoAcao(id) {
+    try {
+      const sol = (this.state.solicitacoesLista || []).find((s) => s.id === id);
+      if (!sol) { this.toast('Solicitação não encontrada — recarregue a tela.'); return; }
+      if (sol.tipo === 'mensalidade') {
+        await this._FB.atualizar('nucleos', sol.academiaId, { mensalidadeValor: Number(sol.dadosPedido.novoValor) || 0 });
+      } else if (sol.tipo === 'evento') {
+        await this._FB.salvar('eventos', sol.academiaId + '-' + Date.now(), {
+          nome: sol.dadosPedido.nome, data: sol.dadosPedido.data, descricao: sol.dadosPedido.descricao || '',
+          academiaId: sol.academiaId, criadoEm: new Date().toISOString(),
+        });
+      } else if (sol.tipo === 'transferencia') {
+        await this._FB.atualizar('usuarios', sol.dadosPedido.alunoUid, {
+          academiaId: sol.dadosPedido.destinoId, academiaNome: sol.dadosPedido.destinoNome,
+          academiaAnteriorId: sol.academiaId, origemTransferenciaDireta: true,
+        });
+      } else if (sol.tipo === 'vinculo_familia') {
+        await this._FB.aprovarVinculoFamilia(sol.solicitanteUid, sol.dadosPedido.alunoRelacionadoUid);
+      }
+      await this._FB.atualizar('solicitacoes', id, { status: 'aprovado' });
+      this.toast('Solicitação aprovada e aplicada!');
+      await this.carregarSolicitacoes();
+    } catch (e) { console.error(e); this.toast('Não foi possível aprovar agora.'); }
+  }
+
+  async rejeitarSolicitacaoAcao(id) {
+    try {
+      await this._FB.atualizar('solicitacoes', id, { status: 'rejeitado' });
+      this.toast('Solicitação rejeitada.');
+      await this.carregarSolicitacoes();
+    } catch (e) { console.error(e); this.toast('Não foi possível rejeitar agora.'); }
+  }
+
+  // Financeiro: gestor vê/lança do próprio núcleo; admin/fundador vê o grupo todo.
+  async carregarFinanceiro() {
+    try {
+      const pagamentos = this._grupoTodo
+        ? await this._FB.listar('pagamentos')
+        : (this._academiaGerenciadaId ? await this._FB.listarPagamentosDoNucleo(this._academiaGerenciadaId) : []);
+      this.setState({ pagamentosLista: pagamentos });
+    } catch (e) { console.error(e); }
+  }
+
+  async marcarPagamentoAcao(id, pago) {
+    try {
+      await this._FB.marcarPagamento(id, pago);
+      this.toast(pago ? 'Marcado como pago!' : 'Marcado como pendente.');
+      await this.carregarFinanceiro();
+    } catch (e) { console.error(e); this.toast('Não foi possível atualizar agora.'); }
+  }
+
+  // Árvore do grupo: só quem tem alcance de grupo todo (admin ou fundador).
+  // Carregado sob demanda (ao abrir a aba), não no login, pra não puxar a
+  // coleção inteira de usuarios sempre que alguém entra no app.
+  async carregarArvoreGrupo() {
+    if (!this._grupoTodo) return;
+    try {
+      const [usuarios, nucleos] = await Promise.all([
+        this._FB.listar('usuarios'),
+        this.state.nucleosLista.length ? Promise.resolve(this.state.nucleosLista) : this._FB.listarNucleosAtivos(),
+      ]);
+      const arvore = nucleos.map((n) => {
+        const doNucleo = usuarios.filter((u) => u.academiaId === n.id && (u.papeis || []).includes('aluno'));
+        const ativos = doNucleo.filter((u) => u.statusAtual !== 'Inativo');
+        return {
+          id: n.id,
+          nome: n.nome || n.id,
+          professor: n.professorNome || '',
+          alunosAtivos: ativos.length,
+          estrela: this._FB.calcularEstrelaViva(n.id, usuarios),
+        };
+      });
+      this.setState({ arvoreGrupo: arvore, arvoreCarregada: true });
+    } catch (e) { console.error(e); this.toast('Não foi possível carregar a árvore agora.'); }
+  }
+
+  // Estatísticas reais do próprio núcleo administrado (mestre/professor, ou
+  // admin/fundador que também administra um núcleo) — presença média só é
+  // permitida pelo firestore.rules pro gestor DESSE núcleo específico.
+  async carregarMeuNucleoStats() {
+    if (!this._academiaGerenciadaId) return;
+    try {
+      const [{ itens }, presencas] = await Promise.all([
+        this._FB.listarPorAcademia('usuarios', this._academiaGerenciadaId, 300),
+        this._FB.presencasDoNucleo(this._academiaGerenciadaId, 300),
+      ]);
+      const alunos = itens.filter((u) => (u.papeis || []).includes('aluno'));
+      const ativos = alunos.filter((u) => u.statusAtual !== 'Inativo');
+      const confirmadas = presencas.filter((p) => p.confirmadoAos30 === true);
+      const presencaMedia = presencas.length > 0 ? Math.round((confirmadas.length / presencas.length) * 100) : null;
+      this.setState({
+        meuNucleoStats: {
+          alunosAtivos: ativos.length,
+          presencaMedia,
+          estrela: this._FB.calcularEstrelaViva(this._academiaGerenciadaId, itens),
+        },
+      });
     } catch (e) { console.error(e); }
   }
 
@@ -1439,6 +1794,11 @@ class Component extends DCLogic {
     const familia = !!perfilAtual && perfilAtual.conta === 'familia';
     const gestor = papel === 'mestre' || papel === 'admin';
     const admin = papel === 'admin';
+    const fundador = !!(perfilAtual && perfilAtual.acessoGeral);
+    // Alcance de grupo todo (financeiro/árvore/painel): admin de verdade OU
+    // o fundador (Mestre Profeta) — espelha o getter _grupoTodo usado nos
+    // métodos de carregamento. Um mestre comum não entra aqui.
+    const grupoTodo = admin || fundador;
     const atleta = (familia ? ATLETAS[this.state.atleta] : ATLETAS[0]) || {
       nome:'', curto:'', foto:'assets/logo-liberdade.png', cordao:'Iniciante', idxCordao:0, idade:0, academia:'-', notasReais:{}, mensalidadeValor:null, papelFamilia:'',
     };
@@ -1450,7 +1810,15 @@ class Component extends DCLogic {
     const corAtleta = corCordao(atleta.idade, atleta.cordao);
     const barraCordaoEstilo = 'height:100%; width:' + progresso + '%; border-radius:20px; animation:apTranca 2s linear infinite; box-shadow:0 0 14px rgba(0,230,118,.6); background:repeating-linear-gradient(45deg,' + corAtleta[0] + ' 0,' + corAtleta[0] + ' 10px,' + corAtleta[1] + ' 10px,' + corAtleta[1] + ' 20px,' + corAtleta[2] + ' 20px,' + corAtleta[2] + ' 30px);';
     const ABAS = admin ? ABAS_ADMIN : (gestor ? ABAS_MESTRE : ABAS_ALUNO);
-    const abaParaPilula = this.state.aba === 'nucleoDetalhe' ? 'nucleos' : (this.state.aba === 'trofeus' ? 'perfil' : this.state.aba);
+    const SUBTELAS_PARA_GESTAO = ['solicitacoes', 'arvore'];
+    // 'financeiro' só é uma subtela-de-gestão (cai no pill "Gestão") pra
+    // quem NÃO tem aba própria de Financeiro na barra inferior — é o caso
+    // do mestre (ABAS_MESTRE não tem 'financeiro'). Pro admin, 'financeiro'
+    // já é um dos 4 ids de ABAS_ADMIN, então deve acender o próprio pill.
+    const abaParaPilula = this.state.aba === 'nucleoDetalhe' ? 'nucleos'
+      : (this.state.aba === 'trofeus' ? 'perfil'
+      : ((SUBTELAS_PARA_GESTAO.indexOf(this.state.aba) !== -1 || (!admin && this.state.aba === 'financeiro')) ? 'gestao'
+      : this.state.aba));
     const idx = Math.max(0, ABAS.map((a) => a.id).indexOf(abaParaPilula));
 
     const termo = this.state.busca.trim().toLowerCase();
@@ -1470,6 +1838,7 @@ class Component extends DCLogic {
 
     const listaAlunosOpcoes = this.state.alunos.map((a) => ({ valor: a.nome, rotulo: a.nome }));
     const academiasOpcoes = ACADEMIAS.map((a) => ({ valor: a, rotulo: a }));
+    const avisoAcademiaOpcoes = [{ valor:'', rotulo:'Todos os núcleos' }].concat((this.state.nucleosLista || []).map((n) => ({ valor: n.id, rotulo: n.nome })));
     const professores = [];
 
     const sheetDefs = {
@@ -1522,9 +1891,13 @@ class Component extends DCLogic {
       },
       aviso: {
         titulo: 'Enviar aviso',
-        ajuda: 'Avisos são publicados pelo painel de gestão (admin.html) por enquanto.',
-        botao: 'Entendi',
-        campos: [],
+        ajuda: admin ? 'Escolha um núcleo específico ou publique para todos.' : 'O aviso chega pra todos os alunos do seu núcleo.',
+        botao: 'Publicar aviso',
+        campos: [
+          { chave:'titulo', rotulo:'Título:', tipo:'texto', entrada:'text', dica:'Ex: Aumento de mensalidade em outubro', padrao:'' },
+          { chave:'texto', rotulo:'Mensagem:', tipo:'area', dica:'Detalhe o aviso para quem for ler.', padrao:'' },
+          { chave:'tipoAviso', rotulo:'Tipo:', tipo:'select', opcoes:[{valor:'geral',rotulo:'Geral'},{valor:'financeiro',rotulo:'Financeiro'},{valor:'evento',rotulo:'Evento'}] },
+        ].concat(admin ? [{ chave:'academiaAviso', rotulo:'Núcleo:', tipo:'select', opcoes: avisoAcademiaOpcoes }] : []),
       },
       faceid: {
         titulo: 'Check-in por FaceID (tablet)',
@@ -1562,6 +1935,103 @@ class Component extends DCLogic {
       bolha: 'width:40px; height:40px; border-radius:13px; flex:none; display:flex; align-items:center; justify-content:center; font-size:.95rem; color:' + (MAT_COR[m.tipo] || '#002D72') + '; background:' + (MAT_COR[m.tipo] || '#002D72') + '1f;',
       selo: 'display:inline-block; font-size:.64rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; padding:3px 8px; border-radius:7px; color:' + (MAT_COR[m.tipo] || '#002D72') + '; background:' + (MAT_COR[m.tipo] || '#002D72') + '1a;',
     });
+
+    const descreverSolicitacao = (s) => {
+      const d = s.dadosPedido || {};
+      if (s.tipo === 'mensalidade') return 'Alterar mensalidade para ' + brl(Number(d.novoValor) || 0);
+      if (s.tipo === 'evento') return 'Criar evento "' + (d.nome || '') + '" em ' + (d.data || '-');
+      if (s.tipo === 'transferencia') return 'Transferir ' + (d.alunoNome || '') + ' para ' + (d.destinoNome || '');
+      if (s.tipo === 'vinculo_familia') return 'Vínculo de parentesco com ' + (d.alunoRelacionadoNome || 'outro aluno') + ' (' + (d.grauParentesco || 'parentesco não informado') + ')';
+      return s.tipo || 'Solicitação';
+    };
+    const seloStatus = (status) => 'font-size:.66rem; font-weight:800; padding:4px 9px; border-radius:999px; flex:none; ' + (
+      status === 'aprovado' ? 'color:#0b7a34; background:#e9f9ef;' : (status === 'rejeitado' ? 'color:#D32F2F; background:rgba(211,47,47,.1);' : 'color:#8a5a10; background:#fbe6c8;')
+    );
+    const statusRotulo = (status) => status === 'aprovado' ? 'Aprovado' : (status === 'rejeitado' ? 'Rejeitado' : 'Pendente');
+    const solicAcao = (s) => ({
+      solicitante: s.solicitanteNome || 'Mestre/Professor',
+      descricao: descreverSolicitacao(s),
+      data: s.criadoEm ? new Date(s.criadoEm).toLocaleDateString('pt-BR') : '',
+      status: statusRotulo(s.status),
+      selo: seloStatus(s.status),
+      aprovar: () => this.aprovarSolicitacaoAcao(s.id),
+      rejeitar: () => this.rejeitarSolicitacaoAcao(s.id),
+    });
+    const solicitacoesTodas = this.state.solicitacoesLista || [];
+    const solicPendentesArr = solicitacoesTodas.filter((s) => s.status === 'pendente');
+    const solicHistoricoArr = solicitacoesTodas.filter((s) => s.status !== 'pendente');
+    const solicFamiliaArr = solicitacoesTodas.filter((s) => s.tipo === 'vinculo_familia' && s.status === 'pendente' && s.academiaId === this._academiaGerenciadaId);
+    const solicTransferArr = solicitacoesTodas.filter((s) => s.tipo === 'transferencia' && s.status === 'pendente' && s.dadosPedido && s.dadosPedido.destinoId === this._academiaGerenciadaId);
+    const solicMinhasArr = solicitacoesTodas.filter((s) => s.solicitanteUid === this._uid);
+
+    // ===== Financeiro (aba 'financeiro' pra quem é gestor) — tudo calculado
+    // em cima de pagamentosLista, que já vem escopada certa pelo
+    // carregarFinanceiro() (grupo todo pro admin/fundador, só o próprio
+    // núcleo pro mestre). Nenhum número aqui é inventado: o que não dá pra
+    // calcular com dado real fica com um texto honesto em vez de um valor. =====
+    const pagamentosTodos = this.state.pagamentosLista || [];
+    const hojeFin = new Date();
+    const mesAtualStr = hojeFin.getFullYear() + '-' + String(hojeFin.getMonth() + 1).padStart(2, '0');
+    const mesAtualLabel = (hojeFin.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) || '').replace(/^./, (c) => c.toUpperCase());
+    const pagamentosMes = pagamentosTodos.filter((p) => p.competencia === mesAtualStr);
+    const recebidoMesNum = pagamentosMes.filter((p) => p.pago).reduce((s, p) => s + (Number(p.valor) || 0), 0);
+    const pendenteMesNum = pagamentosMes.filter((p) => !p.pago).reduce((s, p) => s + (Number(p.valor) || 0), 0);
+    const pagosMesCount = pagamentosMes.filter((p) => p.pago).length;
+    const adimplenciaMesPct = pagamentosMes.length > 0 ? Math.round((pagosMesCount / pagamentosMes.length) * 100) : null;
+
+    const receitaPorNucleo = (() => {
+      const mapa = new Map();
+      pagamentosTodos.forEach((p) => {
+        const key = p.academiaId || '-';
+        if (!mapa.has(key)) mapa.set(key, { recebido: 0, pendente: 0, alunos: new Set() });
+        const item = mapa.get(key);
+        if (p.pago) item.recebido += Number(p.valor) || 0; else item.pendente += Number(p.valor) || 0;
+        if (p.alunoId) item.alunos.add(p.alunoId);
+      });
+      const maiorRecebido = Math.max(1, ...Array.from(mapa.values()).map((v) => v.recebido));
+      const nomeDoNucleo = (id) => { const n = (this.state.nucleosLista || []).find((x) => x.id === id); return n ? n.nome : id; };
+      return Array.from(mapa.entries()).map(([id, v]) => ({
+        nome: nomeDoNucleo(id),
+        valor: brl(v.recebido),
+        alunos: v.alunos.size,
+        atraso: v.pendente > 0 ? (brl(v.pendente) + ' pendente') : 'em dia',
+        barra: 'height:100%; border-radius:6px; width:' + Math.round((v.recebido / maiorRecebido) * 100) + '%; background:#0B5C52;',
+      })).sort((a, b) => b.alunos - a.alunos);
+    })();
+
+    const barrasHistorico = (() => {
+      const mapa = new Map();
+      pagamentosTodos.forEach((p) => {
+        if (!p.competencia) return;
+        mapa.set(p.competencia, (mapa.get(p.competencia) || 0) + (p.pago ? (Number(p.valor) || 0) : 0));
+      });
+      const meses = Array.from(mapa.keys()).sort().slice(-12);
+      const maior = Math.max(1, ...meses.map((m) => mapa.get(m)));
+      return meses.map((m) => {
+        const [ano, mesNum] = m.split('-');
+        const nomeMes = new Date(Number(ano), Number(mesNum) - 1, 1).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
+        return {
+          mes: nomeMes,
+          barra: 'display:block; width:100%; min-height:3px; height:' + Math.max(4, Math.round((mapa.get(m) / maior) * 96)) + 'px; border-radius:4px 4px 0 0; background:#0B5C52;',
+        };
+      });
+    })();
+
+    const pagamentosOrdenados = pagamentosTodos.slice().sort((a, b) => (b.criadoEm || '').localeCompare(a.criadoEm || ''));
+    const pagamentoLinha = (p) => ({
+      nome: p.alunoNome || 'Aluno',
+      competencia: p.competencia || '-',
+      valorTexto: brl(p.valor),
+      selo: 'font-size:.66rem; font-weight:800; padding:4px 9px; border-radius:999px; flex:none; ' + (p.pago ? 'color:#0b7a34; background:#e9f9ef;' : 'color:#8a5a10; background:#fbe6c8;'),
+      statusTexto: p.pago ? 'Pago' : 'Pendente',
+      botaoTexto: p.pago ? 'Marcar não pago' : 'Marcar pago',
+      alternar: () => this.marcarPagamentoAcao(p.id, !p.pago),
+    });
+
+    // ===== Árvore do grupo (admin/fundador) — carregada sob demanda em
+    // carregarArvoreGrupo(), guardada em arvoreGrupo. =====
+    const arvoreGrupoArr = this.state.arvoreGrupo || [];
+    const totalAlunosArvore = arvoreGrupoArr.reduce((s, n) => s + n.alunosAtivos, 0);
 
     return {
       telaLogin: !perfilAtual,
@@ -1795,11 +2265,62 @@ class Component extends DCLogic {
 
       ehInicio: !gestor && this.state.aba === 'inicio',
       ehEvolucao: !gestor && this.state.aba === 'evolucao',
-      ehFinanceiro: this.state.aba === 'financeiro',
+      // 'financeiro' é uma aba compartilhada: pra aluno/família é a mensalidade
+      // própria (cartão pessoal); pra mestre/admin/fundador é o financeiro do
+      // núcleo ou do grupo — dois blocos diferentes na mesma aba, nunca os dois
+      // juntos.
+      ehFinanceiro: !gestor && this.state.aba === 'financeiro',
+      ehFinanceiroGrupo: gestor && this.state.aba === 'financeiro',
       ehAulas: this.state.aba === 'aulas',
       ehPerfil: this.state.aba === 'perfil',
       ehTurma: gestor && this.state.aba === 'turma',
       ehGestao: gestor && this.state.aba === 'gestao',
+      ehSolicitacoes: gestor && this.state.aba === 'solicitacoes',
+      ehArvore: grupoTodo && this.state.aba === 'arvore',
+      ehAdminSolicitacoes: admin,
+
+      // ---- Financeiro (grupo/núcleo) ----
+      voltarFinanceiro: () => this.irPara('gestao'),
+      tituloFinanceiro: admin ? 'Financeiro do grupo' : 'Financeiro do núcleo',
+      ehAdminFinanceiro: admin,
+      mesReferenciaTexto: mesAtualLabel,
+      recebidoMesTexto: brl(recebidoMesNum),
+      pendenteMesTexto: brl(pendenteMesNum),
+      temAdimplenciaMes: adimplenciaMesPct != null,
+      adimplenciaMesTexto: adimplenciaMesPct != null ? (adimplenciaMesPct + '%') : '—',
+      semLancamentosMes: pagamentosMes.length === 0,
+      receitaAcademias: receitaPorNucleo,
+      temReceitaAcademias: receitaPorNucleo.length > 0,
+      temHistoricoMensal: barrasHistorico.length >= 2,
+      barrasGrupo: barrasHistorico,
+      temPagamentosLista: pagamentosOrdenados.length > 0,
+      pagamentosRecentes: pagamentosOrdenados.slice(0, 30).map(pagamentoLinha),
+      abrirPagamento: () => this.toast('Para lançar uma nova mensalidade, use o painel de gestão (admin.html) por enquanto.'),
+      gerarRelatorio: () => this.toast('Relatórios detalhados continuam no painel de gestão (admin.html) por enquanto.'),
+
+      // ---- Árvore do grupo ----
+      voltarArvore: () => this.irPara('gestao'),
+      temArvoreGrupo: arvoreGrupoArr.length > 0,
+      totalAlunosArvore: String(totalAlunosArvore),
+      totalNucleosArvore: String(arvoreGrupoArr.length),
+      arvoreGrupoCards: arvoreGrupoArr.map((n) => ({
+        nome: n.nome,
+        professor: n.professor || 'Sem professor definido',
+        alunos: String(n.alunosAtivos),
+        estrela: this._FB.ORDEM_ESTRELA[n.estrela - 1] || 'Sem alunos ainda',
+      })),
+
+      voltarGestao: () => this.irPara('gestao'),
+      irSolicitacoes: () => this.irPara('solicitacoes'),
+      temSolicPendentes: solicPendentesArr.length > 0,
+      solicPendentes: solicPendentesArr.map(solicAcao),
+      solicHistorico: solicHistoricoArr.map(solicAcao),
+      temSolicFamilia: solicFamiliaArr.length > 0,
+      solicFamilia: solicFamiliaArr.map(solicAcao),
+      temSolicTransfer: solicTransferArr.length > 0,
+      solicTransfer: solicTransferArr.map(solicAcao),
+      temSolicMinhas: solicMinhasArr.length > 0,
+      solicMinhas: solicMinhasArr.map(solicAcao),
       ehNucleos: !gestor && this.state.aba === 'nucleos',
       ehNucleoDetalhe: !gestor && this.state.aba === 'nucleoDetalhe',
       ehTrofeus: !gestor && this.state.aba === 'trofeus',
@@ -1824,12 +2345,17 @@ class Component extends DCLogic {
         avaliar: () => this.toast('Para lançar notas, use o painel de gestão (admin.html) por enquanto.'),
       })),
 
-      tituloPainel: admin ? 'PAINEL DO ADMIN' : 'PAINEL DO MESTRE',
-      subtituloPainel: admin ? 'Todos os núcleos do grupo' : (perfilAtual ? perfilAtual.academia : ''),
+      tituloPainel: fundador ? 'PAINEL DO FUNDADOR' : (admin ? 'PAINEL DO ADMIN' : 'PAINEL DO MESTRE'),
+      subtituloPainel: grupoTodo ? 'Todos os núcleos do grupo' : (perfilAtual ? perfilAtual.academia : ''),
       indicadores: [
         { valor: String(this.state.alunos.length), rotulo: 'ALUNOS', cor: '#fff' },
         { valor: String(this.state.pendentes.length), rotulo: 'MATRÍCULAS PENDENTES', cor: '#00E676' },
-        { valor: '—', rotulo: 'EM ATRASO', cor: '#F39C12' },
+        // Em atraso: contagem real de alunos com pelo menos um pagamento
+        // marcado como não-pago em pagamentosLista (mesmo alcance do
+        // carregarFinanceiro — grupo todo pro admin/fundador, só o próprio
+        // núcleo pro mestre). Nunca fabricado — se ainda não há pagamentos
+        // lançados, o número é 0 de verdade, não um traço decorativo.
+        { valor: String(new Set((this.state.pagamentosLista || []).filter((p) => !p.pago).map((p) => p.alunoId)).size), rotulo: 'EM ATRASO', cor: '#F39C12' },
       ],
       temPendentes: this.state.pendentes.length > 0,
       pendentes: this.state.pendentes.map((p) => ({
@@ -1837,17 +2363,42 @@ class Component extends DCLogic {
         aprovar: () => this.toast('Aprove matrículas pelo painel de gestão (admin.html).'),
         recusar: () => this.toast('Recuse matrículas pelo painel de gestão (admin.html).'),
       })),
-      acoesGestao: [
-        { id:'transferir', rotulo:'Transferir aluno', ajuda:'Mudar o aluno de academia', icone:'fas fa-right-left', cor:'#389E92' },
-        { id:'vincular', rotulo:'Vincular familiar', ajuda:'Ligar um dependente à conta', icone:'fas fa-link', cor:'#00B140' },
-        { id:'papel', rotulo:'Habilitar professor', ajuda:'Dar academia própria a um usuário', icone:'fas fa-chalkboard-teacher', cor:'#002D72' },
-        { id:'pagamento', rotulo:'Lançar pagamento', ajuda:'Dinheiro, PIX ou transferência', icone:'fas fa-wallet', cor:'#F39C12' },
-        { id:'aviso', rotulo:'Enviar aviso', ajuda:'Notificação para uma academia', icone:'far fa-bell', cor:'#D2691E' },
-      ].map((g) => ({
-        rotulo: g.rotulo, ajuda: g.ajuda, icone: g.icone,
-        bolha: 'width:40px; height:40px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:1rem; color:' + g.cor + '; background:' + g.cor + '1f;',
-        abrir: () => this.abrirSheet(g.id),
-      })),
+
+      // Meu núcleo — card real de quem administra um núcleo (mestre, ou
+      // admin/fundador que também tem academiaGerenciadaId), dados via
+      // carregarMeuNucleoStats(). presencaMedia null = sem check-ins
+      // registrados ainda (mensagem honesta, nunca 0% fabricado).
+      temMeuNucleo: !!this._academiaGerenciadaId,
+      meuNucleoNome: (() => {
+        const n = (this.state.nucleosLista || []).find((x) => x.id === this._academiaGerenciadaId);
+        return n ? n.nome : (perfilAtual ? perfilAtual.academia : '');
+      })(),
+      meuNucleoAlunos: this.state.meuNucleoStats ? String(this.state.meuNucleoStats.alunosAtivos) : '—',
+      temMeuNucleoPresenca: !!(this.state.meuNucleoStats && this.state.meuNucleoStats.presencaMedia != null),
+      meuNucleoPresenca: (this.state.meuNucleoStats && this.state.meuNucleoStats.presencaMedia != null) ? (this.state.meuNucleoStats.presencaMedia + '%') : 'Sem check-ins ainda',
+      meuNucleoEstrela: this.state.meuNucleoStats ? (this._FB.ORDEM_ESTRELA[this.state.meuNucleoStats.estrela - 1] || 'Sem alunos ainda') : '—',
+      abrirMeuNucleoTurma: () => this.irPara('turma'),
+
+      acoesGestao: (() => {
+        const tile = (g) => ({
+          rotulo: g.rotulo, ajuda: g.ajuda, icone: g.icone,
+          bolha: 'width:40px; height:40px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:1rem; color:' + g.cor + '; background:' + g.cor + '1f;',
+          abrir: g.abrir || (() => this.abrirSheet(g.id)),
+        });
+        const pendCount = (this.state.solicitacoesLista || []).filter((s) => s.status === 'pendente').length;
+        const base = [
+          { id:'transferir', rotulo:'Transferir aluno', ajuda:'Mudar o aluno de academia', icone:'fas fa-right-left', cor:'#389E92' },
+          { id:'vincular', rotulo:'Vincular familiar', ajuda:'Ligar um dependente à conta', icone:'fas fa-link', cor:'#00B140' },
+          { id:'papel', rotulo:'Habilitar professor', ajuda:'Dar academia própria a um usuário', icone:'fas fa-chalkboard-teacher', cor:'#002D72' },
+          { rotulo:'Solicitações', ajuda: pendCount > 0 ? (pendCount + ' pendente' + (pendCount > 1 ? 's' : '')) : 'Nenhuma pendente', icone:'fas fa-inbox', cor:'#F39C12', abrir: () => this.irPara('solicitacoes') },
+          { id:'aviso', rotulo:'Enviar aviso', ajuda:'Notificação para uma academia', icone:'far fa-bell', cor:'#D2691E' },
+          { rotulo: admin ? 'Financeiro do grupo' : 'Financeiro do núcleo', ajuda: admin ? 'Receita e pendências de todos os núcleos' : 'Mensalidades do seu núcleo', icone:'fas fa-wallet', cor:'#00B140', abrir: () => this.irPara('financeiro') },
+        ];
+        const soGrupoTodo = grupoTodo ? [
+          { rotulo:'Árvore do grupo', ajuda:'Hierarquia e estrela viva por núcleo', icone:'fas fa-sitemap', cor:'#8E44AD', abrir: () => { this.irPara('arvore'); if (!this.state.arvoreCarregada) this.carregarArvoreGrupo(); } },
+        ] : [];
+        return base.concat(soGrupoTodo).map(tile);
+      })(),
       abrirPublicar: () => this.abrirSheet('publicar'),
       materiaisGestao: this.state.materiais.slice(0, 6).map((m) => ({
         titulo: m.titulo, tipo: m.tipo, destino: m.destino, icone: MAT_ICONE[m.tipo] || 'fas fa-book',
@@ -1939,6 +2490,24 @@ class Component extends DCLogic {
           } catch (e) {
             console.error(e);
             this.toast('Não foi possível publicar o material agora.');
+          }
+        } else if (tipo === 'aviso') {
+          const tituloAviso = pega('titulo', '').trim();
+          const textoAviso = pega('texto', '').trim();
+          if (!tituloAviso || !textoAviso) { this.toast('Preencha título e mensagem antes de publicar.'); return; }
+          try {
+            await this._FB.publicarAviso({
+              titulo: tituloAviso,
+              texto: textoAviso,
+              tipo: pega('tipoAviso', 'geral'),
+              academiaId: admin ? (pega('academiaAviso', '') || null) : this._academiaGerenciadaId,
+              autorUid: this._uid,
+              autorNome: perfilAtual ? perfilAtual.nome : '',
+            });
+            this.toast('Aviso publicado!');
+          } catch (e) {
+            console.error(e);
+            this.toast('Não foi possível publicar o aviso agora.');
           }
         } else {
           this.toast('Tudo certo.');
