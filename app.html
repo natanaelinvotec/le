@@ -242,7 +242,7 @@ a:hover{ color:#389E92; }
                     </div>
                     <div style="flex:1; min-width:0;">
                       <div style="font-size:.9rem; font-weight:700; color:#0D211D;">{{ proximaAula.titulo }}</div>
-                      <div style="font-size:.76rem; color:#5B6B68; margin-top:1px;">{{ proximaAula.horario }} · {{ proximaAula.local }}</div>
+                      <div style="font-size:.76rem; color:#5B6B68; margin-top:1px;">{{ proximaAula.subtitulo }}</div>
                     </div>
                   </div>
                   <button onClick="{{ irAulas }}" style="width:100%; margin-top:12px; background:#00B140; color:#fff; border:none; border-radius:12px; padding:11px; font-size:.8rem; font-weight:700; cursor:pointer; font-family:'Manrope',sans-serif;">Ver detalhes na agenda</button>
@@ -255,10 +255,18 @@ a:hover{ color:#389E92; }
                   <h2 style="margin:0; font-family:'Sora',sans-serif; color:#0D211D; font-size:1.02rem;">Avisos</h2>
                 </div>
                 <div style="display:flex; flex-direction:column; gap:9px;">
-                  <div style="background:#fff; border:1px solid #E2E8E6; border-left:3px solid #DAA520; border-radius:14px; padding:12px 14px;">
-                    <div style="font-size:.82rem; font-weight:700; color:#0D211D;">Batizado marcado</div>
-                    <div style="font-size:.74rem; color:#5B6B68; margin-top:2px;">Data e detalhes serão confirmados pelo seu mestre.</div>
-                  </div>
+                  <sc-for list="{{ avisosRecentes }}" as="av" hint-placeholder-count="0">
+                    <div style="{{ av.cartao }}">
+                      <div style="font-size:.82rem; font-weight:700; color:#0D211D;">{{ av.titulo }}</div>
+                      <div style="font-size:.74rem; color:#5B6B68; margin-top:2px;">{{ av.texto }}</div>
+                      <sc-if value="{{ av.temDetalhes }}" hint-placeholder-val="{{ false }}">
+                        <div style="font-size:.68rem; color:#0B5C52; font-weight:700; margin-top:5px;"><i class="fas fa-calendar-days"></i> {{ av.detalhes }}</div>
+                      </sc-if>
+                    </div>
+                  </sc-for>
+                  <sc-if value="{{ semAvisos }}" hint-placeholder-val="{{ false }}">
+                    <div style="background:#fff; border:1px dashed #E2E8E6; border-radius:14px; padding:14px; text-align:center; font-size:.78rem; color:#5B6B68;">Nenhum aviso publicado no momento.</div>
+                  </sc-if>
                   <div style="background:#fff; border:1px solid #E2E8E6; border-left:3px solid #0B5C52; border-radius:14px; padding:12px 14px;">
                     <div style="font-size:.82rem; font-weight:700; color:#0D211D;">Mensalidade</div>
                     <div style="font-size:.74rem; color:#5B6B68; margin-top:2px;">{{ mensalidadeAjuda }}</div>
@@ -619,7 +627,7 @@ a:hover{ color:#389E92; }
                       </div>
                       <div style="flex:1; min-width:0;">
                         <div style="{{ e.tituloEstilo }}">{{ e.titulo }}</div>
-                        <div style="color:#5B6B68; font-size:.79rem; margin-top:3px;">{{ e.local }} · {{ e.horario }}</div>
+                        <div style="color:#5B6B68; font-size:.79rem; margin-top:3px;">{{ e.subtitulo }}</div>
                       </div>
                       <a href="{{ e.acaoLink }}" target="_blank" rel="noopener" aria-label="{{ e.acaoRotulo }}" style="width:42px; height:42px; border-radius:13px; border:1px solid #E2E8E6; background:#fff; color:#002D72; display:flex; align-items:center; justify-content:center; flex:none;"><i class="{{ e.acaoIcone }}"></i></a>
                     </div>
@@ -1035,7 +1043,12 @@ a:hover{ color:#389E92; }
                               <div style="font-weight:700; color:#0D211D; font-size:.82rem;">{{ s.descricao }}</div>
                               <div style="color:#5B6B68; font-size:.74rem; margin-top:2px;">{{ s.data }}</div>
                             </div>
-                            <span style="{{ s.selo }}">{{ s.status }}</span>
+                            <div style="display:flex; align-items:center; gap:8px; flex:none;">
+                              <span style="{{ s.selo }}">{{ s.status }}</span>
+                              <sc-if value="{{ s.pendente }}" hint-placeholder-val="{{ false }}">
+                                <button onClick="{{ s.cancelar }}" style="border:none; background:none; color:#D32F2F; font-size:.68rem; font-weight:700; cursor:pointer; font-family:'Manrope',sans-serif;">Cancelar</button>
+                              </sc-if>
+                            </div>
                           </div>
                         </sc-for>
                       </div>
@@ -1500,12 +1513,11 @@ const CATEGORIAS_MATERIAL = [
   { chave:'cordas', rotulo:'Cordas e graduação', sub:'requisitos por nível', icone:'fas fa-check-double', cor:'#00B140', bg:'#e9f9ef', termos:['corda','cordão','cordao','graduação','graduacao','requisito','nível','nivel'] },
 ];
 
-const AGENDA = [
-  { titulo:'Batizado do Profº Rafinha', local:'Rancho Alegre', horario:'19:00h', dia:'19', mes:'SET', quando:'2026-09-19' },
-  { titulo:'Batizado do Mestre Omar', local:'Guanandi', horario:'19:00h', dia:'15', mes:'NOV', quando:'2026-11-15' },
-  { titulo:'Batizado do Mestre Profeta', local:'Buriti', horario:'19:00h', dia:'22', mes:'AGO', quando:'2026-08-22' },
-  { titulo:'Roda do Profº Rafinha', local:'Rancho Alegre', horario:'19:00h', dia:'29', mes:'AGO', quando:'2026-08-29' }
-];
+// A Agenda usa eventos reais (coleção eventos/{id} do Firestore, carregada em
+// carregarEventos() -> state.eventosLista), nunca uma lista fixa no código —
+// era esse array fixo aqui antes que fazia um evento passado (batizado de
+// teste) aparecer fora de ordem, por não existir ordenação real nenhuma.
+const MESES_ABREV = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
 
 const PENDENTES = [];
 
@@ -1571,6 +1583,7 @@ class Component extends DCLogic {
     nucleosLista: [], nucleoAberto: null,
     presencaPct: 0, presencaTotal: 0, presencaConfirmadas: 0, semanasSeguidas: 0, presencaRecentes: [],
     solicitacoesLista: [], pagamentosLista: [], despesasLista: [],
+    avisosLista: [], eventosLista: [],
     arvoreGrupo: [], arvoreCarregada: false, professoresSemNucleo: [], presencaGeralPct: null, eventosFuturosCount: 0,
     meuNucleoStats: null,
     statsExpandido: false,
@@ -1679,6 +1692,8 @@ class Component extends DCLogic {
 
     this.carregarMateriaisReais();
     this.carregarNucleos();
+    this.carregarAvisos();
+    this.carregarEventos();
     if (!gestorPapel) this.carregarPresenca();
     if (gestorPapel) {
       this.carregarSolicitacoes();
@@ -1743,6 +1758,31 @@ class Component extends DCLogic {
     } catch (e) { console.error(e); }
   }
 
+  // Avisos reais (avisos/{id}) — geral do grupo (academiaId nulo) ou do
+  // próprio núcleo (de quem administra, ou de onde o próprio atleta treina).
+  // Antes esta seção era 100% fixa no código ("Batizado marcado"), nunca
+  // conectada ao Firestore — por isso um aviso publicado no admin nunca
+  // aparecia aqui. allow read: if logado() no firestore.rules já cobre
+  // qualquer papel, então dá pra carregar pra todo mundo logo no login.
+  async carregarAvisos() {
+    try {
+      const avisos = await this._FB.listarAvisos(20);
+      this.setState({ avisosLista: avisos });
+    } catch (e) { console.error(e); }
+  }
+
+  // Eventos reais (eventos/{id}), criados pelo admin/fundador direto ou pela
+  // aprovação de uma solicitação de evento/batizado. allow read: if logado()
+  // cobre todo mundo. A Agenda usa esta lista real, sempre ordenada por
+  // data — antes era um array fixo no código (por isso um evento passado
+  // podia aparecer fora de ordem: não existia ordenação nenhuma de verdade).
+  async carregarEventos() {
+    try {
+      const eventos = await this._FB.listar('eventos');
+      this.setState({ eventosLista: eventos });
+    } catch (e) { console.error(e); }
+  }
+
   // Solicitações: mesma lógica de permissão do admin.js — admin lê a coleção
   // inteira; um mestre/professor não-admin não tem permissão pra isso, só lê
   // as próprias (minhasSolicitacoes) + o que espera aprovação dele (vínculo de
@@ -1788,6 +1828,14 @@ class Component extends DCLogic {
       this.toast('Solicitação aprovada e aplicada!');
       await this.carregarSolicitacoes();
     } catch (e) { console.error(e); this.toast('Não foi possível aprovar agora.'); }
+  }
+
+  async cancelarSolicitacaoAcao(id) {
+    try {
+      await this._FB.remover('solicitacoes', id);
+      this.toast('Solicitação cancelada.');
+      await this.carregarSolicitacoes();
+    } catch (e) { console.error(e); this.toast('Não foi possível cancelar agora.'); }
   }
 
   async rejeitarSolicitacaoAcao(id) {
@@ -2007,8 +2055,52 @@ class Component extends DCLogic {
     const { ativos: criteriosAtivos, progresso } = progressoDe(atleta.idade, atleta.idxCordao, atleta.notasReais);
     const notas = criteriosAtivos.map((c) => [c.txt, Number(atleta.notasReais[c.id]) || 0]);
     const listaCordoes = cordoesPorIdade(atleta.idade);
-    const futurosAgenda = AGENDA.filter((e) => new Date(e.quando) >= new Date()).sort((a, b) => new Date(a.quando) - new Date(b.quando));
+    // Eventos reais (coleção eventos/{id}) — nome/data/descricao é tudo que o
+    // modelo de dados guarda hoje (sem local/horário próprios), então o
+    // "local" vem do núcleo real (academiaId -> nucleosLista) e a descrição
+    // livre do evento vira o subtítulo, nunca um horário inventado.
+    const nomeNucleoPorId = (id) => { const n = (this.state.nucleosLista || []).find((x) => x.id === id); return n ? n.nome : ''; };
+    const hojeStrAgenda = new Date().toISOString().slice(0, 10);
+    const eventosReais = (this.state.eventosLista || []).map((e) => {
+      const dt = e.data ? new Date(e.data + 'T00:00:00') : null;
+      const partesSub = [nomeNucleoPorId(e.academiaId), e.descricao].filter(Boolean);
+      return {
+        id: e.id,
+        titulo: e.nome || 'Evento',
+        quando: e.data || '',
+        dia: dt ? String(dt.getDate()).padStart(2, '0') : '--',
+        mes: dt ? MESES_ABREV[dt.getMonth()] : '',
+        subtitulo: partesSub.length ? partesSub.join(' · ') : 'Detalhes com o seu mestre',
+        nucleoNome: nomeNucleoPorId(e.academiaId),
+      };
+    }).sort((a, b) => (a.quando || '').localeCompare(b.quando || ''));
+    const futurosAgenda = eventosReais.filter((e) => e.quando && e.quando >= hojeStrAgenda);
     const proximoEvento = futurosAgenda[0] || null;
+
+    // Avisos reais (state.avisosLista, vindo de carregarAvisos()) — geral do
+    // grupo (academiaId nulo) ou do núcleo de quem administra / onde o
+    // atleta treina. Some sozinho depois da data (mesma regra do admin.html).
+    const meuNucleoAvisos = this._academiaGerenciadaId || atleta.academiaId || null;
+    const CORES_AVISO = { evento: '#DAA520', financeiro: '#0B5C52', geral: '#002D72' };
+    const avisosRecentes = (this.state.avisosLista || [])
+      .filter((a) => !a.academiaId || a.academiaId === meuNucleoAvisos)
+      .filter((a) => !a.data || a.data >= hojeStrAgenda)
+      .slice(0, 4)
+      .map((a) => {
+        const detalhesPartes = [
+          a.data ? new Date(a.data + 'T00:00:00').toLocaleDateString('pt-BR') : '',
+          a.hora || '',
+          a.local || '',
+        ].filter(Boolean);
+        return {
+          titulo: a.titulo || 'Aviso',
+          texto: a.texto || '',
+          cartao: 'background:#fff; border:1px solid #E2E8E6; border-left:3px solid ' + (CORES_AVISO[a.tipo] || CORES_AVISO.geral) + '; border-radius:14px; padding:12px 14px;',
+          temDetalhes: detalhesPartes.length > 0,
+          detalhes: detalhesPartes.join(' · '),
+        };
+      });
+    const semAvisos = avisosRecentes.length === 0;
     const corAtleta = corCordao(atleta.idade, atleta.cordao);
     const barraCordaoEstilo = 'height:100%; width:' + progresso + '%; border-radius:20px; animation:apTranca 2s linear infinite; box-shadow:0 0 14px rgba(0,230,118,.6); background:repeating-linear-gradient(45deg,' + corAtleta[0] + ' 0,' + corAtleta[0] + ' 10px,' + corAtleta[1] + ' 10px,' + corAtleta[1] + ' 20px,' + corAtleta[2] + ' 20px,' + corAtleta[2] + ' 30px);';
     const ABAS = admin ? ABAS_ADMIN : (gestor ? ABAS_MESTRE : ABAS_ALUNO);
@@ -2156,8 +2248,10 @@ class Component extends DCLogic {
       data: s.criadoEm ? new Date(s.criadoEm).toLocaleDateString('pt-BR') : '',
       status: statusRotulo(s.status),
       selo: seloStatus(s.status),
+      pendente: s.status === 'pendente',
       aprovar: () => this.aprovarSolicitacaoAcao(s.id),
       rejeitar: () => this.rejeitarSolicitacaoAcao(s.id),
+      cancelar: () => this.cancelarSolicitacaoAcao(s.id),
     });
     const solicitacoesTodas = this.state.solicitacoesLista || [];
     const solicPendentesArr = solicitacoesTodas.filter((s) => s.status === 'pendente');
@@ -2364,8 +2458,8 @@ class Component extends DCLogic {
 
       temProximaAula: !!proximoEvento,
       proximaAula: proximoEvento
-        ? { titulo: proximoEvento.titulo, local: proximoEvento.local, horario: proximoEvento.horario, dia: proximoEvento.dia, mes: proximoEvento.mes }
-        : { titulo:'', local:'', horario:'', dia:'', mes:'' },
+        ? { titulo: proximoEvento.titulo, subtitulo: proximoEvento.subtitulo, dia: proximoEvento.dia, mes: proximoEvento.mes }
+        : { titulo:'', subtitulo:'', dia:'', mes:'' },
 
       buscaNucleo: this.state.buscaNucleo || '',
       mudarBuscaNucleo: (ev) => this.setState({ buscaNucleo: ev.target.value }),
@@ -2436,6 +2530,8 @@ class Component extends DCLogic {
       mensalidadeAcademia: atleta.academia,
       statusMensalidade: 'A CONFIRMAR',
       mensalidadeAjuda: 'Confirme o pagamento e o vencimento diretamente com a sua academia.',
+      avisosRecentes,
+      semAvisos,
       pagarPix: () => this.toast('Fale com o seu mestre ou a secretaria para combinar o pagamento.'),
       comparativoFamilia: ATLETAS.map((a) => ({ nome: a.curto, foto: a.foto, valor: a.mensalidadeValor != null ? brl(a.mensalidadeValor) : 'A confirmar' })),
       produtosProntos: PRODUTOS,
@@ -2454,10 +2550,14 @@ class Component extends DCLogic {
       temMateriaisFiltrados: materiaisFiltrados.length > 0,
       tituloVazioMaterial: this.state.materiais.length === 0 ? 'Sua academia ainda não enviou materiais' : 'Nenhum material encontrado',
       materiais: materiaisFiltrados.map(enfeiteMaterial),
-      agenda: AGENDA.map((e) => {
-        const passou = new Date(e.quando) < new Date();
+      // eventosReais já vem ordenado cronologicamente (sort feito acima, na
+      // hora de montar futurosAgenda) — é exatamente essa ordenação real que
+      // faltava antes (array fixo, sem sort nenhum, por isso um batizado de
+      // teste passado podia aparecer acima de um futuro).
+      agenda: eventosReais.map((e) => {
+        const passou = e.quando && e.quando < hojeStrAgenda;
         return {
-          dia: e.dia, mes: e.mes, titulo: e.titulo, local: e.local, horario: e.horario,
+          dia: e.dia, mes: e.mes, titulo: e.titulo, subtitulo: e.subtitulo,
           cartao: 'display:flex; align-items:center; gap:14px; background:#fff; border:1px solid #E2E8E6; border-radius:16px; padding:13px;',
           dataBox: passou
             ? 'width:52px; height:52px; border-radius:14px; background:#DDE5E4; color:#6B7A80; display:flex; flex-direction:column; align-items:center; justify-content:center; flex:none;'
@@ -2467,7 +2567,7 @@ class Component extends DCLogic {
             : "font-family:'Sora',sans-serif; color:#002D72; font-weight:800; font-size:.92rem; line-height:1.2;",
           acaoIcone: passou ? 'fas fa-images' : 'fas fa-map-marked-alt',
           acaoRotulo: passou ? 'Veja as fotos e vídeos' : 'Como chegar',
-          acaoLink: passou ? 'https://drive.google.com/drive/folders/' : 'https://www.google.com/maps',
+          acaoLink: passou ? 'https://drive.google.com/drive/folders/' : ('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(e.nucleoNome || e.titulo || 'Capoeira Liberdade')),
         };
       }),
 

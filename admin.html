@@ -226,6 +226,18 @@ Escolha um aluno já cadastrado para virar responsável por este núcleo
 <select id="avisoAcademia" class="input-padrao" data-papel="admin">
 <option value="">Todos os núcleos</option>
 </select>
+<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+<label style="display:flex; flex-direction:column; gap:4px; font-size:0.78rem; color:var(--text-muted);">Data (opcional)
+<input type="date" id="avisoData" class="input-padrao">
+</label>
+<label style="display:flex; flex-direction:column; gap:4px; font-size:0.78rem; color:var(--text-muted);">Hora (opcional)
+<input type="time" id="avisoHora" class="input-padrao">
+</label>
+<label style="display:flex; flex-direction:column; gap:4px; font-size:0.78rem; color:var(--text-muted);">Local (opcional)
+<input type="text" id="avisoLocal" placeholder="Ex: Academia Mestre Profeta" class="input-padrao">
+</label>
+</div>
+<p style="font-size:0.78rem; color:var(--text-muted); margin:0;">Preenchendo a data, o aviso some sozinho da lista assim que o dia passar — deixe em branco para um aviso sem prazo.</p>
 <button type="submit" class="btn-detalhes" style="width:220px;">Publicar</button>
 </form>
 </div>

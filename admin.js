@@ -14,7 +14,7 @@ ao conteúdo de Formação; sem ferramentas financeiras próprias.
 */
 import {
 observarSessao, recuperarSenha, sair,
-buscar, listar, listarPorAcademia, salvar, atualizar,
+buscar, listar, listarPorAcademia, salvar, atualizar, remover,
 criarSolicitacao, minhasSolicitacoes, criarContaComoAdmin,
 solicitacoesPendentesDoNucleo, aprovarVinculoFamilia, transferenciasPendentesParaDestino,
 publicarAviso, listarAvisos,
@@ -701,8 +701,16 @@ const filtrados = alunos.filter((a) => (ac === '' || a.academiaId === ac) && (tx
 // painel do Admin Master de verdade (outra conta, vendo "Todos os Alunos"),
 // o registro dele continua aparecendo normalmente na grade, como qualquer
 // outro aluno, pra manter o "Avaliar/Editar" acessível por lá.
-const meuRegistro = ((souFundador(sessaoAtual) || ehMestre()) && !ehAdmin()) ? (filtrados.find((a) => a.id === sessaoAtual.uid) || null) : null;
+// ehInstrutorLogado() incluído aqui também — antes só mestre/fundador ganhavam
+// o cartão de destaque, e o instrutor via a tela sem cabeçalho nenhum.
+const meuRegistro = ((souFundador(sessaoAtual) || ehMestre() || ehInstrutorLogado()) && !ehAdmin()) ? (filtrados.find((a) => a.id === sessaoAtual.uid) || null) : null;
 renderizarHeroFundador(meuRegistro);
+// A faixa verde "Meus Alunos — Academia X ★★★★★★★ N/7" (section-header) só
+// faz sentido pra quem NÃO tem o cartão de destaque (Admin Master vendo
+// "Todos os Alunos") — pra quem tem o cartão, ela duplicava nome/estrela que
+// já aparecem no próprio cartão, então some daqui.
+const headerAlunos = document.querySelector('#aba-alunos .section-header');
+if (headerAlunos) headerAlunos.classList.toggle('oculto', !!meuRegistro);
 renderizarArvoreFormacao();
 renderizarGrid(meuRegistro ? filtrados.filter((a) => a.id !== meuRegistro.id) : filtrados);
 desenharGraficos(filtrados);
@@ -1382,6 +1390,7 @@ lista.innerHTML = minhas.length
 <span>${new Date(s.criadoEm).toLocaleDateString('pt-BR')}</span>
 </div>
 <span class="pill pill-${s.status}">${s.status === 'pendente' ? 'Pendente' : (s.status === 'aprovado' ? 'Aprovado' : 'Rejeitado')}</span>
+${s.status === 'pendente' ? `<button class="btn-mini btn-mini-rejeitar" onclick="cancelarSolicitacao('${s.id}')">Cancelar</button>` : ''}
 </div>`).join('')
 : '<div class="empty-state"><i class="fas fa-inbox"></i>Você ainda não enviou nenhuma solicitação.</div>';
 
@@ -1485,26 +1494,74 @@ toast('Erro ao rejeitar solicitação.', 'error');
 }
 };
 
+// Cancelar uma solicitação PRÓPRIA ainda pendente — hoje quem manda um
+// pedido (mensalidade, evento, transferência) não tinha como desistir dele.
+// Só apaga o documento, sem aplicar efeito nenhum (é diferente de rejeitar,
+// que é o admin recusando o pedido de outra pessoa).
+window.cancelarSolicitacao = async function (id) {
+if (!confirm('Cancelar esta solicitação? Ela será removida.')) return;
+try {
+await remover('solicitacoes', id);
+toast('Solicitação cancelada.');
+await carregarSolicitacoes();
+} catch (e) {
+console.error(e);
+toast('Erro ao cancelar solicitação.', 'error');
+}
+};
+
 /* ===================== AVISOS ===================== */
+function avisoExpirado(a) {
+// Sem data = aviso sem prazo, nunca expira sozinho. Com data, some da
+// lista assim que o dia passar (comparação lexicográfica 'YYYY-MM-DD',
+// mesmo padrão já usado nos eventos futuros do app).
+if (!a.data) return false;
+const hoje = new Date().toISOString().slice(0, 10);
+return a.data < hoje;
+}
+
 async function carregarAvisos() {
 try {
 const avisos = await listarAvisos(20);
-const visiveis = ehAdmin() ? avisos : avisos.filter((a) => !a.academiaId || a.academiaId === sessaoAtual.academiaGerenciadaId);
+const doNucleo = ehAdmin() ? avisos : avisos.filter((a) => !a.academiaId || a.academiaId === sessaoAtual.academiaGerenciadaId);
+const visiveis = doNucleo.filter((a) => !avisoExpirado(a));
 const lista = document.getElementById('listaAvisos');
+const podeExcluir = ehAdmin() || souFundador(sessaoAtual);
 lista.innerHTML = visiveis.length
-? visiveis.map((a) => `
+? visiveis.map((a) => {
+const detalhes = [
+a.data ? new Date(a.data + 'T00:00:00').toLocaleDateString('pt-BR') : '',
+a.hora || '',
+a.local ? escapeHTML(a.local) : '',
+].filter(Boolean).join(' · ');
+return `
 <div class="lista-item">
 <div class="lista-item-info">
 <strong>${escapeHTML(a.titulo)} <span class="pill pill-aprovado">${escapeHTML(a.tipo || 'geral')}</span></strong>
 <span>${escapeHTML(a.texto)}</span>
+${detalhes ? `<span style="color:var(--primary-teal); font-weight:700;"><i class="fas fa-calendar-days"></i> ${detalhes}</span>` : ''}
 </div>
-</div>`).join('')
+${podeExcluir ? `<div class="lista-item-actions"><button class="btn-mini btn-mini-rejeitar" onclick="excluirAviso('${a.id}')">Excluir</button></div>` : ''}
+</div>`;
+}).join('')
 : '<div class="empty-state"><i class="fas fa-bell-slash"></i>Nenhum aviso publicado ainda.</div>';
 } catch (e) {
 console.error(e);
 toast('Não foi possível carregar os avisos.', 'error');
 }
 }
+
+window.excluirAviso = async function (id) {
+if (!confirm('Excluir este aviso?')) return;
+try {
+await remover('avisos', id);
+toast('Aviso excluído.');
+await carregarAvisos();
+} catch (e) {
+console.error(e);
+toast('Erro ao excluir aviso.', 'error');
+}
+};
 
 const formNovoAviso = document.getElementById('formNovoAviso');
 if (formNovoAviso) {
@@ -1518,6 +1575,9 @@ await publicarAviso({
 titulo: sanitizeInput(document.getElementById('avisoTitulo').value),
 texto: sanitizeInput(document.getElementById('avisoTexto').value),
 tipo: document.getElementById('avisoTipo').value,
+data: document.getElementById('avisoData').value || null,
+hora: document.getElementById('avisoHora').value || null,
+local: sanitizeInput(document.getElementById('avisoLocal').value) || null,
 academiaId,
 autorUid: sessaoAtual.uid,
 autorNome: sessaoAtual.nome,

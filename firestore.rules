@@ -109,7 +109,11 @@ resource.data.academiaId == minhaAcademiaGerenciada() &&
 resource.data.tipo in ['vinculo_familia', 'transferencia'] &&
 request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
 );
-allow delete: if ehAdmin();
+// Quem enviou o pedido pode cancelar (apagar) enquanto ele ainda estiver
+// pendente — antes só o admin conseguia apagar, então quem se arrependia
+// de um pedido de mensalidade/evento/transferência ficava travado.
+allow delete: if ehAdmin() || souFundador() ||
+(logado() && resource.data.solicitanteUid == request.auth.uid && resource.data.status == 'pendente');
 }
 
 match /eventos/{id} {
@@ -121,8 +125,13 @@ allow write: if ehAdmin() || souFundador();
 
 match /avisos/{id} {
 allow read: if logado();
-allow create: if ehAdmin() || (ehGestor() && request.resource.data.academiaId == minhaAcademiaGerenciada());
-allow update, delete: if ehAdmin();
+// souFundador() aditivo em create/update/delete: o Mestre Profeta também
+// publica/exclui avisos (inclusive "Geral", academiaId nulo), igual ao
+// admin — sem isso o botão "Excluir aviso" do Painel do Fundador aparece
+// na tela mas a exclusão falha por permissão, igual já aconteceu antes
+// com solicitações/eventos/núcleos.
+allow create: if ehAdmin() || souFundador() || (ehGestor() && request.resource.data.academiaId == minhaAcademiaGerenciada());
+allow update, delete: if ehAdmin() || souFundador();
 }
 
 match /materiais/{id} {
