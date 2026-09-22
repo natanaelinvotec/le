@@ -55,9 +55,14 @@ allow write: if ehAdmin();
 }
 
     match /presencas/{id} {
+      // souFundador() aditivo: o Painel do Fundador mostra uma "presença
+      // geral" real do grupo inteiro (mesmo motivo dos blocos de
+      // solicitacoes/pagamentos acima) — só leitura, cada aluno continua
+      // só podendo criar/editar a própria presença.
       allow read: if logado() && (
         resource.data.uid == request.auth.uid ||
         ehAdmin() ||
+        souFundador() ||
         (ehGestor() && resource.data.nucleoId == minhaAcademiaGerenciada())
       );
       allow create: if logado() &&

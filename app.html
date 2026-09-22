@@ -480,44 +480,61 @@ a:hover{ color:#389E92; }
 
           <sc-if value="{{ ehArvore }}" hint-placeholder-val="{{ false }}">
             <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
-              <div style="background:#002D72; padding:52px 20px 24px; border-radius:0 0 26px 26px; display:flex; align-items:center; gap:10px;">
-                <button onClick="{{ voltarArvore }}" aria-label="Voltar" style="width:32px; height:32px; border-radius:999px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center; flex:none; cursor:pointer;"><i class="fas fa-chevron-left" style="font-size:.7rem; color:#fff;"></i></button>
+              <div style="background:#fff; padding:48px 20px 18px; border-bottom:1px solid #E2E8E6; display:flex; align-items:center; gap:10px;">
+                <button onClick="{{ voltarArvore }}" aria-label="Voltar" style="width:32px; height:32px; border-radius:999px; background:#F5F9F8; border:1px solid #E2E8E6; display:flex; align-items:center; justify-content:center; flex:none; cursor:pointer;"><i class="fas fa-chevron-left" style="font-size:.7rem; color:#0D211D;"></i></button>
                 <div>
-                  <div style="color:#00E676; font-size:.7rem; font-weight:800; letter-spacing:.14em;">ÁRVORE DO GRUPO</div>
-                  <h1 style="margin:0; color:#fff; font-family:'Sora',sans-serif; font-size:1.15rem;">{{ totalNucleosArvore }} núcleos · {{ totalAlunosArvore }} alunos ativos</h1>
+                  <div style="font-size:.66rem; letter-spacing:.06em; color:#5B6B68; text-transform:uppercase;">Formação</div>
+                  <h1 style="margin:0; font-size:1.1rem; font-weight:800; color:#0D211D; font-family:'Sora',sans-serif;">Árvore do grupo</h1>
                 </div>
               </div>
-              <div style="margin:16px;">
-                <p style="margin:0 0 14px; color:#5B6B68; font-size:.78rem; line-height:1.5;">Estrela viva reflete a graduação mais alta entre os alunos ativos de cada núcleo — o mesmo cálculo usado no painel de gestão (admin.html).</p>
+              <p style="margin:10px 20px 0; font-size:.72rem; color:#5B6B68; line-height:1.5;">Quem formou quem, do mestre fundador até cada núcleo — os números vêm direto do Firestore, ninguém aqui é inventado.</p>
+
+              <div style="padding:22px 16px 26px; display:flex; flex-direction:column; align-items:center;">
+                <sc-if value="{{ temArvoreFundador }}" hint-placeholder-val="{{ false }}">
+                  <div style="background:linear-gradient(135deg,#DAA520 0%,#F5B942 100%); border-radius:16px; padding:12px 18px; text-align:center; box-shadow:0 10px 20px -10px rgba(218,165,32,.5);">
+                    <div style="font-size:.82rem; font-weight:800; color:#2b1c00;">{{ arvoreFundadorNome }}</div>
+                    <div style="font-size:.62rem; color:#5a4000; font-weight:600;">Fundador · Corda {{ arvoreFundadorCordao }}</div>
+                  </div>
+                  <div style="width:2px; height:20px; background:#E2E8E6;"></div>
+                </sc-if>
+
                 <sc-if value="{{ temArvoreGrupo }}" hint-placeholder-val="{{ false }}">
-                  <div style="display:flex; flex-direction:column; gap:10px;">
-                    <sc-for list="{{ arvoreGrupoCards }}" as="n" hint-placeholder-count="6">
-                      <div style="background:#fff; border:1px solid #E2E8E6; border-radius:18px; padding:15px;">
-                        <div style="display:flex; align-items:center; gap:12px;">
-                          <div style="width:44px; height:44px; border-radius:13px; background:linear-gradient(135deg,#002D72 0%,#0B5C52 100%); display:flex; align-items:center; justify-content:center; flex:none;">
-                            <i class="fas fa-sitemap" style="color:#fff; font-size:1rem;"></i>
-                          </div>
-                          <div style="min-width:0; flex:1;">
-                            <div style="font-size:.92rem; font-weight:700; color:#0D211D;">{{ n.nome }}</div>
-                            <div style="font-size:.74rem; color:#5B6B68; margin-top:1px;">{{ n.professor }}</div>
-                          </div>
+                  <div style="display:flex; flex-wrap:wrap; gap:12px; width:100%; justify-content:center;">
+                    <sc-for list="{{ arvoreGrupoCards }}" as="n" hint-placeholder-count="4">
+                      <div style="flex:1 1 140px; max-width:47%; display:flex; flex-direction:column; align-items:center; gap:8px;">
+                        <div style="{{ n.cartao }}">
+                          <i class="fas fa-chalkboard-teacher" style="color:{{ n.cor }}; font-size:1rem; display:block; margin:0 auto 4px;"></i>
+                          <div style="font-size:.72rem; font-weight:700; line-height:1.25; color:#0D211D;">{{ n.professor }}</div>
+                          <div style="font-size:.62rem; color:#5B6B68; margin-top:2px;">{{ n.nome }}</div>
                         </div>
-                        <div style="display:flex; gap:8px; margin-top:12px;">
-                          <div style="flex:1; background:#F5F9F8; border-radius:11px; padding:8px 10px;">
-                            <div style="font-size:.68rem; color:#5B6B68;">alunos ativos</div>
-                            <div style="font-size:.8rem; font-weight:700; color:#0D211D; margin-top:2px;">{{ n.alunos }}</div>
-                          </div>
-                          <div style="flex:1; background:#F5F9F8; border-radius:11px; padding:8px 10px;">
-                            <div style="font-size:.68rem; color:#5B6B68;">estrela viva</div>
-                            <div style="font-size:.8rem; font-weight:700; color:#DAA520; margin-top:2px;">{{ n.estrela }}</div>
-                          </div>
+                        <div style="width:2px; height:14px; background:#E2E8E6;"></div>
+                        <div style="background:#F5F9F8; border:1px dashed #E2E8E6; border-radius:10px; padding:6px 8px; width:100%; text-align:center;">
+                          <div style="font-family:'JetBrains Mono',monospace; font-size:.9rem; font-weight:700; color:{{ n.cor }};">{{ n.alunos }}</div>
+                          <div style="font-size:.58rem; color:#5B6B68;">alunos ativos · {{ n.estrela }}</div>
                         </div>
                       </div>
                     </sc-for>
                   </div>
                 </sc-if>
                 <sc-if value="{{ temArvoreGrupo }}" hint-placeholder-val="{{ true }}">
-                  <div style="border:1.5px dashed #E2E8E6; border-radius:16px; padding:24px 20px; text-align:center; color:#5B6B68; font-size:.82rem;">Carregando a árvore do grupo...</div>
+                  <div style="border:1.5px dashed #E2E8E6; border-radius:16px; padding:24px 20px; text-align:center; color:#5B6B68; font-size:.82rem; width:100%;">Carregando a árvore do grupo...</div>
+                </sc-if>
+
+                <sc-if value="{{ temProfessoresSemNucleo }}" hint-placeholder-val="{{ false }}">
+                  <div style="width:100%; margin-top:22px;">
+                    <h2 style="margin:0 0 10px; font-size:.85rem; font-weight:700; color:#0D211D;">Professores formados sem núcleo ainda</h2>
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                      <sc-for list="{{ professoresSemNucleo }}" as="p" hint-placeholder-count="0">
+                        <div style="background:#fff; border:1.5px solid #8E44AD; border-radius:14px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                          <div style="min-width:0;">
+                            <div style="font-size:.78rem; font-weight:700; color:#0D211D;">{{ p.nome }}</div>
+                            <div style="font-size:.66rem; color:#5B6B68; margin-top:1px;">{{ p.academiaOrigem }}</div>
+                          </div>
+                          <span style="font-size:.62rem; color:#8E44AD; font-weight:700; flex:none;">aguardando</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
                 </sc-if>
               </div>
             </div>
@@ -758,6 +775,84 @@ a:hover{ color:#389E92; }
                 <p style="margin:0; color:rgba(255,255,255,.7); font-size:.87rem;">Tudo que você faz no painel web, agora pelo celular.</p>
               </div>
               <div style="margin:16px;">
+                <sc-if value="{{ ehPainelFundador }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-bottom:16px;">
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:9px;">
+                      <sc-for list="{{ fundadorKpis }}" as="k" hint-placeholder-count="4">
+                        <div style="background:#fff; border:1px solid #E2E8E6; border-radius:16px; padding:14px;">
+                          <div style="font-family:'JetBrains Mono',monospace; font-size:1.35rem; font-weight:700; color:{{ k.cor }};">{{ k.valor }}</div>
+                          <div style="font-size:.68rem; color:#5B6B68; margin-top:3px;">{{ k.rotulo }}</div>
+                        </div>
+                      </sc-for>
+                    </div>
+
+                    <sc-if value="{{ temEstrelasGrupo }}" hint-placeholder-val="{{ false }}">
+                      <div style="margin-top:12px; background:linear-gradient(135deg,#001A4D 0%,#002D72 100%); border-radius:18px; padding:16px 17px;">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                          <i class="fas fa-star" style="color:#F5B942; font-size:.85rem;"></i>
+                          <h2 style="margin:0; font-size:.86rem; font-weight:700; color:#fff;">Indicador 7 estrelas</h2>
+                        </div>
+                        <p style="margin:0 0 12px; font-size:.7rem; color:rgba(255,255,255,.68); line-height:1.5;">Cada núcleo acende uma estrela para cada corda já formada entre seus alunos ativos, do Fugitivo ao Mestre.</p>
+                        <div style="display:flex; flex-direction:column; gap:9px;">
+                          <sc-for list="{{ estrelasGrupo }}" as="e" hint-placeholder-count="2">
+                            <div style="background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 12px;">
+                              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
+                                <span style="font-size:.74rem; color:#fff; font-weight:600;">{{ e.nome }}</span>
+                                <span style="font-size:.62rem; color:rgba(255,255,255,.6);">{{ e.label }}</span>
+                              </div>
+                              <div style="display:flex; gap:2px;">
+                                <sc-for list="{{ e.estrelas }}" as="s" hint-placeholder-count="7">
+                                  <i class="fas fa-star" style="{{ s.estilo }}"></i>
+                                </sc-for>
+                              </div>
+                            </div>
+                          </sc-for>
+                        </div>
+                      </div>
+                    </sc-if>
+
+                    <sc-if value="{{ temSolicPendentesFundador }}" hint-placeholder-val="{{ false }}">
+                      <div style="margin-top:12px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                          <h2 style="margin:0; font-size:.9rem; font-weight:700; color:#0D211D;">Solicitações</h2>
+                          <button onClick="{{ irSolicitacoesFundador }}" style="border:none; background:none; color:#0B5C52; font-weight:800; font-size:.76rem; cursor:pointer; font-family:'Manrope',sans-serif;">Ver todas</button>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:9px;">
+                          <sc-for list="{{ solicPreviewFundador }}" as="s" hint-placeholder-count="2">
+                            <div style="background:#fff; border:1px solid #E2E8E6; border-radius:16px; padding:13px 14px;">
+                              <div style="font-size:.82rem; font-weight:700; color:#0D211D;">{{ s.descricao }}</div>
+                              <div style="display:flex; gap:8px; margin-top:10px;">
+                                <button onClick="{{ s.aprovar }}" style="flex:1; background:#00B140; color:#fff; border:none; border-radius:10px; padding:8px; font-size:.74rem; font-weight:700; cursor:pointer; font-family:'Manrope',sans-serif;">Aprovar</button>
+                                <button onClick="{{ s.rejeitar }}" style="flex:1; background:transparent; color:#D32F2F; border:1px solid #f3c9c9; border-radius:10px; padding:8px; font-size:.74rem; font-weight:700; cursor:pointer; font-family:'Manrope',sans-serif;">Rejeitar</button>
+                              </div>
+                            </div>
+                          </sc-for>
+                        </div>
+                      </div>
+                    </sc-if>
+
+                    <button onClick="{{ irArvoreFundador }}" style="margin-top:12px; width:100%; background:#fff; border:1px solid #E2E8E6; border-radius:16px; padding:14px 16px; display:flex; align-items:center; gap:12px; cursor:pointer; text-align:left; font-family:'Manrope',sans-serif;">
+                      <span style="width:38px; height:38px; border-radius:11px; background:#f5ecfa; display:flex; align-items:center; justify-content:center; flex:none;"><i class="fas fa-sitemap" style="color:#8E44AD;"></i></span>
+                      <span style="flex:1; min-width:0;">
+                        <span style="display:block; font-size:.85rem; font-weight:700; color:#0D211D;">Árvore de formação</span>
+                        <span style="display:block; font-size:.7rem; color:#5B6B68; margin-top:1px;">quem formou quem, estilo pirâmide</span>
+                      </span>
+                      <i class="fas fa-chevron-right" style="color:#C4CFCD; font-size:.7rem;"></i>
+                    </button>
+
+                    <div style="display:flex; gap:10px; margin-top:12px;">
+                      <button onClick="{{ criarEventoFundador }}" style="flex:1; background:#fff; border:1px solid #E2E8E6; border-radius:14px; padding:13px; display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; font-family:'Manrope',sans-serif;">
+                        <i class="fas fa-calendar-plus" style="color:#002D72;"></i>
+                        <span style="font-size:.74rem; font-weight:700; color:#0D211D;">Criar evento</span>
+                      </button>
+                      <button onClick="{{ avisoGeralFundador }}" style="flex:1; background:#fff; border:1px solid #E2E8E6; border-radius:14px; padding:13px; display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; font-family:'Manrope',sans-serif;">
+                        <i class="far fa-bell" style="color:#002D72;"></i>
+                        <span style="font-size:.74rem; font-weight:700; color:#0D211D;">Aviso geral</span>
+                      </button>
+                    </div>
+                  </div>
+                </sc-if>
+
                 <sc-if value="{{ temMeuNucleo }}" hint-placeholder-val="{{ false }}">
                   <div style="background:#fff; border:1px solid #E2E8E6; border-radius:20px; padding:18px; margin-bottom:16px;">
                     <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:2px;">
@@ -1026,27 +1121,105 @@ a:hover{ color:#389E92; }
                 </div>
               </div>
               <div style="margin:16px;">
-                <div style="background:#F5F9F8; border:1px solid #E2E8E6; border-radius:18px; padding:16px; display:flex; align-items:center; gap:13px;">
-                  <div style="width:50px; height:50px; border-radius:50%; background:linear-gradient(135deg,#DAA520,#F5B942); display:flex; align-items:center; justify-content:center; flex:none;">
-                    <i class="fas fa-chalkboard-teacher" style="color:#001A4D; font-size:1.1rem;"></i>
+                <sc-if value="{{ souAdministradorDesteNucleo }}" hint-placeholder-val="{{ false }}">
+                  <div>
+                    <!-- Responsável (Academia aberta: console de quem administra este núcleo) -->
+                    <div style="background:#F5F9F8; border:1px solid #E2E8E6; border-radius:18px; padding:16px; display:flex; align-items:center; gap:13px;">
+                      <img src="{{ nucleoDetalhe.responsavelFoto }}" alt="" style="width:50px; height:50px; border-radius:50%; object-fit:cover; flex:none;" />
+                      <div style="min-width:0; flex:1;">
+                        <div style="font-size:.92rem; font-weight:700; color:#0D211D;">{{ nucleoDetalhe.responsavelNome }}</div>
+                        <div style="font-size:.74rem; color:#5B6B68; margin-top:1px;">Responsável pelo núcleo</div>
+                        <sc-if value="{{ ehSedeDoFundador }}" hint-placeholder-val="{{ false }}">
+                          <span style="display:inline-block; margin-top:5px; background:linear-gradient(135deg,#DAA520,#F5B942); color:#2b1c00; font-size:.62rem; font-weight:800; padding:3px 8px; border-radius:999px;">★ ACESSO GERAL</span>
+                        </sc-if>
+                      </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin-top:12px;">
+                      <div style="background:#F5F9F8; border:1px solid #E2E8E6; border-radius:14px; padding:11px; text-align:center;">
+                        <div style="font-family:'JetBrains Mono',monospace; font-size:1.05rem; font-weight:700; color:#002D72;">{{ nucleoDetalhe.alunosAtivos }}</div>
+                        <div style="font-size:.62rem; color:#5B6B68; margin-top:2px;">alunos ativos</div>
+                      </div>
+                      <div style="background:#F5F9F8; border:1px solid #E2E8E6; border-radius:14px; padding:11px; text-align:center;">
+                        <sc-if value="{{ nucleoDetalhe.temPresenca }}" hint-placeholder-val="{{ true }}">
+                          <div style="font-family:'JetBrains Mono',monospace; font-size:1.05rem; font-weight:700; color:#0B5C52;">{{ nucleoDetalhe.presenca }}</div>
+                        </sc-if>
+                        <sc-if value="{{ nucleoDetalhe.temPresenca }}" hint-placeholder-val="{{ false }}">
+                          <div style="font-size:.6rem; font-weight:700; color:#95A5A6; line-height:1.3;">{{ nucleoDetalhe.presenca }}</div>
+                        </sc-if>
+                        <div style="font-size:.62rem; color:#5B6B68; margin-top:2px;">presença média</div>
+                      </div>
+                      <div style="background:#F5F9F8; border:1px solid #E2E8E6; border-radius:14px; padding:11px; text-align:center;">
+                        <div style="font-family:'JetBrains Mono',monospace; font-size:1.05rem; font-weight:700; color:#DAA520;">{{ nucleoDetalhe.mensalidade }}</div>
+                        <div style="font-size:.62rem; color:#5B6B68; margin-top:2px;">mensalidade</div>
+                      </div>
+                    </div>
+
+                    <div style="margin-top:12px; background:linear-gradient(135deg,#001A4D 0%,#002D72 100%); border-radius:16px; padding:13px 15px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                      <div style="min-width:0;">
+                        <div style="font-size:.8rem; font-weight:700; color:#fff;">7 estrelas</div>
+                        <div style="font-size:.66rem; color:rgba(255,255,255,.6); margin-top:1px;">corda mais alta: {{ nucleoDetalhe.estrelaNome }}</div>
+                      </div>
+                      <div style="display:flex; gap:2px; flex:none;">
+                        <sc-for list="{{ nucleoDetalhe.estrelas }}" as="s" hint-placeholder-count="7">
+                          <i class="fas fa-star" style="{{ s.estilo }}"></i>
+                        </sc-for>
+                      </div>
+                    </div>
+
+                    <div style="margin-top:16px;">
+                      <h2 style="margin:0 0 10px; font-size:.9rem; font-weight:700; color:#0D211D;">Funcionalidades do núcleo</h2>
+                      <div style="display:flex; flex-direction:column; border:1px solid #E2E8E6; border-radius:16px; overflow:hidden; background:#F5F9F8;">
+                        <button onClick="{{ irTurmaDoNucleo }}" style="display:flex; align-items:center; gap:11px; padding:13px 14px; border:none; border-bottom:1px solid #E2E8E6; background:none; cursor:pointer; text-align:left; width:100%; font-family:'Manrope',sans-serif;">
+                          <span style="width:32px; height:32px; border-radius:10px; background:#eaf6f4; display:flex; align-items:center; justify-content:center; flex:none;"><i class="fas fa-users" style="color:#0B5C52; font-size:.85rem;"></i></span>
+                          <span style="flex:1; min-width:0;"><span style="display:block; font-size:.82rem; font-weight:700; color:#0D211D;">Gerenciar alunos</span><span style="display:block; font-size:.7rem; color:#5B6B68; margin-top:1px;">matrícula, cordas, notas</span></span>
+                          <i class="fas fa-chevron-right" style="color:#C4CFCD; font-size:.68rem;"></i>
+                        </button>
+                        <button onClick="{{ irFinanceiroDoNucleo }}" style="display:flex; align-items:center; gap:11px; padding:13px 14px; border:none; border-bottom:1px solid #E2E8E6; background:none; cursor:pointer; text-align:left; width:100%; font-family:'Manrope',sans-serif;">
+                          <span style="width:32px; height:32px; border-radius:10px; background:#e9f9ef; display:flex; align-items:center; justify-content:center; flex:none;"><i class="fas fa-wallet" style="color:#00B140; font-size:.85rem;"></i></span>
+                          <span style="flex:1; min-width:0;"><span style="display:block; font-size:.82rem; font-weight:700; color:#0D211D;">Financeiro do núcleo</span><span style="display:block; font-size:.7rem; color:#5B6B68; margin-top:1px;">mensalidades deste núcleo</span></span>
+                          <i class="fas fa-chevron-right" style="color:#C4CFCD; font-size:.68rem;"></i>
+                        </button>
+                        <button onClick="{{ irSolicitacoesDoNucleo }}" style="display:flex; align-items:center; gap:11px; padding:13px 14px; border:none; border-bottom:1px solid #E2E8E6; background:none; cursor:pointer; text-align:left; width:100%; font-family:'Manrope',sans-serif;">
+                          <span style="width:32px; height:32px; border-radius:10px; background:#fff6e0; display:flex; align-items:center; justify-content:center; flex:none;"><i class="fas fa-inbox" style="color:#DAA520; font-size:.85rem;"></i></span>
+                          <span style="flex:1; min-width:0;"><span style="display:block; font-size:.82rem; font-weight:700; color:#0D211D;">Solicitações</span><span style="display:block; font-size:.7rem; color:#5B6B68; margin-top:1px;">mensalidade, evento, transferência</span></span>
+                          <i class="fas fa-chevron-right" style="color:#C4CFCD; font-size:.68rem;"></i>
+                        </button>
+                        <button onClick="{{ abrirAvisoDoNucleo }}" style="display:flex; align-items:center; gap:11px; padding:13px 14px; border:none; background:none; cursor:pointer; text-align:left; width:100%; font-family:'Manrope',sans-serif;">
+                          <span style="width:32px; height:32px; border-radius:10px; background:#eef2fb; display:flex; align-items:center; justify-content:center; flex:none;"><i class="far fa-bell" style="color:#002D72; font-size:.85rem;"></i></span>
+                          <span style="flex:1; min-width:0;"><span style="display:block; font-size:.82rem; font-weight:700; color:#0D211D;">Avisos do núcleo</span><span style="display:block; font-size:.7rem; color:#5B6B68; margin-top:1px;">só para quem treina aqui</span></span>
+                          <i class="fas fa-chevron-right" style="color:#C4CFCD; font-size:.68rem;"></i>
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <div style="min-width:0;">
-                    <div style="font-size:.92rem; font-weight:700; color:#0D211D;">{{ nucleoDetalhe.professor }}</div>
-                    <div style="font-size:.74rem; color:#5B6B68; margin-top:1px;">Professor responsável</div>
+                </sc-if>
+
+                <sc-if value="{{ souAdministradorDesteNucleo }}" hint-placeholder-val="{{ true }}">
+                  <div>
+                    <div style="background:#F5F9F8; border:1px solid #E2E8E6; border-radius:18px; padding:16px; display:flex; align-items:center; gap:13px;">
+                      <div style="width:50px; height:50px; border-radius:50%; background:linear-gradient(135deg,#DAA520,#F5B942); display:flex; align-items:center; justify-content:center; flex:none;">
+                        <i class="fas fa-chalkboard-teacher" style="color:#001A4D; font-size:1.1rem;"></i>
+                      </div>
+                      <div style="min-width:0;">
+                        <div style="font-size:.92rem; font-weight:700; color:#0D211D;">{{ nucleoDetalhe.professor }}</div>
+                        <div style="font-size:.74rem; color:#5B6B68; margin-top:1px;">Professor responsável</div>
+                      </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;">
+                      <div style="background:#fff; border:1px solid #E2E8E6; border-radius:14px; padding:13px;">
+                        <div style="font-size:.68rem; color:#5B6B68;">endereço</div>
+                        <div style="font-size:.8rem; font-weight:700; color:#0D211D; margin-top:3px;">{{ nucleoDetalhe.endereco }}</div>
+                      </div>
+                      <div style="background:#fff; border:1px solid #E2E8E6; border-radius:14px; padding:13px;">
+                        <div style="font-size:.68rem; color:#5B6B68;">mensalidade</div>
+                        <div style="font-size:.8rem; font-weight:700; color:#0D211D; margin-top:3px;">{{ nucleoDetalhe.mensalidade }}</div>
+                      </div>
+                    </div>
+                    <sc-if value="{{ nucleoDetalhe.meu }}" hint-placeholder-val="{{ false }}">
+                      <div style="margin-top:12px; background:#eaf6f4; border:1px solid #389E92; border-radius:14px; padding:12px 14px; font-size:.78rem; color:#0B5C52; font-weight:700;">Este é o núcleo onde você treina.</div>
+                    </sc-if>
                   </div>
-                </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;">
-                  <div style="background:#fff; border:1px solid #E2E8E6; border-radius:14px; padding:13px;">
-                    <div style="font-size:.68rem; color:#5B6B68;">endereço</div>
-                    <div style="font-size:.8rem; font-weight:700; color:#0D211D; margin-top:3px;">{{ nucleoDetalhe.endereco }}</div>
-                  </div>
-                  <div style="background:#fff; border:1px solid #E2E8E6; border-radius:14px; padding:13px;">
-                    <div style="font-size:.68rem; color:#5B6B68;">mensalidade</div>
-                    <div style="font-size:.8rem; font-weight:700; color:#0D211D; margin-top:3px;">{{ nucleoDetalhe.mensalidade }}</div>
-                  </div>
-                </div>
-                <sc-if value="{{ nucleoDetalhe.meu }}" hint-placeholder-val="{{ false }}">
-                  <div style="margin-top:12px; background:#eaf6f4; border:1px solid #389E92; border-radius:14px; padding:12px 14px; font-size:.78rem; color:#0B5C52; font-weight:700;">Este é o núcleo onde você treina.</div>
                 </sc-if>
               </div>
             </div>
@@ -1407,6 +1580,8 @@ class Component extends DCLogic {
     nucleosLista: [], nucleoAberto: null,
     presencaPct: 0, presencaTotal: 0, presencaConfirmadas: 0, semanasSeguidas: 0, presencaRecentes: [],
     solicitacoesLista: [], pagamentosLista: [], despesasLista: [],
+    arvoreGrupo: [], arvoreCarregada: false, professoresSemNucleo: [], presencaGeralPct: null, eventosFuturosCount: 0,
+    meuNucleoStats: null,
     statsExpandido: false,
   };
 
@@ -1514,7 +1689,14 @@ class Component extends DCLogic {
     this.carregarMateriaisReais();
     this.carregarNucleos();
     if (!gestorPapel) this.carregarPresenca();
-    if (gestorPapel) { this.carregarSolicitacoes(); this.carregarFinanceiro(); }
+    if (gestorPapel) {
+      this.carregarSolicitacoes();
+      this.carregarFinanceiro();
+      // Grupo todo (admin/fundador) carrega de cara — é a tela principal
+      // dele (Painel do Fundador), diferente da Árvore avulsa que só carrega
+      // sob demanda pra um mestre comum não pagar esse custo à toa.
+      if (this._grupoTodo) this.carregarArvoreGrupo();
+    }
   }
 
   // Alcance "grupo todo": admin de verdade (papel literal) OU o fundador
@@ -1643,15 +1825,18 @@ class Component extends DCLogic {
     } catch (e) { console.error(e); this.toast('Não foi possível atualizar agora.'); }
   }
 
-  // Árvore do grupo: só quem tem alcance de grupo todo (admin ou fundador).
-  // Carregado sob demanda (ao abrir a aba), não no login, pra não puxar a
-  // coleção inteira de usuarios sempre que alguém entra no app.
+  // Dados do grupo todo (admin/fundador): árvore/estrela por núcleo,
+  // professores formados sem núcleo próprio ainda, presença geral do grupo
+  // e eventos futuros — tudo o que o Painel do Fundador e a Árvore do grupo
+  // precisam, numa carga só. Só roda pra quem tem _grupoTodo (ver rules).
   async carregarArvoreGrupo() {
     if (!this._grupoTodo) return;
     try {
-      const [usuarios, nucleos] = await Promise.all([
+      const [usuarios, nucleos, presencas, eventos] = await Promise.all([
         this._FB.listar('usuarios'),
         this.state.nucleosLista.length ? Promise.resolve(this.state.nucleosLista) : this._FB.listarNucleosAtivos(),
+        this._FB.listar('presencas'),
+        this._FB.listar('eventos'),
       ]);
       const arvore = nucleos.map((n) => {
         const doNucleo = usuarios.filter((u) => u.academiaId === n.id && (u.papeis || []).includes('aluno'));
@@ -1664,8 +1849,34 @@ class Component extends DCLogic {
           estrela: this._FB.calcularEstrelaViva(n.id, usuarios),
         };
       });
-      this.setState({ arvoreGrupo: arvore, arvoreCarregada: true });
-    } catch (e) { console.error(e); this.toast('Não foi possível carregar a árvore agora.'); }
+
+      // Professores (cordão mais alto da escada) sem núcleo próprio ainda —
+      // formados, mas que o admin ainda não deu academia própria.
+      const uidsComNucleo = new Set(nucleos.map((n) => n.professorUid).filter(Boolean));
+      const professoresSemNucleo = usuarios.filter((u) =>
+        u.cordaoAtual === 'Professor' && !(u.papeis || []).includes('mestre') && !uidsComNucleo.has(u.id)
+      ).map((u) => ({ nome: u.nome || 'Professor', academiaOrigem: u.academiaNome || u.academiaId || '' }));
+
+      const confirmadas = presencas.filter((p) => p.confirmadoAos30 === true);
+      const presencaGeralPct = presencas.length > 0 ? Math.round((confirmadas.length / presencas.length) * 100) : null;
+
+      const hojeStr = new Date().toISOString().slice(0, 10);
+      const eventosFuturos = eventos.filter((e) => (e.data || '') >= hojeStr);
+
+      // Fundador: quem tem acessoGeral===true no cadastro. Como só existe
+      // uma pessoa assim no grupo (campo travado, só o admin concede), dá
+      // pra usar pra identificar o "topo da pirâmide" sem hardcode de nome.
+      const fundadorDoc = usuarios.find((u) => u.acessoGeral === true);
+
+      this.setState({
+        arvoreGrupo: arvore,
+        arvoreCarregada: true,
+        professoresSemNucleo,
+        presencaGeralPct,
+        eventosFuturosCount: eventosFuturos.length,
+        arvoreFundador: fundadorDoc ? { nome: fundadorDoc.nome || 'Fundador', cordao: fundadorDoc.cordaoAtual || 'Mestre' } : null,
+      });
+    } catch (e) { console.error(e); this.toast('Não foi possível carregar os dados do grupo agora.'); }
   }
 
   // Estatísticas reais do próprio núcleo administrado (mestre/professor, ou
@@ -1815,7 +2026,7 @@ class Component extends DCLogic {
     // quem NÃO tem aba própria de Financeiro na barra inferior — é o caso
     // do mestre (ABAS_MESTRE não tem 'financeiro'). Pro admin, 'financeiro'
     // já é um dos 4 ids de ABAS_ADMIN, então deve acender o próprio pill.
-    const abaParaPilula = this.state.aba === 'nucleoDetalhe' ? 'nucleos'
+    const abaParaPilula = this.state.aba === 'nucleoDetalhe' ? (gestor ? 'gestao' : 'nucleos')
       : (this.state.aba === 'trofeus' ? 'perfil'
       : ((SUBTELAS_PARA_GESTAO.indexOf(this.state.aba) !== -1 || (!admin && this.state.aba === 'financeiro')) ? 'gestao'
       : this.state.aba));
@@ -2028,10 +2239,11 @@ class Component extends DCLogic {
       alternar: () => this.marcarPagamentoAcao(p.id, !p.pago),
     });
 
-    // ===== Árvore do grupo (admin/fundador) — carregada sob demanda em
-    // carregarArvoreGrupo(), guardada em arvoreGrupo. =====
+    // ===== Árvore do grupo (admin/fundador) — carregada em carregarArvoreGrupo(),
+    // guardada em arvoreGrupo/professoresSemNucleo/presencaGeralPct/eventosFuturosCount. =====
     const arvoreGrupoArr = this.state.arvoreGrupo || [];
     const totalAlunosArvore = arvoreGrupoArr.reduce((s, n) => s + n.alunosAtivos, 0);
+    const CORES_ARVORE = ['#002D72', '#0B5C52', '#8E44AD', '#C0700C'];
 
     return {
       telaLogin: !perfilAtual,
@@ -2147,6 +2359,7 @@ class Component extends DCLogic {
       toggleStats: () => this.toggleStats(),
       chevronDeg: this.state.statsExpandido ? 90 : 0,
       presencaPct: this.state.presencaPct,
+      presencaConfirmadas: this.state.presencaConfirmadas,
       semanasSeguidas: this.state.semanasSeguidas,
       presencaRecentesView: this.state.presencaRecentes.length
         ? this.state.presencaRecentes.map((p) => ({
@@ -2189,18 +2402,40 @@ class Component extends DCLogic {
         })),
       totalNucleosAtivos: (this.state.nucleosLista || []).length,
 
-      voltarNucleos: () => this.irPara('nucleos'),
+      voltarNucleos: () => this.irPara(gestor ? 'gestao' : 'nucleos'),
+      // "Academia aberta": quando quem abriu o núcleo é quem administra ele
+      // (mestre no próprio núcleo, ou admin/fundador com academiaGerenciadaId
+      // igual ao núcleo aberto) — mostra o console completo com dados reais
+      // já carregados por carregarMeuNucleoStats(). Pra qualquer outra
+      // pessoa (aluno navegando, ou gestor olhando um núcleo que não é o
+      // dele), continua o cartão simples de sempre.
+      souAdministradorDesteNucleo: gestor && !!this._academiaGerenciadaId && this.state.nucleoAberto === this._academiaGerenciadaId,
+      ehSedeDoFundador: fundador && gestor && this.state.nucleoAberto === this._academiaGerenciadaId,
       nucleoDetalhe: (() => {
         const n = (this.state.nucleosLista || []).find((x) => x.id === this.state.nucleoAberto);
         if (!n) return { nome:'Núcleo', professor:'', endereco:'Endereço a confirmar com o professor', mensalidade:'A confirmar', meu:false };
+        const souAdmin = gestor && !!this._academiaGerenciadaId && n.id === this._academiaGerenciadaId;
+        const stats = souAdmin ? this.state.meuNucleoStats : null;
         return {
           nome: n.nome || 'Núcleo',
           professor: n.professorNome || 'A confirmar',
           endereco: n.endereco || 'Endereço a confirmar com o professor',
           mensalidade: n.mensalidadeValor != null ? brl(n.mensalidadeValor) : 'A confirmar',
           meu: !!atleta.academiaId && n.id === atleta.academiaId,
+          responsavelNome: souAdmin ? (perfilAtual ? perfilAtual.nome : (n.professorNome || 'Você')) : (n.professorNome || 'A confirmar'),
+          responsavelFoto: souAdmin && perfilAtual ? perfilAtual.foto : 'assets/logo-liberdade.png',
+          alunosAtivos: stats ? String(stats.alunosAtivos) : '—',
+          temPresenca: !!(stats && stats.presencaMedia != null),
+          presenca: (stats && stats.presencaMedia != null) ? (stats.presencaMedia + '%') : 'Sem check-ins ainda',
+          estrelaNum: stats ? stats.estrela : 0,
+          estrelaNome: stats ? (this._FB.ORDEM_ESTRELA[stats.estrela - 1] || 'sem alunos ainda') : 'sem alunos ainda',
+          estrelas: [0, 1, 2, 3, 4, 5, 6].map((i) => ({ estilo: stats && i < stats.estrela ? 'color:#F5B942;' : 'color:rgba(255,255,255,.2);' })),
         };
       })(),
+      irTurmaDoNucleo: () => this.irPara('turma'),
+      irFinanceiroDoNucleo: () => this.irPara('financeiro'),
+      irSolicitacoesDoNucleo: () => this.irPara('solicitacoes'),
+      abrirAvisoDoNucleo: () => this.abrirSheet('aviso'),
 
       mensalidadeValor: atleta.mensalidadeValor != null ? brl(atleta.mensalidadeValor) : 'A confirmar',
       mensalidadeAcademia: atleta.academia,
@@ -2303,11 +2538,24 @@ class Component extends DCLogic {
       temArvoreGrupo: arvoreGrupoArr.length > 0,
       totalAlunosArvore: String(totalAlunosArvore),
       totalNucleosArvore: String(arvoreGrupoArr.length),
-      arvoreGrupoCards: arvoreGrupoArr.map((n) => ({
-        nome: n.nome,
-        professor: n.professor || 'Sem professor definido',
-        alunos: String(n.alunosAtivos),
-        estrela: this._FB.ORDEM_ESTRELA[n.estrela - 1] || 'Sem alunos ainda',
+      temArvoreFundador: !!this.state.arvoreFundador,
+      arvoreFundadorNome: this.state.arvoreFundador ? this.state.arvoreFundador.nome : '',
+      arvoreFundadorCordao: this.state.arvoreFundador ? this.state.arvoreFundador.cordao : '',
+      arvoreGrupoCards: arvoreGrupoArr.map((n, i) => {
+        const cor = CORES_ARVORE[i % CORES_ARVORE.length];
+        return {
+          nome: n.nome,
+          professor: n.professor || 'Sem professor definido',
+          alunos: String(n.alunosAtivos),
+          estrela: this._FB.ORDEM_ESTRELA[n.estrela - 1] || 'sem alunos ainda',
+          cor,
+          cartao: 'background:#fff; border:1.5px solid ' + cor + '; border-radius:14px; padding:10px 6px; text-align:center; width:100%;',
+        };
+      }),
+      temProfessoresSemNucleo: (this.state.professoresSemNucleo || []).length > 0,
+      professoresSemNucleo: (this.state.professoresSemNucleo || []).map((p) => ({
+        nome: p.nome,
+        academiaOrigem: p.academiaOrigem ? ('treina em ' + p.academiaOrigem) : '',
       })),
 
       voltarGestao: () => this.irPara('gestao'),
@@ -2322,7 +2570,7 @@ class Component extends DCLogic {
       temSolicMinhas: solicMinhasArr.length > 0,
       solicMinhas: solicMinhasArr.map(solicAcao),
       ehNucleos: !gestor && this.state.aba === 'nucleos',
-      ehNucleoDetalhe: !gestor && this.state.aba === 'nucleoDetalhe',
+      ehNucleoDetalhe: this.state.aba === 'nucleoDetalhe',
       ehTrofeus: !gestor && this.state.aba === 'trofeus',
       ehAlunoPerfil: !gestor,
 
@@ -2377,7 +2625,28 @@ class Component extends DCLogic {
       temMeuNucleoPresenca: !!(this.state.meuNucleoStats && this.state.meuNucleoStats.presencaMedia != null),
       meuNucleoPresenca: (this.state.meuNucleoStats && this.state.meuNucleoStats.presencaMedia != null) ? (this.state.meuNucleoStats.presencaMedia + '%') : 'Sem check-ins ainda',
       meuNucleoEstrela: this.state.meuNucleoStats ? (this._FB.ORDEM_ESTRELA[this.state.meuNucleoStats.estrela - 1] || 'Sem alunos ainda') : '—',
-      abrirMeuNucleoTurma: () => this.irPara('turma'),
+      abrirMeuNucleoTurma: () => { this.setState({ nucleoAberto: this._academiaGerenciadaId }); this.irPara('nucleoDetalhe'); },
+
+      // ---- Painel do Fundador (dentro da própria aba Gestão) ----
+      ehPainelFundador: fundador,
+      fundadorKpis: [
+        { valor: String(arvoreGrupoArr.length || this.state.nucleosLista.length), rotulo: 'núcleos ativos', cor: '#002D72' },
+        { valor: this.state.presencaGeralPct != null ? (this.state.presencaGeralPct + '%') : '—', rotulo: 'presença geral', cor: '#0B5C52' },
+        { valor: String(solicPendentesArr.length), rotulo: 'solicitações pendentes', cor: '#DAA520' },
+        { valor: String(this.state.eventosFuturosCount || 0), rotulo: 'eventos futuros', cor: '#D32F2F' },
+      ],
+      temEstrelasGrupo: arvoreGrupoArr.length > 0,
+      estrelasGrupo: arvoreGrupoArr.map((n) => ({
+        nome: n.nome,
+        label: n.estrela + '/7 · ' + (this._FB.ORDEM_ESTRELA[n.estrela - 1] || 'sem alunos ainda'),
+        estrelas: [0, 1, 2, 3, 4, 5, 6].map((i) => ({ estilo: i < n.estrela ? 'color:#F5B942;' : 'color:rgba(255,255,255,.2);' })),
+      })),
+      temSolicPendentesFundador: solicPendentesArr.length > 0,
+      solicPreviewFundador: solicPendentesArr.slice(0, 2).map(solicAcao),
+      irSolicitacoesFundador: () => this.irPara('solicitacoes'),
+      irArvoreFundador: () => { this.irPara('arvore'); if (!this.state.arvoreCarregada) this.carregarArvoreGrupo(); },
+      criarEventoFundador: () => this.toast('Para criar um evento direto, use o painel de gestão (admin.html) — ou aprove uma solicitação de evento aqui em Solicitações.'),
+      avisoGeralFundador: () => this.abrirSheet('aviso'),
 
       acoesGestao: (() => {
         const tile = (g) => ({
