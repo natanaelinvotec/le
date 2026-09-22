@@ -72,12 +72,30 @@ allow write: if ehAdmin();
     }
 
 match /solicitacoes/{id} {
-allow read: if ehAdmin() || (ehGestor() && resource.data.solicitanteUid == request.auth.uid);
+// Além do próprio solicitante e do admin, o mestre/professor responsável pelo
+// núcleo também precisa ler os pedidos que chegam PARA o próprio núcleo (vínculo
+// de parentesco de um aluno, ou transferência de aluno pedindo pra entrar) —
+// sem isso, o botão "Aprovar" dessas duas telas nunca funciona pra quem não é admin.
+// souFundador() aqui é aditivo: o Mestre Profeta (acessoGeral, sem o papel
+// literal 'admin') precisa enxergar as solicitações de TODOS os núcleos pra
+// o Painel do Fundador mostrar números reais do grupo inteiro — só leitura,
+// aprovar/rejeitar continua exigindo ehAdmin() ou ser o gestor do próprio núcleo.
+allow read: if ehAdmin() || souFundador() || (ehGestor() && (resource.data.solicitanteUid == request.auth.uid || resource.data.academiaId == minhaAcademiaGerenciada()));
 allow create: if ehGestor() &&
 request.resource.data.solicitanteUid == request.auth.uid &&
 request.resource.data.academiaId == minhaAcademiaGerenciada() &&
 request.resource.data.status == 'pendente';
-allow update, delete: if ehAdmin();
+// Só o admin aprova/rejeita pedidos de mensalidade e evento (decisão financeira
+// sobe pro admin, por desenho). Vínculo de parentesco e transferência PARA o
+// próprio núcleo, o mestre/professor responsável pode aprovar/rejeitar sozinho —
+// e só pode mudar o campo status, nada mais no documento.
+allow update: if ehAdmin() || (
+ehGestor() &&
+resource.data.academiaId == minhaAcademiaGerenciada() &&
+resource.data.tipo in ['vinculo_familia', 'transferencia'] &&
+request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+);
+allow delete: if ehAdmin();
 }
 
 match /eventos/{id} {
@@ -107,7 +125,10 @@ allow write: if ehAdmin();
 // Pagamentos manuais (mensalidade paga/não paga) — restrito ao próprio
 // núcleo de quem lança, exceto o Admin que vê/gerencia tudo.
 match /pagamentos/{id} {
-allow read: if logado() && (resource.data.alunoId == request.auth.uid || ehAdmin() || (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada()));
+// souFundador() aditivo pelo mesmo motivo do bloco de solicitacoes acima —
+// Financeiro do grupo e Árvore do grupo precisam de leitura real de todos
+// os núcleos pro Mestre Profeta, sem abrir escrita além do que já existia.
+allow read: if logado() && (resource.data.alunoId == request.auth.uid || ehAdmin() || souFundador() || (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada()));
 allow create: if ehAdmin() || (ehGestor() && request.resource.data.academiaId == minhaAcademiaGerenciada());
 allow update, delete: if ehAdmin() || (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada());
 }
