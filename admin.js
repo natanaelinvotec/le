@@ -89,31 +89,6 @@ function pessoaEhInstrutorFormacao(pessoa) {
   return !!(pessoa && pessoa.papeis && pessoa.papeis.includes('instrutor'));
 }
 
-function construirColunaCascataDados(headPessoa, ehColunaPropria, descendentes) {
-  const professores = descendentes.filter((p) => pessoaEhMestreFormacao(p));
-  const instrutores = descendentes.filter((p) => !pessoaEhMestreFormacao(p) && pessoaEhInstrutorFormacao(p));
-  const alunos = descendentes.filter((p) => !pessoaEhMestreFormacao(p) && !pessoaEhInstrutorFormacao(p));
-  return { head: headPessoa, ehColunaPropria: ehColunaPropria, professores: professores, instrutores: instrutores, alunos: alunos };
-}
-
-function construirDadosCascataNiveis(raizUid, listaUsuarios, listaNucleos) {
-  const raiz = listaUsuarios.find((u) => u.id === raizUid);
-  if (!raiz) return null;
-  const filhosDiretos = obterFilhosDiretosFormacao(raizUid, listaUsuarios, listaNucleos);
-  const colunasFilhas = filhosDiretos.filter((p) => pessoaEhMestreFormacao(p));
-  const idsForaDaColunaRaiz = new Set();
-  colunasFilhas.forEach((p) => {
-    idsForaDaColunaRaiz.add(p.id);
-    coletarDescendentesFormacao(p.id, listaUsuarios, listaNucleos).forEach((d) => idsForaDaColunaRaiz.add(d.id));
-  });
-  const descendentesRaizTotal = coletarDescendentesFormacao(raizUid, listaUsuarios, listaNucleos);
-  const descendentesColunaRaiz = descendentesRaizTotal.filter((p) => !idsForaDaColunaRaiz.has(p.id));
-  const colunas = [construirColunaCascataDados(raiz, true, descendentesColunaRaiz)].concat(
-    colunasFilhas.map((p) => construirColunaCascataDados(p, false, coletarDescendentesFormacao(p.id, listaUsuarios, listaNucleos)))
-  );
-  return { raiz: raiz, colunas: colunas, totalGeral: descendentesRaizTotal.length };
-}
-
 function cascataCorPorEvolucao(pessoa) {
   const porc = calcularPorcentagemEvolucaoDe(pessoa);
   return porc >= 70 ? 'cascata-verde' : 'cascata-azul';
@@ -147,27 +122,39 @@ function construirCascataContagemCardHTML(lista, rotulo, icone) {
     '</div>';
 }
 
-function construirCascataColunaHTML(coluna) {
-  const rotuloProfessor = coluna.ehColunaPropria ? 'professores no nucleo dele, cada um c/ nucleo proprio' : 'professores na ramificacao, cada um c/ nucleo proprio';
-  const rotuloInstrutor = 'instrutores ativos';
-  const rotuloAluno = 'alunos, todos os cordoes';
-  return '<div class="cascata-coluna">' +
-    construirCascataPersonCardHTML(coluna.head, coluna.ehColunaPropria) +
-    construirCascataContagemCardHTML(coluna.professores, rotuloProfessor, 'fa-chalkboard-teacher') +
-    construirCascataContagemCardHTML(coluna.instrutores, rotuloInstrutor, 'fa-user-tie') +
-    construirCascataContagemCardHTML(coluna.alunos, rotuloAluno, 'fa-users') +
-    '</div>';
+// Árvore de Formação (quem formou quem) — recursiva de verdade: o Mestre
+// Profeta vem primeiro, embaixo dele os mestres/professores/instrutores/
+// alunos que ele formou diretamente, e cada um desses que também formou
+// gente (virou mestre/professor/instrutor) ganha seu próprio galho recursivo
+// com professores/instrutores/alunos dele — e assim por diante, até acabarem
+// os descendentes. Um "visitados" evita loop infinito se algum dado tiver
+// um ciclo (formadorUid apontando em círculo).
+function construirNoFormacaoHTML(pessoa, listaUsuarios, listaNucleos, ehRaiz, visitados) {
+  if (visitados.has(pessoa.id)) return '';
+  visitados.add(pessoa.id);
+  const filhos = obterFilhosDiretosFormacao(pessoa.id, listaUsuarios, listaNucleos);
+  const filhosGalho = filhos.filter((p) => pessoaEhMestreFormacao(p) || pessoaEhInstrutorFormacao(p));
+  const alunosDiretos = filhos.filter((p) => !pessoaEhMestreFormacao(p) && !pessoaEhInstrutorFormacao(p));
+
+  const cardHTML = construirCascataPersonCardHTML(pessoa, ehRaiz);
+  // Só aparece o cartão de "alunos diretos" quando ele existe de verdade —
+  // sem tile fixo mostrando "0" sem função nenhuma.
+  const alunosHTML = alunosDiretos.length
+    ? '<div class="formacao-no-extra">' + construirCascataContagemCardHTML(alunosDiretos, alunosDiretos.length === 1 ? 'aluno direto' : 'alunos diretos', 'fa-users') + '</div>'
+    : '';
+  const classeFilhos = 'formacao-filhos' + (filhosGalho.length > 1 ? ' formacao-filhos-multi' : '');
+  const filhosHTML = filhosGalho.length
+    ? '<div class="' + classeFilhos + '">' + filhosGalho.map((f) => '<div class="formacao-galho">' + construirNoFormacaoHTML(f, listaUsuarios, listaNucleos, false, visitados) + '</div>').join('') + '</div>'
+    : '';
+  return '<div class="formacao-no">' + cardHTML + alunosHTML + filhosHTML + '</div>';
 }
 
-function construirCascataNiveisHTML(dados) {
-  if (!dados) return '';
-  const colunasHTML = dados.colunas.map((c) => construirCascataColunaHTML(c)).join('');
-  return '<div class="cascata-niveis-faixas">' +
-    '<span class="cascata-faixa-rotulo"><i class="fas fa-crown"></i> Mestre / Professor</span>' +
-    '<span class="cascata-faixa-rotulo"><i class="fas fa-user-tie"></i> Instrutor</span>' +
-    '<span class="cascata-faixa-rotulo"><i class="fas fa-users"></i> Aluno</span>' +
-    '</div>' +
-    '<div class="cascata-niveis-grid">' + colunasHTML + '</div>';
+function construirArvoreFormacaoHTML(raizUid, listaUsuarios, listaNucleos) {
+  const raiz = listaUsuarios.find((u) => u.id === raizUid);
+  if (!raiz) return '';
+  return '<div class="formacao-arvore-scroll"><div class="formacao-raiz">' +
+    construirNoFormacaoHTML(raiz, listaUsuarios, listaNucleos, true, new Set()) +
+    '</div></div>';
 }
 
 window.__cascataToggleGrupo = function (el) {
@@ -238,8 +225,8 @@ function renderizarArvoreFormacao() {
     raizUid = sessaoAtual.uid;
   }
   if (!raizUid) { wrap.innerHTML = ''; return; }
-  const dados = construirDadosCascataNiveis(raizUid, todosUsuarios, todosNucleos);
-  wrap.innerHTML = construirCascataNiveisHTML(dados);
+  const html = construirArvoreFormacaoHTML(raizUid, todosUsuarios, todosNucleos);
+  wrap.innerHTML = html || '<span class="cascata-vazio">Ninguém formado ainda a partir deste cadastro.</span>';
 }
 
 
@@ -320,6 +307,10 @@ document.querySelectorAll('[data-papel]').forEach((el) => {
 const chave = el.getAttribute('data-papel');
 let visivel = true;
 if (chave === 'admin') visivel = admin;
+// admin-fundador: o link pro Painel do Fundador (master.html) precisa
+// aparecer também pro Mestre Profeta (acessoGeral), não só pro papel
+// literal 'admin' — senão o próprio fundador nunca vê o botão.
+else if (chave === 'admin-fundador') visivel = admin || souFundador(sessaoAtual);
 else if (chave === 'mestre') visivel = gestor && !admin;
 else if (chave === 'gestor') visivel = gestor;
 else if (chave === 'instrutor') visivel = instrutorSolo || admin;

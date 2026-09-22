@@ -21,7 +21,7 @@ recusada aqui e encaminhada de volta para admin.html. -->
 <div class="card-padrao login-card">
 <img src="logo-liberdade150.png" alt="Logo Capoeira Liberdade" class="login-logo">
 <h2>Painel do Fundador</h2>
-<p class="login-sub">Área exclusiva do Admin Master. Use a mesma conta do painel de gestão.</p>
+<p class="login-sub">Área exclusiva do Admin Master e do Fundador (Acesso Geral). Use a mesma conta do painel de gestão.</p>
 <form id="formLogin" novalidate>
 <div class="form-group-mod">
 <label for="loginEmail">E-mail</label>
@@ -45,7 +45,7 @@ recusada aqui e encaminhada de volta para admin.html. -->
 <div class="card-padrao login-card">
 <i class="fas fa-shield-halved tela-bloqueada-icone"></i>
 <h2>Acesso restrito</h2>
-<p class="login-sub">Esta área é exclusiva do Admin Master. Sua conta não tem essa permissão.</p>
+<p class="login-sub">Esta área é exclusiva do Admin Master e do Fundador. Sua conta não tem essa permissão.</p>
 <a href="admin.html" class="btn-salvar-modal" style="display:inline-block; text-decoration:none; margin-top:6px;">Ir para o meu painel</a>
 <button type="button" id="btnSairBloqueado" class="link-esqueci" style="display:block; margin:14px auto 0;">Sair da conta</button>
 </div>
@@ -74,6 +74,10 @@ recusada aqui e encaminhada de volta para admin.html. -->
 </div>
 
 <div class="kpis-master" id="kpisMaster" aria-live="polite"></div>
+
+<h3 style="margin: 34px 0 15px; color: var(--primary-blue); font-family:'Montserrat',sans-serif;"><i class="fas fa-clipboard-check"></i> Solicitações Pendentes</h3>
+<p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">Aprovar aqui já aplica o efeito direto (mensalidade, evento ou transferência) — igual ao painel de gestão.</p>
+<div class="lista-simples" id="listaSolicitacoesMaster"></div>
 
 <h3 style="margin: 34px 0 15px; color: var(--primary-blue); font-family:'Montserrat',sans-serif;">Núcleos da Rede</h3>
 <div class="academias-grid" id="tabelaNucleosMaster"></div>

@@ -30,7 +30,11 @@ resource.data.responsavelUid == request.auth.uid
 allow create: if ehAdmin() ||
 (request.auth.uid == uid && request.resource.data.papeis == ['aluno']);
 
-allow update: if ehAdmin() ||
+// souFundador() aditivo, sem restrição de campo: o Mestre Profeta precisa
+// poder aplicar o efeito de uma transferência aprovada (muda academiaId do
+// aluno) em qualquer núcleo do grupo, igual ao admin já podia — mesmo nível
+// de confiança que ele já tem em leitura (souFundador() acima).
+allow update: if ehAdmin() || souFundador() ||
 (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada() && academiaInalterada() && papeisInalterados() && acessoGeralInalterado()) ||
 (souInstrutorDoAluno() && academiaInalterada() && papeisInalterados() && academiaGerenciadaInalterada() && acessoGeralInalterado()) ||
 (request.auth.uid == uid && papeisInalterados() && academiaInalterada() && academiaGerenciadaInalterada() && notasInalteradas() && acessoGeralInalterado());
@@ -51,7 +55,9 @@ allow create: if ehAdmin() || (ehGestor() && alunoDoMeuNucleo()) || souInstrutor
 
 match /nucleos/{id} {
 allow read: if true;
-allow write: if ehAdmin();
+// souFundador() aditivo: aprovar uma solicitação de mensalidade no Painel
+// do Fundador precisa gravar o novo valor no próprio núcleo.
+allow write: if ehAdmin() || souFundador();
 }
 
     match /presencas/{id} {
@@ -94,7 +100,10 @@ request.resource.data.status == 'pendente';
 // sobe pro admin, por desenho). Vínculo de parentesco e transferência PARA o
 // próprio núcleo, o mestre/professor responsável pode aprovar/rejeitar sozinho —
 // e só pode mudar o campo status, nada mais no documento.
-allow update: if ehAdmin() || (
+// souFundador() aditivo: o Painel do Fundador aprova/rejeita solicitações de
+// QUALQUER tipo e núcleo (mensalidade, evento, transferência, vínculo de
+// família), igual ao admin — é o mesmo alcance que ele já tem em leitura.
+allow update: if ehAdmin() || souFundador() || (
 ehGestor() &&
 resource.data.academiaId == minhaAcademiaGerenciada() &&
 resource.data.tipo in ['vinculo_familia', 'transferencia'] &&
@@ -105,7 +114,9 @@ allow delete: if ehAdmin();
 
 match /eventos/{id} {
 allow read: if logado();
-allow write: if ehAdmin();
+// souFundador() aditivo: aprovar uma solicitação de evento/batizado no
+// Painel do Fundador precisa criar o documento em eventos.
+allow write: if ehAdmin() || souFundador();
 }
 
 match /avisos/{id} {

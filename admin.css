@@ -393,6 +393,23 @@ padding: 12px 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); text-align: center;
 .cascata-niveis-grid { display: flex; gap: 20px; overflow-x: auto; padding-bottom: 12px; align-items: flex-start; }
 .cascata-coluna { display: flex; flex-direction: column; gap: 10px; min-width: 220px; max-width: 240px; flex: none; }
 
+/* ---------------------- ÁRVORE DE FORMAÇÃO RECURSIVA (quem formou quem) ----------------------
+   Cada nó é o cartão da pessoa + (se ela formou gente) um galho por baixo com
+   os filhos diretos dela — cada filho é, de novo, um nó completo (cartão +
+   galho dele), recursivamente, até acabarem os descendentes. Por isso não
+   tem coluna fixa nem "profundidade máxima": a árvore cresce do jeito que os
+   dados crescerem. */
+.formacao-arvore-scroll { overflow-x: auto; padding: 6px 4px 16px; }
+.formacao-raiz { display: inline-flex; min-width: 100%; justify-content: center; }
+.formacao-no { display: flex; flex-direction: column; align-items: center; position: relative; padding: 0 10px; }
+.formacao-no-extra { margin-top: 10px; }
+.formacao-filhos { display: flex; gap: 22px; margin-top: 26px; position: relative; justify-content: center; }
+.formacao-filhos::before { content: ""; position: absolute; top: -14px; left: 50%; width: 1px; height: 14px; background: var(--border-color); transform: translateX(-0.5px); }
+.formacao-galho { position: relative; display: flex; flex-direction: column; align-items: center; padding-top: 14px; }
+.formacao-galho::before { content: ""; position: absolute; top: 0; left: 50%; width: 1px; height: 14px; background: var(--border-color); transform: translateX(-0.5px); }
+.formacao-filhos-multi::after { content: ""; position: absolute; top: -14px; left: 12%; right: 12%; height: 1px; background: var(--border-color); }
+@media (max-width: 700px) { .formacao-filhos { gap: 14px; } .formacao-filhos::after { left: 4%; right: 4%; } }
+
 .cascata-pessoa-card { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; background: var(--card-bg); border: 2px solid var(--border-color); border-radius: 16px; padding: 14px 10px; text-align: center; cursor: pointer; transition: transform 0.2s var(--ease-standard), box-shadow 0.2s var(--ease-standard); }
 .cascata-pessoa-card:hover { transform: translateY(-3px); box-shadow: 0 10px 22px rgba(0,0,0,0.12); }
 .cascata-pessoa-card.cascata-azul { border-color: #2F80ED; box-shadow: 0 0 0 1px rgba(47,128,237,0.2); }

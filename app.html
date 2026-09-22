@@ -1066,7 +1066,6 @@ a:hover{ color:#389E92; }
               </div>
               <div style="margin:16px 16px 0; display:flex; justify-content:space-between; align-items:center; gap:10px;">
                 <span style="font-size:.76rem; color:#5B6B68;">{{ totalNucleosAtivos }} núcleos ativos</span>
-                <button onClick="{{ solicitarTransferencia }}" style="border:none; background:none; color:#0B5C52; font-weight:700; font-size:.72rem; display:flex; align-items:center; gap:3px; cursor:pointer; font-family:'Manrope',sans-serif; flex:none;">Solicitar transferência <i class="fas fa-chevron-right" style="font-size:.6rem;"></i></button>
               </div>
               <sc-if value="{{ temNucleoAtualFrase }}" hint-placeholder-val="{{ false }}">
                 <p style="margin:6px 16px 0; font-size:.66rem; color:#5B6B68;">{{ nucleoAtualFrase }}</p>
@@ -1095,10 +1094,6 @@ a:hover{ color:#389E92; }
                       <div style="flex:1; background:#F5F9F8; border-radius:11px; padding:8px 10px; min-width:0;">
                         <div style="font-size:.68rem; color:#5B6B68;">local</div>
                         <div style="font-size:.72rem; font-weight:700; color:#0D211D; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ n.endereco }}</div>
-                      </div>
-                      <div style="flex:1; background:#F5F9F8; border-radius:11px; padding:8px 10px;">
-                        <div style="font-size:.68rem; color:#5B6B68;">mensalidade</div>
-                        <div style="font-size:.72rem; font-weight:700; color:#0D211D; margin-top:2px;">{{ n.mensalidade }}</div>
                       </div>
                     </div>
                   </button>
@@ -1195,7 +1190,7 @@ a:hover{ color:#389E92; }
                   </div>
                 </sc-if>
 
-                <sc-if value="{{ souAdministradorDesteNucleo }}" hint-placeholder-val="{{ true }}">
+                <sc-if value="{{ naoSouAdministradorDesteNucleo }}" hint-placeholder-val="{{ true }}">
                   <div>
                     <div style="background:#F5F9F8; border:1px solid #E2E8E6; border-radius:18px; padding:16px; display:flex; align-items:center; gap:13px;">
                       <div style="width:50px; height:50px; border-radius:50%; background:linear-gradient(135deg,#DAA520,#F5B942); display:flex; align-items:center; justify-content:center; flex:none;">
@@ -1206,14 +1201,10 @@ a:hover{ color:#389E92; }
                         <div style="font-size:.74rem; color:#5B6B68; margin-top:1px;">Professor responsável</div>
                       </div>
                     </div>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;">
+                    <div style="display:grid; grid-template-columns:1fr; gap:10px; margin-top:12px;">
                       <div style="background:#fff; border:1px solid #E2E8E6; border-radius:14px; padding:13px;">
                         <div style="font-size:.68rem; color:#5B6B68;">endereço</div>
                         <div style="font-size:.8rem; font-weight:700; color:#0D211D; margin-top:3px;">{{ nucleoDetalhe.endereco }}</div>
-                      </div>
-                      <div style="background:#fff; border:1px solid #E2E8E6; border-radius:14px; padding:13px;">
-                        <div style="font-size:.68rem; color:#5B6B68;">mensalidade</div>
-                        <div style="font-size:.8rem; font-weight:700; color:#0D211D; margin-top:3px;">{{ nucleoDetalhe.mensalidade }}</div>
                       </div>
                     </div>
                     <sc-if value="{{ nucleoDetalhe.meu }}" hint-placeholder-val="{{ false }}">
@@ -2378,7 +2369,6 @@ class Component extends DCLogic {
 
       buscaNucleo: this.state.buscaNucleo || '',
       mudarBuscaNucleo: (ev) => this.setState({ buscaNucleo: ev.target.value }),
-      solicitarTransferencia: () => this.toast('Fale com o seu professor ou com o admin para solicitar a transferência de núcleo.'),
       temNucleoAtualFrase: !gestor && !!atleta.academiaId,
       nucleoAtualFrase: 'Você já treina em ' + (atleta.academia || 'um núcleo') + '. Trocar de núcleo depende de solicitação ao professor ou ao admin.',
       nucleosCards: (this.state.nucleosLista || [])
@@ -2410,6 +2400,11 @@ class Component extends DCLogic {
       // pessoa (aluno navegando, ou gestor olhando um núcleo que não é o
       // dele), continua o cartão simples de sempre.
       souAdministradorDesteNucleo: gestor && !!this._academiaGerenciadaId && this.state.nucleoAberto === this._academiaGerenciadaId,
+      // Negação explícita pro segundo sc-if do NucleoDetalhe — os dois blocos
+      // (console do gestor / cartão simples do aluno) usam essa mesma
+      // condição só que invertida, pra nunca os dois aparecerem juntos nem
+      // sumirem os dois ao mesmo tempo.
+      naoSouAdministradorDesteNucleo: !(gestor && !!this._academiaGerenciadaId && this.state.nucleoAberto === this._academiaGerenciadaId),
       ehSedeDoFundador: fundador && gestor && this.state.nucleoAberto === this._academiaGerenciadaId,
       nucleoDetalhe: (() => {
         const n = (this.state.nucleosLista || []).find((x) => x.id === this.state.nucleoAberto);
