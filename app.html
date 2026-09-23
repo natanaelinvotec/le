@@ -55,6 +55,8 @@ a:hover{ color:#389E92; }
 @keyframes apSobeSheet{ from{ opacity:0; transform:translateY(40px);} to{ opacity:1; transform:none;} }
 @keyframes apBlob{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-22px);} }
 @keyframes apTranca{ 0%{ background-position:0 0;} 100%{ background-position:60px 0;} }
+@keyframes apFlutua{ 0%,100%{ transform:translateY(0) scale(1);} 50%{ transform:translateY(-5px) scale(1.06);} }
+@media (prefers-reduced-motion: reduce){ [style*="apFlutua"]{ animation:none !important; } }
 @keyframes apPulso{ 0%{ box-shadow:0 0 0 0 rgba(0,230,118,.45);} 70%{ box-shadow:0 0 0 18px rgba(0,230,118,0);} 100%{ box-shadow:0 0 0 0 rgba(0,230,118,0);} }
 @keyframes apSobe{ 0%{ transform:translate3d(0,0,0) scale(.85); opacity:0;} 12%{ opacity:1;} 50%{ transform:translate3d(16px,-130px,0) scale(1);} 88%{ opacity:1;} 100%{ transform:translate3d(-10px,-260px,0) scale(1.1); opacity:0;} }
 @keyframes apCresce{ from{ transform:scaleY(0);} to{ transform:scaleY(1);} }
@@ -198,14 +200,20 @@ a:hover{ color:#389E92; }
                 </div>
               </div>
 
-              <button onClick="{{ irCheckin }}" style="display:flex; align-items:center; gap:12px; width:calc(100% - 32px); margin:12px 16px 0; background:#00B140; color:#fff; border:none; border-radius:16px; padding:13px 16px; text-align:left; cursor:pointer; font-family:'Manrope',sans-serif; box-shadow:0 12px 24px -14px rgba(0,177,64,.8);">
-                <span style="width:38px; height:38px; border-radius:12px; background:rgba(255,255,255,.18); display:flex; align-items:center; justify-content:center; flex:none;"><i class="fas fa-face-viewfinder" style="font-size:1.05rem;"></i></span>
-                <span style="flex:1; min-width:0;">
-                  <span style="display:block; font-size:.86rem; font-weight:800;">Registrar presença com Face ID</span>
-                  <span style="display:block; font-size:.68rem; opacity:.85; margin-top:1px;">toque, olhe para a câmera e pronto — vale em qualquer núcleo do grupo</span>
-                </span>
-                <i class="fas fa-chevron-right" style="font-size:.75rem; opacity:.85;"></i>
-              </button>
+              <div style="margin:14px 16px 0; background:#fff; border:1px solid #E2E8E6; border-radius:18px; padding:14px 14px 12px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                  <span style="font-size:.8rem; font-weight:800; color:#0D211D; font-family:'Sora',sans-serif;">Nossas redes</span>
+                  <span style="font-size:.66rem; color:#5B6B68;">toque para abrir</span>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px;">
+                  <sc-for list="{{ redesSociais }}" as="r" hint-placeholder-count="0">
+                    <button onClick="{{ r.abrir }}" aria-label="{{ r.nome }}" style="{{ r.botao }}">
+                      <span style="{{ r.bolha }}"><i class="{{ r.icone }}"></i></span>
+                      <span style="font-size:.62rem; font-weight:800; color:#0D211D;">{{ r.nome }}</span>
+                    </button>
+                  </sc-for>
+                </div>
+              </div>
 
               <sc-if value="{{ statsExpandido }}" hint-placeholder-val="{{ false }}">
                 <div style="margin:12px 16px 0; background:#fff; border:1px solid #E2E8E6; border-radius:18px; padding:16px 17px;">
@@ -223,7 +231,7 @@ a:hover{ color:#389E92; }
                       </sc-for>
                     </div>
                   </sc-if>
-                  <p style="margin:8px 0 0; font-size:.7rem; color:#5B6B68;">Presença registrada pelo Face ID — sua ou do professor — em qualquer núcleo do grupo.</p>
+                  <p style="margin:8px 0 0; font-size:.7rem; color:#5B6B68;">Sua presença é registrada pelo professor no tablet do núcleo, por reconhecimento facial.</p>
                 </div>
               </sc-if>
 
@@ -257,7 +265,7 @@ a:hover{ color:#389E92; }
                     </div>
                   </div>
                   <button onClick="{{ irAulas }}" style="width:100%; margin-top:12px; background:#00B140; color:#fff; border:none; border-radius:12px; padding:11px; font-size:.8rem; font-weight:700; cursor:pointer; font-family:'Manrope',sans-serif;">Ver detalhes na agenda</button>
-                  <p style="margin:8px 0 0; font-size:.68rem; color:#5B6B68; text-align:center;">Chegou no núcleo? Registre a presença pelo Face ID no botão verde acima.</p>
+                  <p style="margin:8px 0 0; font-size:.68rem; color:#5B6B68; text-align:center;">A presença no evento é registrada pelo professor, no tablet do núcleo.</p>
                 </div>
               </sc-if>
 
@@ -2375,7 +2383,19 @@ class Component extends DCLogic {
       presencasMes: this.state.presencasMes,
       presencaTotal: this.state.presencaTotal,
       parceirosVisitados: this.state.parceirosVisitados,
-      irCheckin: () => { window.location.href = 'checkin.html'; },
+      // Redes do grupo (links reais do site oficial) + a Rede Liberdade interna.
+      // Cada bolha flutua com um atraso diferente (apFlutua) pra chamar atenção.
+      redesSociais: [
+        { nome: 'Rede', icone: 'fas fa-users', cor: '#0B5C52', bg: '#E6F2EF', url: 'rede.html', interna: true },
+        { nome: 'Instagram', icone: 'fab fa-instagram', cor: '#C13584', bg: '#FBE9F3', url: 'https://www.instagram.com/capoeiraliberdadeeexpressao/' },
+        { nome: 'Facebook', icone: 'fab fa-facebook-f', cor: '#1877F2', bg: '#E8F0FE', url: 'https://www.facebook.com/capoeiraliberdadeeexpressaooficial/' },
+        { nome: 'WhatsApp', icone: 'fab fa-whatsapp', cor: '#25D366', bg: '#E4F7EA', url: 'https://wa.me/5567991293269' },
+      ].map((r, i) => ({
+        nome: r.nome, icone: r.icone,
+        abrir: () => { if (r.interna) window.location.href = r.url; else window.open(r.url, '_blank', 'noopener'); },
+        botao: 'display:flex; flex-direction:column; align-items:center; gap:6px; background:none; border:none; padding:4px 0; cursor:pointer; font-family:\'Manrope\',sans-serif;',
+        bolha: 'width:50px; height:50px; border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:1.3rem; color:' + r.cor + '; background:' + r.bg + '; box-shadow:0 10px 20px -12px ' + r.cor + '; animation:apFlutua 2.8s ease-in-out ' + (i * 0.35) + 's infinite;',
+      })),
       abrirRede: () => { window.location.href = 'rede.html'; },
       seloApto: 'display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; margin-bottom:6px; font-size:.72rem; font-weight:800; letter-spacing:.08em; color:' + (progresso >= 70 ? '#00A854' : '#C0700C') + '; background:' + (progresso >= 70 ? 'rgba(0,230,118,.14)' : 'rgba(243,156,18,.14)') + ';',
       rotuloApto: progresso >= 70 ? 'APTO À TROCA' : 'EM PREPARAÇÃO',
@@ -2933,74 +2953,7 @@ class Component extends DCLogic {
 }
 
 </script>
-<div id="widgetCheckinRoot"></div>
-<script type="module">
-import { observarSessao, buscar, listarNucleosAtivos } from './firebase.js';
-const CHECKIN_STORAGE_KEY = 'checkinPresencaId';
-const INTERVALO_VERIFICACAO_MS = 3 * 60 * 1000;
-function distanciaMetros(lat1, lon1, lat2, lon2) {
-  const R = 6371000;
-  const toRad = (d) => (d * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-function criarWidget() {
-  const el = document.createElement('div');
-  el.id = 'widgetCheckin';
-  el.style.cssText = 'position:fixed;left:16px;right:16px;bottom:16px;z-index:99999;display:none;background:#002D72;color:#fff;border-radius:16px;padding:16px 20px;box-shadow:0 8px 24px rgba(0,0,0,.28);font-family:inherit;max-width:480px;margin:0 auto;';
-  document.body.appendChild(el);
-  return el;
-}
-async function iniciarCheckin() {
-  const widget = criarWidget();
-  observarSessao(async (user) => {
-    if (!user) return;
-    let perfil;
-    try { perfil = await buscar('usuarios', user.uid); } catch (e) { return; }
-    if (!perfil || !Array.isArray(perfil.papeis) || !perfil.papeis.includes('aluno')) return;
-    if (!navigator.geolocation) return;
-    function mostrarConvite(nucleo, coords) {
-      if (localStorage.getItem(CHECKIN_STORAGE_KEY)) return;
-      widget.style.display = 'block';
-      widget.innerHTML =
-        '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">' +
-        '<div style="font-size:28px;">\uD83D\uDCCD</div>' +
-        '<div style="flex:1;min-width:180px;">' +
-        '<div style="font-weight:700;font-size:15px;">Você chegou em ' + nucleo.nome + '!</div>' +
-        '<div style="font-size:13px;opacity:.85;">Confirme sua presença para registrar no seu histórico.</div>' +
-        '</div>' +
-        '<button id="btnConfirmarPresenca" style="background:#00A854;color:#fff;border:none;border-radius:10px;padding:10px 18px;font-weight:700;font-size:14px;cursor:pointer;">Registrar com Face ID</button>' +
-        '<button id="btnFecharCheckin" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:10px;padding:10px 14px;font-size:13px;cursor:pointer;">Agora não</button>' +
-        '</div>';
-      // Sem "confirmar aos 30 min": o registro é pelo Face ID do próprio
-      // aluno, na página de check-in, já apontando pro núcleo detectado.
-      document.getElementById('btnConfirmarPresenca').onclick = () => { window.location.href = 'checkin.html?nucleo=' + encodeURIComponent(nucleo.id); };
-      document.getElementById('btnFecharCheckin').onclick = () => { widget.style.display = 'none'; };
-    }
-    async function verificarProximidade() {
-      if (localStorage.getItem(CHECKIN_STORAGE_KEY)) return;
-      let nucleos;
-      try { nucleos = await listarNucleosAtivos(); } catch (e) { return; }
-      nucleos = (nucleos || []).filter((n) => typeof n.latitude === 'number' && typeof n.longitude === 'number');
-      if (!nucleos.length) return;
-      navigator.geolocation.getCurrentPosition((pos) => {
-        const { latitude, longitude } = pos.coords;
-        let alvo = null;
-        for (const n of nucleos) {
-          const d = distanciaMetros(latitude, longitude, n.latitude, n.longitude);
-          if (d <= (n.raioMetros || 15)) { alvo = n; break; }
-        }
-        if (alvo) mostrarConvite(alvo, { lat: latitude, lng: longitude });
-      }, () => {}, { enableHighAccuracy: true, timeout: 15000 });
-    }
-    verificarProximidade();
-    setInterval(verificarProximidade, INTERVALO_VERIFICACAO_MS);
-  });
-}
-iniciarCheckin();
-</script>
+<!-- Check-in por proximidade removido: a presença do aluno é registrada pelo professor (Face ID no tablet do núcleo). -->
 <style id="modernizacao-cabecalho">
 /* ======================================================================
    MODERNIZAÇÃO VISUAL — cabeçalho (hero) e barra inferior do painel do

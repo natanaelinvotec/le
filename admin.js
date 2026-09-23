@@ -280,10 +280,22 @@ irParaLogin('sem-acesso');
 return;
 }
 sessaoAtual = { uid: user.uid, ...perfil };
-await iniciarPainel();
 } catch (e) {
 console.error(e);
 irParaLogin();
+return;
+}
+// Erro em alguma parte do painel NÃO pode derrubar a sessão de quem tem
+// acesso: antes qualquer exceção aqui mandava o mestre/professor de volta
+// pro login como se ele não tivesse permissão (parecia "logar e desconectar").
+try {
+await iniciarPainel();
+} catch (e) {
+console.error('Erro ao montar o painel:', e);
+const telaCarregando = document.getElementById('telaCarregando');
+if (telaCarregando) telaCarregando.classList.add('oculto');
+appPainel.classList.remove('oculto');
+toast('Uma parte do painel não carregou. Recarregue a página; se continuar, me avise com o print.', 'error', 8000);
 }
 });
 
@@ -2112,6 +2124,7 @@ async function carregarPresencas() {
   // Sem "confirmação aos 30 min": toda presença registrada (Face ID do
   // professor, Face ID do próprio aluno ou marcação manual) já vale como
   // presença. Os números aqui são só contagens reais do que foi gravado.
+  const total = itens.length;
   const agora = new Date();
   const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
   const hojeStr = agora.toDateString();
