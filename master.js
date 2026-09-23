@@ -134,14 +134,17 @@ const totalPendente = pendentes.reduce((s, p) => s + (Number(p.valor) || 0), 0);
 const fundadores = usuarios.filter((u) => u.acessoGeral === true);
 const solicPendentes = solicitacoes.filter((s) => s.status === 'pendente');
 solicitacoesCacheMaster = solicPendentes;
-const confirmadas = presencas.filter((p) => p.confirmadoAos30 === true);
-const presencaGeralPct = presencas.length ? Math.round((confirmadas.length / presencas.length) * 100) : null;
+// Sem "confirmação aos 30 min": conta check-ins reais dos últimos 30 dias.
+const limite30 = Date.now() - 30 * 24 * 60 * 60 * 1000;
+const dataDe = (p) => (p.entradaEm && p.entradaEm.toDate ? p.entradaEm.toDate() : new Date(p.entradaEm));
+const checkins30 = presencas.filter((p) => dataDe(p).getTime() >= limite30);
+const alunosAtivos30 = new Set(checkins30.map((p) => p.uid)).size;
 
 // Tiles do mockup (p.4): núcleos ativos, presença geral, solicitações
 // pendentes, batizados/eventos marcados — e mais três da rede. Tudo real.
 const tiles = [
 { cor: 'navy', valor: String(nucleosAtivos.length), rotulo: 'núcleos ativos', icone: 'fa-building' },
-{ cor: 'teal', valor: presencaGeralPct != null ? presencaGeralPct + '%' : '—', rotulo: 'presença geral', icone: 'fa-location-dot', nota: presencas.length ? `${presencas.length} check-ins na rede` : 'sem check-ins registrados' },
+{ cor: 'teal', valor: String(checkins30.length), rotulo: 'check-ins nos últimos 30 dias', icone: 'fa-location-dot', nota: checkins30.length ? `${alunosAtivos30} aluno${alunosAtivos30 === 1 ? '' : 's'} treinando · ${presencas.length} no total` : 'sem check-ins registrados' },
 { cor: solicPendentes.length ? 'gold' : 'teal', valor: String(solicPendentes.length), rotulo: 'solicitações pendentes', icone: 'fa-clock' },
 { cor: eventosFuturos.length ? 'red' : 'teal', valor: String(eventosFuturos.length), rotulo: eventosFuturos.length === 1 ? 'evento/batizado marcado' : 'eventos/batizados marcados', icone: 'fa-calendar-day' },
 { cor: 'green', valor: String(alunosAtivos.length), rotulo: 'alunos ativos na rede', icone: 'fa-user-group' },

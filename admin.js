@@ -24,7 +24,7 @@ publicarMaterial, listarMateriais, removerMaterial, excluirUsuarioPermanente,
 publicarMaterialFormacao, listarMateriaisFormacao, removerMaterialFormacao,
 lancarPagamento, listarPagamentosDoNucleo, marcarPagamento,
 lancarDespesaComRateio, todosRateios, marcarRateioPago,
-  presencasDoNucleo,
+  presencasDoNucleo, presencasVisitantesDoNucleo,
 } from './firebase.js';
 import { escapeHTML, sanitizeInput, debounce, gerarSlug } from './shared.js';
 import { configurarFaceId, atualizarContextoFaceId, pararFaceId } from './faceid.js';
@@ -331,7 +331,6 @@ let solicitacoesCache = []; // última leitura de solicitações visíveis a est
 // Caches usados pela "Visão geral" (tiles de KPI da aba Alunos). Só guardam
 // o que já foi lido de verdade nesta sessão — nada aqui é estimado.
 let avisosVisiveisCache = null;     // array de avisos ativos visíveis (null = ainda não carregou)
-let presencaResumoCache = null;     // { nucleoId, percentual, total } da última leitura de presenças
 let eventosCache = null;            // eventos/{id} (null = ainda não carregou)
 let presencasNucleoCache = null;    // { nucleoId, itens } — última leitura de presenças (reaproveitada pelo Face ID)
 
@@ -471,7 +470,9 @@ const alunosAtivos = alunos.filter((a) => a.statusAtual !== 'Inativo');
 const pendentes = solicitacoesCache.filter((s) => s.status === 'pendente');
 const eventosFuturos = eventosCache ? eventosCache.filter((e) => (e.data || '') >= hoje) : null;
 const nucleoProprio = sessaoAtual.academiaGerenciadaId || null;
-const presenca = presencaResumoCache && (ehAdmin() || presencaResumoCache.nucleoId === nucleoProprio) ? presencaResumoCache : null;
+const presencaCache = presencasNucleoCache && (ehAdmin() || presencasNucleoCache.nucleoId === nucleoProprio) ? presencasNucleoCache : null;
+const inicioMesKpi = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+const checkinsMes = presencaCache ? presencaCache.itens.filter((p) => (p.entradaEm && p.entradaEm.toDate ? p.entradaEm.toDate() : new Date(p.entradaEm)) >= inicioMesKpi).length : null;
 
 const tiles = [];
 const tile = (cor, valor, rotulo, aba, icone, nota) => tiles.push({ cor, valor, rotulo, aba, icone, nota });
@@ -479,7 +480,7 @@ const tile = (cor, valor, rotulo, aba, icone, nota) => tiles.push({ cor, valor, 
 tile('teal', todosUsuarios.length ? String(alunosAtivos.length) : '—', ehAdmin() ? 'alunos ativos no grupo' : (instrutorSolo ? 'alunos sob minha responsabilidade' : 'alunos ativos no núcleo'), null, 'fa-user-group');
 if (ehAdmin()) tile('navy', todosNucleos.length ? String(todosNucleos.filter((n) => n.ativo).length) : '—', 'núcleos ativos', 'nucleos', 'fa-building');
 if (ehGestor()) tile(pendentes.length ? 'gold' : 'teal', String(pendentes.length), 'solicitações pendentes', 'solicitacoes', 'fa-clock');
-tile(presenca ? 'green' : 'teal', presenca ? presenca.percentual + '%' : '—', presenca ? 'presença confirmada' : 'presença confirmada', 'presenca', 'fa-location-dot', presenca ? `${presenca.total} check-ins` : (ehAdmin() ? 'selecione um núcleo em Presenças' : 'sem check-ins lidos ainda'));
+tile('green', checkinsMes != null ? String(checkinsMes) : '—', 'check-ins neste mês', 'presenca', 'fa-location-dot', checkinsMes != null ? `${presencaCache.itens.length} no total` : (ehAdmin() ? 'selecione um núcleo em Presenças' : 'sem check-ins lidos ainda'));
 tile('navy', avisosVisiveisCache ? String(avisosVisiveisCache.length) : '—', 'avisos ativos', 'avisos', 'fa-bell');
 tile(eventosFuturos && eventosFuturos.length ? 'red' : 'teal', eventosFuturos ? String(eventosFuturos.length) : '—', eventosFuturos && eventosFuturos.length === 1 ? 'evento/batizado marcado' : 'eventos/batizados marcados', null, 'fa-calendar-day');
 
@@ -1017,8 +1018,23 @@ if (papeis.includes('instrutor')) return '<i class="fas fa-user-graduate"></i> I
 return '<i class="fas fa-user"></i> Responsável';
 }
 
+// "Direto <quem formou>": o fundador é "Direto Liberdade e Expressão"; os
+// demais são diretos do responsável pelo núcleo onde treinam (o nome do
+// responsável vem do próprio nome do núcleo — "Academia Mestre Profeta" →
+// "Mestre Profeta"; "Academia Professora Taynara" → "Professora Taynara").
+// Se a pessoa tem formadorUid gravado e ele administra um núcleo conhecido,
+// esse núcleo vence (a posição na cascata é permanente).
+function rotuloDiretoDe(pessoa) {
+if (souFundador(pessoa)) return 'Direto Liberdade e Expressão';
+let nucleo = null;
+if (pessoa.formadorUid) nucleo = todosNucleos.find((n) => n.professorUid === pessoa.formadorUid) || null;
+if (!nucleo && pessoa.academiaId) nucleo = todosNucleos.find((n) => n.id === pessoa.academiaId) || null;
+const nomeNucleo = nucleo ? (nucleo.nome || '') : (pessoa.academiaNome || '');
+const mestre = String(nomeNucleo).replace(/^\s*(academia|núcleo|nucleo)\s+(d[oa]\s+)?/i, '').trim();
+return mestre ? `Direto ${mestre}` : 'Direto Liberdade e Expressão';
+}
+
 function construirHeroCardHTML(a, todosUsuarios, mostrarTotalGrupo) {
-const nucleoGerenciado = a.academiaGerenciadaId ? (todosNucleos.find((n) => n.id === a.academiaGerenciadaId) || { id: a.academiaGerenciadaId, nome: a.academiaGerenciadaId }) : null;
 
 const idade = Number(a.idade) || 0;
 const lista = idade < 12 ? cordoesKids : cordoesAdulto;
@@ -1043,7 +1059,7 @@ return `
 <div class="hero-fundador-info">
 <span class="hero-fundador-selo">${seloHeroHTML(a)}</span>
 <h2>${escapeHTML(a.nome || 'Responsável')}</h2>
-${nucleoGerenciado ? `<span class="hero-fundador-nucleo"><i class="fas fa-building"></i> ${escapeHTML(nucleoGerenciado.nome || nucleoGerenciado.id)}${a.academiaId && a.academiaId !== nucleoGerenciado.id ? ` · treina em ${escapeHTML(a.academiaNome || a.academiaId)}` : ''}</span>` : (a.academiaNome || a.academiaId ? `<span class="hero-fundador-nucleo"><i class="fas fa-building"></i> ${escapeHTML(a.academiaNome || a.academiaId)}</span>` : '')}
+<span class="hero-fundador-nucleo"><i class="fas fa-link"></i> ${escapeHTML(rotuloDiretoDe(a))}</span>
 ${mostrarTotalGrupo ? `<span class="hero-fundador-total-grupo"><i class="fas fa-users"></i> Total de atletas do grupo: ${contarTotalAtletasGrupo(a.id, todosUsuarios, todosNucleos)}</span>` : ''}
 <span class="hero-fundador-cordao">Cordão ${escapeHTML(a.cordaoAtual || 'Iniciante')}</span>
 <div class="hero-fundador-estrelas">${estrelasHtml}</div>
@@ -1726,7 +1742,7 @@ return a.data < hoje;
 async function carregarAvisos() {
 try {
 const avisos = await listarAvisos(20);
-const doNucleo = ehAdmin() ? avisos : avisos.filter((a) => !a.academiaId || a.academiaId === sessaoAtual.academiaGerenciadaId);
+const doNucleo = (ehAdmin() || souFundador(sessaoAtual)) ? avisos : avisos.filter((a) => !a.academiaId || a.academiaId === sessaoAtual.academiaGerenciadaId);
 const visiveis = doNucleo.filter((a) => !avisoExpirado(a));
 avisosVisiveisCache = visiveis;
 renderizarKpisGestao();
@@ -1777,7 +1793,7 @@ e.preventDefault();
 const btn = formNovoAviso.querySelector('button[type="submit"]');
 btn.disabled = true;
 try {
-const academiaId = ehAdmin() ? (document.getElementById('avisoAcademia').value || null) : sessaoAtual.academiaGerenciadaId;
+const academiaId = (ehAdmin() || souFundador(sessaoAtual)) ? (document.getElementById('avisoAcademia').value || null) : sessaoAtual.academiaGerenciadaId;
 await publicarAviso({
 titulo: sanitizeInput(document.getElementById('avisoTitulo').value),
 texto: sanitizeInput(document.getElementById('avisoTexto').value),
@@ -1938,6 +1954,8 @@ selAluno.innerHTML = '<option value="">Selecione o aluno...</option>' + alunosAl
 try {
 const pagamentos = nucleoAlvo ? await listarPagamentosDoNucleo(nucleoAlvo) : await listar('pagamentos');
 pagamentos.sort((a, b) => (b.criadoEm || '').localeCompare(a.criadoEm || ''));
+pagamentosCache = { nucleoId: nucleoAlvo || null, itens: pagamentos };
+desenharGraficos(alunosFiltradosAtuais());
 let totalPago = 0; let totalPendente = 0; let emDia = 0;
 pagamentos.forEach((p) => { if (p.pago) { totalPago += Number(p.valor) || 0; emDia++; } else { totalPendente += Number(p.valor) || 0; } });
 document.getElementById('finTotalPago').textContent = 'R$ ' + totalPago.toFixed(2);
@@ -2091,39 +2109,58 @@ async function carregarPresencas() {
     cont.innerHTML = '';
     return;
   }
-  const total = itens.length;
-  const confirmadas = itens.filter((p) => p.confirmadoAos30 === true).length;
-  const percentual = total > 0 ? Math.round((confirmadas / total) * 100) : 0;
-  presencaResumoCache = { nucleoId: nucleoAlvo, percentual, total };
+  // Sem "confirmação aos 30 min": toda presença registrada (Face ID do
+  // professor, Face ID do próprio aluno ou marcação manual) já vale como
+  // presença. Os números aqui são só contagens reais do que foi gravado.
+  const agora = new Date();
+  const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
+  const hojeStr = agora.toDateString();
+  const dataDe = (p) => (p.entradaEm && p.entradaEm.toDate ? p.entradaEm.toDate() : new Date(p.entradaEm));
+  const noMes = itens.filter((p) => dataDe(p) >= inicioMes);
+  const hoje = itens.filter((p) => dataDe(p).toDateString() === hojeStr);
+  const alunosHoje = new Set(hoje.map((p) => p.uid)).size;
+  const visitasFora = itens.filter((p) => p.visitante === true);
+  let visitantesAqui = [];
+  try { visitantesAqui = await presencasVisitantesDoNucleo(nucleoAlvo, 100); } catch (e) { visitantesAqui = []; }
+  presencasNucleoCache = { nucleoId: nucleoAlvo, itens, visitantesAqui };
   renderizarKpisGestao();
+  const nomeNucleoCurto = (id) => { const n = (todosNucleos || []).find((x) => x.id === id); return n ? String(n.nome || id).replace(/^\s*(academia|núcleo|nucleo)\s+(d[oa]\s+)?/i, '') : (id || ''); };
   resumo.innerHTML = `<div class="presenca-resumo-grid">
-    <div class="presenca-stat"><span class="presenca-stat-valor">${percentual}%</span><span class="presenca-stat-label">Confirmação de presença</span></div>
-    <div class="presenca-stat"><span class="presenca-stat-valor">${total}</span><span class="presenca-stat-label">Check-ins registrados</span></div>
-    <div class="presenca-stat"><span class="presenca-stat-valor">${confirmadas}</span><span class="presenca-stat-label">Confirmados após 30min</span></div>
+    <div class="presenca-stat"><span class="presenca-stat-valor">${noMes.length}</span><span class="presenca-stat-label">check-ins neste mês</span></div>
+    <div class="presenca-stat"><span class="presenca-stat-valor">${alunosHoje}</span><span class="presenca-stat-label">aluno${alunosHoje === 1 ? '' : 's'} presente${alunosHoje === 1 ? '' : 's'} hoje</span></div>
+    <div class="presenca-stat"><span class="presenca-stat-valor">${total}</span><span class="presenca-stat-label">check-ins no total</span></div>
+    <div class="presenca-stat"><span class="presenca-stat-valor">${visitasFora.length}</span><span class="presenca-stat-label">treinos em outros núcleos</span></div>
   </div>`;
   const porAluno = {};
   itens.forEach((p) => {
     const key = p.uid || 'desconhecido';
     if (!porAluno[key]) {
       const u = (todosUsuarios || []).find((x) => x.id === key);
-      porAluno[key] = { total: 0, confirmadas: 0, ultima: 0, faceid: 0, nome: u ? u.nome : 'Aluno' };
+      porAluno[key] = { total: 0, mes: 0, ultima: 0, ultimaVisita: '', faceid: 0, nome: u ? u.nome : 'Aluno', foto: u ? u.fotoUrl : '' };
     }
     porAluno[key].total += 1;
-    if (p.origem === 'faceid') porAluno[key].faceid += 1;
-    if (p.confirmadoAos30 === true) porAluno[key].confirmadas += 1;
-    const t = p.entradaEm && p.entradaEm.toMillis ? p.entradaEm.toMillis() : 0;
-    if (t > porAluno[key].ultima) porAluno[key].ultima = t;
+    const d = dataDe(p); const t = d.getTime() || 0;
+    if (d >= inicioMes) porAluno[key].mes += 1;
+    if (String(p.origem || '').startsWith('faceid')) porAluno[key].faceid += 1;
+    if (t > porAluno[key].ultima) {
+      porAluno[key].ultima = t;
+      porAluno[key].ultimaVisita = p.visitante && p.nucleoVisitadoId ? `Treino ${p.nucleoVisitadoNome ? String(p.nucleoVisitadoNome).replace(/^\s*(academia|núcleo|nucleo)\s+(d[oa]\s+)?/i, '') : nomeNucleoCurto(p.nucleoVisitadoId)}` : '';
+    }
   });
   const linhas = Object.values(porAluno)
     .sort((a, b) => b.ultima - a.ultima)
     .map((a) => {
-      const pct = a.total > 0 ? Math.round((a.confirmadas / a.total) * 100) : 0;
       const dataStr = a.ultima ? new Date(a.ultima).toLocaleDateString('pt-BR') : '-';
-      return `<div class="lista-item"><span class="lista-icone ${a.faceid ? 'green' : ''}"><i class="fas ${a.faceid ? 'fa-face-viewfinder' : 'fa-location-dot'}"></i></span><div class="lista-item-info"><strong>${escapeHTML(a.nome)}</strong><span>${a.confirmadas}/${a.total} confirmadas (${pct}%) · última: ${dataStr}${a.faceid ? ` · ${a.faceid} por Face ID` : ''}</span></div></div>`;
+      return `<div class="lista-item"><span class="lista-icone ${a.faceid ? 'green' : ''}"><i class="fas ${a.faceid ? 'fa-face-viewfinder' : 'fa-location-dot'}"></i></span><div class="lista-item-info"><strong>${escapeHTML(a.nome)}${a.ultimaVisita ? ` <span class="pill pill-gold">${escapeHTML(a.ultimaVisita)}</span>` : ''}</strong><span>${a.mes} neste mês · ${a.total} no total · último check-in: ${dataStr}${a.faceid ? ` · ${a.faceid} por Face ID` : ''}</span></div></div>`;
     })
     .join('');
-  cont.innerHTML = linhas || '<p>Nenhum check-in registrado ainda.</p>';
+  const blocoVisitantes = visitantesAqui.length
+    ? `<div class="secao-titulo" style="margin-top:22px;"><h3>Visitantes de outros núcleos</h3><span class="pill pill-gold">${visitantesAqui.length}</span></div>` +
+      visitantesAqui.sort((a, b) => dataDe(b) - dataDe(a)).slice(0, 30).map((p) => `<div class="lista-item"><span class="lista-icone gold"><i class="fas fa-person-walking-arrow-right"></i></span><div class="lista-item-info"><strong>${escapeHTML(p.alunoNome || 'Aluno visitante')}</strong><span>de ${escapeHTML(nomeNucleoCurto(p.nucleoId))} · ${dataDe(p).toLocaleDateString('pt-BR')}</span></div></div>`).join('')
+    : '';
+  cont.innerHTML = (linhas || '<p>Nenhum check-in registrado ainda.</p>') + blocoVisitantes;
   atualizarContextoFaceId();
+  desenharGraficos(alunosFiltradosAtuais());
 }
 
 function obterCorPorCordao(nome) {
@@ -2136,94 +2173,230 @@ Liberto: '#D32F2F', Instrutor: '#DAA520', Professor: '#D32F2F', Mestre: '#F5F5F5
 return mapa[nome] || '#389E92';
 }
 
-function desenharGraficos(alunosAtuais) {
-let aptos = 0; let desenv = 0; const rankCount = {}; const academiaCount = {}; let ativos = 0; let inativos = 0; let kids = 0; let adultos = 0;
-const fundamentosSoma = {}; const fundamentosQtd = {};
-criteriosRegras.forEach((c) => { fundamentosSoma[c.txt] = 0; fundamentosQtd[c.txt] = 0; });
+/* ===================== RELATÓRIOS (Inteligência do Núcleo) =====================
+   Todos os gráficos e frases saem de dados já lidos nesta sessão: alunos
+   (todosUsuarios), check-ins (presencasNucleoCache), notas, mensalidades
+   (pagamentosCache) e datas de cadastro. Quando uma fonte não existe pro
+   escopo atual, o gráfico mostra "sem dados" — nunca um número inventado. */
+const COR_SERIE = '#15907F';       // uma cor só pra magnitude (barras/linhas de uma série)
+const COR_SERIE_2 = '#002D72';
+const COR_BOM = '#008300';         // status: em dia / apto
+const COR_ALERTA = '#C98500';      // status: atenção
+const COR_RUIM = '#D32F2F';        // status: pendente / inativo
+const COR_GRADE = 'rgba(13,33,29,0.08)';
+const COR_TEXTO = '#5B6B68';
+const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const MESES_CURTO = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+let pagamentosCache = null;         // { nucleoId, itens } — preenchido em carregarFinanceiro
+let presencasRelatorioPendente = null;
 
-alunosAtuais.forEach((a) => {
+const dataPresenca = (p) => (p.entradaEm && p.entradaEm.toDate ? p.entradaEm.toDate() : new Date(p.entradaEm));
+function inicioSemana(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; } // segunda-feira
+function nomeCurto(nome) { const partes = String(nome || 'Aluno').trim().split(/\s+/); return partes.length > 1 ? `${partes[0]} ${partes[1][0]}.` : partes[0]; }
+
+function prontidaoDe(a) {
 const idadeAluno = Number(a.idade) || 0;
-if (idadeAluno < 12) kids++; else adultos++;
-if (a.statusAtual === 'Ativo') ativos++; else inativos++;
-const local = a.academiaNome || a.academiaId || 'Não informado'; academiaCount[local] = (academiaCount[local] || 0) + 1;
-const rank = a.cordaoAtual || 'Iniciante'; rankCount[rank] = (rankCount[rank] || 0) + 1;
-
-let idxCordao = cordoesAdulto.findIndex((c) => c.nome === rank);
-if (idadeAluno < 12) idxCordao = cordoesKids.findIndex((c) => c.nome === rank);
+const rank = a.cordaoAtual || 'Iniciante';
+let idxCordao = (idadeAluno < 12 ? cordoesKids : cordoesAdulto).findIndex((c) => c.nome === rank);
 if (idxCordao === -1) idxCordao = 0;
-
-const critAtivosAluno = criteriosRegras.filter((crit) => (idadeAluno < 12 ? crit.reqKids : idxCordao >= (crit.reqAdulto - 1)));
-const maxPontos = critAtivosAluno.length * 10;
-let totalPontosAluno = 0;
-
-if (a.notas) {
-critAtivosAluno.forEach((c) => {
-if (a.notas[c.id] !== undefined) {
-const notaVal = Number(a.notas[c.id]);
-totalPontosAluno += notaVal;
-fundamentosSoma[c.txt] += notaVal;
-fundamentosQtd[c.txt] += 1;
+const crit = criteriosRegras.filter((c) => (idadeAluno < 12 ? c.reqKids : idxCordao >= (c.reqAdulto - 1)));
+if (!a.notas || !crit.length) return { pct: null, crit, avaliado: false };
+let total = 0; let avaliados = 0;
+crit.forEach((c) => { if (a.notas[c.id] !== undefined) { total += Number(a.notas[c.id]) || 0; avaliados++; } });
+if (!avaliados) return { pct: null, crit, avaliado: false };
+return { pct: Math.round((total / (crit.length * 10)) * 100), crit, avaliado: true };
 }
-});
-const porc = maxPontos > 0 ? (totalPontosAluno / maxPontos) * 100 : 0;
-if (maxPontos > 0 && porc >= 70) aptos++; else desenv++;
-} else { desenv++; }
-});
 
-const labelFundamentos = []; const dataFundamentos = [];
-Object.keys(fundamentosSoma).forEach((crit) => {
-if (fundamentosQtd[crit] > 0) { labelFundamentos.push(crit); dataFundamentos.push((fundamentosSoma[crit] / fundamentosQtd[crit]).toFixed(1)); }
-});
-
-const colorTeal = '#0B5C52'; const colorBlue = '#002D72'; const colorGreen = '#00E676'; const colorRed = '#D32F2F'; const colorYellow = '#DAA520';
-
-criarGrafico('chartTermometro', 'pie', ['Aptos (Candidatos Formatura)', 'Em Desenvolvimento'], [aptos, desenv], [colorGreen, colorYellow]);
-criarGrafico('chartStatus', 'doughnut', ['Ativos', 'Inativos/Pausa'], [ativos, inativos], [colorTeal, colorRed]);
-
-const piramideLabels = []; const piramideData = []; const piramideColors = [];
-ordemCordoes.forEach((nomeCordao) => {
-if (rankCount[nomeCordao] !== undefined) {
-piramideLabels.push(nomeCordao);
-piramideData.push(rankCount[nomeCordao]);
-piramideColors.push(obterCorPorCordao(nomeCordao));
-}
-});
-
-criarGrafico('chartPiramide', 'bar', piramideLabels, piramideData, piramideColors, true);
-criarGrafico('chartFundamentos', 'bar', labelFundamentos, dataFundamentos, colorTeal, true);
-
+// Escopo do relatório: gestor = próprio núcleo; admin = núcleo do filtro (ou grupo todo).
+function escopoRelatorio() {
 if (ehAdmin()) {
-const boxAcademias = document.getElementById('chartAcademias')?.closest('.chart-box');
-if (Object.keys(academiaCount).length > 1) {
-criarGrafico('chartAcademias', 'doughnut', Object.keys(academiaCount), Object.values(academiaCount), [colorTeal, colorBlue, colorGreen, colorYellow, '#8E44AD']);
-if (boxAcademias) boxAcademias.style.display = 'flex';
-} else if (boxAcademias) {
-boxAcademias.style.display = 'none';
+const ac = selectFiltroAcademia ? selectFiltroAcademia.value : '';
+return { nucleoId: ac || null, rotulo: ac ? (todosNucleos.find((n) => n.id === ac)?.nome || ac) : 'Grupo inteiro' };
 }
+const id = sessaoAtual?.academiaGerenciadaId || null;
+return { nucleoId: id, rotulo: id ? (todosNucleos.find((n) => n.id === id)?.nome || id) : 'Meus alunos' };
 }
 
-criarGrafico('chartIdades', 'pie', ['Kids (Sub-12)', 'Adultos'], [kids, adultos], [colorGreen, colorBlue]);
+function presencasDoEscopo(escopo) {
+if (!escopo.nucleoId) return null; // grupo inteiro: não há leitura de presenças de todos os núcleos aqui
+if (presencasNucleoCache && presencasNucleoCache.nucleoId === escopo.nucleoId) return presencasNucleoCache.itens;
+// Admin trocou o filtro: lê as presenças desse núcleo uma vez e redesenha.
+if (ehAdmin() && presencasRelatorioPendente !== escopo.nucleoId) {
+presencasRelatorioPendente = escopo.nucleoId;
+presencasDoNucleo(escopo.nucleoId, 400).then((itens) => {
+presencasNucleoCache = { nucleoId: escopo.nucleoId, itens, visitantesAqui: [] };
+presencasRelatorioPendente = null;
+desenharGraficos(alunosFiltradosAtuais());
+}).catch(() => { presencasRelatorioPendente = null; });
+}
+return null;
 }
 
-function criarGrafico(canvasId, type, labels, data, colors, hideLegend = false) {
+function alunosFiltradosAtuais() {
+const alunos = todosUsuarios.filter((u) => (u.papeis || []).includes('aluno'));
+const ac = ehAdmin() && selectFiltroAcademia ? selectFiltroAcademia.value : '';
+return alunos.filter((a) => ac === '' || a.academiaId === ac);
+}
+
+function desenharGraficos(alunosAtuais) {
+const escopo = escopoRelatorio();
+const rotuloEscopo = document.getElementById('relatoriosEscopo');
+if (rotuloEscopo) rotuloEscopo.textContent = escopo.rotulo;
+const ativos = alunosAtuais.filter((a) => a.statusAtual !== 'Inativo');
+const presencas = presencasDoEscopo(escopo);
+const agora = new Date();
+const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
+const insights = [];
+
+/* ---- Frequência semanal (8 semanas) ---- */
+if (presencas) {
+const semanas = [];
+const base = inicioSemana(agora);
+for (let i = 7; i >= 0; i--) { const d = new Date(base); d.setDate(d.getDate() - i * 7); semanas.push({ inicio: d, fim: new Date(d.getTime() + 7 * 86400000), n: 0 }); }
+presencas.forEach((p) => { const d = dataPresenca(p); const sem = semanas.find((sm) => d >= sm.inicio && d < sm.fim); if (sem) sem.n++; });
+criarGrafico('chartFrequenciaSemanal', 'line', semanas.map((sm) => `${String(sm.inicio.getDate()).padStart(2, '0')}/${MESES_CURTO[sm.inicio.getMonth()]}`), [{ label: 'check-ins', data: semanas.map((sm) => sm.n), borderColor: COR_SERIE, backgroundColor: 'rgba(21,144,127,0.12)', fill: true, tension: 0.35, pointRadius: 4, pointBackgroundColor: COR_SERIE, borderWidth: 2 }], { escalaY: true });
+const atual = semanas[7].n; const anterior = semanas[6].n;
+if (atual || anterior) insights.push({ icone: 'fa-chart-line', cor: atual >= anterior ? 'green' : 'gold', titulo: `${atual} check-in${atual === 1 ? '' : 's'} nesta semana`, texto: anterior ? `${atual >= anterior ? '+' : ''}${atual - anterior} em relação à semana passada (${anterior})` : 'semana passada não teve check-ins' });
+
+/* ---- Dia da semana ---- */
+const porDia = [0, 0, 0, 0, 0, 0, 0];
+presencas.forEach((p) => { porDia[dataPresenca(p).getDay()]++; });
+const ordemDias = [1, 2, 3, 4, 5, 6, 0];
+criarGrafico('chartDiaSemana', 'bar', ordemDias.map((i) => DIAS_SEMANA[i]), [{ label: 'check-ins', data: ordemDias.map((i) => porDia[i]), backgroundColor: COR_SERIE, borderRadius: 4, maxBarThickness: 34 }], { escalaY: true });
+const maxDia = Math.max(...porDia);
+if (maxDia > 0) { const dia = porDia.indexOf(maxDia); insights.push({ icone: 'fa-calendar-week', cor: 'teal', titulo: `${DIAS_SEMANA[dia]} é o dia mais forte`, texto: `${maxDia} check-in${maxDia === 1 ? '' : 's'} registrados nesse dia da semana` }); }
+
+/* ---- Ranking do mês ---- */
+const porAluno = {};
+presencas.filter((p) => dataPresenca(p) >= inicioMes).forEach((p) => { porAluno[p.uid] = (porAluno[p.uid] || 0) + 1; });
+const ranking = Object.entries(porAluno).map(([uid, n]) => ({ nome: nomeCurto((alunosAtuais.find((a) => a.id === uid) || todosUsuarios.find((a) => a.id === uid) || {}).nome), n })).sort((a, b) => b.n - a.n).slice(0, 10);
+criarGrafico('chartRankingPresenca', 'bar', ranking.map((r) => r.nome), [{ label: 'check-ins no mês', data: ranking.map((r) => r.n), backgroundColor: COR_SERIE, borderRadius: 4, maxBarThickness: 22 }], { horizontal: true, escalaY: true }, 'Nenhum check-in neste mês ainda.');
+if (ranking.length) insights.push({ icone: 'fa-medal', cor: 'gold', titulo: `${ranking[0].nome} lidera a presença do mês`, texto: `${ranking[0].n} check-in${ranking[0].n === 1 ? '' : 's'} desde o dia 1` });
+
+/* ---- Sem check-in há 30+ dias ---- */
+const ultimo = {};
+presencas.forEach((p) => { const t = dataPresenca(p).getTime(); if (!ultimo[p.uid] || t > ultimo[p.uid]) ultimo[p.uid] = t; });
+const limite30 = agora.getTime() - 30 * 86400000;
+const sumidos = ativos.filter((a) => !ultimo[a.id] || ultimo[a.id] < limite30);
+if (ativos.length && presencas.length) insights.push({ icone: 'fa-user-clock', cor: sumidos.length ? 'red' : 'green', titulo: sumidos.length ? `${sumidos.length} aluno${sumidos.length === 1 ? '' : 's'} sem check-in há 30+ dias` : 'Todos os alunos ativos treinaram nos últimos 30 dias', texto: sumidos.length ? sumidos.slice(0, 3).map((a) => nomeCurto(a.nome)).join(', ') + (sumidos.length > 3 ? ` e mais ${sumidos.length - 3}` : '') : 'ótimo sinal de retenção' });
+} else {
+['chartFrequenciaSemanal', 'chartDiaSemana', 'chartRankingPresenca'].forEach((id) => mostrarVazio(id, escopo.nucleoId ? 'Carregando check-ins do núcleo...' : 'Escolha um núcleo em "Filtros Avançados" para ver a frequência.'));
+}
+
+/* ---- Prontidão para graduação ---- */
+const prontidoes = ativos.map((a) => ({ a, ...prontidaoDe(a) })).filter((x) => x.avaliado).sort((x, y) => y.pct - x.pct);
+criarGrafico('chartProntidao', 'bar', prontidoes.map((x) => nomeCurto(x.a.nome)), [{ label: '% de prontidão', data: prontidoes.map((x) => x.pct), backgroundColor: prontidoes.map((x) => (x.pct >= 70 ? COR_BOM : (x.pct >= 50 ? COR_ALERTA : COR_SERIE))), borderRadius: 4, maxBarThickness: 18 }], { horizontal: true, max: 100, sufixo: '%', linhaMeta: 70 }, 'Nenhum aluno avaliado ainda — as notas são lançadas em Avaliar/Editar.');
+const aptos = prontidoes.filter((x) => x.pct >= 70);
+if (prontidoes.length) insights.push({ icone: 'fa-graduation-cap', cor: aptos.length ? 'green' : 'teal', titulo: aptos.length ? `${aptos.length} aluno${aptos.length === 1 ? '' : 's'} pront${aptos.length === 1 ? 'o' : 'os'} para graduar` : 'Ninguém atingiu 70% ainda', texto: aptos.length ? aptos.slice(0, 3).map((x) => `${nomeCurto(x.a.nome)} (${x.pct}%)`).join(', ') + (aptos.length > 3 ? ` e mais ${aptos.length - 3}` : '') : `${prontidoes.length} avaliado${prontidoes.length === 1 ? '' : 's'} · melhor: ${nomeCurto(prontidoes[0].a.nome)} com ${prontidoes[0].pct}%` });
+const naoAvaliados = ativos.length - prontidoes.length;
+if (naoAvaliados > 0 && ativos.length) insights.push({ icone: 'fa-clipboard-question', cor: 'gold', titulo: `${naoAvaliados} aluno${naoAvaliados === 1 ? '' : 's'} ainda sem avaliação`, texto: 'lance as notas em Avaliar/Editar pra eles entrarem no termômetro' });
+
+/* ---- Pontos fortes / a desenvolver ---- */
+const soma = {}; const qtd = {};
+ativos.forEach((a) => { const { crit } = prontidaoDe(a); if (!a.notas) return; crit.forEach((c) => { if (a.notas[c.id] !== undefined) { soma[c.txt] = (soma[c.txt] || 0) + (Number(a.notas[c.id]) || 0); qtd[c.txt] = (qtd[c.txt] || 0) + 1; } }); });
+const medias = Object.keys(soma).map((k) => ({ k, m: soma[k] / qtd[k] })).sort((x, y) => y.m - x.m);
+criarGrafico('chartFundamentos', 'bar', medias.map((x) => x.k), [{ label: 'média', data: medias.map((x) => Number(x.m.toFixed(1))), backgroundColor: COR_SERIE, borderRadius: 4, maxBarThickness: 18 }], { horizontal: true, max: 10 }, 'Sem notas lançadas ainda.');
+if (medias.length >= 2) insights.push({ icone: 'fa-dumbbell', cor: 'teal', titulo: `Ponto forte: ${medias[0].k} (${medias[0].m.toFixed(1)})`, texto: `a desenvolver: ${medias[medias.length - 1].k} (${medias[medias.length - 1].m.toFixed(1)})` });
+
+/* ---- Pirâmide ---- */
+const rankCount = {};
+ativos.forEach((a) => { const r = a.cordaoAtual || 'Iniciante'; rankCount[r] = (rankCount[r] || 0) + 1; });
+const piram = ordemCordoes.filter((n) => rankCount[n]);
+criarGrafico('chartPiramide', 'bar', piram, [{ label: 'alunos', data: piram.map((n) => rankCount[n]), backgroundColor: piram.map((n) => obterCorPorCordao(n)), borderColor: '#CFD9D6', borderWidth: 1, borderRadius: 4, maxBarThickness: 40 }], { escalaY: true }, 'Nenhum aluno ativo.');
+
+/* ---- Matrículas por mês (12 meses) ---- */
+const meses = [];
+for (let i = 11; i >= 0; i--) { const d = new Date(agora.getFullYear(), agora.getMonth() - i, 1); meses.push({ chave: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, rotulo: `${MESES_CURTO[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`, n: 0 }); }
+let comData = 0;
+alunosAtuais.forEach((a) => { if (!a.criadoEm) return; comData++; const m = meses.find((x) => String(a.criadoEm).startsWith(x.chave)); if (m) m.n++; });
+criarGrafico('chartMatriculas', 'bar', meses.map((m) => m.rotulo), [{ label: 'novas matrículas', data: meses.map((m) => m.n), backgroundColor: COR_SERIE_2, borderRadius: 4, maxBarThickness: 28 }], { escalaY: true }, comData ? null : 'Os cadastros ainda não têm data de matrícula registrada.');
+const ult90 = alunosAtuais.filter((a) => a.criadoEm && (agora - new Date(a.criadoEm)) <= 90 * 86400000).length;
+if (comData) insights.push({ icone: 'fa-user-plus', cor: 'navy', titulo: `${ult90} nova${ult90 === 1 ? '' : 's'} matrícula${ult90 === 1 ? '' : 's'} nos últimos 90 dias`, texto: `${ativos.length} aluno${ativos.length === 1 ? '' : 's'} ativo${ativos.length === 1 ? '' : 's'} no total` });
+
+/* ---- Faixas etárias ---- */
+const faixas = [{ r: 'até 7', min: 0, max: 7 }, { r: '8–11', min: 8, max: 11 }, { r: '12–17', min: 12, max: 17 }, { r: '18–29', min: 18, max: 29 }, { r: '30–44', min: 30, max: 44 }, { r: '45+', min: 45, max: 200 }];
+const porFaixa = faixas.map((f) => ativos.filter((a) => { const i = Number(a.idade) || 0; return i >= f.min && i <= f.max; }).length);
+criarGrafico('chartIdades', 'bar', faixas.map((f) => f.r), [{ label: 'alunos', data: porFaixa, backgroundColor: COR_SERIE, borderRadius: 4, maxBarThickness: 34 }], { escalaY: true }, 'Nenhum aluno ativo.');
+
+/* ---- Financeiro 6 meses ---- */
+const pags = pagamentosCache && (pagamentosCache.nucleoId === escopo.nucleoId || (ehAdmin() && !escopo.nucleoId && !pagamentosCache.nucleoId)) ? pagamentosCache.itens : null;
+if (pags) {
+const comps = [];
+for (let i = 5; i >= 0; i--) { const d = new Date(agora.getFullYear(), agora.getMonth() - i, 1); comps.push({ chave: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, rotulo: `${MESES_CURTO[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`, pago: 0, pendente: 0 }); }
+pags.forEach((pg) => { const c = comps.find((x) => x.chave === pg.competencia); if (!c) return; if (pg.pago) c.pago += Number(pg.valor) || 0; else c.pendente += Number(pg.valor) || 0; });
+const temValor = comps.some((c) => c.pago || c.pendente);
+criarGrafico('chartFinanceiro', 'bar', comps.map((c) => c.rotulo), [
+{ label: 'recebido', data: comps.map((c) => Math.round(c.pago)), backgroundColor: COR_BOM, borderRadius: 4, maxBarThickness: 26 },
+{ label: 'em aberto', data: comps.map((c) => Math.round(c.pendente)), backgroundColor: COR_RUIM, borderRadius: 4, maxBarThickness: 26 },
+], { escalaY: true, legenda: true, prefixo: 'R$ ' }, temValor ? null : 'Nenhuma mensalidade lançada nos últimos 6 meses.');
+const abertoTotal = pags.filter((pg) => !pg.pago).reduce((sm, pg) => sm + (Number(pg.valor) || 0), 0);
+const alunosAberto = new Set(pags.filter((pg) => !pg.pago).map((pg) => pg.alunoId)).size;
+if (pags.length) insights.push({ icone: 'fa-credit-card', cor: abertoTotal > 0 ? 'red' : 'green', titulo: abertoTotal > 0 ? `R$ ${abertoTotal.toFixed(0)} em mensalidades em aberto` : 'Mensalidades em dia', texto: abertoTotal > 0 ? `${alunosAberto} aluno${alunosAberto === 1 ? '' : 's'} com pendência` : `${pags.length} lançamento${pags.length === 1 ? '' : 's'} no histórico` });
+} else {
+mostrarVazio('chartFinanceiro', 'Abra a aba Financeiro uma vez para carregar as mensalidades deste escopo.');
+}
+
+/* ---- Alunos por núcleo (admin) / Retenção ---- */
+if (ehAdmin()) {
+const porNucleo = {};
+ativos.forEach((a) => { const k = a.academiaNome || a.academiaId || 'Sem núcleo'; porNucleo[k] = (porNucleo[k] || 0) + 1; });
+const chaves = Object.keys(porNucleo).sort((x, y) => porNucleo[y] - porNucleo[x]);
+criarGrafico('chartAcademias', 'bar', chaves, [{ label: 'alunos ativos', data: chaves.map((k) => porNucleo[k]), backgroundColor: COR_SERIE_2, borderRadius: 4, maxBarThickness: 22 }], { horizontal: true, escalaY: true }, 'Nenhum aluno ativo.');
+}
+const inativos = alunosAtuais.length - ativos.length;
+criarGrafico('chartStatus', 'doughnut', ['Ativos', 'Inativos / pausa'], [{ data: [ativos.length, inativos], backgroundColor: [COR_BOM, '#CFD9D6'], borderColor: '#fff', borderWidth: 2 }], { legenda: true, rosca: true }, alunosAtuais.length ? null : 'Nenhum aluno.');
+if (alunosAtuais.length) insights.push({ icone: 'fa-heart-pulse', cor: inativos ? 'gold' : 'green', titulo: `${Math.round((ativos.length / alunosAtuais.length) * 100)}% de retenção`, texto: `${ativos.length} ativo${ativos.length === 1 ? '' : 's'} · ${inativos} inativo${inativos === 1 ? '' : 's'}/pausa` });
+
+renderizarInsights(insights);
+}
+
+function renderizarInsights(lista) {
+const wrap = document.getElementById('relatoriosInsights');
+if (!wrap) return;
+wrap.innerHTML = lista.length
+? lista.slice(0, 8).map((i) => `<div class="insight"><span class="lista-icone ${i.cor}"><i class="fas ${i.icone}"></i></span><div><strong>${escapeHTML(i.titulo)}</strong><span>${escapeHTML(i.texto)}</span></div></div>`).join('')
+: '<div class="empty-state"><i class="fas fa-chart-simple"></i>Os insights aparecem conforme alunos, notas e check-ins forem sendo registrados.</div>';
+}
+
+function mostrarVazio(canvasId, msg) {
 const canvas = document.getElementById(canvasId);
 if (!canvas) return;
-const ctx = canvas.getContext('2d');
-
-if (chartsInstances[canvasId]) {
-chartsInstances[canvasId].destroy();
-delete chartsInstances[canvasId];
+if (chartsInstances[canvasId]) { chartsInstances[canvasId].destroy(); delete chartsInstances[canvasId]; }
+const wrap = canvas.parentElement;
+let vazio = wrap.querySelector('.chart-vazio');
+if (!vazio) { vazio = document.createElement('div'); vazio.className = 'chart-vazio'; wrap.appendChild(vazio); }
+vazio.textContent = msg;
+vazio.style.display = 'flex';
 }
 
-chartsInstances[canvasId] = new Chart(ctx, {
+// datasets: array de datasets do Chart.js já prontos. opts: { horizontal, escalaY,
+// max, sufixo, prefixo, legenda, rosca, linhaMeta }. vazioMsg: mensagem quando
+// não há dados (todos zero ou sem rótulos).
+function criarGrafico(canvasId, type, labels, datasets, opts = {}, vazioMsg = 'Sem dados ainda.') {
+const canvas = document.getElementById(canvasId);
+if (!canvas || typeof Chart === 'undefined') return;
+const temDado = labels.length && datasets.some((ds) => (ds.data || []).some((v) => Number(v) > 0));
+if (!temDado) { mostrarVazio(canvasId, vazioMsg || 'Sem dados ainda.'); return; }
+const vazio = canvas.parentElement.querySelector('.chart-vazio');
+if (vazio) vazio.style.display = 'none';
+if (chartsInstances[canvasId]) { chartsInstances[canvasId].destroy(); delete chartsInstances[canvasId]; }
+const fmt = (v) => `${opts.prefixo || ''}${Number(v).toLocaleString('pt-BR')}${opts.sufixo || ''}`;
+const eixoValor = { beginAtZero: true, max: opts.max, grid: { color: COR_GRADE, drawBorder: false }, ticks: { color: COR_TEXTO, font: { family: 'Manrope', size: 11 }, precision: 0, callback: (v) => fmt(v) } };
+const eixoCategoria = { grid: { display: false }, ticks: { color: COR_TEXTO, font: { family: 'Manrope', size: 11 }, autoSkip: false } };
+const plugins = { legend: { display: !!opts.legenda, position: 'bottom', labels: { color: COR_TEXTO, font: { family: 'Manrope', size: 11 }, boxWidth: 10, boxHeight: 10, borderRadius: 3, useBorderRadius: true } }, tooltip: { backgroundColor: '#0D211D', titleFont: { family: 'Sora', size: 12 }, bodyFont: { family: 'Manrope', size: 12 }, padding: 10, cornerRadius: 10, callbacks: { label: (c) => ` ${c.dataset.label || ''}: ${fmt(c.parsed.y ?? c.parsed.x ?? c.parsed)}`.replace(/^ : /, ' ') } } };
+const plugLinhaMeta = opts.linhaMeta ? [{ id: 'linhaMeta', afterDatasetsDraw(chart) { const { ctx, scales } = chart; const eixo = opts.horizontal ? scales.x : scales.y; if (!eixo) return; const pos = eixo.getPixelForValue(opts.linhaMeta); ctx.save(); ctx.strokeStyle = COR_ALERTA; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); if (opts.horizontal) { ctx.moveTo(pos, chart.chartArea.top); ctx.lineTo(pos, chart.chartArea.bottom); } else { ctx.moveTo(chart.chartArea.left, pos); ctx.lineTo(chart.chartArea.right, pos); } ctx.stroke(); ctx.fillStyle = COR_ALERTA; ctx.font = '700 11px Manrope'; ctx.fillText(`meta ${opts.linhaMeta}${opts.sufixo || ''}`, opts.horizontal ? pos + 6 : chart.chartArea.left + 6, opts.horizontal ? chart.chartArea.top + 12 : pos - 6); ctx.restore(); } }] : [];
+chartsInstances[canvasId] = new Chart(canvas.getContext('2d'), {
 type,
-data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 1 }] },
+data: { labels, datasets },
 options: {
-responsive: true,
-maintainAspectRatio: false,
-animation: { duration: 650, easing: 'easeOutQuart' },
-plugins: { legend: { display: !hideLegend } },
+responsive: true, maintainAspectRatio: false,
+indexAxis: opts.horizontal ? 'y' : 'x',
+animation: { duration: 500, easing: 'easeOutQuart' },
+cutout: opts.rosca ? '68%' : undefined,
+scales: (type === 'doughnut' || type === 'pie') ? {} : (opts.horizontal ? { x: eixoValor, y: eixoCategoria } : { x: eixoCategoria, y: eixoValor }),
+plugins,
 },
+plugins: plugLinhaMeta,
 });
 }
 

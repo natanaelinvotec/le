@@ -70,23 +70,27 @@ allow write: if ehAdmin() || souFundador();
       // geral" real do grupo inteiro (mesmo motivo dos blocos de
       // solicitacoes/pagamentos acima) — só leitura, cada aluno continua
       // só podendo criar/editar a própria presença.
+      // nucleoVisitadoId: o professor do núcleo VISITADO também enxerga a
+      // presença de um aluno de fora que treinou com ele (Face ID do aluno).
       allow read: if logado() && (
         resource.data.uid == request.auth.uid ||
         ehAdmin() ||
         souFundador() ||
-        (ehGestor() && resource.data.nucleoId == minhaAcademiaGerenciada())
+        (ehGestor() && resource.data.nucleoId == minhaAcademiaGerenciada()) ||
+        (ehGestor() && resource.data.nucleoVisitadoId == minhaAcademiaGerenciada())
       );
-      // Duas formas de criar presença:
-      // 1) o próprio aluno, pelo check-in de proximidade do app (começa
-      //    não-confirmada e ele mesmo confirma aos 30 min);
-      // 2) Face ID / marcação manual no painel: quem registra é o responsável
-      //    (registradoPor == quem está logado) e a presença já nasce
-      //    confirmada, porque o professor viu a pessoa na academia. Pode:
-      //    admin, fundador, gestor do núcleo da presença, ou o instrutor a
-      //    quem o aluno está atribuído (instrutorUid).
+      // Duas formas de criar presença — as duas já nascem confirmadas (não
+      // existe mais "confirmar aos 30 min"):
+      // 1) o próprio aluno, pela página de check-in por Face ID (checkin.html),
+      //    em qualquer núcleo do grupo — a presença fica no núcleo dele
+      //    (nucleoId) com o núcleo visitado anotado (nucleoVisitadoId);
+      // 2) Face ID / marcação manual no painel do responsável: quem registra
+      //    é o responsável (registradoPor == quem está logado). Pode: admin,
+      //    fundador, gestor do núcleo da presença, ou o instrutor a quem o
+      //    aluno está atribuído (instrutorUid).
       allow create: if logado() && (
         (request.resource.data.uid == request.auth.uid &&
-         request.resource.data.confirmadoAos30 == false) ||
+         request.resource.data.keys().hasAll(['uid', 'nucleoId', 'entradaEm'])) ||
         (request.resource.data.origem in ['faceid', 'manual'] &&
          request.resource.data.registradoPor == request.auth.uid && (
            ehAdmin() || souFundador() ||
@@ -211,6 +215,46 @@ request.resource.data.responsavelUid == resource.data.responsavelUid &&
 request.resource.data.valor == resource.data.valor &&
 request.resource.data.despesaId == resource.data.despesaId
 );
+}
+
+// ===== Rede Liberdade (feed interno) =====
+// perfisPublicos: cartão leve (nome, foto, cordão, núcleo) que a própria
+// pessoa publica ao entrar na rede — é o que permite buscar/seguir amigos sem
+// abrir a leitura do cadastro completo em usuarios/{uid}.
+match /perfisPublicos/{uid} {
+allow read: if logado();
+allow write: if logado() && request.auth.uid == uid;
+}
+// posts: qualquer pessoa logada lê e publica em nome próprio (texto até 800
+// caracteres; a foto é um link do Storage). Editar: só o autor. Curtir: qualquer
+// um, mas só pode adicionar/remover o PRÓPRIO uid em curtidas. O contador de
+// comentários pode ser ajustado por quem comenta. Apagar: autor, Admin,
+// Fundador ou o mestre do núcleo do autor (moderação — o grupo tem crianças).
+match /posts/{id} {
+allow read: if logado();
+allow create: if logado() &&
+request.resource.data.autorUid == request.auth.uid &&
+request.resource.data.texto is string && request.resource.data.texto.size() <= 800;
+allow update: if logado() && (
+(resource.data.autorUid == request.auth.uid && request.resource.data.autorUid == resource.data.autorUid) ||
+(request.resource.data.diff(resource.data).affectedKeys().hasOnly(['curtidas']) &&
+request.resource.data.curtidas.removeAll(resource.data.curtidas).hasOnly([request.auth.uid]) &&
+resource.data.curtidas.removeAll(request.resource.data.curtidas).hasOnly([request.auth.uid])) ||
+request.resource.data.diff(resource.data).affectedKeys().hasOnly(['comentariosCount'])
+);
+allow delete: if logado() && (
+resource.data.autorUid == request.auth.uid || ehAdmin() || souFundador() ||
+(ehGestor() && resource.data.autorAcademiaId == minhaAcademiaGerenciada())
+);
+match /comentarios/{cid} {
+allow read: if logado();
+allow create: if logado() && request.resource.data.autorUid == request.auth.uid &&
+request.resource.data.texto is string && request.resource.data.texto.size() <= 400;
+allow delete: if logado() && (
+resource.data.autorUid == request.auth.uid || ehAdmin() || souFundador() ||
+get(/databases/$(database)/documents/posts/$(id)).data.autorUid == request.auth.uid
+);
+}
 }
 
 match /academias/{id} {

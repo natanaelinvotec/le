@@ -1,0 +1,159 @@
+<!-- rede.html — Rede Liberdade: feed interno do grupo (estilo X), só para quem
+está logado. Posts com texto e uma foto (comprimida e guardada no Storage,
+o Firestore guarda só o link), curtidas, comentários e "seguir amigos".
+Moderação: o autor, o Admin Master, o Fundador e o mestre do núcleo do autor
+podem apagar um post. -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#F5F9F8">
+<title>Rede Liberdade</title><link rel="icon" type="image/png" href="assets/icon-192.png"><link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root { --bg:#F5F9F8; --card:#fff; --border:#E2E8E6; --text:#0D211D; --muted:#5B6B68; --soft:#8795A0; --teal:#0B5C52; --teal-soft:#E6F2EF; --navy:#002D72; --green:#00B140; --green-soft:#E4F7EA; --gold:#DAA520; --gold-soft:#FBF3DD; --red:#D32F2F; --red-soft:#FDECEC; --purple:#8E44AD; --purple-soft:#F3E9F8; --ease:cubic-bezier(.16,1,.3,1); }
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Manrope',system-ui,sans-serif; }
+body { background:var(--bg); color:var(--text); min-height:100vh; -webkit-font-smoothing:antialiased; padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
+.oculto { display:none !important; }
+button { font-family:inherit; cursor:pointer; }
+.topo { display:flex; align-items:center; gap:10px; padding:calc(14px + env(safe-area-inset-top)) 16px 10px; background:rgba(255,255,255,.92); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:20; }
+.btn-voltar { width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:var(--bg); color:var(--text); display:flex; align-items:center; justify-content:center; text-decoration:none; flex:none; }
+.eyebrow { display:block; font-size:.66rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+.topo h1 { font-family:'Sora',sans-serif; font-size:1.1rem; font-weight:800; line-height:1.15; }
+.topo .acoes { margin-left:auto; display:flex; gap:8px; }
+.btn-icone { width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:var(--card); color:var(--text); display:flex; align-items:center; justify-content:center; position:relative; }
+.abas { display:flex; gap:6px; padding:10px 16px 0; max-width:560px; margin:0 auto; }
+.aba { flex:1; padding:9px 12px; border-radius:999px; border:1px solid var(--border); background:var(--card); font-weight:800; font-size:.8rem; color:var(--muted); }
+.aba.ativa { background:var(--teal); color:#fff; border-color:var(--teal); }
+main { padding:12px 16px; max-width:560px; margin:0 auto; display:flex; flex-direction:column; gap:12px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:14px 16px; box-shadow:0 1px 2px rgba(13,33,29,.04), 0 8px 24px -16px rgba(13,33,29,.18); }
+.avatar { width:42px; height:42px; border-radius:50%; object-fit:cover; background:var(--teal-soft); color:var(--teal); display:flex; align-items:center; justify-content:center; font-family:'Sora',sans-serif; font-weight:800; font-size:.9rem; flex:none; box-shadow:0 0 0 2px var(--card), 0 0 0 3px var(--border); }
+.avatar.mini { width:30px; height:30px; font-size:.72rem; }
+/* composer */
+.composer { display:flex; gap:12px; }
+.composer textarea { width:100%; min-height:64px; border:none; resize:none; outline:none; font-size:.95rem; color:var(--text); background:transparent; line-height:1.45; }
+.composer textarea::placeholder { color:var(--soft); }
+.composer-rodape { display:flex; align-items:center; gap:8px; margin-top:8px; padding-top:10px; border-top:1px solid var(--border); }
+.btn-suave { display:inline-flex; align-items:center; gap:6px; background:var(--teal-soft); color:var(--teal); border:none; border-radius:999px; padding:8px 12px; font-size:.76rem; font-weight:800; }
+.btn-verde { margin-left:auto; background:var(--green); color:#fff; border:none; border-radius:999px; padding:9px 18px; font-size:.82rem; font-weight:800; box-shadow:0 10px 20px -12px rgba(0,177,64,.8); }
+.btn-verde:disabled { opacity:.55; box-shadow:none; }
+.contador { font-size:.7rem; color:var(--soft); font-variant-numeric:tabular-nums; }
+.preview { position:relative; margin-top:10px; }
+.preview img { width:100%; border-radius:14px; display:block; max-height:320px; object-fit:cover; }
+.preview button { position:absolute; top:8px; right:8px; width:30px; height:30px; border-radius:50%; border:none; background:rgba(0,20,50,.7); color:#fff; }
+/* post */
+.post { display:flex; flex-direction:column; gap:10px; animation:entra .3s var(--ease) both; }
+@keyframes entra { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+.post-topo { display:flex; align-items:center; gap:10px; }
+.post-topo .nome { font-family:'Sora',sans-serif; font-weight:800; font-size:.92rem; line-height:1.15; }
+.post-topo .meta { font-size:.72rem; color:var(--muted); display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-top:2px; }
+.chip { display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:999px; font-size:.66rem; font-weight:800; }
+.chip.teal { background:var(--teal-soft); color:var(--teal); } .chip.gold { background:var(--gold-soft); color:#A9790D; } .chip.neutra { background:var(--bg); color:var(--muted); border:1px solid var(--border); }
+.post-menu { margin-left:auto; width:32px; height:32px; border-radius:50%; border:none; background:transparent; color:var(--soft); }
+.post-menu:hover { background:var(--bg); }
+.post-texto { font-size:.95rem; line-height:1.5; white-space:pre-wrap; word-break:break-word; }
+.post-foto { width:100%; border-radius:16px; display:block; max-height:460px; object-fit:cover; background:var(--bg); }
+.post-acoes { display:flex; gap:6px; padding-top:4px; }
+.acao { display:inline-flex; align-items:center; gap:6px; background:transparent; border:none; color:var(--muted); font-size:.78rem; font-weight:700; padding:8px 10px; border-radius:999px; }
+.acao:hover { background:var(--bg); }
+.acao.curtido { color:var(--red); }
+.acao i { font-size:.9rem; }
+.comentarios { display:flex; flex-direction:column; gap:8px; padding-top:8px; border-top:1px solid var(--border); }
+.comentario { display:flex; gap:8px; align-items:flex-start; }
+.comentario .bolha { background:var(--bg); border-radius:14px; padding:8px 12px; font-size:.84rem; line-height:1.4; flex:1; min-width:0; }
+.comentario .bolha strong { font-size:.78rem; display:block; margin-bottom:1px; }
+.comentario small { color:var(--soft); font-size:.66rem; }
+.novo-comentario { display:flex; gap:8px; align-items:center; }
+.novo-comentario input { flex:1; border:1px solid var(--border); border-radius:999px; padding:9px 14px; font-size:.86rem; outline:none; }
+.novo-comentario input:focus { border-color:#389E92; }
+.novo-comentario button { width:38px; height:38px; border-radius:50%; border:none; background:var(--teal); color:#fff; flex:none; }
+.vazio { text-align:center; padding:28px 18px; color:var(--muted); font-size:.86rem; border:1.5px dashed var(--border); border-radius:20px; background:var(--card); line-height:1.5; }
+.vazio i { display:flex; width:46px; height:46px; border-radius:50%; background:var(--bg); align-items:center; justify-content:center; margin:0 auto 10px; }
+.btn-mais { width:100%; padding:12px; border-radius:14px; border:1px solid var(--border); background:var(--card); font-weight:800; color:var(--teal); }
+/* amigos */
+.busca { display:flex; align-items:center; gap:8px; background:var(--card); border:1px solid var(--border); border-radius:999px; padding:9px 14px; }
+.busca input { flex:1; border:none; outline:none; font-size:.9rem; background:transparent; }
+.pessoa { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); }
+.pessoa:last-child { border-bottom:none; }
+.pessoa .info { flex:1; min-width:0; }
+.pessoa .info strong { display:block; font-size:.9rem; }
+.pessoa .info span { font-size:.72rem; color:var(--muted); }
+.btn-seguir { border:1px solid var(--teal); background:var(--teal); color:#fff; border-radius:999px; padding:7px 14px; font-size:.74rem; font-weight:800; }
+.btn-seguir.seguindo { background:var(--card); color:var(--teal); }
+.toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--text); color:#fff; padding:11px 16px; border-radius:12px; font-size:.84rem; font-weight:700; z-index:50; box-shadow:0 14px 30px -10px rgba(0,0,0,.4); }
+.tela-login { min-height:80vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+.tela-login .card { text-align:center; max-width:380px; width:100%; }
+.tela-login img { width:70px; height:70px; border-radius:22px; margin-bottom:12px; }
+.btn-cheio { display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:14px; border:none; border-radius:14px; font-size:.95rem; font-weight:800; text-decoration:none; background:var(--green); color:#fff; }
+.regras { font-size:.72rem; color:var(--soft); line-height:1.45; }
+</style>
+</head>
+<body>
+<noscript>Esta página exige JavaScript habilitado.</noscript>
+
+<div id="telaCarregando" class="tela-login"><div class="card"><img src="logo-liberdade150.png" alt=""><p style="color:var(--muted); font-size:.9rem;"><i class="fas fa-spinner fa-spin"></i> Entrando na rede...</p></div></div>
+
+<div id="telaSemSessao" class="tela-login oculto">
+<div class="card">
+<img src="logo-liberdade150.png" alt="">
+<span class="eyebrow">Capoeira Liberdade</span>
+<h1 style="font-family:'Sora',sans-serif; font-size:1.2rem; margin:4px 0 6px;">Rede Liberdade</h1>
+<p style="color:var(--muted); font-size:.86rem; margin-bottom:16px;">O feed do grupo é só para quem está logado.</p>
+<a class="btn-cheio" href="login.html">Entrar</a>
+</div>
+</div>
+
+<div id="app" class="oculto">
+<header class="topo">
+<a class="btn-voltar" href="app.html" aria-label="Voltar ao app"><i class="fas fa-arrow-left"></i></a>
+<div><span class="eyebrow">Capoeira Liberdade</span><h1>Rede Liberdade</h1></div>
+<div class="acoes">
+<button class="btn-icone" id="btnAmigos" title="Seguir amigos" aria-label="Seguir amigos"><i class="fas fa-user-plus"></i></button>
+</div>
+</header>
+
+<div class="abas" id="abas">
+<button class="aba ativa" data-feed="grupo">Grupo</button>
+<button class="aba" data-feed="amigos">Amigos <span id="qtdSeguindo" class="contador"></span></button>
+<button class="aba" data-feed="meus">Meus posts</button>
+</div>
+
+<main>
+<section class="card" id="composerCard">
+<div class="composer">
+<div class="avatar" id="meuAvatar">?</div>
+<div style="flex:1; min-width:0;">
+<textarea id="texto" maxlength="800" placeholder="O que rolou no treino hoje?"></textarea>
+<div class="preview oculto" id="preview"><img id="previewImg" alt=""><button type="button" id="btnTirarFoto" aria-label="Remover foto"><i class="fas fa-times"></i></button></div>
+</div>
+</div>
+<div class="composer-rodape">
+<button type="button" class="btn-suave" id="btnFoto"><i class="fas fa-image"></i> Foto</button>
+<input type="file" id="inputFoto" accept="image/*" class="oculto">
+<span class="contador" id="contador">0/800</span>
+<button type="button" class="btn-verde" id="btnPublicar" disabled>Publicar</button>
+</div>
+</section>
+
+<section id="painelAmigos" class="card oculto">
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+<h2 style="font-family:'Sora',sans-serif; font-size:.98rem; font-weight:800;">Seguir amigos</h2>
+<button class="btn-icone" id="btnFecharAmigos" aria-label="Fechar" style="width:32px; height:32px;"><i class="fas fa-times"></i></button>
+</div>
+<div class="busca"><i class="fas fa-search" style="color:var(--soft);"></i><input id="buscaPessoa" type="search" placeholder="Buscar pelo nome..." autocomplete="off"></div>
+<div id="listaPessoas" style="margin-top:6px;"></div>
+<p class="regras" style="margin-top:10px;">Seguir é só de um lado, como no X: você vê os posts de quem segue na aba "Amigos". Só aparece na busca quem já entrou na rede pelo menos uma vez.</p>
+</section>
+
+<div id="feed" style="display:flex; flex-direction:column; gap:12px;"></div>
+<button class="btn-mais oculto" id="btnMais">Carregar mais</button>
+<p class="regras" style="text-align:center;">Publique com respeito — o grupo tem crianças. Posts podem ser removidos pelo autor, pelo mestre do núcleo, pelo Fundador ou pelo Admin.</p>
+</main>
+</div>
+
+<script type="module" src="rede.js"></script>
+</body>
+</html>

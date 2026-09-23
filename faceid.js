@@ -22,7 +22,7 @@ Decisões importantes:
 const FACEAPI_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1/dist/face-api.esm.js';
 const MODELOS_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1/model/';
 const LIMIAR_DISTANCIA = 0.5;        // menor = mais rigoroso (0.6 é o padrão da lib; 0.5 evita confundir irmãos/parecidos)
-const QUADROS_PARA_CONFIRMAR = 3;    // quantos quadros seguidos reconhecendo a mesma pessoa antes de registrar
+const QUADROS_PARA_CONFIRMAR = 4;    // quadros seguidos reconhecendo a MESMA pessoa antes de registrar — o reconhecimento é a confirmação (não existe mais "confirmar aos 30 min")
 const INTERVALO_MS = 450;            // tempo entre análises (tablet aguenta bem)
 
 let faceapi = null;
@@ -164,9 +164,10 @@ if (!nucleoId) { deps.toast('Este aluno não está vinculado a um núcleo — n�
 const agora = new Date();
 await deps.criar('presencas', {
 uid: aluno.id,
+alunoNome: aluno.nome || '',
 nucleoId,
 entradaEm: agora,
-confirmadoAos30: true,           // o professor viu a pessoa na academia: presença confirmada na hora
+confirmadoAos30: true,           // presença 100% confirmada no ato: o reconhecimento facial É a confirmação
 confirmadoEm: agora,
 origem,                          // 'faceid' | 'manual'
 registradoPor: contexto.registradoPor,

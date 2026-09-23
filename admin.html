@@ -10,7 +10,7 @@ por Firebase Authentication (usuarios/{uid}.papeis). -->
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<link rel="stylesheet" href="admin.css?v=20260922b">
+<link rel="stylesheet" href="admin.css?v=20260923a">
 </head>
 <body>
 <noscript>Este painel exige JavaScript habilitado para funcionar.</noscript>
@@ -106,34 +106,59 @@ solicitações, avisos, presença). Enquanto um dado não carregou, mostra "—"
 <div class="section-header">
 <div>
 <span class="eyebrow">Relatórios</span>
-<h2><i class="fas fa-chart-pie"></i> Inteligência de Dados e Evolução</h2>
+<h2><i class="fas fa-chart-pie"></i> Inteligência do Núcleo</h2>
 </div>
+<span class="pill pill-neutra" id="relatoriosEscopo">—</span>
 </div>
 
+<!-- Insights em texto: cada frase é calculada dos dados reais carregados
+(alunos, check-ins, notas, mensalidades, matrículas). Sem dado, sem frase. -->
+<div class="insights-grid" id="relatoriosInsights"></div>
+
 <div class="charts-grid-layout">
-<div class="chart-box">
-<h3>Termômetro de Aprovação (Meta 70%)</h3>
-<div class="canvas-container"><canvas id="chartTermometro"></canvas></div>
+<div class="chart-box full-width">
+<div class="chart-titulo"><h3>Frequência semanal</h3><span>check-ins por semana · últimas 8 semanas</span></div>
+<div class="canvas-container"><canvas id="chartFrequenciaSemanal"></canvas></div>
 </div>
 <div class="chart-box">
-<h3>Status de Retenção (Ativos vs Inativos)</h3>
-<div class="canvas-container"><canvas id="chartStatus"></canvas></div>
+<div class="chart-titulo"><h3>Presença por dia da semana</h3><span>em que dias o núcleo mais treina</span></div>
+<div class="canvas-container"><canvas id="chartDiaSemana"></canvas></div>
+</div>
+<div class="chart-box">
+<div class="chart-titulo"><h3>Ranking de presença</h3><span>check-ins neste mês · top 10</span></div>
+<div class="canvas-container"><canvas id="chartRankingPresenca"></canvas></div>
 </div>
 <div class="chart-box full-width">
-<h3>Pirâmide de Graduação (Quantidade por Cordão)</h3>
-<div class="canvas-container"><canvas id="chartPiramide"></canvas></div>
+<div class="chart-titulo"><h3>Prontidão para graduação</h3><span>% dos critérios avaliados por aluno · meta 70%</span></div>
+<div class="canvas-container canvas-alto"><canvas id="chartProntidao"></canvas></div>
 </div>
-<div class="chart-box full-width">
-<h3>Desempenho por Fundamentos (Média do Grupo)</h3>
+<div class="chart-box">
+<div class="chart-titulo"><h3>Pontos fortes e a desenvolver</h3><span>média das notas (0 a 10) por critério</span></div>
 <div class="canvas-container"><canvas id="chartFundamentos"></canvas></div>
 </div>
+<div class="chart-box">
+<div class="chart-titulo"><h3>Pirâmide de graduação</h3><span>alunos por cordão</span></div>
+<div class="canvas-container"><canvas id="chartPiramide"></canvas></div>
+</div>
+<div class="chart-box">
+<div class="chart-titulo"><h3>Novas matrículas</h3><span>cadastros por mês · últimos 12 meses</span></div>
+<div class="canvas-container"><canvas id="chartMatriculas"></canvas></div>
+</div>
+<div class="chart-box">
+<div class="chart-titulo"><h3>Faixas etárias</h3><span>quantos alunos em cada faixa</span></div>
+<div class="canvas-container"><canvas id="chartIdades"></canvas></div>
+</div>
+<div class="chart-box full-width" data-papel="gestor">
+<div class="chart-titulo"><h3>Mensalidades</h3><span>recebido × em aberto por competência · últimos 6 meses</span></div>
+<div class="canvas-container"><canvas id="chartFinanceiro"></canvas></div>
+</div>
 <div class="chart-box" data-papel="admin">
-<h3>Distribuição por Núcleo</h3>
+<div class="chart-titulo"><h3>Alunos por núcleo</h3><span>ativos em cada academia</span></div>
 <div class="canvas-container"><canvas id="chartAcademias"></canvas></div>
 </div>
 <div class="chart-box">
-<h3>Demografia (Kids vs Adultos)</h3>
-<div class="canvas-container"><canvas id="chartIdades"></canvas></div>
+<div class="chart-titulo"><h3>Retenção</h3><span>ativos × inativos/pausa</span></div>
+<div class="canvas-container"><canvas id="chartStatus"></canvas></div>
 </div>
 </div>
 </div>
@@ -227,7 +252,8 @@ Escolha um aluno já cadastrado para virar responsável por este núcleo
 
 <section id="aba-avisos" class="aba-content">
 <div class="section-header"><div><span class="eyebrow">Comunicação</span><h2><i class="fas fa-bell"></i> Avisos</h2></div></div>
-<div class="card-padrao" data-papel="gestor" style="margin-bottom:20px;">
+<!-- Publicar aviso: só Admin Master e Fundador. Mestres, professores e instrutores só visualizam os avisos ativos. -->
+<div class="card-padrao" data-papel="admin-fundador" style="margin-bottom:20px;">
 <h3>Publicar Aviso</h3>
 <form id="formNovoAviso" style="display:grid; gap:15px; margin-top:15px;">
 <input type="text" id="avisoTitulo" placeholder="Título do aviso" class="input-padrao" required>
@@ -237,7 +263,7 @@ Escolha um aluno já cadastrado para virar responsável por este núcleo
 <option value="financeiro">Financeiro</option>
 <option value="evento">Evento</option>
 </select>
-<select id="avisoAcademia" class="input-padrao" data-papel="admin">
+<select id="avisoAcademia" class="input-padrao" data-papel="admin-fundador">
 <option value="">Todos os núcleos</option>
 </select>
 <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
@@ -535,6 +561,6 @@ pra não recalcular a cada aula. -->
 </div>
 </div>
 
-<script type="module" src="admin.js?v=20260922b"></script>
+<script type="module" src="admin.js?v=20260923a"></script>
 </body>
 </html>

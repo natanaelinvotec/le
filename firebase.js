@@ -360,6 +360,14 @@ export const presencasDoUsuario = async (uid, max = 200) => {
   return itens;
 };
 
+// Alunos de OUTROS núcleos que treinaram neste (check-in do próprio aluno
+// pelo Face ID em visita) — a presença fica gravada no núcleo de origem dele
+// (nucleoId) com nucleoVisitadoId apontando pra cá.
+export const presencasVisitantesDoNucleo = async (nucleoId, max = 100) => {
+  const snap = await getDocs(query(collection(db, 'presencas'), where('nucleoVisitadoId', '==', nucleoId), limit(max)));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => p.nucleoId !== nucleoId);
+};
+
 export const presencasDoNucleo = async (nucleoId, max = 300) => {
   const snap = await getDocs(query(collection(db, 'presencas'), where('nucleoId', '==', nucleoId), limit(max)));
   const itens = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
