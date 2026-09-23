@@ -79,25 +79,16 @@ allow write: if ehAdmin() || souFundador();
         (ehGestor() && resource.data.nucleoId == minhaAcademiaGerenciada()) ||
         (ehGestor() && resource.data.nucleoVisitadoId == minhaAcademiaGerenciada())
       );
-      // Duas formas de criar presença — as duas já nascem confirmadas (não
-      // existe mais "confirmar aos 30 min"):
-      // 1) o próprio aluno, pela página de check-in por Face ID (checkin.html),
-      //    em qualquer núcleo do grupo — a presença fica no núcleo dele
-      //    (nucleoId) com o núcleo visitado anotado (nucleoVisitadoId);
-      // 2) Face ID / marcação manual no painel do responsável: quem registra
-      //    é o responsável (registradoPor == quem está logado). Pode: admin,
-      //    fundador, gestor do núcleo da presença, ou o instrutor a quem o
-      //    aluno está atribuído (instrutorUid).
-      allow create: if logado() && (
-        (request.resource.data.uid == request.auth.uid &&
-         request.resource.data.keys().hasAll(['uid', 'nucleoId', 'entradaEm'])) ||
-        (request.resource.data.origem in ['faceid', 'manual'] &&
-         request.resource.data.registradoPor == request.auth.uid && (
-           ehAdmin() || souFundador() ||
-           (ehGestor() && request.resource.data.nucleoId == minhaAcademiaGerenciada()) ||
-           (ehInstrutor() && get(/databases/$(database)/documents/usuarios/$(request.resource.data.uid)).data.instrutorUid == request.auth.uid)
-         ))
-      );
+      // Presença só é criada pelo RESPONSÁVEL do núcleo (Face ID ou marcação
+      // manual no painel), pelo Fundador ou pelo Admin — já nasce confirmada
+      // (não existe "confirmar aos 30 min"). Aluno, família e instrutor sem
+      // núcleo não registram presença.
+      allow create: if logado() &&
+        request.resource.data.origem in ['faceid', 'manual'] &&
+        request.resource.data.registradoPor == request.auth.uid && (
+          ehAdmin() || souFundador() ||
+          (ehGestor() && request.resource.data.nucleoId == minhaAcademiaGerenciada())
+        );
       allow update: if logado() &&
         resource.data.uid == request.auth.uid &&
         request.resource.data.uid == resource.data.uid &&

@@ -406,6 +406,10 @@ carregarEventosResumo(),
 renderizarNucleosUI();
 atualizarEstrelaHeader();
 renderizarKpisGestao();
+// Face ID: só para quem é RESPONSÁVEL por um núcleo (academiaGerenciadaId)
+// ou Admin Master. Instrutor sem núcleo, aluno e família não veem o card.
+const faceidCard = document.getElementById('faceidCard');
+if (faceidCard) faceidCard.classList.toggle('oculto', !podeUsarFaceId());
 configurarFaceId({
 obterContexto: obterContextoFaceId,
 criar,
@@ -422,22 +426,21 @@ await atualizarContextoFaceId();
    ele, presença gravada no núcleo onde cada um treina) e o Admin Master
    (núcleo escolhido no seletor de Presenças). Tudo vem de todosUsuarios,
    já lido com as permissões da própria sessão. */
+function podeUsarFaceId() {
+return !!sessaoAtual && (ehAdmin() || (ehGestor() && !!sessaoAtual.academiaGerenciadaId));
+}
+
 async function obterContextoFaceId() {
-if (!sessaoAtual) return null;
-const instrutorSolo = !ehGestor() && ehInstrutorLogado();
+if (!sessaoAtual || !podeUsarFaceId()) return { alunos: [], nucleoNome: null };
 let nucleoAlvo = null;
 let alunos = [];
 if (ehAdmin()) {
 nucleoAlvo = document.getElementById('filtroAcademiaPresenca')?.value || null;
 if (!nucleoAlvo) return { alunos: [], nucleoNome: null };
 alunos = todosUsuarios.filter((u) => (u.papeis || []).includes('aluno') && u.academiaId === nucleoAlvo && u.statusAtual !== 'Inativo');
-} else if (ehGestor() && sessaoAtual.academiaGerenciadaId) {
+} else {
 nucleoAlvo = sessaoAtual.academiaGerenciadaId;
 alunos = todosUsuarios.filter((u) => (u.papeis || []).includes('aluno') && u.academiaId === nucleoAlvo && u.statusAtual !== 'Inativo');
-} else if (instrutorSolo || ehInstrutorLogado()) {
-alunos = todosUsuarios.filter((u) => (u.papeis || []).includes('aluno') && u.instrutorUid === sessaoAtual.uid && u.statusAtual !== 'Inativo');
-} else {
-return { alunos: [], nucleoNome: null };
 }
 const nucleoDoc = nucleoAlvo ? todosNucleos.find((n) => n.id === nucleoAlvo) : null;
 let presencasHoje = [];
