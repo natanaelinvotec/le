@@ -76,9 +76,24 @@ allow write: if ehAdmin() || souFundador();
         souFundador() ||
         (ehGestor() && resource.data.nucleoId == minhaAcademiaGerenciada())
       );
-      allow create: if logado() &&
-        request.resource.data.uid == request.auth.uid &&
-        request.resource.data.confirmadoAos30 == false;
+      // Duas formas de criar presença:
+      // 1) o próprio aluno, pelo check-in de proximidade do app (começa
+      //    não-confirmada e ele mesmo confirma aos 30 min);
+      // 2) Face ID / marcação manual no painel: quem registra é o responsável
+      //    (registradoPor == quem está logado) e a presença já nasce
+      //    confirmada, porque o professor viu a pessoa na academia. Pode:
+      //    admin, fundador, gestor do núcleo da presença, ou o instrutor a
+      //    quem o aluno está atribuído (instrutorUid).
+      allow create: if logado() && (
+        (request.resource.data.uid == request.auth.uid &&
+         request.resource.data.confirmadoAos30 == false) ||
+        (request.resource.data.origem in ['faceid', 'manual'] &&
+         request.resource.data.registradoPor == request.auth.uid && (
+           ehAdmin() || souFundador() ||
+           (ehGestor() && request.resource.data.nucleoId == minhaAcademiaGerenciada()) ||
+           (ehInstrutor() && get(/databases/$(database)/documents/usuarios/$(request.resource.data.uid)).data.instrutorUid == request.auth.uid)
+         ))
+      );
       allow update: if logado() &&
         resource.data.uid == request.auth.uid &&
         request.resource.data.uid == resource.data.uid &&

@@ -446,6 +446,8 @@ select.input-padrao { appearance: none; -webkit-appearance: none; background-ima
 .hero-fundador-selo { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 6px; padding: 4px 12px; border-radius: var(--radius-pill); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; background: var(--accent-gold); color: #241900; }
 .hero-fundador-info h2 { color: #fff; font-size: 1.3rem; line-height: 1.2; margin-bottom: 4px; }
 .hero-fundador-cordao { display: block; color: rgba(255, 255, 255, 0.8); font-weight: 700; font-size: 0.88rem; }
+.hero-fundador-nucleo { display: flex; align-items: center; gap: 6px; color: rgba(255, 255, 255, 0.72); font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; }
+.hero-fundador-nucleo i { color: var(--gold-light); font-size: 0.75rem; }
 .hero-fundador-total-grupo { display: flex; align-items: center; gap: 6px; margin-top: 4px; color: var(--accent-green); font-weight: 800; font-size: 0.82rem; }
 .hero-fundador-estrelas { margin-top: 6px; font-size: 0.9rem; letter-spacing: 1px; }
 .hero-fundador-estrela-num { font-size: 0.74rem; letter-spacing: normal; color: rgba(255, 255, 255, 0.7); font-weight: 700; margin-left: 4px; }
@@ -548,3 +550,39 @@ select.input-padrao { appearance: none; -webkit-appearance: none; background-ima
 /* ---------------------------------------------------------------- SIDEBAR (filtros) */
 .widget h3 { font-size: 0.98rem; margin-bottom: 4px; }
 .widget p { font-size: 0.8rem; margin-bottom: 12px; }
+
+/* ---------------------------------------------------------------- FACE ID (check-in por reconhecimento facial) */
+.faceid-card { margin-bottom: 24px; padding: 20px 22px 22px; }
+.faceid-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.faceid-topo h3 { display: flex; align-items: center; gap: 10px; font-size: 1.1rem; }
+.faceid-topo h3 i { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; background: var(--teal-soft); color: var(--primary-teal); font-size: 0.9rem; }
+.faceid-topo p { font-size: 0.84rem; margin-top: 6px; max-width: 560px; }
+.faceid-acoes { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.faceid-corpo { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.9fr); gap: 18px; }
+@media (max-width: 900px) { .faceid-corpo { grid-template-columns: 1fr; } }
+.faceid-palco { position: relative; background: var(--navy-deep); border-radius: var(--radius-lg); overflow: hidden; aspect-ratio: 16 / 10; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-navy); }
+.faceid-palco video, .faceid-palco canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.faceid-palco video { transform: scaleX(-1); }
+.faceid-palco canvas { pointer-events: none; }
+.faceid-palco.faceid-traseira video { transform: none; }
+.faceid-status { position: absolute; left: 14px; bottom: 14px; display: inline-flex; align-items: center; gap: 8px; background: rgba(0, 20, 50, 0.72); color: #fff; padding: 8px 14px; border-radius: var(--radius-pill); font-size: 0.8rem; font-weight: 700; backdrop-filter: blur(6px); max-width: calc(100% - 28px); }
+.faceid-status i { color: var(--accent-green); }
+.faceid-status.erro i { color: #FF8A80; }
+.faceid-match { position: absolute; top: 14px; left: 14px; right: 14px; display: flex; align-items: center; gap: 12px; background: rgba(255, 255, 255, 0.96); border-radius: var(--radius-md); padding: 12px 14px; box-shadow: var(--shadow-soft); animation: cardIn 0.3s var(--ease-standard) both; }
+.faceid-match img { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; flex: none; box-shadow: 0 0 0 2px var(--card-bg), 0 0 0 4px var(--green); }
+.faceid-match strong { display: block; font-family: var(--font-display); font-size: 0.98rem; }
+.faceid-match small { font-size: 0.76rem; color: var(--text-muted); font-weight: 600; }
+.faceid-match .faceid-match-info { flex: 1; min-width: 0; }
+.faceid-match .pill { flex: none; }
+.faceid-enrol { background: var(--bg-app); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+.faceid-enrol .kpi-valor { font-size: 1.4rem; }
+.faceid-enrol small { font-size: 0.72rem; color: var(--text-soft); margin-top: 6px; line-height: 1.4; }
+.faceid-lista { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; }
+.faceid-item { display: flex; align-items: center; gap: 10px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 8px 10px; }
+.faceid-item img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex: none; background: var(--teal-soft); }
+.faceid-item strong { display: block; font-size: 0.86rem; }
+.faceid-item small { font-size: 0.72rem; color: var(--text-muted); }
+.faceid-item .pill { margin-left: auto; }
+.faceid-manual { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border-color); }
+.faceid-manual label { font-size: 0.76rem; }
+.faceid-caixa { position: absolute; border: 2px solid var(--accent-green); border-radius: 12px; box-shadow: 0 0 0 2000px rgba(0, 20, 50, 0.18); }

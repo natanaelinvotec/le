@@ -14,7 +14,7 @@ ao conteúdo de Formação; sem ferramentas financeiras próprias.
 */
 import {
 observarSessao, recuperarSenha, sair,
-buscar, listar, listarPorAcademia, salvar, atualizar, remover,
+buscar, listar, listarOnde, listarPorAcademia, salvar, atualizar, remover, criar,
 criarSolicitacao, minhasSolicitacoes, criarContaComoAdmin,
 solicitacoesPendentesDoNucleo, aprovarVinculoFamilia, transferenciasPendentesParaDestino,
 publicarAviso, listarAvisos,
@@ -27,6 +27,7 @@ lancarDespesaComRateio, todosRateios, marcarRateioPago,
   presencasDoNucleo,
 } from './firebase.js';
 import { escapeHTML, sanitizeInput, debounce, gerarSlug } from './shared.js';
+import { configurarFaceId, atualizarContextoFaceId, pararFaceId } from './faceid.js';
 
 let sessaoAtual = null; // { uid, nome, email, papeis, academiaId, academiaGerenciadaId, ... }
 
@@ -332,6 +333,7 @@ let solicitacoesCache = []; // última leitura de solicitações visíveis a est
 let avisosVisiveisCache = null;     // array de avisos ativos visíveis (null = ainda não carregou)
 let presencaResumoCache = null;     // { nucleoId, percentual, total } da última leitura de presenças
 let eventosCache = null;            // eventos/{id} (null = ainda não carregou)
+let presencasNucleoCache = null;    // { nucleoId, itens } — última leitura de presenças (reaproveitada pelo Face ID)
 
 async function iniciarPainel() {
 const telaCarregando = document.getElementById('telaCarregando');
@@ -393,6 +395,55 @@ carregarEventosResumo(),
 renderizarNucleosUI();
 atualizarEstrelaHeader();
 renderizarKpisGestao();
+configurarFaceId({
+obterContexto: obterContextoFaceId,
+criar,
+toast,
+escapeHTML,
+aoRegistrar: () => carregarPresencas(),
+});
+await atualizarContextoFaceId();
+}
+
+/* ===================== FACE ID (contexto do painel) =====================
+   Quem pode usar: qualquer conta vinculada a um núcleo — mestre/professor
+   responsável (alunos do próprio núcleo), instrutor (alunos atribuídos a
+   ele, presença gravada no núcleo onde cada um treina) e o Admin Master
+   (núcleo escolhido no seletor de Presenças). Tudo vem de todosUsuarios,
+   já lido com as permissões da própria sessão. */
+async function obterContextoFaceId() {
+if (!sessaoAtual) return null;
+const instrutorSolo = !ehGestor() && ehInstrutorLogado();
+let nucleoAlvo = null;
+let alunos = [];
+if (ehAdmin()) {
+nucleoAlvo = document.getElementById('filtroAcademiaPresenca')?.value || null;
+if (!nucleoAlvo) return { alunos: [], nucleoNome: null };
+alunos = todosUsuarios.filter((u) => (u.papeis || []).includes('aluno') && u.academiaId === nucleoAlvo && u.statusAtual !== 'Inativo');
+} else if (ehGestor() && sessaoAtual.academiaGerenciadaId) {
+nucleoAlvo = sessaoAtual.academiaGerenciadaId;
+alunos = todosUsuarios.filter((u) => (u.papeis || []).includes('aluno') && u.academiaId === nucleoAlvo && u.statusAtual !== 'Inativo');
+} else if (instrutorSolo || ehInstrutorLogado()) {
+alunos = todosUsuarios.filter((u) => (u.papeis || []).includes('aluno') && u.instrutorUid === sessaoAtual.uid && u.statusAtual !== 'Inativo');
+} else {
+return { alunos: [], nucleoNome: null };
+}
+const nucleoDoc = nucleoAlvo ? todosNucleos.find((n) => n.id === nucleoAlvo) : null;
+let presencasHoje = [];
+if (nucleoAlvo) {
+if (presencasNucleoCache && presencasNucleoCache.nucleoId === nucleoAlvo) presencasHoje = presencasNucleoCache.itens;
+else { try { presencasHoje = await presencasDoNucleo(nucleoAlvo, 200); } catch (e) { presencasHoje = []; } }
+}
+return {
+nucleoId: nucleoAlvo,
+nucleoNome: nucleoDoc ? nucleoDoc.nome : (nucleoAlvo || null),
+alunos,
+presencasHoje,
+registradoPor: sessaoAtual.uid,
+registradoPorNome: sessaoAtual.nome || sessaoAtual.email || '',
+nucleoIdPara: (aluno) => nucleoAlvo || aluno.academiaId || null,
+salvarDescritor: (aluno, descritor, hash) => atualizar('usuarios', aluno.id, { faceDescriptor: descritor, faceDescriptorFotoHash: hash }),
+};
 }
 
 // Eventos/batizados marcados — leitura real de eventos/{id} (allow read: if
@@ -486,6 +537,7 @@ const item = Array.from(document.querySelectorAll('.nav-item')).find((a) => (a.g
 if (item) item.classList.add('active');
 }
 document.getElementById('nav-links').classList.remove('show');
+if (abaId !== 'presenca') pararFaceId(); // libera a câmera do Face ID ao sair da aba
 window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
@@ -771,9 +823,11 @@ todosUsuarios = await listar('usuarios');
 const { itens } = await listarPorAcademia('usuarios', sessaoAtual.academiaGerenciadaId || '__none__', 300);
 todosUsuarios = itens;
 } else if (ehInstrutorLogado()) {
-// Instrutor solo: só os alunos atribuídos a ele (instrutorUid), mais o próprio perfil.
-const todos = await listar('usuarios');
-todosUsuarios = todos.filter((u) => u.instrutorUid === sessaoAtual.uid || u.id === sessaoAtual.uid);
+// Instrutor solo: só os alunos atribuídos a ele (instrutorUid), mais o
+// próprio perfil. Consulta filtrada por instrutorUid — listar a coleção
+// inteira é negado pelas regras pra quem não é admin, e derrubava o painel.
+const meus = await listarOnde('usuarios', 'instrutorUid', sessaoAtual.uid);
+todosUsuarios = meus.some((u) => u.id === sessaoAtual.uid) ? meus : meus.concat([{ id: sessaoAtual.uid, ...sessaoAtual }]);
 } else {
 todosUsuarios = [];
 }
@@ -809,7 +863,18 @@ const filtrados = alunos.filter((a) => (ac === '' || a.academiaId === ac) && (tx
 // outro aluno, pra manter o "Avaliar/Editar" acessível por lá.
 // ehInstrutorLogado() incluído aqui também — antes só mestre/fundador ganhavam
 // o cartão de destaque, e o instrutor via a tela sem cabeçalho nenhum.
-const meuRegistro = ((souFundador(sessaoAtual) || ehMestre() || ehInstrutorLogado()) && !ehAdmin()) ? (filtrados.find((a) => a.id === sessaoAtual.uid) || null) : null;
+// O próprio registro do responsável nem sempre está na lista carregada: a
+// Prof.ª Taynara, o Mestre Omar e o Instrutor Leiliano TREINAM na Academia
+// Mestre Profeta (academiaId) mas ADMINISTRAM o próprio núcleo
+// (academiaGerenciadaId) — e a lista de um gestor só traz quem treina no
+// núcleo dele. Por isso o cartão só aparecia pro Mestre Profeta. Agora o
+// cartão usa o cadastro real da sessão (usuarios/{uid}, já lido no login),
+// preferindo a cópia da lista quando ela existir (pode estar mais recente
+// depois de uma edição pelo modal).
+const querCartao = (souFundador(sessaoAtual) || ehMestre() || ehInstrutorLogado()) && !ehAdmin();
+const meuRegistro = querCartao
+? (filtrados.find((a) => a.id === sessaoAtual.uid) || todosUsuarios.find((u) => u.id === sessaoAtual.uid) || { id: sessaoAtual.uid, ...sessaoAtual })
+: null;
 renderizarHeroFundador(meuRegistro);
 // A antiga faixa verde virou um título simples (eyebrow + nome do núcleo, sem
 // fundo colorido). A estrela viva do cabeçalho só aparece pra quem NÃO tem o
@@ -941,7 +1006,19 @@ ${htmlTransferencia}
 // mesmo visual de status que o próprio app.html mostra pro aluno: anel de
 // progresso, estrela viva do núcleo e o cordão "rodando" nas cores reais do
 // cordão atual dele (Mestre/Presidente = branco/verde/azul).
+// Selo do cartão conforme quem é a pessoa: fundador, mestre/professor
+// responsável por núcleo, ou instrutor. O título vem do cordão real
+// (cordaoAtual) — "Professor", "Instrutor", "Mestre"... — não é inventado.
+function seloHeroHTML(a) {
+if (souFundador(a)) return '<i class="fas fa-crown"></i> Acesso Geral · Fundador';
+const papeis = a.papeis || [];
+if (papeis.includes('mestre') && a.academiaGerenciadaId) return `<i class="fas fa-map-marker-alt"></i> Responsável do Núcleo${a.cordaoAtual ? ' · ' + escapeHTML(a.cordaoAtual) : ''}`;
+if (papeis.includes('instrutor')) return '<i class="fas fa-user-graduate"></i> Instrutor';
+return '<i class="fas fa-user"></i> Responsável';
+}
+
 function construirHeroCardHTML(a, todosUsuarios, mostrarTotalGrupo) {
+const nucleoGerenciado = a.academiaGerenciadaId ? (todosNucleos.find((n) => n.id === a.academiaGerenciadaId) || { id: a.academiaGerenciadaId, nome: a.academiaGerenciadaId }) : null;
 
 const idade = Number(a.idade) || 0;
 const lista = idade < 12 ? cordoesKids : cordoesAdulto;
@@ -964,8 +1041,9 @@ return `
 </div>
 </div>
 <div class="hero-fundador-info">
-<span class="hero-fundador-selo">${souFundador(a) ? '<i class="fas fa-crown"></i> Acesso Geral · Fundador' : '<i class="fas fa-map-marker-alt"></i> Responsável do Núcleo'}</span>
-<h2>${escapeHTML(a.nome || 'Fundador')}</h2>
+<span class="hero-fundador-selo">${seloHeroHTML(a)}</span>
+<h2>${escapeHTML(a.nome || 'Responsável')}</h2>
+${nucleoGerenciado ? `<span class="hero-fundador-nucleo"><i class="fas fa-building"></i> ${escapeHTML(nucleoGerenciado.nome || nucleoGerenciado.id)}${a.academiaId && a.academiaId !== nucleoGerenciado.id ? ` · treina em ${escapeHTML(a.academiaNome || a.academiaId)}` : ''}</span>` : (a.academiaNome || a.academiaId ? `<span class="hero-fundador-nucleo"><i class="fas fa-building"></i> ${escapeHTML(a.academiaNome || a.academiaId)}</span>` : '')}
 ${mostrarTotalGrupo ? `<span class="hero-fundador-total-grupo"><i class="fas fa-users"></i> Total de atletas do grupo: ${contarTotalAtletasGrupo(a.id, todosUsuarios, todosNucleos)}</span>` : ''}
 <span class="hero-fundador-cordao">Cordão ${escapeHTML(a.cordaoAtual || 'Iniciante')}</span>
 <div class="hero-fundador-estrelas">${estrelasHtml}</div>
@@ -1997,13 +2075,17 @@ async function carregarPresencas() {
     sel.style.display = 'none';
   }
   if (!nucleoAlvo) {
-    resumo.innerHTML = '<p>Selecione um núcleo para ver as presenças.</p>';
+    resumo.innerHTML = ehInstrutorLogado() && !ehGestor()
+      ? '<p>O resumo por núcleo é do responsável pelo núcleo. Como instrutor, use o Face ID acima para marcar a presença dos seus alunos.</p>'
+      : '<p>Selecione um núcleo para ver as presenças.</p>';
     cont.innerHTML = '';
+    atualizarContextoFaceId();
     return;
   }
   let itens = [];
   try {
     itens = await presencasDoNucleo(nucleoAlvo, 300);
+    presencasNucleoCache = { nucleoId: nucleoAlvo, itens };
   } catch (e) {
     resumo.innerHTML = '<p>Não foi possível carregar as presenças agora.</p>';
     cont.innerHTML = '';
@@ -2024,9 +2106,10 @@ async function carregarPresencas() {
     const key = p.uid || 'desconhecido';
     if (!porAluno[key]) {
       const u = (todosUsuarios || []).find((x) => x.id === key);
-      porAluno[key] = { total: 0, confirmadas: 0, ultima: 0, nome: u ? u.nome : 'Aluno' };
+      porAluno[key] = { total: 0, confirmadas: 0, ultima: 0, faceid: 0, nome: u ? u.nome : 'Aluno' };
     }
     porAluno[key].total += 1;
+    if (p.origem === 'faceid') porAluno[key].faceid += 1;
     if (p.confirmadoAos30 === true) porAluno[key].confirmadas += 1;
     const t = p.entradaEm && p.entradaEm.toMillis ? p.entradaEm.toMillis() : 0;
     if (t > porAluno[key].ultima) porAluno[key].ultima = t;
@@ -2036,10 +2119,11 @@ async function carregarPresencas() {
     .map((a) => {
       const pct = a.total > 0 ? Math.round((a.confirmadas / a.total) * 100) : 0;
       const dataStr = a.ultima ? new Date(a.ultima).toLocaleDateString('pt-BR') : '-';
-      return `<div class="lista-item"><span>${escapeHTML(a.nome)}</span><span>${a.confirmadas}/${a.total} confirmadas (${pct}%) · última: ${dataStr}</span></div>`;
+      return `<div class="lista-item"><span class="lista-icone ${a.faceid ? 'green' : ''}"><i class="fas ${a.faceid ? 'fa-face-viewfinder' : 'fa-location-dot'}"></i></span><div class="lista-item-info"><strong>${escapeHTML(a.nome)}</strong><span>${a.confirmadas}/${a.total} confirmadas (${pct}%) · última: ${dataStr}${a.faceid ? ` · ${a.faceid} por Face ID` : ''}</span></div></div>`;
     })
     .join('');
   cont.innerHTML = linhas || '<p>Nenhum check-in registrado ainda.</p>';
+  atualizarContextoFaceId();
 }
 
 function obterCorPorCordao(nome) {

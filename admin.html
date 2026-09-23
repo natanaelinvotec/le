@@ -47,7 +47,7 @@ redirecionado pra login.html por admin.js (ver checarSessaoOuRedirecionar). -->
 <a href="#" class="nav-item" data-papel="formacao" onclick="mudarAba('formacao', event)">Formação</a>
 <a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('financeiro', event)">Financeiro</a>
 <a href="#" class="nav-item" data-papel="admin" onclick="mudarAba('rateio', event)">Despesas</a>
-<a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('presenca', event)">Presenças</a>
+<a href="#" class="nav-item" data-papel="formacao" onclick="mudarAba('presenca', event)">Presenças</a>
 <a href="#" class="nav-item" data-papel="gestor" onclick="irParaRelatorios(event)">Relatórios</a>
 </nav>
 
@@ -339,8 +339,52 @@ Escolha um aluno já cadastrado para virar responsável por este núcleo
 </section>
 
 <section id="aba-presenca" class="aba-content">
-<div class="section-header"><div><span class="eyebrow">Check-in por proximidade</span><h2><i class="fas fa-map-marker-alt"></i> Presenças</h2></div></div>
+<div class="section-header"><div><span class="eyebrow">Check-in do núcleo</span><h2><i class="fas fa-map-marker-alt"></i> Presenças</h2></div></div>
 <select id="filtroAcademiaPresenca" class="input-padrao" style="max-width:320px;margin-bottom:14px;"></select>
+
+<!-- Check-in por Face ID (reconhecimento facial no tablet do professor).
+O reconhecimento roda 100% no navegador (face-api / TensorFlow.js): a
+câmera compara o rosto na frente do tablet com a foto de perfil de cada
+aluno do núcleo e registra a presença em presencas/{id} com origem
+'faceid'. Nenhuma imagem da câmera é enviada ou gravada — só o vetor de
+128 números (descritor) da foto de perfil fica salvo no cadastro do aluno,
+pra não recalcular a cada aula. -->
+<div class="card-padrao faceid-card" id="faceidCard">
+<div class="faceid-topo">
+<div>
+<span class="eyebrow">Reconhecimento facial</span>
+<h3><i class="fas fa-face-viewfinder"></i> Check-in por Face ID</h3>
+<p id="faceidSubtitulo">Aponte a câmera do tablet para o aluno: o app reconhece pela foto de perfil e marca a presença sozinho.</p>
+</div>
+<div class="faceid-acoes">
+<button type="button" class="btn-detalhes" id="btnFaceidIniciar"><i class="fas fa-video"></i> Iniciar câmera</button>
+<button type="button" class="btn-detalhes btn-soft oculto" id="btnFaceidParar"><i class="fas fa-stop"></i> Parar</button>
+<button type="button" class="btn-mini oculto" id="btnFaceidVirar" title="Trocar câmera frontal/traseira"><i class="fas fa-camera-rotate"></i></button>
+</div>
+</div>
+<div class="faceid-corpo">
+<div class="faceid-palco" id="faceidPalco">
+<video id="faceidVideo" autoplay muted playsinline></video>
+<canvas id="faceidCanvas"></canvas>
+<div class="faceid-status" id="faceidStatus"><i class="fas fa-face-smile"></i> Câmera desligada</div>
+<div class="faceid-match oculto" id="faceidMatch"></div>
+</div>
+<div class="faceid-lateral">
+<div class="faceid-enrol" id="faceidEnrol"><span class="kpi-valor mono">—</span><span class="kpi-rotulo">alunos com rosto cadastrado</span></div>
+<div class="secao-titulo" style="margin:14px 0 8px;"><h3 style="font-size:.92rem;">Reconhecidos nesta sessão</h3></div>
+<div class="faceid-lista" id="faceidLista"><p class="cascata-vazio">Ninguém reconhecido ainda.</p></div>
+<div class="faceid-manual">
+<label for="faceidManualAluno">Não reconheceu? Marque manualmente</label>
+<div style="display:flex; gap:8px;">
+<select id="faceidManualAluno" class="input-padrao"><option value="">Selecione o aluno...</option></select>
+<button type="button" class="btn-mini btn-mini-aprovar" id="btnFaceidManual">Marcar</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="secao-titulo"><h3>Resumo do núcleo</h3></div>
 <div class="card-padrao" id="presencaResumoCard"><p>Carregando...</p></div>
 <div class="lista-simples" id="listaPresencas"></div>
 </section>

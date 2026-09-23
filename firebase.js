@@ -153,6 +153,10 @@ export async function criarContaComoAdmin(email, senha, dados) {
 
 // ===== Coleções genéricas =====
 export const listar = async (col) => (await getDocs(collection(db, col))).docs.map((d) => ({ id: d.id, ...d.data() }));
+// Consulta simples por igualdade (provável pelas regras quando o campo é o
+// mesmo que a regra confere — ex.: instrutorUid == uid do instrutor logado).
+export const listarOnde = async (col, campo, valor) =>
+  (await getDocs(query(collection(db, col), where(campo, '==', valor)))).docs.map((d) => ({ id: d.id, ...d.data() }));
 export const listarPorAcademia = async (col, academiaId, tamanho = 50, cursor = null) => {
   let q = query(collection(db, col), where('academiaId', '==', academiaId), limit(tamanho));
   if (cursor) q = query(collection(db, col), where('academiaId', '==', academiaId), startAfter(cursor), limit(tamanho));
