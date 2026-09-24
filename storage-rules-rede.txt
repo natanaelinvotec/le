@@ -1,18 +1,39 @@
-REGRA DO FIREBASE STORAGE — fotos da Rede Liberdade (rede.html)
-================================================================
-Onde: Firebase Console → Storage → Regras. Cole o bloco "match /rede/..."
-DENTRO do "match /b/{bucket}/o { ... }" já existente, sem apagar o que já
-está lá (as regras das fotos de perfil continuam iguais). Depois, Publicar.
+REGRAS DO FIREBASE STORAGE — Rede Liberdade 2.0
+================================================
+Onde: Firebase Console → Storage → Regras → substitua TUDO pelo bloco abaixo
+e clique em Publicar. (Já inclui as fotos de perfil/inscrição em fotos_alunos/.)
 
-    // Fotos dos posts da Rede Liberdade: cada pessoa só grava na própria
-    // pasta (rede/<uid>/...), imagens de até 2 MB; qualquer logado lê.
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Foto de perfil/carteirinha (inscrição, painel e Rede): qualquer pessoa
+    // logada grava (imagem até 3 MB); leitura pública (aparece no app e no site).
+    match /fotos_alunos/{arquivo} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.resource.contentType.matches('image/.*')
+                   && request.resource.size < 3 * 1024 * 1024;
+    }
+
+    // Rede Liberdade: cada pessoa grava só na própria pasta rede/<uid>/.
+    // Fotos já chegam comprimidas pelo app (~350 KB) — o limite de 2 MB é só
+    // a trava de segurança. Vídeos curtos (até 20 s no app) até 12 MB.
+    // Leitura só pra quem está logado (rede fechada).
     match /rede/{uid}/{arquivo} {
       allow read: if request.auth != null;
       allow write: if request.auth != null
                    && request.auth.uid == uid
-                   && request.resource.contentType.matches('image/.*')
-                   && request.resource.size < 2 * 1024 * 1024;
+                   && (
+                     (request.resource.contentType.matches('image/.*') && request.resource.size < 2 * 1024 * 1024) ||
+                     (request.resource.contentType.matches('video/.*') && request.resource.size < 12 * 1024 * 1024)
+                   );
+      allow delete: if request.auth != null && request.auth.uid == uid;
     }
 
-Sem essa regra, o post com texto funciona normalmente, mas a foto não sobe
-(o app avisa "confira as regras do Storage").
+    // Tudo o que não está listado acima: fechado.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

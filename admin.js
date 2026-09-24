@@ -1401,6 +1401,13 @@ statusAtual: document.getElementById('modStatus').value,
 // quem também é mestre/professor/instrutor).
 dadosAtualizados.cordaoAtual = document.getElementById('modCordao').value;
 dadosAtualizados.notas = notasAtuais;
+// Troca de cordão vira um marco na trajetória do atleta (linha do tempo da
+// Rede Liberdade): guarda cordão novo, anterior, data e quem graduou.
+if (dadosAtualizados.cordaoAtual !== (usuarioSelecionado.cordaoAtual || 'Iniciante')) {
+const historico = Array.isArray(usuarioSelecionado.historicoGraduacoes) ? usuarioSelecionado.historicoGraduacoes.slice() : [];
+historico.push({ cordao: dadosAtualizados.cordaoAtual, anterior: usuarioSelecionado.cordaoAtual || 'Iniciante', em: new Date().toISOString(), por: sessaoAtual.uid, porNome: sessaoAtual.nome || '' });
+dadosAtualizados.historicoGraduacoes = historico.slice(-30);
+}
 // Avaliação de formador: grava só pra quem tem o papel de mestre/instrutor
 // (a seção só aparece nesse caso).
 if (avaliandoFormador) {

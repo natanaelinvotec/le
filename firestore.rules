@@ -208,44 +208,148 @@ request.resource.data.despesaId == resource.data.despesaId
 );
 }
 
-// ===== Rede Liberdade (feed interno) =====
-// perfisPublicos: cartão leve (nome, foto, cordão, núcleo) que a própria
-// pessoa publica ao entrar na rede — é o que permite buscar/seguir amigos sem
-// abrir a leitura do cadastro completo em usuarios/{uid}.
+// ===== Rede Liberdade 2.0 (rede social interna) =====
+// perfisPublicos: cartão público que a própria pessoa grava ao entrar na rede.
+// Outra pessoa só pode mexer em DOIS campos, e só com o PRÓPRIO uid:
+// seguidores (seguir/deixar de seguir) e pedidosSeguir (pedir pra seguir um
+// perfil privado). O responsável legal cadastrado (usuarios.responsavelUid)
+// também administra o perfil do menor (aceitar seguidores, deixar privado).
 match /perfisPublicos/{uid} {
-allow read: if logado();
-allow write: if logado() && request.auth.uid == uid;
+function souResponsavelLegal() { return get(/databases/$(database)/documents/usuarios/$(uid)).data.responsavelUid == request.auth.uid; }
+function soMeuUidEm(campo) {
+return request.resource.data.get(campo, []).removeAll(resource.data.get(campo, [])).hasOnly([request.auth.uid]) &&
+resource.data.get(campo, []).removeAll(request.resource.data.get(campo, [])).hasOnly([request.auth.uid]);
 }
-// posts: qualquer pessoa logada lê e publica em nome próprio (texto até 800
-// caracteres; a foto é um link do Storage). Editar: só o autor. Curtir: qualquer
-// um, mas só pode adicionar/remover o PRÓPRIO uid em curtidas. O contador de
-// comentários pode ser ajustado por quem comenta. Apagar: autor, Admin,
-// Fundador ou o mestre do núcleo do autor (moderação — o grupo tem crianças).
+allow read: if logado();
+allow create: if logado() && request.auth.uid == uid;
+allow update: if logado() && (
+request.auth.uid == uid || souResponsavelLegal() ||
+(request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seguidores', 'pedidosSeguir']) &&
+(!('seguidores' in request.resource.data.diff(resource.data).affectedKeys()) || soMeuUidEm('seguidores')) &&
+(!('pedidosSeguir' in request.resource.data.diff(resource.data).affectedKeys()) || soMeuUidEm('pedidosSeguir')))
+);
+allow delete: if ehAdmin() || (logado() && request.auth.uid == uid);
+}
+// posts: texto até 800 caracteres, mídias são links do Storage. tipo 'aviso'
+// (destaque verde no feed) só pra Admin, Fundador ou o responsável do núcleo.
+// Curtir: só adiciona/remove o PRÓPRIO uid. revisao (pendente → ok): só
+// Admin/Fundador/responsável do núcleo do autor ou do núcleo marcado.
+// Apagar: autor, Admin, Fundador, responsável do núcleo do autor ou do núcleo marcado.
 match /posts/{id} {
+function moderaEstePost() {
+return ehAdmin() || souFundador() ||
+(ehGestor() && (resource.data.autorAcademiaId == minhaAcademiaGerenciada() || resource.data.nucleoId == minhaAcademiaGerenciada()));
+}
 allow read: if logado();
 allow create: if logado() &&
 request.resource.data.autorUid == request.auth.uid &&
-request.resource.data.texto is string && request.resource.data.texto.size() <= 800;
+request.resource.data.texto is string && request.resource.data.texto.size() <= 800 &&
+request.resource.data.get('midias', []).size() <= 4 &&
+request.resource.data.get('tipo', 'post') in ['post', 'aviso'] &&
+(request.resource.data.get('tipo', 'post') != 'aviso' || ehAdmin() || souFundador() ||
+(ehGestor() && request.resource.data.nucleoId == minhaAcademiaGerenciada()));
 allow update: if logado() && (
-(resource.data.autorUid == request.auth.uid && request.resource.data.autorUid == resource.data.autorUid) ||
+(resource.data.autorUid == request.auth.uid && request.resource.data.autorUid == resource.data.autorUid &&
+request.resource.data.get('tipo', 'post') == resource.data.get('tipo', 'post')) ||
 (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['curtidas']) &&
 request.resource.data.curtidas.removeAll(resource.data.curtidas).hasOnly([request.auth.uid]) &&
 resource.data.curtidas.removeAll(request.resource.data.curtidas).hasOnly([request.auth.uid])) ||
-request.resource.data.diff(resource.data).affectedKeys().hasOnly(['comentariosCount'])
+request.resource.data.diff(resource.data).affectedKeys().hasOnly(['comentariosCount']) ||
+(request.resource.data.diff(resource.data).affectedKeys().hasOnly(['revisao', 'revisadoPor']) && moderaEstePost())
 );
-allow delete: if logado() && (
-resource.data.autorUid == request.auth.uid || ehAdmin() || souFundador() ||
-(ehGestor() && resource.data.autorAcademiaId == minhaAcademiaGerenciada())
-);
+allow delete: if logado() && (resource.data.autorUid == request.auth.uid || moderaEstePost());
 match /comentarios/{cid} {
 allow read: if logado();
 allow create: if logado() && request.resource.data.autorUid == request.auth.uid &&
 request.resource.data.texto is string && request.resource.data.texto.size() <= 400;
 allow delete: if logado() && (
 resource.data.autorUid == request.auth.uid || ehAdmin() || souFundador() ||
-get(/databases/$(database)/documents/posts/$(id)).data.autorUid == request.auth.uid
+get(/databases/$(database)/documents/posts/$(id)).data.autorUid == request.auth.uid ||
+(ehGestor() && get(/databases/$(database)/documents/posts/$(id)).data.autorAcademiaId == minhaAcademiaGerenciada())
 );
 }
+}
+// stories: foto + legenda por 24h. "Como núcleo" só o responsável do núcleo,
+// Admin ou Fundador. O cliente só consulta expiraEm > agora; aqui garantimos
+// que expiraEm não passe de 24h depois de criadoEm (em texto ISO, comparável).
+match /stories/{id} {
+allow read: if logado();
+allow create: if logado() &&
+request.resource.data.autorUid == request.auth.uid &&
+request.resource.data.midiaUrl is string &&
+request.resource.data.get('texto', '').size() <= 200 &&
+request.resource.data.expiraEm is string && request.resource.data.criadoEm is string &&
+request.resource.data.expiraEm > request.resource.data.criadoEm &&
+(request.resource.data.get('comoNucleo', false) == false || ehAdmin() || souFundador() ||
+(ehGestor() && request.resource.data.nucleoId == minhaAcademiaGerenciada()));
+allow delete: if logado() && (resource.data.autorUid == request.auth.uid || ehAdmin() || souFundador() ||
+(ehGestor() && resource.data.nucleoId == minhaAcademiaGerenciada()));
+}
+// conversas: direta (2 participantes; id = uids ordenados) ou grupo do núcleo.
+// Regra das crianças: se um dos dois é menor (perfisPublicos.menor), a direta
+// só existe dentro do MESMO núcleo ou com o responsável desse núcleo. Quem lê:
+// participantes, Admin, Fundador e o responsável de qualquer núcleo envolvido
+// (nucleosIds) — é o "conversa visível ao responsável do núcleo".
+match /conversas/{id} {
+function pp(u) { return get(/databases/$(database)/documents/perfisPublicos/$(u)).data; }
+function participo() { return request.auth.uid in resource.data.get('participantes', []); }
+function membroDoGrupo() { return resource.data.get('tipo', '') == 'grupo' && meuPerfil().academiaId == resource.data.nucleoId; }
+function gestorEnvolvido() { return ehGestor() && minhaAcademiaGerenciada() in resource.data.get('nucleosIds', []); }
+function podeLer() { return logado() && (participo() || membroDoGrupo() || gestorEnvolvido() || ehAdmin() || souFundador()); }
+function outroNaDireta() {
+return request.resource.data.participantes[0] == request.auth.uid ? request.resource.data.participantes[1] : request.resource.data.participantes[0];
+}
+function diretaPermitida() {
+return (pp(request.auth.uid).get('menor', false) == false && pp(outroNaDireta()).get('menor', false) == false) ||
+pp(request.auth.uid).academiaId == pp(outroNaDireta()).academiaId ||
+(ehGestor() && pp(outroNaDireta()).academiaId == minhaAcademiaGerenciada()) ||
+pp(outroNaDireta()).get('academiaGerenciadaId', '') == pp(request.auth.uid).academiaId ||
+ehAdmin() || souFundador();
+}
+allow read: if podeLer();
+allow create: if logado() && (
+(request.resource.data.tipo == 'direta' &&
+request.resource.data.participantes.size() == 2 &&
+request.auth.uid in request.resource.data.participantes &&
+diretaPermitida()) ||
+(request.resource.data.tipo == 'grupo' &&
+(ehAdmin() || souFundador() || (ehGestor() && request.resource.data.nucleoId == minhaAcademiaGerenciada())))
+);
+allow update: if podeLer() &&
+request.resource.data.tipo == resource.data.tipo &&
+request.resource.data.get('nucleoId', '') == resource.data.get('nucleoId', '') &&
+(resource.data.tipo == 'grupo' || request.resource.data.participantes == resource.data.participantes);
+allow delete: if ehAdmin() || souFundador();
+match /mensagens/{mid} {
+function conversa() { return get(/databases/$(database)/documents/conversas/$(id)).data; }
+function podeLerConversa() {
+return logado() && (
+request.auth.uid in conversa().get('participantes', []) ||
+(conversa().get('tipo', '') == 'grupo' && meuPerfil().academiaId == conversa().nucleoId) ||
+(ehGestor() && minhaAcademiaGerenciada() in conversa().get('nucleosIds', [])) ||
+ehAdmin() || souFundador()
+);
+}
+allow read: if podeLerConversa();
+allow create: if podeLerConversa() && request.resource.data.autorUid == request.auth.uid &&
+request.resource.data.get('texto', '').size() <= 1000;
+allow delete: if logado() && (resource.data.autorUid == request.auth.uid || ehAdmin() || souFundador() ||
+(ehGestor() && minhaAcademiaGerenciada() in conversa().get('nucleosIds', [])));
+}
+}
+// "Eu vou" num evento: cada pessoa marca/desmarca só a si mesma.
+match /eventos/{id}/confirmados/{uid} {
+allow read: if logado();
+allow create, update, delete: if logado() && request.auth.uid == uid;
+}
+// Denúncias de post: qualquer logado denuncia; quem trata é Admin, Fundador ou
+// o responsável do núcleo do autor do post.
+match /denuncias/{id} {
+allow create: if logado() && request.resource.data.denuncianteUid == request.auth.uid &&
+request.resource.data.get('motivo', '').size() <= 300;
+allow read, update: if ehAdmin() || souFundador() ||
+(ehGestor() && resource.data.autorPostAcademiaId == minhaAcademiaGerenciada());
+allow delete: if ehAdmin();
 }
 
 match /academias/{id} {

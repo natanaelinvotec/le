@@ -14,8 +14,17 @@ import {
   getCountFromServer, initializeFirestore, persistentLocalCache,
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import {
-  getStorage, ref as storageRef, uploadString, getDownloadURL,
+  getStorage, ref as storageRef, uploadString, getDownloadURL, uploadBytes, deleteObject,
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
+import { arrayRemove, increment, onSnapshot, writeBatch, deleteField } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+// Re-export do SDK: as páginas importam tudo daqui (uma versão só do
+// Firebase em todo o app; e os testes locais conseguem simular num módulo só).
+export {
+  collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, limit, startAfter,
+  arrayUnion, arrayRemove, increment, onSnapshot, writeBatch, deleteField, getCountFromServer,
+  storageRef, uploadString, uploadBytes, getDownloadURL, deleteObject,
+};
 
 export const firebaseConfig = {
   apiKey: 'AIzaSyBkwCDziIv-Uh7MLzsy9OYJmA_LMnn7jbg',
