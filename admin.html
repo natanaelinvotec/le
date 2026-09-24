@@ -10,7 +10,7 @@ por Firebase Authentication (usuarios/{uid}.papeis). -->
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<link rel="stylesheet" href="admin.css?v=20260923a">
+<link rel="stylesheet" href="admin.css?v=20260924a">
 </head>
 <body>
 <noscript>Este painel exige JavaScript habilitado para funcionar.</noscript>
@@ -89,17 +89,40 @@ solicitações, avisos, presença). Enquanto um dado não carregou, mostra "—"
 <div class="secao-titulo"><h3 id="tituloGridAlunos">Alunos</h3></div>
 <div class="alunos-grid" id="gridAlunos" aria-live="polite"></div>
 
-<div id="secao-cascata" class="cascata-section" data-papel="gestor" style="margin-top: 40px;">
+<!-- Árvore de Formação: montada só com os cadastros reais, a partir do
+"direto de" de cada pessoa (formadorUid → instrutorUid → supervisor →
+professor do núcleo onde treina). Clicar numa caixa abre o painel lateral
+e expande a ramificação, que fica aberta até ser recolhida. -->
+<div id="secao-arvore" class="arv-secao" data-papel="gestor" style="margin-top: 40px;">
 <div class="section-header">
 <div>
 <span class="eyebrow">Formação</span>
-<h2><i class="fas fa-sitemap"></i> Cascata de Formação</h2>
+<h2><i class="fas fa-sitemap"></i> Árvore de Formação</h2>
+<p class="arv-sub">Quem formou quem — toque em uma caixa para ver os detalhes e abrir a ramificação dessa pessoa.</p>
+</div>
+<div class="arv-acoes-topo">
+<button type="button" id="btnArvoreAbrirTudo" class="btn-mini"><i class="fas fa-maximize"></i> Abrir tudo</button>
+<button type="button" id="btnArvoreRecolher" class="btn-mini"><i class="fas fa-minimize"></i> Recolher</button>
 </div>
 </div>
-<p id="cascataAvisoSelecione" class="empty-state oculto"><i class="fas fa-hand-pointer"></i>Selecione um núcleo em "Filtros Avançados" para ver a cascata de formação dele.</p>
-<div id="cascataContainer" class="cascata-tree"></div>
-<div class="arvore-formacao-subtitulo"><i class="fas fa-project-diagram"></i> Árvore de Formação (quem formou quem)</div>
-<div id="arvoreFormacaoContainer" class="arvore-formacao-container"></div>
+<div class="arv-legenda" aria-label="Legenda das cores da árvore">
+<span><i class="arv-leg arv-leg-verde"></i> Pronto para graduar (≥ 70%)</span>
+<span><i class="arv-leg arv-leg-azul"></i> Em preparação</span>
+<span><i class="arv-leg arv-leg-ouro"></i> Fundador</span>
+<span><i class="arv-leg arv-leg-cinza"></i> Sem avaliação registrada</span>
+</div>
+<div class="arv-layout">
+<div class="arv-palco">
+<div id="arvoreFormacaoContainer" class="arv-container" aria-live="polite"></div>
+</div>
+<aside id="arvoreDetalhe" class="arv-detalhe" aria-live="polite">
+<div class="arv-detalhe-vazio">
+<i class="fas fa-hand-pointer"></i>
+<strong>Toque em alguém da árvore</strong>
+<span>Os dados do cadastro, a prontidão para o próximo cordão e os alunos formados por essa pessoa aparecem aqui.</span>
+</div>
+</aside>
+</div>
 </div>
 
 <div id="secao-graficos" class="chart-section" style="margin-top: 50px;">
@@ -561,6 +584,6 @@ pra não recalcular a cada aula. -->
 </div>
 </div>
 
-<script type="module" src="admin.js?v=20260923a"></script>
+<script type="module" src="admin.js?v=20260924a"></script>
 </body>
 </html>

@@ -36,9 +36,9 @@ const ehMestre = () => !!sessaoAtual && (sessaoAtual.papeis || []).includes('mes
 const ehInstrutorLogado = () => !!sessaoAtual && (sessaoAtual.papeis || []).includes('instrutor');
 const ehGestor = () => ehAdmin() || ehMestre();
 
-/* ---------------------- CASCATA DE FORMAÇÃO ---------------------- */
+/* ---------------------- LINHAGEM DE FORMAÇÃO ("direto de") ---------------------- */
 // Quem formou esta pessoa: se já tiver formadorUid gravado, mantém (a posição na
-// cascata é permanente mesmo que a pessoa troque de núcleo depois). Senão,
+// árvore é permanente mesmo que a pessoa troque de núcleo depois). Senão,
 // deriva do professorUid do núcleo onde ela treinava (academiaId) no momento
 // da promoção.
 function obterFormadorUid(pessoa, listaNucleos) {
@@ -53,13 +53,9 @@ return nucleoOrigem.professorUid;
 return null;
 }
 
-/* ---------------------- CASCATA DE FORMACAO (niveis agregados) ---------------------- */
-// Em vez de uma arvore pessoa-por-pessoa (que nao escala em nucleos com 80+ alunos),
-// a cascata agrupa por nivel: cartao individual so pro mestre/professor que administra
-// um nucleo; instrutor e aluno aparecem como cartoes agregados (contagem), calculados
-// ao vivo a partir de quem formou quem (formadorUid / instrutorUid / instrutorSupervisorUid
-// / nucleo.professorUid). O fundador ve o grupo inteiro a partir dele; cada mestre ve
-// a propria ramificacao pra baixo, do jeito que foi promovido.
+// Filhos diretos / descendentes na linhagem, calculados ao vivo a partir de quem
+// formou quem (formadorUid / instrutorUid / instrutorSupervisorUid / nucleo.professorUid).
+// O fundador vê o grupo inteiro a partir dele; cada mestre vê a própria ramificação.
 
 function obterFilhosDiretosFormacao(uid, listaUsuarios, listaNucleos) {
   return listaUsuarios.filter((u) => u.id !== uid && obterFormadorUid(u, listaNucleos) === uid);
@@ -82,154 +78,185 @@ function contarTotalAtletasGrupo(uid, listaUsuarios, listaNucleos) {
   return coletarDescendentesFormacao(uid, listaUsuarios, listaNucleos).length;
 }
 
-function pessoaEhMestreFormacao(pessoa) {
-  return !!(pessoa && pessoa.papeis && pessoa.papeis.includes('mestre'));
+/* ---------------------- ÁRVORE DE FORMAÇÃO (quem formou quem) ----------------------
+   Montada ao vivo a partir do "direto de cada um" (obterFormadorUid: formadorUid
+   gravado, senão instrutor responsável, senão o responsável do núcleo onde a
+   pessoa treina). Raiz: o próprio gestor logado; pro Admin/Fundador, o topo é
+   quem tem acessoGeral (Mestre Profeta). Cada cartão abre os detalhes no painel
+   ao lado e, se a pessoa formou alguém, expande a ramificação — que fica aberta
+   até ser recolhida. Nada aqui é estimado: foto, cordão, notas, alunos e
+   check-ins vêm do que já está carregado nesta sessão. */
+const arvoreAbertos = new Set();
+let arvoreSelecionado = null;
+// Fundador (acessoGeral) sem papel admin: o grid de Alunos continua só do
+// núcleo dele, mas a árvore precisa do grupo inteiro — as regras já permitem
+// (souFundador() lê usuarios). Se essa leitura falhar, cai pra lista do núcleo.
+let arvoreUsuarios = null;
+const arvUsuarios = () => arvoreUsuarios || todosUsuarios;
+let arvoreIndice = {};
+let arvorePais = {};
+const CORES_AVATAR = ['#002D72', '#0B5C52', '#8E44AD', '#B9770E', '#1B5FC2', '#00794F'];
+
+function arvIniciais(nome) {
+return String(nome || '?').replace(/^(mestre|prof\.?|profª|professora?|instrutora?)\s+/i, '').trim().split(/\s+/).slice(0, 2).map((p) => (p[0] || '').toUpperCase()).join('') || '?';
+}
+function arvCorAvatar(id) { return CORES_AVATAR[[...String(id || '')].reduce((sm, c) => sm + c.charCodeAt(0), 0) % CORES_AVATAR.length]; }
+function arvCoresCordao(pessoa) {
+const idade = Number(pessoa.idade) || 0;
+const lista = idade < 12 ? cordoesKids : cordoesAdulto;
+const item = lista.find((c) => c.nome === (pessoa.cordaoAtual || 'Iniciante')) || lista[0];
+return item.cor;
+}
+function arvOrdemGrad(pessoa) { const i = ordemCordoes.indexOf(pessoa.cordaoAtual || 'Iniciante'); return i === -1 ? 0 : i; }
+// graduação de cima pra baixo (Mestre/Presidente primeiro), depois nome
+function arvOrdenar(lista) { return lista.slice().sort((x, y) => (arvOrdemGrad(y) - arvOrdemGrad(x)) || String(x.nome || '').localeCompare(String(y.nome || ''))); }
+function arvClasseBorda(pessoa) {
+if (souFundador(pessoa)) return 'arv-ouro';
+const porc = pessoa.notas ? calcularPorcentagemEvolucaoDe(pessoa) : 0;
+if (!pessoa.notas || !Object.keys(pessoa.notas).length) return '';
+return porc >= 70 ? 'arv-verde' : 'arv-azul';
+}
+function arvFotoHTML(pessoa, classe = '') {
+return pessoa.fotoUrl && !/placeholder/i.test(pessoa.fotoUrl)
+? `<img class="arv-foto ${classe}" src="${escapeHTML(pessoa.fotoUrl)}" alt="" loading="lazy">`
+: `<div class="arv-foto ${classe}" style="background:${arvCorAvatar(pessoa.id)}">${escapeHTML(arvIniciais(pessoa.nome))}</div>`;
 }
 
-function pessoaEhInstrutorFormacao(pessoa) {
-  return !!(pessoa && pessoa.papeis && pessoa.papeis.includes('instrutor'));
+function arvCartaoHTML(pessoa, filhos, raiz) {
+const cor = arvCoresCordao(pessoa);
+const porc = pessoa.notas ? calcularPorcentagemEvolucaoDe(pessoa) : 0;
+const aberto = arvoreAbertos.has(pessoa.id);
+const n = filhos.length;
+const ehAlunoSimples = !n && !pessoa.academiaGerenciadaId;
+return `
+<div class="arv-pessoa ${arvClasseBorda(pessoa)} ${raiz ? 'arv-raiz' : ''} ${ehAlunoSimples ? 'arv-aluno' : ''} ${n ? '' : 'arv-folha'} ${arvoreSelecionado === pessoa.id ? 'arv-selecionada' : ''}" data-arv-id="${escapeHTML(pessoa.id)}" role="button" tabindex="0" aria-expanded="${aberto}" title="${escapeHTML(pessoa.nome || '')} · ${escapeHTML(pessoa.cordaoAtual || 'Iniciante')}">
+${souFundador(pessoa) ? '<span class="arv-selo"><i class="fas fa-crown"></i></span>' : ''}
+${arvFotoHTML(pessoa)}
+<div class="arv-nome">${escapeHTML(pessoa.nome || 'Sem nome')}</div>
+<div class="arv-grad">${escapeHTML(pessoa.cordaoAtual || 'Iniciante')}${souFundador(pessoa) ? ' · Fundador' : ''}</div>
+<div class="arv-cordao"><i style="width:${Math.max(6, porc)}%; --c1:${cor[0]}; --c2:${cor[1]}; --c3:${cor[2]};"></i></div>
+${n ? `<span class="arv-conta"><i class="fas fa-user-group"></i> ${n} <span class="arv-seta"><i class="fas fa-chevron-down"></i></span></span>` : ''}
+</div>`;
 }
 
-function cascataCorPorEvolucao(pessoa) {
-  const porc = calcularPorcentagemEvolucaoDe(pessoa);
-  return porc >= 70 ? 'cascata-verde' : 'cascata-azul';
+function arvNoHTML(pessoa, listaUsuarios, listaNucleos, raiz, visitados) {
+visitados = visitados || new Set();
+visitados.add(pessoa.id);
+arvoreIndice[pessoa.id] = pessoa;
+const filhos = arvOrdenar(obterFilhosDiretosFormacao(pessoa.id, listaUsuarios, listaNucleos).filter((f) => !visitados.has(f.id)));
+filhos.forEach((f) => { arvorePais[f.id] = pessoa.id; });
+const aberto = arvoreAbertos.has(pessoa.id);
+return `<div class="arv-no ${aberto ? 'arv-aberto' : ''}" data-arv-no="${escapeHTML(pessoa.id)}">${arvCartaoHTML(pessoa, filhos, raiz)}
+${filhos.length ? `<div class="arv-filhos ${filhos.length > 1 ? 'arv-multi' : ''}">${filhos.map((f) => `<div class="arv-galho">${arvNoHTML(f, listaUsuarios, listaNucleos, false, visitados)}</div>`).join('')}</div>` : ''}
+</div>`;
 }
 
-function construirCascataPersonCardHTML(pessoa, propria) {
-  const cor = cascataCorPorEvolucao(pessoa);
-  const classeExtra = propria ? ' cascata-pessoa-propria' : '';
-  return '<div class="cascata-pessoa-card ' + cor + classeExtra + '" data-cascata-uid="' + escapeHTML(pessoa.id) + '" onmouseenter="window.__cascataHoverPessoa(this)" onmouseleave="window.__cascataHoverFim()" onclick="window.__cascataAbrirFoto(this)">' +
-    (propria ? '<span class="cascata-pessoa-selo"><i class="fas fa-crown"></i></span>' : '') +
-    '<img class="cascata-pessoa-foto" src="' + escapeHTML(pessoa.fotoUrl || 'https://via.placeholder.com/64') + '" alt="' + escapeHTML(pessoa.nome || '') + '">' +
-    '<span class="cascata-pessoa-nome">' + escapeHTML(pessoa.nome || 'Sem nome') + '</span>' +
-    '<span class="cascata-pessoa-cordao">' + escapeHTML(pessoa.cordaoAtual || 'Iniciante') + '</span>' +
-    '</div>';
+function arvRaizUid() {
+if (!sessaoAtual) return null;
+if (ehAdmin() && !souFundador(sessaoAtual)) {
+const fundador = arvUsuarios().find((u) => u.acessoGeral === true);
+return fundador ? fundador.id : null;
 }
-
-function construirCascataContagemCardHTML(lista, rotulo, icone) {
-  const vazio = lista.length === 0;
-  let avatares = '';
-  if (!vazio) {
-    avatares = lista.map((p) => {
-      const cor = cascataCorPorEvolucao(p);
-      return '<img class="cascata-avatar-mini ' + cor + '" data-cascata-uid="' + escapeHTML(p.id) + '" src="' + escapeHTML(p.fotoUrl || 'https://via.placeholder.com/64') + '" alt="' + escapeHTML(p.nome || '') + '" onmouseenter="window.__cascataHoverPessoa(this)" onmouseleave="window.__cascataHoverFim()" onclick="event.stopPropagation(); window.__cascataAbrirFoto(this)">';
-    }).join('');
-  }
-  return '<div class="cascata-contagem-card' + (vazio ? ' cascata-contagem-vazia' : '') + '"' + (vazio ? '' : ' onclick="window.__cascataToggleGrupo(this)"') + '>' +
-    '<i class="fas ' + icone + '"></i>' +
-    '<span class="cascata-contagem-numero">' + lista.length + '</span>' +
-    '<span class="cascata-contagem-rotulo">' + escapeHTML(rotulo) + '</span>' +
-    (vazio ? '' : '<span class="cascata-contagem-expandir"><i class="fas fa-chevron-down"></i></span><div class="cascata-avatares-grid oculto">' + avatares + '</div>') +
-    '</div>';
+return sessaoAtual.uid;
 }
-
-// Árvore de Formação (quem formou quem) — recursiva de verdade: o Mestre
-// Profeta vem primeiro, embaixo dele os mestres/professores/instrutores/
-// alunos que ele formou diretamente, e cada um desses que também formou
-// gente (virou mestre/professor/instrutor) ganha seu próprio galho recursivo
-// com professores/instrutores/alunos dele — e assim por diante, até acabarem
-// os descendentes. Um "visitados" evita loop infinito se algum dado tiver
-// um ciclo (formadorUid apontando em círculo).
-function construirNoFormacaoHTML(pessoa, listaUsuarios, listaNucleos, ehRaiz, visitados) {
-  if (visitados.has(pessoa.id)) return '';
-  visitados.add(pessoa.id);
-  const filhos = obterFilhosDiretosFormacao(pessoa.id, listaUsuarios, listaNucleos);
-  const filhosGalho = filhos.filter((p) => pessoaEhMestreFormacao(p) || pessoaEhInstrutorFormacao(p));
-  const alunosDiretos = filhos.filter((p) => !pessoaEhMestreFormacao(p) && !pessoaEhInstrutorFormacao(p));
-
-  const cardHTML = construirCascataPersonCardHTML(pessoa, ehRaiz);
-  // Só aparece o cartão de "alunos diretos" quando ele existe de verdade —
-  // sem tile fixo mostrando "0" sem função nenhuma.
-  const alunosHTML = alunosDiretos.length
-    ? '<div class="formacao-no-extra">' + construirCascataContagemCardHTML(alunosDiretos, alunosDiretos.length === 1 ? 'aluno direto' : 'alunos diretos', 'fa-users') + '</div>'
-    : '';
-  const classeFilhos = 'formacao-filhos' + (filhosGalho.length > 1 ? ' formacao-filhos-multi' : '');
-  const filhosHTML = filhosGalho.length
-    ? '<div class="' + classeFilhos + '">' + filhosGalho.map((f) => '<div class="formacao-galho">' + construirNoFormacaoHTML(f, listaUsuarios, listaNucleos, false, visitados) + '</div>').join('') + '</div>'
-    : '';
-  return '<div class="formacao-no">' + cardHTML + alunosHTML + filhosHTML + '</div>';
-}
-
-function construirArvoreFormacaoHTML(raizUid, listaUsuarios, listaNucleos) {
-  const raiz = listaUsuarios.find((u) => u.id === raizUid);
-  if (!raiz) return '';
-  return '<div class="formacao-arvore-scroll"><div class="formacao-raiz">' +
-    construirNoFormacaoHTML(raiz, listaUsuarios, listaNucleos, true, new Set()) +
-    '</div></div>';
-}
-
-window.__cascataToggleGrupo = function (el) {
-  el.classList.toggle('cascata-contagem-aberta');
-  const grid = el.querySelector('.cascata-avatares-grid');
-  if (grid) grid.classList.toggle('oculto');
-};
-
-window.__cascataHoverPessoa = function (el) {
-  const uid = el.getAttribute('data-cascata-uid');
-  const pessoa = (todosUsuarios || []).find((u) => u.id === uid);
-  if (!pessoa) return;
-  let tip = document.getElementById('cascataTooltip');
-  if (!tip) {
-    tip = document.createElement('div');
-    tip.id = 'cascataTooltip';
-    tip.className = 'cascata-tooltip';
-    document.body.appendChild(tip);
-  }
-  const porc = calcularPorcentagemEvolucaoDe(pessoa);
-  const corStatus = porc >= 70 ? 'verde' : 'azul';
-  const textoStatus = porc >= 70 ? 'Evolucao em dia' : 'Evolucao em andamento';
-  tip.innerHTML = '<strong>' + escapeHTML(pessoa.nome || 'Sem nome') + '</strong>' +
-    '<span>' + escapeHTML(pessoa.cordaoAtual || 'Iniciante') + '</span>' +
-    '<span class="cascata-tooltip-status cascata-tooltip-' + corStatus + '"><i class="fas fa-circle"></i> ' + textoStatus + '</span>';
-  const rect = el.getBoundingClientRect();
-  tip.style.left = (rect.left + rect.width / 2) + 'px';
-  tip.style.top = (rect.top + window.scrollY - 12) + 'px';
-  tip.classList.add('cascata-tooltip-visivel');
-};
-
-window.__cascataHoverFim = function () {
-  const tip = document.getElementById('cascataTooltip');
-  if (tip) tip.classList.remove('cascata-tooltip-visivel');
-};
-
-window.__cascataFecharFoto = function () {
-  const modal = document.getElementById('cascataFotoModal');
-  if (modal) modal.classList.remove('cascata-foto-modal-aberto');
-};
-
-window.__cascataAbrirFoto = function (el) {
-  const uid = el.getAttribute('data-cascata-uid');
-  const pessoa = (todosUsuarios || []).find((u) => u.id === uid);
-  if (!pessoa) return;
-  let modal = document.getElementById('cascataFotoModal');
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.id = 'cascataFotoModal';
-    modal.className = 'cascata-foto-modal';
-    modal.addEventListener('click', function (e) { if (e.target === modal) window.__cascataFecharFoto(); });
-    document.body.appendChild(modal);
-  }
-  modal.innerHTML = '<div class="cascata-foto-modal-conteudo">' +
-    '<button type="button" class="cascata-foto-modal-fechar" onclick="window.__cascataFecharFoto()"><i class="fas fa-times"></i></button>' +
-    '<img src="' + escapeHTML(pessoa.fotoUrl || 'https://via.placeholder.com/300') + '" alt="' + escapeHTML(pessoa.nome || '') + '">' +
-    '<h3>' + escapeHTML(pessoa.nome || 'Sem nome') + '</h3>' +
-    '<p>' + escapeHTML(pessoa.cordaoAtual || 'Iniciante') + '</p>' +
-    '</div>';
-  modal.classList.add('cascata-foto-modal-aberto');
-};
 
 function renderizarArvoreFormacao() {
-  const wrap = document.getElementById('arvoreFormacaoContainer');
-  if (!wrap) return;
-  let raizUid = null;
-  if (sessaoAtual && (souFundador(sessaoAtual) || ehMestre() || (sessaoAtual.papeis || []).includes('instrutor'))) {
-    raizUid = sessaoAtual.uid;
-  }
-  if (!raizUid) { wrap.innerHTML = ''; return; }
-  const html = construirArvoreFormacaoHTML(raizUid, todosUsuarios, todosNucleos);
-  wrap.innerHTML = html || '<span class="cascata-vazio">Ninguém formado ainda a partir deste cadastro.</span>';
+const wrap = document.getElementById('arvoreFormacaoContainer');
+if (!wrap) return;
+const raizUid = arvRaizUid();
+const raiz = raizUid ? (arvUsuarios().find((u) => u.id === raizUid) || (raizUid === sessaoAtual.uid ? { id: sessaoAtual.uid, ...sessaoAtual } : null)) : null;
+if (!raiz) {
+wrap.innerHTML = '<div class="empty-state"><i class="fas fa-sitemap"></i>A árvore parte do fundador (Acesso Geral) — assim que ele estiver marcado no cadastro, ela aparece aqui.</div>';
+return;
+}
+arvoreIndice = {}; arvorePais = {};
+if (!arvoreAbertos.size) arvoreAbertos.add(raiz.id); // o topo já começa aberto
+wrap.innerHTML = `<div class="arv-arvore">${arvNoHTML(raiz, arvUsuarios(), todosNucleos, true)}</div>`;
+if (!wrap.dataset.ligado) {
+wrap.dataset.ligado = '1';
+wrap.addEventListener('click', (ev) => { const c = ev.target.closest('.arv-pessoa'); if (c) arvAlternar(c.dataset.arvId); });
+wrap.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { const c = ev.target.closest('.arv-pessoa'); if (c) { ev.preventDefault(); arvAlternar(c.dataset.arvId); } } });
+const btnTudo = document.getElementById('btnArvoreAbrirTudo');
+const btnFechar = document.getElementById('btnArvoreRecolher');
+if (btnTudo) btnTudo.addEventListener('click', () => { Object.keys(arvoreIndice).forEach((id) => arvoreAbertos.add(id)); renderizarArvoreFormacao(); });
+if (btnFechar) btnFechar.addEventListener('click', () => { arvoreAbertos.clear(); arvoreAbertos.add(raiz.id); renderizarArvoreFormacao(); });
+requestAnimationFrame(() => { const r = wrap.querySelector('.arv-raiz'); if (r) r.scrollIntoView({ block: 'nearest', inline: 'center' }); });
+}
+if (arvoreSelecionado && arvoreIndice[arvoreSelecionado]) arvMostrarDetalhe(arvoreIndice[arvoreSelecionado]);
 }
 
+function arvAlternar(id) {
+const pessoa = arvoreIndice[id];
+if (!pessoa) return;
+const temFilhos = obterFilhosDiretosFormacao(id, arvUsuarios(), todosNucleos).length > 0;
+if (temFilhos) { if (arvoreAbertos.has(id)) arvoreAbertos.delete(id); else arvoreAbertos.add(id); }
+arvoreSelecionado = id;
+renderizarArvoreFormacao();
+const card = document.querySelector(`.arv-pessoa[data-arv-id="${id}"]`);
+if (card) card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+}
+
+window.__arvIr = function (id) {
+if (arvorePais[id]) arvoreAbertos.add(arvorePais[id]);
+arvAlternar(id);
+};
+
+// Painel lateral: só o que existe de verdade no cadastro/cache desta sessão.
+function arvMostrarDetalhe(pessoa) {
+const det = document.getElementById('arvoreDetalhe');
+if (!det) return;
+const cor = arvCoresCordao(pessoa);
+const temNotas = !!(pessoa.notas && Object.keys(pessoa.notas).length);
+const porc = temNotas ? calcularPorcentagemEvolucaoDe(pessoa) : null;
+const filhos = arvOrdenar(obterFilhosDiretosFormacao(pessoa.id, arvUsuarios(), todosNucleos));
+const prontos = filhos.filter((f) => f.notas && calcularPorcentagemEvolucaoDe(f) >= 70).length;
+const nucleo = pessoa.academiaGerenciadaId ? todosNucleos.find((n) => n.id === pessoa.academiaGerenciadaId) : null;
+// Escopo honesto: admin/fundador leem o grupo todo; um mestre só lê o próprio
+// núcleo — pra um núcleo que ele não enxerga, mostra "—" em vez de um zero falso.
+const escopoCompleto = ehAdmin() || souFundador(sessaoAtual);
+const leNucleo = (id) => escopoCompleto || id === sessaoAtual.academiaGerenciadaId;
+const alunosAtivos = nucleo && leNucleo(nucleo.id) ? arvUsuarios().filter((u) => (u.papeis || []).includes('aluno') && u.academiaId === nucleo.id && u.statusAtual !== 'Inativo').length : null;
+const descendentes = coletarDescendentesFormacao(pessoa.id, arvUsuarios(), todosNucleos);
+const redeCompleta = escopoCompleto || !descendentes.some((d) => d.academiaGerenciadaId && !leNucleo(d.academiaGerenciadaId)) && !(nucleo && !leNucleo(nucleo.id));
+const rede = redeCompleta ? descendentes.length : '—';
+// presenças no mês: só quando as presenças do núcleo dessa pessoa já foram lidas
+let presMes = null;
+if (presencasNucleoCache && presencasNucleoCache.nucleoId === (pessoa.academiaId || null)) {
+const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+presMes = presencasNucleoCache.itens.filter((p) => p.uid === pessoa.id && (p.entradaEm && p.entradaEm.toDate ? p.entradaEm.toDate() : new Date(p.entradaEm)) >= inicioMes).length;
+}
+const status = souFundador(pessoa) ? { t: 'Fundador · Acesso Geral', k: 'pill-gold' }
+: (porc == null ? { t: 'Sem avaliação ainda', k: 'pill-neutra' } : (porc >= 70 ? { t: 'Pronto para graduar', k: 'pill-aprovado' } : { t: 'Em preparação', k: 'pill-azul' }));
+const aberto = arvoreAbertos.has(pessoa.id);
+const podeEditar = ehAdmin() || ehGestor() || ehInstrutorLogado();
+det.innerHTML = `
+<div class="arv-det-topo">
+${arvFotoHTML(pessoa, 'arv-foto-g')}
+<div><h3>${escapeHTML(pessoa.nome || 'Sem nome')}</h3><div class="arv-grad">Cordão ${escapeHTML(pessoa.cordaoAtual || 'Iniciante')}${pessoa.idade ? ` · ${escapeHTML(pessoa.idade)} anos` : ''}</div></div>
+</div>
+<div class="arv-chips">
+<span class="pill ${status.k}">${status.t}</span>
+<span class="pill pill-navy"><i class="fas fa-link"></i> ${escapeHTML(rotuloDiretoDe(pessoa))}</span>
+${nucleo ? `<span class="pill pill-teal"><i class="fas fa-building"></i> ${escapeHTML(nucleo.nome || nucleo.id)}</span>` : `<span class="pill pill-neutra">treina em ${escapeHTML(pessoa.academiaNome || pessoa.academiaId || '—')}</span>`}
+${pessoa.statusAtual && pessoa.statusAtual !== 'Ativo' ? `<span class="pill pill-rejeitado">${escapeHTML(pessoa.statusAtual)}</span>` : ''}
+</div>
+<div class="arv-stats">
+<div class="arv-stat"><b>${presMes == null ? '—' : presMes}</b><small>presenças no mês</small></div>
+<div class="arv-stat"><b>${alunosAtivos == null ? (nucleo ? '—' : (filhos.length || '—')) : alunosAtivos}</b><small>${alunosAtivos == null && !nucleo ? 'formados' : 'alunos ativos'}</small></div>
+<div class="arv-stat"><b>${rede}</b><small>na sua rede</small></div>
+</div>
+<div class="arv-prontidao">
+<div class="arv-linha"><span>Prontidão para a próxima corda</span><span>${porc == null ? '—' : porc + '%'}</span></div>
+<div class="arv-barra"><i style="width:${porc == null ? 0 : porc}%; --c1:${cor[0]}; --c2:${cor[1]}; --c3:${cor[2]};"></i></div>
+<small>${porc == null ? 'Ainda sem notas lançadas em Avaliar/Editar.' : (porc >= 70 ? 'Já atingiu a meta de 70% nos critérios avaliados.' : 'Meta: 70% nos critérios avaliados pelo responsável.')}</small>
+</div>
+${filhos.length ? `<div class="arv-lista"><h4>${nucleo ? 'Alunos e formados' : 'Formados'} <span>${prontos}/${filhos.length} prontos</span></h4>
+${filhos.map((f) => `<button type="button" class="arv-linha-aluno" onclick="window.__arvIr('${escapeHTML(f.id)}')">${arvFotoHTML(f, 'arv-foto-m')}<span>${escapeHTML(f.nome || 'Sem nome')}</span><span class="arv-g">${escapeHTML(f.cordaoAtual || 'Iniciante')}${f.notas ? ` · ${calcularPorcentagemEvolucaoDe(f)}%` : ''}</span></button>`).join('')}</div>` : ''}
+<div class="arv-acoes">
+${filhos.length ? `<button type="button" class="btn-detalhes ${aberto ? 'btn-soft' : ''}" onclick="window.__arvIr('${escapeHTML(pessoa.id)}')">${aberto ? 'Recolher ramificação' : 'Abrir ramificação'}</button>` : ''}
+${podeEditar && todosUsuarios.some((u) => u.id === pessoa.id) ? `<button type="button" class="btn-mini" onclick="abrirModal('${escapeHTML(pessoa.id)}')"><i class="fas fa-pen"></i> Abrir prontuário (Avaliar/Editar)</button>` : ''}
+</div>`;
+}
 
 /* ---------------------- TOASTS ---------------------- */
 function garantirToastContainer() {
@@ -847,6 +874,9 @@ todosUsuarios = meus.some((u) => u.id === sessaoAtual.uid) ? meus : meus.concat(
 } else {
 todosUsuarios = [];
 }
+if (souFundador(sessaoAtual) && !ehAdmin()) {
+try { arvoreUsuarios = await listar('usuarios'); } catch (e) { console.warn('Árvore: sem leitura geral, usando só o núcleo.', e); arvoreUsuarios = null; }
+}
 aplicarFiltros();
 } catch (e) {
 console.error(e);
@@ -901,75 +931,6 @@ renderizarArvoreFormacao();
 renderizarGrid(meuRegistro ? filtrados.filter((a) => a.id !== meuRegistro.id) : filtrados);
 renderizarKpisGestao();
 desenharGraficos(filtrados);
-renderizarCascata();
-}
-
-/* ===================== CASCATA DE FORMAÇÃO (Mestre → Instrutores → Alunos) ===================== */
-function renderizarCascata() {
-const wrap = document.getElementById('cascataContainer');
-const aviso = document.getElementById('cascataAvisoSelecione');
-if (!wrap) return;
-
-let nucleoId = '';
-let pessoasDoNucleo = [];
-let mestreInfo = null;
-
-if (ehAdmin()) {
-nucleoId = selectFiltroAcademia ? selectFiltroAcademia.value : '';
-if (!nucleoId) { wrap.innerHTML = ''; if (aviso) aviso.classList.remove('oculto'); return; }
-if (aviso) aviso.classList.add('oculto');
-pessoasDoNucleo = todosUsuarios.filter((u) => u.academiaId === nucleoId);
-const nucleo = todosNucleos.find((n) => n.id === nucleoId);
-mestreInfo = nucleo ? todosUsuarios.find((u) => u.id === nucleo.professorUid) : null;
-} else if (ehGestor()) {
-nucleoId = sessaoAtual.academiaGerenciadaId;
-if (aviso) aviso.classList.add('oculto');
-if (!nucleoId) { wrap.innerHTML = '<span class="cascata-vazio">Este cadastro ainda não administra um núcleo próprio.</span>'; return; }
-pessoasDoNucleo = todosUsuarios.filter((u) => u.academiaId === nucleoId);
-mestreInfo = { id: sessaoAtual.uid, nome: sessaoAtual.nome };
-} else {
-return;
-}
-
-const instrutores = pessoasDoNucleo.filter((u) => (u.papeis || []).includes('instrutor'));
-const todosAlunosNucleo = pessoasDoNucleo.filter((u) => (u.papeis || []).includes('aluno'));
-const instrutorIds = new Set(instrutores.map((i) => i.id));
-const porInstrutor = instrutores.map((instr) => ({
-instrutor: instr,
-alunos: todosAlunosNucleo.filter((a) => a.instrutorUid === instr.id),
-}));
-const diretos = todosAlunosNucleo.filter((a) => !a.instrutorUid && !instrutorIds.has(a.id));
-
-const chip = (a) => `<img class="cascata-aluno-chip" src="${escapeHTML(a.fotoUrl || 'https://via.placeholder.com/34')}" title="${escapeHTML(a.nome || 'Aluno')} (${escapeHTML(a.cordaoAtual || 'Iniciante')}) — ${calcularPorcentagemEvolucaoDe(a)}% de evolução" alt="${escapeHTML(a.nome || 'Aluno')}">`;
-
-const ramos = [
-...porInstrutor.map(({ instrutor, alunos }) => `
-<div class="cascata-ramo">
-<div class="cascata-instrutor-node">
-<i class="fas fa-user-graduate"></i>
-<strong>${escapeHTML(instrutor.nome || 'Instrutor')}</strong>
-<span class="cascata-contagem">${alunos.length} aluno${alunos.length === 1 ? '' : 's'}</span>
-</div>
-<div class="cascata-alunos-lista">${alunos.length ? alunos.map(chip).join('') : '<span class="cascata-vazio">Sem alunos atribuídos</span>'}</div>
-</div>`),
-diretos.length ? `
-<div class="cascata-ramo">
-<div class="cascata-instrutor-node cascata-direto">
-<i class="fas fa-user-shield"></i>
-<strong>Diretos do Mestre</strong>
-<span class="cascata-contagem">${diretos.length} aluno${diretos.length === 1 ? '' : 's'}</span>
-</div>
-<div class="cascata-alunos-lista">${diretos.map(chip).join('')}</div>
-</div>` : '',
-].filter(Boolean).join('');
-
-wrap.innerHTML = `
-<div class="cascata-mestre">
-<i class="fas fa-crown"></i>
-<strong>${escapeHTML(mestreInfo ? mestreInfo.nome : 'Mestre/Professor')}</strong>
-</div>
-<div class="cascata-ramos">${ramos || '<span class="cascata-vazio">Ainda não há instrutores ou alunos vinculados a este núcleo.</span>'}</div>
-`;
 }
 
 function renderizarGrid(alunos) {
@@ -1038,7 +999,7 @@ return '<i class="fas fa-user"></i> Responsável';
 // responsável vem do próprio nome do núcleo — "Academia Mestre Profeta" →
 // "Mestre Profeta"; "Academia Professora Taynara" → "Professora Taynara").
 // Se a pessoa tem formadorUid gravado e ele administra um núcleo conhecido,
-// esse núcleo vence (a posição na cascata é permanente).
+// esse núcleo vence (a posição na árvore é permanente).
 function rotuloDiretoDe(pessoa) {
 if (souFundador(pessoa)) return 'Direto Liberdade e Expressão';
 let nucleo = null;
@@ -1167,7 +1128,7 @@ const criteriosFormador = [
 
 // Porcentagem de evolução de QUALQUER usuário (aluno, instrutor, mestre —
 // todo mundo treina como aluno), fora do contexto do modal aberto. Usada no
-// gráfico de pirâmide e no tooltip da Cascata de Formação.
+// gráfico de pirâmide e na Árvore de Formação.
 function calcularPorcentagemEvolucaoDe(usuario) {
 if (!usuario) return 0;
 const idade = Number(usuario.idade) || 0;

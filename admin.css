@@ -465,95 +465,100 @@ select.input-padrao { appearance: none; -webkit-appearance: none; background-ima
 .hero-fundador-cordao-track .cordao-fill { box-shadow: 0 0 16px rgba(0, 230, 118, 0.55); }
 @media (max-width: 560px) { .hero-fundador-card { padding: 20px; } .hero-fundador-pct { font-size: 1.6rem; } }
 
-/* ---------------------------------------------------------------- CASCATA (mestre → instrutores → alunos) */
-.cascata-section { margin-bottom: 10px; }
-.cascata-tree { display: flex; flex-direction: column; align-items: center; padding: 22px 15px 10px; }
-.cascata-mestre { display: flex; align-items: center; gap: 10px; position: relative; background: var(--primary-blue); color: #fff; padding: 12px 24px; border-radius: var(--radius-md); font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; box-shadow: var(--shadow-navy); margin-bottom: 30px; }
-.cascata-mestre i { color: var(--gold-light); }
-.cascata-mestre::after { content: ""; position: absolute; bottom: -30px; left: 50%; width: 2px; height: 30px; background: var(--border-color); }
-.cascata-ramos { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; position: relative; padding-top: 26px; width: 100%; }
-.cascata-ramos::before { content: ""; position: absolute; top: 0; left: 12%; right: 12%; height: 2px; background: var(--border-color); }
-.cascata-ramo { position: relative; padding-top: 26px; display: flex; flex-direction: column; align-items: center; max-width: 230px; }
-.cascata-ramo::before { content: ""; position: absolute; top: 0; left: 50%; width: 2px; height: 26px; background: var(--border-color); transform: translateX(-1px); }
-.cascata-instrutor-node { display: flex; flex-direction: column; align-items: center; gap: 4px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 18px; box-shadow: var(--shadow-card); text-align: center; min-width: 150px; }
-.cascata-instrutor-node strong { font-family: var(--font-display); font-size: 0.9rem; }
-.cascata-instrutor-node i { color: var(--primary-teal); font-size: 1rem; }
-.cascata-instrutor-node.cascata-direto i { color: #A9790D; }
-.cascata-contagem { font-size: 0.74rem; color: var(--text-muted); font-weight: 700; }
-.cascata-alunos-lista { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 12px; max-width: 220px; }
-.cascata-aluno-chip { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--card-bg); box-shadow: 0 0 0 1px var(--border-color); }
+/* ---------------------------------------------------------------- ÁRVORE DE FORMAÇÃO (quem formou quem)
+   Montada só com cadastros reais. Caixa = pessoa (foto, nome, graduação, barra do
+   cordão); clicar seleciona + abre a ramificação, que fica aberta até recolher. */
 .cascata-vazio { font-size: 0.82rem; color: var(--text-muted); font-style: italic; }
-@media (max-width: 700px) { .cascata-ramos::before, .cascata-ramo::before { display: none; } }
+.arv-secao { margin-bottom: 10px; --azul-prep: #2F80ED; }
+.arv-sub { color: var(--text-muted); font-size: 0.86rem; margin-top: 4px; max-width: 62ch; }
+.arv-acoes-topo { display: flex; gap: 8px; flex-wrap: wrap; align-self: flex-end; }
+.arv-acoes-topo .btn-mini { display: inline-flex; align-items: center; gap: 6px; border-radius: var(--radius-pill); }
+.arv-legenda { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.76rem; color: var(--text-muted); font-weight: 700; margin: 0 0 12px; }
+.arv-legenda span { display: inline-flex; align-items: center; gap: 6px; }
+.arv-leg { width: 14px; height: 14px; border-radius: 5px; border: 2px solid var(--border-strong); background: var(--card-bg); display: inline-block; }
+.arv-leg-verde { border-color: var(--green); } .arv-leg-azul { border-color: var(--azul-prep); } .arv-leg-ouro { border-color: var(--accent-gold); }
 
-/* ---------------------------------------------------------------- ÁRVORE DE FORMAÇÃO (quem formou quem) */
-.arvore-formacao-subtitulo { margin: 28px 0 14px; padding-top: 18px; border-top: 1px dashed var(--border-color); font-weight: 800; font-family: var(--font-display); color: var(--text-dark); display: flex; align-items: center; gap: 8px; }
-.arvore-formacao-subtitulo i { color: var(--primary-teal); }
-.arvore-formacao-container { display: flex; flex-direction: column; gap: 6px; overflow-x: auto; padding-bottom: 8px; }
-.formacao-arvore-scroll { overflow-x: auto; padding: 6px 4px 16px; }
-.formacao-raiz { display: inline-flex; min-width: 100%; justify-content: center; }
-.formacao-no { display: flex; flex-direction: column; align-items: center; position: relative; padding: 0 10px; }
-.formacao-no-extra { margin-top: 10px; }
-.formacao-filhos { display: flex; gap: 22px; margin-top: 26px; position: relative; justify-content: center; }
-.formacao-filhos::before { content: ""; position: absolute; top: -14px; left: 50%; width: 1px; height: 14px; background: var(--border-strong); }
-.formacao-galho { position: relative; display: flex; flex-direction: column; align-items: center; padding-top: 14px; }
-.formacao-galho::before { content: ""; position: absolute; top: 0; left: 50%; width: 1px; height: 14px; background: var(--border-strong); }
-.formacao-filhos-multi::after { content: ""; position: absolute; top: -14px; left: 12%; right: 12%; height: 1px; background: var(--border-strong); }
-@media (max-width: 700px) { .formacao-filhos { gap: 14px; } .formacao-filhos::after { left: 4%; right: 4%; } }
+.arv-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+.arv-palco { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-xl); padding: 26px 18px 30px; overflow-x: auto; overflow-y: hidden; box-shadow: var(--shadow-card); position: relative; }
+.arv-palco::after { content: 'arraste para o lado →'; position: absolute; right: 16px; top: 12px; font-size: 0.66rem; color: var(--text-soft); font-weight: 700; pointer-events: none; }
+.arv-container { min-width: 100%; }
+.arv-container .empty-state { margin: 0; }
+.arv-arvore { display: inline-flex; min-width: 100%; justify-content: center; padding: 6px 12px; }
 
-.cascata-pessoa-card { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; background: var(--card-bg); border: 1.5px solid var(--border-color); border-radius: var(--radius-lg); padding: 14px 12px; text-align: center; cursor: pointer; min-width: 128px; transition: transform 0.2s var(--ease-standard), box-shadow 0.2s var(--ease-standard); }
-.cascata-pessoa-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-soft); }
-.cascata-pessoa-card.cascata-azul { border-color: var(--primary-blue); }
-.cascata-pessoa-card.cascata-verde { border-color: var(--green); }
-.cascata-pessoa-card.cascata-pessoa-propria { border-color: var(--accent-gold); background: linear-gradient(180deg, var(--gold-soft), var(--card-bg) 55%); }
-.cascata-pessoa-selo { position: absolute; top: -10px; right: -6px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent-gold); color: #241900; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; box-shadow: var(--shadow-card); }
-.cascata-pessoa-foto { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; background: var(--teal-soft); }
-.cascata-pessoa-nome { font-weight: 800; font-family: var(--font-display); font-size: 0.86em; color: var(--text-dark); }
-.cascata-pessoa-cordao { font-size: 0.74em; color: var(--text-muted); }
-.cascata-contagem-card { display: flex; flex-direction: column; align-items: center; gap: 2px; background: var(--card-bg); border: 1.5px dashed var(--border-color); border-radius: var(--radius-md); padding: 12px 10px; text-align: center; cursor: pointer; min-width: 110px; transition: background 0.2s, transform 0.2s; }
-.cascata-contagem-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-card); }
-.cascata-contagem-card.cascata-contagem-vazia { cursor: default; opacity: 0.55; }
-.cascata-contagem-card.cascata-contagem-vazia:hover { transform: none; box-shadow: none; }
-.cascata-contagem-card i.fas { color: var(--primary-teal); font-size: 1rem; }
-.cascata-contagem-numero { font-family: var(--font-mono); font-weight: 700; font-size: 1.2rem; color: var(--primary-teal); }
-.cascata-contagem-rotulo { font-size: 0.72em; color: var(--text-muted); line-height: 1.25; }
-.cascata-contagem-expandir { font-size: 0.7em; color: var(--text-muted); margin-top: 2px; transition: transform 0.2s; }
-.cascata-contagem-aberta .cascata-contagem-expandir { transform: rotate(180deg); }
-.cascata-avatares-grid { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 10px; }
-.cascata-avatar-mini { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 2px solid var(--card-bg); cursor: pointer; transition: transform 0.15s; }
-.cascata-avatar-mini:hover { transform: scale(1.15); }
-.cascata-avatar-mini.cascata-azul { box-shadow: 0 0 0 2px var(--primary-blue); }
-.cascata-avatar-mini.cascata-verde { box-shadow: 0 0 0 2px var(--green); }
-.cascata-niveis-faixas { display: flex; flex-wrap: wrap; gap: 18px; margin: 4px 0 16px; padding: 10px 14px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-md); }
-.cascata-faixa-rotulo { display: inline-flex; align-items: center; gap: 6px; font-size: 0.76rem; font-weight: 700; color: var(--text-muted); }
-.cascata-faixa-rotulo i { color: var(--primary-teal); }
-.cascata-niveis-grid { display: flex; gap: 20px; overflow-x: auto; padding-bottom: 12px; align-items: flex-start; }
-.cascata-coluna { display: flex; flex-direction: column; gap: 10px; min-width: 220px; max-width: 240px; flex: none; }
-.cascata-tooltip { position: fixed; z-index: 500; transform: translate(-50%, -100%); display: flex; flex-direction: column; gap: 2px; background: var(--text-dark); color: #fff; padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.78rem; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28); pointer-events: none; opacity: 0; transition: opacity 0.15s; }
-.cascata-tooltip-visivel { opacity: 1; }
-.cascata-tooltip strong { font-size: 0.86rem; }
-.cascata-tooltip-status { display: flex; align-items: center; gap: 5px; font-weight: 700; }
-.cascata-tooltip-status i { font-size: 0.5rem; }
-.cascata-tooltip-verde i { color: var(--accent-green); }
-.cascata-tooltip-azul i { color: #5B9BFF; }
-.cascata-foto-modal { position: fixed; inset: 0; z-index: 600; display: none; align-items: center; justify-content: center; background: rgba(0, 20, 50, 0.6); backdrop-filter: blur(3px); }
-.cascata-foto-modal.cascata-foto-modal-aberto { display: flex; animation: cardIn 0.2s var(--ease-standard) both; }
-.cascata-foto-modal-conteudo { background: var(--card-bg); border-radius: var(--radius-lg); padding: 22px; max-width: 320px; width: 90%; text-align: center; position: relative; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35); }
-.cascata-foto-modal-conteudo img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-md); margin-bottom: 12px; }
-.cascata-foto-modal-conteudo h3 { margin-bottom: 2px; }
-.cascata-foto-modal-conteudo p { color: var(--text-muted); font-size: 0.85rem; }
-.cascata-foto-modal-fechar { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 50%; border: none; background: var(--bg-app); color: var(--text-dark); cursor: pointer; font-size: 0.9rem; }
-.cascata-foto-modal-fechar:hover { background: var(--border-color); }
-.arvore-no-wrap { display: flex; flex-direction: column; }
-.arvore-no { display: inline-flex; align-items: center; gap: 8px; width: fit-content; max-width: 100%; background: var(--card-bg); border: 1.5px solid var(--border-color); border-radius: var(--radius-pill); padding: 6px 14px 6px 6px; margin: 3px 0; }
-.arvore-no-azul { border-color: var(--primary-blue); } .arvore-no-verde { border-color: var(--green); }
-.arvore-no-expansivel { cursor: pointer; }
-.arvore-no-foto { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--bg-app); }
-.arvore-no-nome { font-weight: 700; font-size: 0.9em; color: var(--text-dark); white-space: nowrap; }
-.arvore-no-cordao { font-size: 0.76em; color: var(--text-muted); white-space: nowrap; }
-.arvore-no-chevron { margin-left: 4px; font-size: 0.75em; color: var(--text-muted); transition: transform 0.2s; }
-.arvore-no-expandido .arvore-no-chevron { transform: rotate(180deg); }
-.arvore-filhos { display: flex; flex-direction: column; margin-left: 26px; padding-left: 16px; border-left: 2px solid var(--border-color); }
-@media (max-width: 700px) { .cascata-coluna { min-width: 180px; } .cascata-pessoa-foto { width: 48px; height: 48px; } .arvore-filhos { margin-left: 14px; padding-left: 10px; } }
+/* nó = cartão + galhos */
+.arv-no { display: flex; flex-direction: column; align-items: center; position: relative; padding: 0 8px; }
+.arv-filhos { display: none; gap: 14px; margin-top: 26px; position: relative; justify-content: center; align-items: flex-start; }
+.arv-no.arv-aberto > .arv-filhos { display: flex; animation: arvAbrir 0.35s var(--ease-standard) both; }
+@keyframes arvAbrir { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+.arv-filhos::before { content: ''; position: absolute; top: -26px; left: 50%; width: 2px; height: 26px; background: var(--border-strong); transform: translateX(-1px); }
+.arv-filhos.arv-multi::after { content: ''; position: absolute; top: -1px; left: 0; right: 0; height: 2px; background: var(--border-strong); }
+.arv-galho { position: relative; padding-top: 16px; display: flex; flex-direction: column; align-items: center; }
+.arv-galho::before { content: ''; position: absolute; top: 0; left: 50%; width: 2px; height: 16px; background: var(--border-strong); transform: translateX(-1px); }
+/* máscara: a linha horizontal só vai do centro do primeiro ao centro do último galho */
+.arv-filhos.arv-multi > .arv-galho:first-child::after, .arv-filhos.arv-multi > .arv-galho:last-child::after { content: ''; position: absolute; top: -1px; height: 2px; background: var(--card-bg); width: 50%; z-index: 1; }
+.arv-filhos.arv-multi > .arv-galho:first-child::after { left: 0; } .arv-filhos.arv-multi > .arv-galho:last-child::after { right: 0; }
+
+/* cartão da pessoa */
+.arv-pessoa { position: relative; width: 132px; background: var(--card-bg); border: 2px solid var(--border-strong); border-radius: 18px; padding: 14px 10px 12px; text-align: center; cursor: pointer; transition: transform 0.2s var(--ease-standard), box-shadow 0.2s var(--ease-standard), border-color 0.2s; user-select: none; }
+.arv-pessoa:hover { transform: translateY(-3px); box-shadow: 0 12px 26px -14px rgba(0, 45, 114, 0.45); }
+.arv-pessoa.arv-verde { border-color: var(--green); }
+.arv-pessoa.arv-azul { border-color: var(--azul-prep); }
+.arv-pessoa.arv-ouro { border-color: var(--accent-gold); background: linear-gradient(180deg, var(--gold-soft), var(--card-bg) 60%); }
+.arv-pessoa.arv-selecionada { box-shadow: 0 0 0 4px rgba(11, 92, 82, 0.18), 0 12px 26px -14px rgba(0, 45, 114, 0.45); }
+.arv-pessoa.arv-raiz { width: 150px; }
+.arv-foto { width: 60px; height: 60px; border-radius: 50%; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 800; font-size: 1.05rem; color: #fff; box-shadow: 0 0 0 3px var(--card-bg), 0 0 0 5px var(--border-color); background: var(--primary-blue); object-fit: cover; overflow: hidden; }
+.arv-raiz .arv-foto { width: 72px; height: 72px; font-size: 1.25rem; }
+.arv-pessoa.arv-verde .arv-foto { box-shadow: 0 0 0 3px var(--card-bg), 0 0 0 5px var(--green); }
+.arv-pessoa.arv-azul .arv-foto { box-shadow: 0 0 0 3px var(--card-bg), 0 0 0 5px var(--azul-prep); }
+.arv-pessoa.arv-ouro .arv-foto { box-shadow: 0 0 0 3px var(--card-bg), 0 0 0 5px var(--accent-gold); }
+.arv-nome { font-family: var(--font-display); font-weight: 800; font-size: 0.84rem; line-height: 1.2; color: var(--text-dark); overflow-wrap: anywhere; }
+.arv-grad { font-size: 0.7rem; color: var(--text-muted); font-weight: 700; margin-top: 2px; }
+.arv-cordao { height: 6px; border-radius: 6px; margin: 8px 6px 0; background: var(--border-color); overflow: hidden; }
+.arv-cordao > i { display: block; height: 100%; border-radius: 6px; background: repeating-linear-gradient(45deg, var(--c1) 0, var(--c1) 6px, var(--c2) 6px, var(--c2) 12px, var(--c3) 12px, var(--c3) 18px); }
+.arv-selo { position: absolute; top: -10px; right: -8px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent-gold); color: #241900; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.35); }
+.arv-conta { position: absolute; bottom: -12px; left: 50%; transform: translateX(-50%); background: var(--primary-blue); color: #fff; font-family: var(--font-mono); font-size: 0.68rem; font-weight: 700; padding: 3px 9px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; box-shadow: 0 4px 10px -4px rgba(0, 45, 114, 0.5); }
+.arv-conta .arv-seta { display: inline-block; transition: transform 0.25s var(--ease-standard); font-size: 0.6rem; }
+.arv-no.arv-aberto > .arv-pessoa .arv-conta .arv-seta { transform: rotate(180deg); }
+.arv-no.arv-aberto > .arv-pessoa .arv-conta { background: var(--primary-teal); }
+.arv-pessoa.arv-folha .arv-conta { display: none; }
+.arv-pessoa.arv-aluno { width: 118px; padding: 12px 8px 10px; }
+.arv-pessoa.arv-aluno .arv-foto { width: 50px; height: 50px; font-size: 0.9rem; }
+.arv-pessoa.arv-aluno .arv-nome { font-size: 0.78rem; }
+
+/* painel lateral de detalhe */
+.arv-detalhe { position: sticky; top: 16px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-xl); padding: 18px; box-shadow: var(--shadow-card); min-height: 340px; animation: cardIn 0.3s var(--ease-standard) both; }
+.arv-detalhe-vazio { color: var(--text-muted); font-size: 0.84rem; text-align: center; padding: 60px 10px; line-height: 1.5; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.arv-detalhe-vazio i { font-size: 1.4rem; color: var(--primary-teal); margin-bottom: 4px; }
+.arv-detalhe-vazio strong { color: var(--text-dark); font-family: var(--font-display); }
+.arv-det-topo { display: flex; align-items: center; gap: 12px; }
+.arv-det-topo h3 { font-size: 1.05rem; font-weight: 800; line-height: 1.15; margin: 0; }
+.arv-det-topo .arv-grad { font-size: 0.76rem; }
+.arv-foto.arv-foto-g { margin: 0; width: 64px; height: 64px; font-size: 1.1rem; flex: none; }
+.arv-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+.arv-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+.arv-stat { background: var(--bg-app); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 10px 8px; text-align: center; }
+.arv-stat b { display: block; font-family: var(--font-mono); font-size: 1.05rem; color: var(--primary-teal); font-variant-numeric: tabular-nums; }
+.arv-stat small { font-size: 0.64rem; color: var(--text-muted); font-weight: 700; }
+.arv-prontidao { margin-top: 14px; }
+.arv-prontidao .arv-linha { display: flex; justify-content: space-between; gap: 8px; font-size: 0.74rem; font-weight: 800; margin-bottom: 6px; }
+.arv-prontidao .arv-linha span:last-child { font-family: var(--font-mono); color: var(--primary-teal); }
+.arv-barra { height: 12px; border-radius: var(--radius-pill); background: var(--border-color); overflow: hidden; }
+.arv-barra > i { display: block; height: 100%; border-radius: var(--radius-pill); background: repeating-linear-gradient(45deg, var(--c1) 0, var(--c1) 8px, var(--c2) 8px, var(--c2) 16px, var(--c3) 16px, var(--c3) 24px); animation: arvTranca 2s linear infinite; transition: width 0.6s var(--ease-standard); }
+@keyframes arvTranca { to { background-position: 48px 0; } }
+.arv-prontidao small { display: block; font-size: 0.68rem; color: var(--text-muted); margin-top: 6px; }
+.arv-lista { margin-top: 14px; border-top: 1px dashed var(--border-color); padding-top: 12px; }
+.arv-lista h4 { font-size: 0.82rem; font-weight: 800; margin: 0 0 8px; display: flex; justify-content: space-between; gap: 8px; font-family: var(--font-display); }
+.arv-lista h4 span { color: var(--text-muted); font-weight: 700; font-family: var(--font-mono); font-size: 0.74rem; }
+.arv-linha-aluno { display: flex; align-items: center; gap: 8px; padding: 6px 4px; font-size: 0.8rem; width: 100%; border: none; background: none; color: var(--text-dark); text-align: left; border-radius: var(--radius-sm); cursor: pointer; font-family: inherit; }
+.arv-linha-aluno:hover { background: var(--teal-soft); }
+.arv-foto.arv-foto-m { width: 28px; height: 28px; font-size: 0.66rem; margin: 0; box-shadow: none; flex: none; }
+.arv-linha-aluno .arv-g { margin-left: auto; font-size: 0.68rem; color: var(--text-muted); font-weight: 700; white-space: nowrap; }
+.arv-acoes { display: grid; gap: 8px; margin-top: 14px; }
+.arv-acoes .btn-detalhes, .arv-acoes .btn-mini { justify-content: center; width: 100%; }
+.pill-azul { background: #E7F0FD; color: #1B5FC2; }
+@media (max-width: 980px) { .arv-layout { grid-template-columns: 1fr; } .arv-detalhe { position: static; min-height: 0; } }
+@media (max-width: 700px) { .arv-palco { padding: 22px 10px 26px; } .arv-filhos { gap: 8px; } .arv-pessoa { width: 118px; } .arv-pessoa.arv-raiz { width: 134px; } }
+@media (prefers-reduced-motion: reduce) { .arv-barra > i, .arv-no.arv-aberto > .arv-filhos, .arv-detalhe { animation: none; } }
 
 /* ---------------------------------------------------------------- SIDEBAR (filtros) */
 .widget h3 { font-size: 0.98rem; margin-bottom: 4px; }
