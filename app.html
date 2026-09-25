@@ -193,7 +193,7 @@ a:hover{ color:#389E92; }
                 </div>
                 <button onClick="{{ irTrofeus }}" style="background:#fff; border:1px solid #E2E8E6; border-radius:16px; padding:13px 14px; text-align:left; cursor:pointer; font-family:'Manrope',sans-serif;">
                   <div style="font-family:'JetBrains Mono',monospace; font-size:1.25rem; font-weight:700; color:#002D72;">{{ trofeusCount }}</div>
-                  <div style="font-size:.66rem; color:#5B6B68; margin-top:2px;">troféus</div>
+                  <div style="font-size:.66rem; color:#5B6B68; margin-top:2px;">brasões</div>
                 </button>
                 <div style="background:#fff; border:1px solid #E2E8E6; border-radius:16px; padding:13px 14px;">
                   <div style="font-family:'JetBrains Mono',monospace; font-size:1.25rem; font-weight:700; color:#8E44AD;">{{ parceirosVisitados }}</div>
@@ -705,7 +705,7 @@ a:hover{ color:#389E92; }
                     </div>
                     <button onClick="{{ irTrofeus }}" style="background:#fff; border:1px solid #E2E8E6; border-radius:14px; padding:12px 8px; text-align:center; cursor:pointer; font-family:inherit;">
                       <div style="font-family:'JetBrains Mono',monospace; font-size:1.05rem; font-weight:700; color:#DAA520;">{{ trofeusCount }}</div>
-                      <div style="font-size:.62rem; color:#5B6B68; margin-top:2px;">troféus</div>
+                      <div style="font-size:.62rem; color:#5B6B68; margin-top:2px;">brasões</div>
                     </button>
                   </div>
                 </sc-if>
@@ -1709,6 +1709,7 @@ class Component extends DCLogic {
       academia: gestorPapel ? (perfil.academiaNome || perfil.academiaGerenciadaId || '') : undefined,
       academiaGerenciadaId: perfil.academiaGerenciadaId || null,
       acessoGeral: !!perfil.acessoGeral,
+      brasoesTotal: Number(perfil.brasoesTotal) || 0, // consolidado pela Rede Liberdade (brasoes.js), só dado real
     }];
 
     this.setState({ carregando: false });
@@ -2410,7 +2411,7 @@ class Component extends DCLogic {
 
       opcoesPerfil: [
         { rotulo:'Meus dados', ajuda:'Nome, e-mail e telefone de contato', icone:'fas fa-id-card', acao: () => this.abrirSheet('dados') },
-      ].concat(!gestor ? [{ rotulo:'Troféus & Brasões', ajuda:'Sua escada de cordoada e conquistas', icone:'fas fa-trophy', acao: () => this.irPara('trofeus') }] : [])
+      ].concat(!gestor ? [{ rotulo:'Troféus & Brasões', ajuda:'Sua escada de cordoada e conquistas', icone:'fas fa-trophy', acao: () => { window.location.href = 'rede.html#brasoes'; } }] : [])
         .concat(!gestor ? [{ rotulo:'Núcleos', ajuda:'Veja o seu núcleo e os demais do grupo', icone:'fas fa-map-marker-alt', acao: () => this.irPara('nucleos') }] : [])
         .concat(familia ? [{ rotulo:'Vincular familiar', ajuda:'Ligar outro dependente à conta', icone:'fas fa-link', acao: () => this.abrirSheet('vincular') }] : [])
         // Face ID fica no painel de gestão (admin.html → Presenças) e só para
@@ -2431,10 +2432,10 @@ class Component extends DCLogic {
       irPerfil: () => this.irPara('perfil'),
       abrirDados: () => this.abrirSheet('dados'),
       compartilharPerfil: () => this.compartilharPerfilAcao(),
-      trofeusCount: this.state.semanasSeguidas >= 6 ? 1 : 0,
+      trofeusCount: perfilAtual ? (perfilAtual.brasoesTotal || 0) : 0,
       avisarAmigos: () => { window.location.href = 'rede.html'; },
       irNucleos: () => this.irPara('nucleos'),
-      irTrofeus: () => this.irPara('trofeus'),
+      irTrofeus: () => { window.location.href = 'rede.html#brasoes'; }, // Sala de Brasões real (45 brasões, dados do app)
       irEvolucaoCard: () => this.irPara('evolucao'),
       irFinanceiroCard: () => this.irPara('financeiro'),
 

@@ -337,6 +337,12 @@ allow delete: if logado() && (resource.data.autorUid == request.auth.uid || ehAd
 (ehGestor() && minhaAcademiaGerenciada() in conversa().get('nucleosIds', [])));
 }
 }
+// Configuração dos brasões (ativos, textos, núcleo do Fundador): todo mundo
+// logado lê (a Sala de Brasões precisa), só Admin/Fundador gravam.
+match /config/{id} {
+allow read: if logado();
+allow write: if ehAdmin() || souFundador();
+}
 // "Eu vou" num evento: cada pessoa marca/desmarca só a si mesma.
 match /eventos/{id}/confirmados/{uid} {
 allow read: if logado();

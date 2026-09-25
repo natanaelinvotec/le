@@ -26,6 +26,7 @@ collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, w
 arrayUnion, arrayRemove, increment, onSnapshot, storageRef, uploadString, uploadBytes, getDownloadURL,
 } from './firebase.js';
 import { escapeHTML } from './shared.js';
+import { BRASOES, SERIES, avaliar as avaliarBrasoes, consolidar as consolidarBrasoes, resumirPresencas, urlThumb, urlPng, urlGlb, textoMetrica, porId as brasaoPorId } from './brasoes.js';
 
 /* ===================== CONSTANTES (mesmas do painel) ===================== */
 const ORDEM_CORDOES = ['Iniciante', 'Escravo', 'Fugitivo', 'Quilombola', 'Vagante', 'Liberto', 'Instrutor', 'Professor', 'Mestre', 'Mestre/Presidente'];
@@ -193,23 +194,8 @@ v.onerror = () => res({ dur: NaN }); v.src = URL.createObjectURL(file);
 async function subirDataUrl(caminho, dataUrl) { const r = storageRef(storage, caminho); await uploadString(r, dataUrl, 'data_url'); return getDownloadURL(r); }
 
 /* ===================== PERFIL PÚBLICO (sincronização honesta) ===================== */
-// Conquistas calculadas SÓ do que existe: presenças registradas pelo Face ID /
-// painel (coleção presencas). Sem presença, tudo fica em zero e a medalha trancada.
-function resumirPresencas(lista) {
-const datas = lista.map((p) => dataDe(p.entradaEm)).filter((d) => !isNaN(d)).sort((a, b) => b - a);
-const nucleosVisitados = new Set(lista.filter((p) => p.nucleoVisitadoId && p.nucleoVisitadoId !== p.nucleoId).map((p) => p.nucleoVisitadoId));
-const semanaDe = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x.getTime(); };
-const semanas = Array.from(new Set(datas.map(semanaDe))).sort((a, b) => b - a);
-let seguidas = 0; const semanaAtual = semanaDe(new Date());
-if (semanas.length && (semanas[0] === semanaAtual || semanas[0] === semanaAtual - 7 * 86400000)) {
-seguidas = 1; for (let i = 1; i < semanas.length; i++) { if (semanas[i - 1] - semanas[i] === 7 * 86400000) seguidas++; else break; }
-}
-const inicioMes = new Date(); inicioMes.setDate(1); inicioMes.setHours(0, 0, 0, 0);
-return {
-total: datas.length, noMes: datas.filter((d) => d >= inicioMes).length, semanasSeguidas: seguidas,
-nucleosVisitados: nucleosVisitados.size, ultima: datas[0] ? datas[0].toISOString() : null, calculadoEm: new Date().toISOString(),
-};
-}
+// resumirPresencas vem de brasoes.js (mesma conta em toda a rede).
+let configBrasoes = {};
 async function sincronizarPerfilPublico() {
 let resumo = null;
 try { resumo = resumirPresencas(await presencasDoUsuario(uid, 400)); } catch (e) { /* sem leitura de presenças: não inventa */ }
@@ -234,12 +220,32 @@ atualizadoEm: new Date().toISOString(),
 };
 if (resumo) dados.resumoPresencas = resumo;
 if (!meuPub || meuPub.privado === undefined) dados.privado = menor; // menor nasce privado
+// Resumo da Rede (posts, melhores momentos, curtidas recebidas) — recalculado
+// no máximo a cada 6h pra não gastar leitura à toa.
+const antigoRede = meuPub && meuPub.resumoRede;
+if (!antigoRede || (Date.now() - new Date(antigoRede.calculadoEm || 0).getTime()) > 6 * 3600 * 1000) {
+try {
+const meus = await postsDoAutor(uid);
+dados.resumoRede = { posts: meus.length, momentos: meus.filter((p) => p.melhorMomento).length, curtidas: meus.reduce((sm, p) => sm + ((p.curtidas || []).length), 0), calculadoEm: new Date().toISOString() };
+} catch (e) { /* sem leitura: não inventa */ }
+} else dados.resumoRede = antigoRede;
+// Formação: alunos do núcleo que administro com troca de cordão registrada por mim.
+if (perfil.academiaGerenciadaId) {
+try { const alunos = await pubsDeNucleo(perfil.academiaGerenciadaId, 120); dados.resumoFormacao = { formados: alunos.filter((a) => (a.historicoGraduacoes || []).some((h) => h.por === uid)).length, calculadoEm: new Date().toISOString() }; } catch (e) { /* ok */ }
+}
+// Brasões: avalia com os dados reais e consolida com o que já estava desbloqueado.
+const avaliacao = avaliarBrasoes({ ...dados, brasoesManuais: perfil.brasoesManuais || {}, brasoes: (meuPub && meuPub.brasoes) || {} }, configBrasoes);
+const cons = consolidarBrasoes(avaliacao, (meuPub && meuPub.brasoes) || {});
+const tinhaMapa = !!(meuPub && meuPub.brasoes); // 1ª sincronização não faz festa de tudo de uma vez
+dados.brasoes = cons.mapa; dados.brasoesTotal = cons.total;
 try { await setDoc(doc(db, 'perfisPublicos', uid), dados, { merge: true }); meuPub = { ...(meuPub || {}), ...dados, id: uid }; pubCache.set(uid, meuPub); }
 catch (e) { console.warn('perfil público', e); }
+try { if ((perfil.brasoesTotal || 0) !== cons.total) { await atualizar('usuarios', uid, { brasoesTotal: cons.total }); perfil.brasoesTotal = cons.total; } } catch (e) { /* ok */ }
+if (cons.novos.length && tinhaMapa) setTimeout(() => celebrarBrasoes(cons.novos), 600);
 }
 
 /* ===================== ROTEADOR ===================== */
-const ROTAS = { feed: renderFeed, explorar: renderExplorar, publicar: renderPublicar, mensagens: renderMensagens, perfil: renderPerfil, nucleo: renderNucleo, moderacao: renderModeracao, tag: renderTag };
+const ROTAS = { feed: renderFeed, explorar: renderExplorar, publicar: renderPublicar, mensagens: renderMensagens, perfil: renderPerfil, nucleo: renderNucleo, moderacao: renderModeracao, tag: renderTag, brasoes: renderBrasoes };
 function ir(rota) { location.hash = '#' + rota; }
 async function roteia() {
 const h = (location.hash || '#feed').slice(1); const [nome, param] = h.split('/');
@@ -247,7 +253,7 @@ if (chatUnsub) { chatUnsub(); chatUnsub = null; }
 rotaAtual = nome;
 document.querySelectorAll('.nav-inferior button').forEach((b) => b.classList.toggle('ativo', b.dataset.rota === nome || (nome === 'perfil' && !param && b.dataset.rota === 'perfil')));
 el('tituloTopo').textContent = 'Rede Liberdade';
-const vista = el('vista'); vista.innerHTML = '<div class="tela-centro" style="min-height:40vh"><div class="spinner"></div></div>';
+const vista = el('vista'); vista.innerHTML = '<div class="tela-centro" style="min-height:40vh"><div class="spinner"></div></div>'; vista.dataset.pubBrasoes = nome === 'perfil' ? (param || uid) : '';
 try { await (ROTAS[nome] || renderFeed)(param, vista); }
 catch (e) { console.error(e); vista.innerHTML = `<div class="vazio"><i class="fas fa-triangle-exclamation"></i><b>Não deu pra abrir esta tela</b>${escapeHTML(e && e.message || '')}<br><small>Se for a primeira vez, confira se as regras novas do Firestore já foram publicadas.</small></div>`; }
 window.scrollTo({ top: 0 });
@@ -487,6 +493,8 @@ vista.addEventListener('click', (ev) => {
 const hash = ev.target.closest('.hash'); if (hash) { ir(`tag/${hash.dataset.hash}`); return; }
 const perfilBtn = ev.target.closest('[data-perfil]'); if (perfilBtn) { ir(`perfil/${perfilBtn.dataset.perfil}`); return; }
 const nucBtn = ev.target.closest('[data-nucleo]'); if (nucBtn && nucBtn.dataset.nucleo) { ir(`nucleo/${nucBtn.dataset.nucleo}`); return; }
+const salaBtn = ev.target.closest('[data-brasoes]'); if (salaBtn) { ir(`brasoes/${salaBtn.dataset.brasoes}`); return; }
+const brBtn = ev.target.closest('[data-brasao]'); if (brBtn) { const alvo = vista.dataset.pubBrasoes || (location.hash.split('/')[1]) || uid; pubDe(alvo).then((pub) => abrirBrasao(brBtn.dataset.brasao, pub || meuPub || {})); return; }
 const st = ev.target.closest('[data-story]'); if (st) { abrirStories(st.dataset.story); return; }
 if (ev.target.closest('[data-story-novo]')) { el('inputStory').click(); return; }
 const ver = ev.target.closest('[data-ver]'); if (ver && ver.tagName === 'IMG') { abrirMidia(`<img src="${escapeHTML(ver.src)}" alt="">`); return; }
@@ -528,17 +536,75 @@ function gradeHTML(lista, vazio) {
 if (!lista.length) return `<div class="vazio"><i class="fas fa-image"></i>${vazio}</div>`;
 return `<div class="grade">${lista.map((p, i) => { const m = midiasDe(p)[0]; return `<button type="button" data-abrir-post="${p.id}" class="${i === 0 && p.melhorMomento ? 'grande' : ''}">${m.tipo === 'video' ? `<video src="${escapeHTML(m.url)}" preload="metadata" muted></video><i class="fas fa-video ic"></i>` : `<img src="${escapeHTML(m.url)}" alt="" loading="lazy">`}${midiasDe(p).length > 1 ? '<i class="fas fa-layer-group ic"></i>' : ''}${p.melhorMomento ? '<span class="selo">★ momento</span>' : ''}</button>`; }).join('')}</div>`;
 }
-function medalhasHTML(pub) {
-const r = pub.resumoPresencas || null; const hist = pub.historicoGraduacoes || [];
-const itens = [
-{ ok: hist.length > 0, ic: 'g', i: 'fa-trophy', t: hist.length ? `Graduação ${escapeHTML(hist[hist.length - 1].cordao)}` : 'Primeira graduação', s: hist.length ? new Date(hist[hist.length - 1].em).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }) : 'registrada pelo mestre' },
-{ ok: !!(r && r.semanasSeguidas >= 4), ic: 'v', i: 'fa-fire', t: r && r.semanasSeguidas ? `${r.semanasSeguidas} semana${r.semanasSeguidas > 1 ? 's' : ''} seguida${r.semanasSeguidas > 1 ? 's' : ''}` : '4 semanas seguidas', s: r ? (r.semanasSeguidas >= 4 ? 'ativo' : `${r.semanasSeguidas}/4`) : 'sem presença' },
-{ ok: !!(r && r.nucleosVisitados >= 1), ic: 'n', i: 'fa-people-group', t: r && r.nucleosVisitados ? `Visitou ${r.nucleosVisitados} núcleo${r.nucleosVisitados > 1 ? 's' : ''}` : 'Visitar outro núcleo', s: r && r.nucleosVisitados ? 'Face ID' : '0/1' },
-{ ok: !!(r && r.total >= 10), ic: 't', i: 'fa-check-double', t: '10 presenças', s: r ? `${Math.min(r.total, 10)}/10` : '0/10' },
-{ ok: !!(r && r.total >= 50), ic: 't', i: 'fa-check-double', t: '50 presenças', s: r ? `${Math.min(r.total, 50)}/50` : '0/50' },
-{ ok: !!(r && r.total >= 100), ic: 'g', i: 'fa-medal', t: '100 presenças', s: r ? `${Math.min(r.total, 100)}/100` : '0/100' },
-];
-return `<div class="conq">${itens.map((m) => `<div class="medalha ${m.ok ? '' : 'bloq'}"><div class="ic ${m.ok ? m.ic : ''}"><i class="fas ${m.ok ? m.i : 'fa-lock'}"></i></div><b>${m.t}</b><small>${m.s}</small></div>`).join('')}</div>`;
+/* ===================== BRASÕES (catálogo real em brasoes.js) ===================== */
+// Dados de avaliação a partir do perfil público (o que a pessoa publicou sobre si).
+function dadosBrasoesDe(pub) {
+const manuais = {}; Object.entries(pub.brasoes || {}).forEach(([id, v]) => { if (v && v.manual) manuais[id] = { em: v.em, porNome: v.por || null }; });
+return { cordaoAtual: pub.cordaoAtual, fundador: !!pub.fundador, historicoGraduacoes: pub.historicoGraduacoes || [], criadoEm: pub.criadoEm, resumoPresencas: pub.resumoPresencas || null, resumoRede: pub.resumoRede || null, resumoFormacao: pub.resumoFormacao || null, academiaId: pub.academiaId, academiaGerenciadaId: pub.academiaGerenciadaId, brasoesManuais: manuais, brasoes: pub.brasoes || {} };
+}
+function avaliacaoDe(pub) { return avaliarBrasoes(dadosBrasoesDe(pub), configBrasoes).filter((a) => a.ativo); }
+function brasaoCardHTML(a, tam = '') {
+const pct = a.progresso && a.progresso.meta ? Math.round(a.progresso.atual * 100 / a.progresso.meta) : 0;
+return `<button type="button" class="brasao ${a.ganho ? 'ganho' : 'bloq'} ${tam}" data-brasao="${escapeHTML(a.id)}" title="${escapeHTML(a.nome)}">
+<img src="${urlThumb(a)}" alt="" loading="lazy">
+<b>${escapeHTML(a.nome)}</b>
+${a.ganho ? `<small>${a.em ? new Date(a.em).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }) : 'conquistado'}</small>` : (a.progresso ? `<small class="mono">${a.progresso.atual}/${a.progresso.meta}</small><i class="brasao-prog"><i style="width:${pct}%"></i></i>` : `<small>${a.regra.tipo === 'manual' ? 'concessão' : 'bloqueado'}</small>`)}
+</button>`;
+}
+// Resumo na aba Conquistas: total, os últimos ganhos e o próximo mais perto.
+function brasoesResumoHTML(pub) {
+const av = avaliacaoDe(pub); const ganhos = av.filter((a) => a.ganho).sort((x, y) => new Date(y.em || 0) - new Date(x.em || 0));
+const proximos = av.filter((a) => !a.ganho && a.progresso && a.progresso.atual > 0).sort((x, y) => (y.progresso.atual / y.progresso.meta) - (x.progresso.atual / x.progresso.meta)).slice(0, 3);
+return `<div class="titulo-sec">Brasões <span class="pill gold">${ganhos.length}/${av.length}</span></div>
+<div class="brasoes-grade">${ganhos.slice(0, 6).map((a) => brasaoCardHTML(a)).join('') || '<div class="vazio" style="grid-column:1/-1"><i class="fas fa-medal"></i>Ainda sem brasões — o primeiro vem com a primeira presença registrada.</div>'}</div>
+${proximos.length ? `<div class="titulo-sec" style="margin-top:8px">Quase lá</div><div class="brasoes-grade">${proximos.map((a) => brasaoCardHTML(a)).join('')}</div>` : ''}
+<button type="button" class="btn-mais" data-brasoes="${escapeHTML(pub.id)}" style="margin-top:10px"><i class="fas fa-medal"></i> Ver a Sala de Brasões (${av.length})</button>`;
+}
+// Sala de Brasões: todos, por série, com progresso real.
+async function renderBrasoes(param, vista) {
+const alvo = param || uid; const meu = alvo === uid;
+if (meu) await sincronizarPerfilPublico();
+pubCache.delete(alvo); const pub = await pubDe(alvo);
+if (!pub) { vista.innerHTML = '<div class="vazio"><i class="fas fa-medal"></i><b>Perfil não encontrado</b></div>'; return; }
+if (!podeVerPerfil(pub)) { vista.innerHTML = '<div class="vazio"><i class="fas fa-lock"></i><b>Perfil privado</b>Peça pra seguir pra ver os brasões.</div>'; return; }
+el('tituloTopo').textContent = meu ? 'Meus brasões' : `Brasões de ${pub.nome.split(' ')[0]}`;
+const av = avaliacaoDe(pub); const ganhos = av.filter((a) => a.ganho).length;
+const cordaoAtual = av.find((a) => a.serie === 'cordoes' && a.ganho && a.regra.meta === pub.cordaoAtual) || av.filter((a) => a.serie === 'cordoes' && a.ganho).pop();
+vista.innerHTML = `
+<div class="sala-topo">${cordaoAtual ? `<img src="${urlPng(cordaoAtual)}" alt="" class="sala-hero" data-brasao="${cordaoAtual.id}">` : ''}<div><span class="eyebrow">Sala de Brasões</span><h2>${escapeHTML(pub.nome)}</h2><p>${ganhos} de ${av.length} brasões conquistados${cordaoAtual ? ` · cordão ${escapeHTML(pub.cordaoAtual || 'Iniciante')}` : ''}</p><div class="barra" style="margin-top:8px"><i style="width:${Math.round(ganhos * 100 / Math.max(1, av.length))}%;--c1:#DAA520;--c2:#00B140;--c3:#002D72"></i></div></div></div>
+${Object.entries(SERIES).map(([k, sr]) => { const itens = av.filter((a) => a.serie === k); if (!itens.length) return ''; const g = itens.filter((a) => a.ganho).length; return `<div class="titulo-sec"><span><i class="fas ${sr.icone}" style="color:var(--teal);margin-right:6px"></i>${sr.nome}</span><span class="contador">${g}/${itens.length}</span></div><p class="contador" style="margin:-4px 4px 6px">${sr.sub}</p><div class="brasoes-grade">${itens.map((a) => brasaoCardHTML(a)).join('')}</div>`; }).join('')}
+<p class="contador" style="text-align:center;padding:8px 12px 0">Todo brasão é calculado de dados reais do app (presenças do Face ID, graduações registradas pelo mestre, publicações na Rede) ou concedido pelo responsável do núcleo.</p>`;
+vista.dataset.pubBrasoes = alvo;
+}
+let modelViewerCarregado = false;
+async function abrirBrasao(id, pub) {
+const av = avaliacaoDe(pub); const a = av.find((x) => x.id === id) || avaliarBrasoes({}, configBrasoes).find((x) => x.id === id); if (!a) return;
+const glb = a.ganho && urlGlb(a);
+const f = abrirFolha(`<h3>${escapeHTML(a.nome)} <button type="button" class="btn-icone" data-m="fechar"><i class="fas fa-xmark"></i></button></h3>
+<div class="brasao-detalhe ${a.ganho ? '' : 'bloq'}">
+<div class="brasao-palco" id="brasaoPalco"><img src="${urlPng(a)}" alt="${escapeHTML(a.nome)}"></div>
+<div class="pills" style="justify-content:center;display:flex;gap:6px;flex-wrap:wrap">${a.ganho ? `<span class="pill verde"><i class="fas fa-check"></i> Conquistado${a.em ? ` em ${new Date(a.em).toLocaleDateString('pt-BR')}` : ''}</span>` : '<span class="pill neutra"><i class="fas fa-lock"></i> Bloqueado</span>'}${a.nivel ? `<span class="pill gold">${escapeHTML(a.nivel[0].toUpperCase() + a.nivel.slice(1))}</span>` : ''}<span class="pill navy">${escapeHTML(SERIES[a.serie].nome)}</span>${a.manual && a.por ? `<span class="pill teal">por ${escapeHTML(a.por)}</span>` : ''}</div>
+${a.descricao ? `<p class="bio" style="text-align:center;margin-top:10px">${escapeHTML(a.descricao)}</p>` : ''}
+<div class="opc" style="margin-top:12px"><div class="ic"><i class="fas fa-bullseye"></i></div><div class="t"><b>Como conquistar</b><small>${escapeHTML(a.como || textoMetrica(a))}</small></div></div>
+${a.progresso && !a.ganho ? `<div class="progresso" style="margin-top:8px"><div class="l"><span>${escapeHTML(textoMetrica(a))}</span><span>${a.progresso.atual}/${a.progresso.meta}</span></div><div class="barra"><i style="width:${Math.round(a.progresso.atual * 100 / a.progresso.meta)}%;--c1:#0B5C52;--c2:#389E92;--c3:#00E676"></i></div></div>` : ''}
+${glb ? `<button type="button" class="btn-claro" id="btnGirar" style="width:100%;justify-content:center;margin-top:10px"><i class="fas fa-cube"></i> Ver em 3D e girar</button>` : ''}
+</div>`);
+const btn3d = f.querySelector('#btnGirar');
+if (btn3d) btn3d.addEventListener('click', async () => {
+btn3d.disabled = true; btn3d.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando 3D…';
+try {
+if (!modelViewerCarregado) { await import('https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js'); modelViewerCarregado = true; }
+f.querySelector('#brasaoPalco').innerHTML = `<model-viewer src="${glb}" camera-controls auto-rotate environment-image="neutral" shadow-intensity="0" exposure="1.1" style="width:100%;height:280px;background:transparent" alt="${escapeHTML(a.nome)} em 3D"></model-viewer>`;
+btn3d.remove();
+} catch (e) { btn3d.disabled = false; btn3d.innerHTML = '<i class="fas fa-cube"></i> Ver em 3D e girar'; toast('Não foi possível carregar o 3D agora.'); }
+});
+}
+// Festa de brasão novo (momento de pico): mostra a peça grande com brilho.
+function celebrarBrasoes(ids) {
+const lista = ids.map(brasaoPorId).filter(Boolean); if (!lista.length) return;
+const a = lista[0];
+const f = abrirFolha(`<div class="celebra"><span class="eyebrow">${lista.length > 1 ? `${lista.length} brasões novos` : 'Brasão novo'}</span><h2>${escapeHTML(a.nome)}</h2><div class="celebra-palco"><img src="${urlPng(a)}" alt=""></div><p>${escapeHTML(a.como || '')}</p>${lista.length > 1 ? `<div class="brasoes-grade" style="margin-top:8px">${lista.slice(1, 5).map((x) => `<span class="brasao ganho"><img src="${urlThumb(x)}" alt=""><b>${escapeHTML(x.nome)}</b></span>`).join('')}</div>` : ''}<button type="button" class="btn-verde" data-m="ok" style="width:100%;margin-top:14px">Axé!</button></div>`);
+f.querySelector('.conteudo').classList.add('celebra-folha');
 }
 function trajetoriaHTML(pub) {
 const hist = (pub.historicoGraduacoes || []).slice().sort((a, b) => new Date(b.em) - new Date(a.em));
@@ -573,7 +639,7 @@ vista.innerHTML = `
 ${pub.apelido ? `<div class="apelido">"${escapeHTML(pub.apelido)}"</div>` : ''}
 ${titulo ? `<div class="titulo">${titulo}</div>` : ''}
 <div class="pills">${pub.cordaoAtual ? `<span class="pill teal">${escapeHTML(pub.cordaoAtual)}</span>` : ''}${nuc ? `<button type="button" class="pill navy" data-nucleo="${escapeHTML(nuc.id)}"><i class="fas fa-location-dot"></i> ${escapeHTML(nomeCurtoNucleo(nuc.nome))}</button>` : ''}${pub.fundador ? '<span class="pill gold"><i class="fas fa-crown"></i> Fundador</span>' : (rotuloDiretoDe(pub) ? `<span class="pill gold"><i class="fas fa-link"></i> ${escapeHTML(rotuloDiretoDe(pub))}</span>` : '')}${r && r.semanasSeguidas >= 2 ? `<span class="pill verde"><i class="fas fa-fire"></i> ${r.semanasSeguidas} semanas seguidas</span>` : ''}${(pub.funcoes || []).map((f) => `<span class="pill roxo">${escapeHTML(f)}</span>`).join('')}${pub.privado ? '<span class="pill neutra"><i class="fas fa-lock"></i> privado</span>' : ''}</div></div>
-<div class="stats"><div class="stat"><b>${podeVer ? lista.length : '—'}</b><small>posts</small></div><div class="stat"><b>${(pub.seguidores || []).length}</b><small>seguidores</small></div><div class="stat"><b>${meu ? seguindo.size : (pub.seguindoCount ?? '—')}</b><small>seguindo</small></div><div class="stat"><b>${r ? r.total : '—'}</b><small>presenças</small></div></div>
+<div class="stats"><div class="stat"><b>${podeVer ? lista.length : '—'}</b><small>posts</small></div><div class="stat"><b>${(pub.seguidores || []).length}</b><small>seguidores</small></div><button type="button" class="stat" data-brasoes="${escapeHTML(pub.id)}" style="cursor:pointer"><b>${pub.brasoesTotal ?? '—'}</b><small>brasões</small></button><div class="stat"><b>${r ? r.total : '—'}</b><small>presenças</small></div></div>
 ${meu ? `<div class="priv"><i class="fas fa-lock"></i><div class="tx"><b>Perfil privado</b><span id="privTxt">${pub.privado ? 'Só quem você aceitar vê seus posts e momentos' : 'Toda a rede vê seus posts e momentos'}</span></div><button type="button" class="switch ${pub.privado ? 'on' : ''}" id="swPriv" aria-label="Perfil privado"></button></div>` : ''}
 ${meu && (pub.pedidosSeguir || []).length ? `<div class="card" id="pedidos"><div class="titulo-sec" style="padding:0 0 8px">Pedidos pra seguir <span class="pill gold">${pub.pedidosSeguir.length}</span></div><div id="listaPedidos"><p class="contador">Carregando…</p></div></div>` : ''}
 ${!podeVer ? `<div class="vazio"><i class="fas fa-lock"></i><b>Perfil privado</b>Peça pra seguir — quando ${escapeHTML(pub.nome.split(' ')[0])} aceitar, os momentos aparecem aqui.</div>` : `
@@ -586,7 +652,7 @@ if (perfilAba === 'momentos') painel.innerHTML = `${momentos.length ? `<div clas
 else if (perfilAba === 'trajetoria') painel.innerHTML = `<div class="card"><div class="titulo-sec" style="padding:0 0 6px">Sobre</div>${pub.bio ? `<p class="bio">${formatarTexto(pub.bio)}</p>` : `<p class="bio" style="color:var(--muted)">${meu ? 'Conte sua história na capoeira — toque no lápis lá em cima.' : 'Ainda sem biografia.'}</p>`}${pub.cidade ? `<div class="bio-linha"><i class="fas fa-location-dot"></i> ${escapeHTML(pub.cidade)}</div>` : ''}${pub.criadoEm ? `<div class="bio-linha"><i class="far fa-calendar"></i> No grupo desde ${new Date(pub.criadoEm).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}</div>` : ''}${(pub.funcoes || []).length ? `<div class="bio-linha"><i class="fas fa-briefcase"></i> ${pub.funcoes.map(escapeHTML).join(' · ')}</div>` : ''}${r && r.ultima ? `<div class="bio-linha"><i class="fas fa-check"></i> Último treino registrado ${tempoRelativo(r.ultima)}</div>` : ''}</div>
 <div class="titulo-sec">Graduações <span class="contador">linha do tempo</span></div><div class="card">${trajetoriaHTML(pub)}</div>
 <div class="titulo-sec">Formação <span class="contador">direto de</span></div>${formacaoHTML(pub)}`;
-else painel.innerHTML = `${medalhasHTML(pub)}<div class="progresso" style="margin-top:10px"><div class="l"><span>Prontidão para ${escapeHTML(proximoCordao(pub).nome)}</span><span>${pub.prontidao != null ? pub.prontidao + '%' : '—'}</span></div><div class="barra"><i style="width:${pub.prontidao || 0}%;--c1:${coresCordao(pub)[0]};--c2:${coresCordao(pub)[1]};--c3:${coresCordao(pub)[2]}"></i></div><small>${pub.prontidao == null ? 'Sem notas lançadas pelo responsável ainda.' : pub.prontidao >= 70 ? 'Meta de 70% atingida nos critérios avaliados.' : 'Meta: 70% nos critérios avaliados pelo responsável do núcleo.'}</small></div>
+else painel.innerHTML = `${brasoesResumoHTML(pub)}<div class="progresso" style="margin-top:10px"><div class="l"><span>Prontidão para ${escapeHTML(proximoCordao(pub).nome)}</span><span>${pub.prontidao != null ? pub.prontidao + '%' : '—'}</span></div><div class="barra"><i style="width:${pub.prontidao || 0}%;--c1:${coresCordao(pub)[0]};--c2:${coresCordao(pub)[1]};--c3:${coresCordao(pub)[2]}"></i></div><small>${pub.prontidao == null ? 'Sem notas lançadas pelo responsável ainda.' : pub.prontidao >= 70 ? 'Meta de 70% atingida nos critérios avaliados.' : 'Meta: 70% nos critérios avaliados pelo responsável do núcleo.'}</small></div>
 <div class="progresso" style="margin-top:8px"><div class="l"><span>Presenças no mês</span><span>${r ? r.noMes : '—'}</span></div><div class="barra"><i style="width:${r ? Math.min(100, r.noMes * 100 / 12) : 0}%;--c1:#0B5C52;--c2:#389E92;--c3:#00E676"></i></div><small>${r ? `Total registrado pelo Face ID/painel: ${r.total}. Atualizado ${tempoRelativo(r.calculadoEm)}.` : 'Sem presença registrada — as conquistas destravam a partir das presenças do Face ID.'}</small></div>`;
 painel.querySelectorAll('[data-abrir-post]').forEach((b) => b.addEventListener('click', () => abrirPost(lista.find((p) => p.id === b.dataset.abrirPost))));
 };
@@ -1020,6 +1086,10 @@ if (!perfil) { el('telaSemSessao').classList.remove('oculto'); return; }
 seguindo = new Set(Array.isArray(perfil.seguindo) ? perfil.seguindo : []);
 salvos = new Set(Array.isArray(perfil.salvos) ? perfil.salvos : []);
 try { nucleos = await listar('nucleos'); } catch (e) { nucleos = []; }
+try { configBrasoes = (await buscar('config', 'brasoes')) || {}; } catch (e) { configBrasoes = {}; }
+if (!configBrasoes.nucleoFundadorId) { // padrão honesto: o núcleo cujo responsável tem Acesso Geral
+try { const pubs = await Promise.all(nucleos.filter((n) => n.professorUid).map((n) => pubDe(n.professorUid))); const i = pubs.findIndex((p) => p && p.fundador); if (i >= 0) configBrasoes.nucleoFundadorId = nucleos.filter((n) => n.professorUid)[i].id; } catch (e) { /* ok */ }
+}
 meuPub = await pubDe(uid);
 el('app').classList.remove('oculto');
 let tema = 'light'; try { tema = localStorage.getItem('rede.tema') || 'light'; } catch (e) { /* ok */ }
