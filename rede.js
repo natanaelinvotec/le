@@ -26,7 +26,7 @@ collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, w
 arrayUnion, arrayRemove, increment, onSnapshot, storageRef, uploadString, uploadBytes, getDownloadURL,
 } from './firebase.js';
 import { escapeHTML } from './shared.js';
-import { apresentacaoDe, tocarApresentacao, gerenciarApresentacao, abrirTrocaSenha, definirAutor, podeTerApresentacao } from './conta.js';
+import { apresentacaoDe, tocarApresentacao, gerenciarApresentacao, abrirTrocaSenha, definirAutor, podeTerApresentacao } from './conta.js?v=20260926e';
 import { BRASOES, SERIES, avaliar as avaliarBrasoes, consolidar as consolidarBrasoes, resumirPresencas, urlThumb, urlPng, urlGlb, textoMetrica, porId as brasaoPorId } from './brasoes.js';
 
 /* ===================== CONSTANTES (mesmas do painel) ===================== */

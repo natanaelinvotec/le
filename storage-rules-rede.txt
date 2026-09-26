@@ -14,15 +14,14 @@ service firebase.storage {
 
     function perfilDe(id) { return firestore.get(/databases/(default)/documents/usuarios/$(id)).data; }
     function podeMexerNaApresentacao(uid) {
-      let eu = perfilDe(request.auth.uid);
-      return 'admin' in eu.get('papeis', [])
-          || eu.get('acessoGeral', false) == true
+      return 'admin' in perfilDe(request.auth.uid).get('papeis', [])
+          || perfilDe(request.auth.uid).get('acessoGeral', false) == true
           || (request.auth.uid == uid && (
-                eu.get('cordaoAtual', '') in ['Instrutor', 'Professor', 'Mestre', 'Mestre/Presidente']
-                || eu.get('papeis', []).hasAny(['mestre', 'instrutor'])))
-          || ('mestre' in eu.get('papeis', [])
-              && eu.get('academiaGerenciadaId', '') != ''
-              && perfilDe(uid).get('academiaId', '') == eu.get('academiaGerenciadaId', ''));
+                perfilDe(request.auth.uid).get('cordaoAtual', '') in ['Instrutor', 'Professor', 'Mestre', 'Mestre/Presidente']
+                || perfilDe(request.auth.uid).get('papeis', []).hasAny(['mestre', 'instrutor'])))
+          || ('mestre' in perfilDe(request.auth.uid).get('papeis', [])
+              && perfilDe(request.auth.uid).get('academiaGerenciadaId', null) != null
+              && perfilDe(uid).get('academiaId', '') == perfilDe(request.auth.uid).get('academiaGerenciadaId', null));
     }
 
     // Foto de perfil/carteirinha (inscrição, painel e Rede): qualquer pessoa

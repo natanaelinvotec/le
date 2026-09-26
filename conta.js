@@ -209,6 +209,26 @@ function duracaoDoArquivo(file) {
 const APR_MAX_MB = 15; const APR_MAX_SEG = 30;
 const LINK_OK = /^(https:\/\/|apresentacoes\/)[^\s<>"']+$/i;
 
+// Diagnóstico honesto do "permission-denied": se nem a LEITURA de
+// apresentacoes/ é aceita, o bloco novo ainda não está publicado no Console
+// (a leitura é liberada para qualquer pessoa logada). Se a leitura passa, o
+// problema é a permissão desta conta para editar esta pessoa.
+async function explicarErroGravacao(e, uid, pessoa) {
+  const code = String((e && e.code) || '');
+  if (!code.includes('permission')) return `Não foi possível salvar agora (${code || 'erro desconhecido'}).`;
+  try {
+    await getDoc(doc(db, 'apresentacoes', uid));
+  } catch (e2) {
+    if (String((e2 && e2.code) || '').includes('permission')) {
+      return 'As regras novas do Firestore ainda não estão no ar: Firebase Console → Firestore → Regras → cole o firestore.rules deste pacote → Publicar. Depois recarregue esta página.';
+    }
+  }
+  const propria = uid === autor.uid;
+  return propria
+    ? 'O Firestore recusou: a sua conta precisa ter cordão de Instrutor para cima (ou papel de mestre/instrutor) para ter apresentação.'
+    : `O Firestore recusou: só o Admin, o Fundador, a própria pessoa ou o responsável do núcleo onde ${pessoa && pessoa.nome ? pessoa.nome.split(' ')[0] : 'ela'} treina podem editar esta apresentação.`;
+}
+
 /* ------------------------------------------------ apresentação: tocar */
 const CORES = {
   Iniciante: ['#CCC', '#CCC', '#CCC'], Escravo: ['#4F4F4F', '#4F4F4F', '#4F4F4F'], Fugitivo: ['#4F4F4F', '#DAA520', '#4F4F4F'],
@@ -291,7 +311,7 @@ export async function gerenciarApresentacao(pessoa, { extras = {}, aoMudar } = {
       if (typeof aoMudar === 'function') aoMudar(dados);
     } catch (e) {
       console.error(e);
-      mensagem(caixa, String(e.code || '').includes('permission') ? 'Sem permissão para salvar esta apresentação (confira as regras do Firestore publicadas).' : 'Não foi possível salvar agora.', 'erro');
+      mensagem(caixa, await explicarErroGravacao(e, uid, pessoa), 'erro');
     }
   }
   const carimbo = () => ({ atualizadoEm: new Date().toISOString(), porNome: autor.nome || '', porUid: autor.uid || '' });

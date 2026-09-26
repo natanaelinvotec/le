@@ -26,7 +26,7 @@ lancarPagamento, listarPagamentosDoNucleo, marcarPagamento,
 lancarDespesaComRateio, todosRateios, marcarRateioPago,
   presencasDoNucleo, presencasVisitantesDoNucleo,
 } from './firebase.js';
-import { apresentacaoDe, migrarApresentacao, tocarApresentacao, tocarAoEntrar, gerenciarApresentacao, abrirMinhaConta, abrirTrocaSenha, definirAutor, podeTerApresentacao, formatarCelular, celularValido, celularDe } from './conta.js';
+import { apresentacaoDe, migrarApresentacao, tocarApresentacao, tocarAoEntrar, gerenciarApresentacao, abrirMinhaConta, abrirTrocaSenha, definirAutor, podeTerApresentacao, formatarCelular, celularValido, celularDe } from './conta.js?v=20260926e';
 import { escapeHTML, sanitizeInput, debounce, gerarSlug } from './shared.js';
 import { configurarFaceId, atualizarContextoFaceId, pararFaceId } from './faceid.js';
 

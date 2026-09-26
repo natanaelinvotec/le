@@ -1735,7 +1735,7 @@ class Component extends DCLogic {
   }
 
   // conta.js (senha, celular, apresentação) — carregado sob demanda, uma vez.
-  conta() { if (!this._contaP) this._contaP = import('./conta.js'); return this._contaP; }
+  conta() { if (!this._contaP) this._contaP = import('./conta.js?v=20260926e'); return this._contaP; }
   async trocarSenhaAcao() { try { (await this.conta()).abrirTrocaSenha(); } catch (e) { console.error(e); this.toast('Não foi possível abrir a troca de senha.'); } }
   async minhaApresentacaoAcao() {
     try {
