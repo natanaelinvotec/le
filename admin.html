@@ -10,7 +10,7 @@ por Firebase Authentication (usuarios/{uid}.papeis). -->
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<link rel="stylesheet" href="admin.css?v=20260926d">
+<link rel="stylesheet" href="css/admin.css?v=20260927a">
 </head>
 <body>
 <noscript>Este painel exige JavaScript habilitado para funcionar.</noscript>
@@ -22,7 +22,7 @@ enquanto a sessão do Firebase é conferida; quem não estiver logado é
 redirecionado pra login.html por admin.js (ver checarSessaoOuRedirecionar). -->
 <div class="tela-login" id="telaCarregando">
 <div class="card-padrao login-card" style="text-align:center;">
-<img src="logo-liberdade150.png" alt="Logo Capoeira Liberdade" class="login-logo">
+<img src="assets/logo-liberdade150.png" alt="Logo Capoeira Liberdade" class="login-logo">
 <p class="login-sub"><i class="fas fa-spinner fa-spin"></i> Verificando sua sessão...</p>
 </div>
 </div>
@@ -31,7 +31,7 @@ redirecionado pra login.html por admin.js (ver checarSessaoOuRedirecionar). -->
 <div id="appPainel" class="oculto">
 <header class="top-nav">
 <div class="logo-area">
-<img src="logo-liberdade150.png" alt="Logo Capoeira Liberdade" class="nav-logo">
+<img src="assets/logo-liberdade150.png" alt="Logo Capoeira Liberdade" class="nav-logo">
 <span id="faixaAdminMaster" class="faixa-admin-master oculto"><i class="fas fa-shield-halved"></i> Admin Master</span>
 <span id="faixaFundador" class="faixa-fundador oculto"><i class="fas fa-star"></i> Acesso Geral · Fundador</span>
 </div>
@@ -61,7 +61,7 @@ redirecionado pra login.html por admin.js (ver checarSessaoOuRedirecionar). -->
 </div>
 <a href="master.html" class="btn-fundador-link" data-papel="admin-fundador" title="Área exclusiva do Admin Master / Fundador"><i class="fas fa-crown"></i> <span class="btn-fundador-label">Painel do Fundador</span></a>
 <button type="button" class="admin-profile admin-profile-btn" onclick="__abrirMinhaConta()" title="Minha conta: celular, senha e apresentação" aria-label="Minha conta">
-<img src="logo-liberdade150.png" alt="" class="admin-avatar">
+<img src="assets/logo-liberdade150.png" alt="" class="admin-avatar">
 <span id="nomePerfilLogado">—</span>
 <i class="fas fa-gear admin-profile-gear" aria-hidden="true"></i>
 </button>
@@ -597,6 +597,6 @@ pra não recalcular a cada aula. -->
 </div>
 </div>
 
-<script type="module" src="admin.js?v=20260926e"></script>
+<script type="module" src="js/admin.js?v=20260927a"></script>
 </body>
 </html>
