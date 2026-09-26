@@ -292,9 +292,13 @@ allow delete: if logado() && (resource.data.autorUid == request.auth.uid || ehAd
 // (nucleosIds) — é o "conversa visível ao responsável do núcleo".
 match /conversas/{id} {
 function pp(u) { return get(/databases/$(database)/documents/perfisPublicos/$(u)).data; }
-function participo() { return request.auth.uid in resource.data.get('participantes', []); }
-function membroDoGrupo() { return resource.data.get('tipo', '') == 'grupo' && meuPerfil().academiaId == resource.data.nucleoId; }
-function gestorEnvolvido() { return ehGestor() && minhaAcademiaGerenciada() in resource.data.get('nucleosIds', []); }
+// Sem .get()/valor padrão aqui: nas consultas em lista o Firestore precisa
+// PROVAR a regra a partir dos filtros (array-contains em participantes,
+// tipo == 'grupo' + nucleoId, array-contains em nucleosIds) — com .get() ele
+// não consegue e nega a consulta inteira ("Missing or insufficient permissions").
+function participo() { return request.auth.uid in resource.data.participantes; }
+function membroDoGrupo() { return resource.data.tipo == 'grupo' && resource.data.nucleoId == meuPerfil().academiaId; }
+function gestorEnvolvido() { return ehGestor() && minhaAcademiaGerenciada() in resource.data.nucleosIds; }
 function podeLer() { return logado() && (participo() || membroDoGrupo() || gestorEnvolvido() || ehAdmin() || souFundador()); }
 function outroNaDireta() {
 return request.resource.data.participantes[0] == request.auth.uid ? request.resource.data.participantes[1] : request.resource.data.participantes[0];
@@ -324,9 +328,9 @@ match /mensagens/{mid} {
 function conversa() { return get(/databases/$(database)/documents/conversas/$(id)).data; }
 function podeLerConversa() {
 return logado() && (
-request.auth.uid in conversa().get('participantes', []) ||
-(conversa().get('tipo', '') == 'grupo' && meuPerfil().academiaId == conversa().nucleoId) ||
-(ehGestor() && minhaAcademiaGerenciada() in conversa().get('nucleosIds', [])) ||
+request.auth.uid in conversa().participantes ||
+(conversa().tipo == 'grupo' && conversa().nucleoId == meuPerfil().academiaId) ||
+(ehGestor() && minhaAcademiaGerenciada() in conversa().nucleosIds) ||
 ehAdmin() || souFundador()
 );
 }
@@ -334,7 +338,7 @@ allow read: if podeLerConversa();
 allow create: if podeLerConversa() && request.resource.data.autorUid == request.auth.uid &&
 request.resource.data.get('texto', '').size() <= 1000;
 allow delete: if logado() && (resource.data.autorUid == request.auth.uid || ehAdmin() || souFundador() ||
-(ehGestor() && minhaAcademiaGerenciada() in conversa().get('nucleosIds', [])));
+(ehGestor() && minhaAcademiaGerenciada() in conversa().nucleosIds));
 }
 }
 // Configuração dos brasões (ativos, textos, núcleo do Fundador): todo mundo

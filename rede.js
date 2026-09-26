@@ -86,6 +86,13 @@ function toast(msg) {
 const t = el('toast'); t.textContent = msg; t.classList.add('on');
 clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), 2800);
 }
+// Diz ONDE a permissão faltou: Storage (foto) ou Firestore (regras do banco).
+function explicarErro(e, oque) {
+const code = String((e && e.code) || ''); const msg = String((e && e.message) || '');
+if (code.startsWith('storage/')) return `A foto não subiu (${code.replace('storage/', '')}): confira as regras do Storage, pasta rede/.`;
+if (code === 'permission-denied' || /insufficient permissions/i.test(msg)) return `O banco recusou ${oque} (permission-denied): as regras novas do Firestore ainda não estão publicadas.`;
+return `Não foi possível publicar ${oque} agora${code ? ` (${code})` : ''}.`;
+}
 const iniciais = (nome) => String(nome || '?').replace(/^(mestre|prof\.?|professora?|instrutora?)\s+/i, '').trim().split(/\s+/).slice(0, 2).map((p) => (p[0] || '').toUpperCase()).join('') || '?';
 const corAvatar = (id) => AVATAR_CORES[[...String(id || '')].reduce((s, c) => s + c.charCodeAt(0), 0) % AVATAR_CORES.length];
 function avatarHTML(pessoa, classe = '') {
@@ -317,7 +324,7 @@ comoNucleo, midiaUrl: url, texto: texto.slice(0, 200), criadoEm: agora.toISOStri
 });
 toast(`Story publicado (${fmtKB(img.original)} → ${fmtKB(img.final)}). Some em 24h.`);
 await carregarStories(); if (rotaAtual === 'feed') renderFeed(null, el('vista'), true);
-} catch (e) { console.error(e); toast(/storage|permission/i.test(String(e.code || e.message)) ? 'A foto não subiu: confira as regras do Storage.' : 'Não foi possível publicar o story.'); }
+} catch (e) { console.error(e); toast(explicarErro(e, 'o story')); }
 }
 
 /* ===================== FEED ===================== */
@@ -971,7 +978,7 @@ toast(precisaRevisao ? 'Publicado! O responsável do núcleo vai revisar as foto
 ir('feed');
 } catch (e) {
 console.error(e);
-toast(/storage|unauthorized|permission/i.test(String(e && (e.code || e.message))) ? 'A mídia não subiu: confira as regras do Storage (pasta rede/).' : 'Não foi possível publicar agora.');
+toast(explicarErro(e, 'a publicação'));
 btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Publicar na rede';
 }
 }
@@ -992,13 +999,16 @@ criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString(), ulti
 ir(`mensagens/${id}`);
 } catch (e) { console.error(e); toast(pub.menor || souMenor() ? 'Conversa não permitida: menores só falam com o próprio núcleo.' : 'Não foi possível abrir a conversa (regras do Firestore).'); }
 }
+// Cada consulta carrega SÓ a cláusula que a regra do Firestore consegue provar
+// (array-contains em participantes; tipo == 'grupo' + nucleoId; nucleosIds).
+// Uma consulta negada não derruba as outras.
 async function minhasConversas() {
-const [d, g] = await Promise.all([
-getDocs(query(collection(db, 'conversas'), where('participantes', 'array-contains', uid), limit(50))),
-perfil.academiaId ? getDocs(query(collection(db, 'conversas'), where('nucleoId', '==', perfil.academiaId), limit(5))) : Promise.resolve({ docs: [] }),
-]);
-const mapa = new Map(); [...d.docs, ...g.docs].forEach((x) => mapa.set(x.id, { id: x.id, ...x.data() }));
-if (ehGestor()) { try { const gg = await getDocs(query(collection(db, 'conversas'), where('nucleoId', '==', meuNucleoGerenciado()), limit(5))); gg.docs.forEach((x) => mapa.set(x.id, { id: x.id, ...x.data() })); } catch (e) { /* ok */ } }
+const tentar = async (q) => { try { return (await getDocs(q)).docs; } catch (e) { console.warn('conversas', e && e.code, e && e.message); return []; } };
+const consultas = [tentar(query(collection(db, 'conversas'), where('participantes', 'array-contains', uid), limit(50)))];
+if (perfil.academiaId) consultas.push(tentar(query(collection(db, 'conversas'), where('tipo', '==', 'grupo'), where('nucleoId', '==', perfil.academiaId), limit(5))));
+if (ehGestor()) consultas.push(tentar(query(collection(db, 'conversas'), where('nucleosIds', 'array-contains', meuNucleoGerenciado()), limit(30))));
+const partes = await Promise.all(consultas);
+const mapa = new Map(); partes.flat().forEach((x) => mapa.set(x.id, { id: x.id, ...x.data() }));
 return Array.from(mapa.values()).sort((a, b) => new Date(b.atualizadoEm || 0) - new Date(a.atualizadoEm || 0));
 }
 async function garantirGrupoDoNucleo() {
@@ -1063,7 +1073,8 @@ async function renderModeracao(param, vista) {
 if (!(ehModerador() || ehGestor())) { ir('feed'); return; }
 el('tituloTopo').textContent = 'Moderação';
 let denuncias = []; let pendentes = [];
-try { denuncias = (await getDocs(query(collection(db, 'denuncias'), where('status', '==', 'aberta'), limit(50)))).docs.map((d) => ({ id: d.id, ...d.data() })).filter((d) => ehModerador() || gerencia(d.autorPostAcademiaId)); } catch (e) { /* ok */ }
+// gestor: a consulta já traz o filtro do núcleo (é o que a regra consegue provar)
+try { const qd = ehModerador() ? query(collection(db, 'denuncias'), where('status', '==', 'aberta'), limit(50)) : query(collection(db, 'denuncias'), where('status', '==', 'aberta'), where('autorPostAcademiaId', '==', meuNucleoGerenciado()), limit(50)); denuncias = (await getDocs(qd)).docs.map((d) => ({ id: d.id, ...d.data() })); } catch (e) { console.warn('denuncias', e); }
 try { pendentes = (await getDocs(query(collection(db, 'posts'), where('revisao', '==', 'pendente'), limit(50)))).docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => ehModerador() || gerencia(p.autorAcademiaId) || gerencia(p.nucleoId)); } catch (e) { /* ok */ }
 pendentes.forEach((p) => { if (!posts.some((x) => x.id === p.id)) posts.push(p); });
 vista.innerHTML = `<div class="titulo-sec">Posts aguardando revisão <span class="pill gold">${pendentes.length}</span></div>${pendentes.map(postHTML).join('') || '<div class="vazio"><i class="fas fa-check"></i>Nada pendente. Posts de menores e com atletas sem termo de imagem aparecem aqui.</div>'}
