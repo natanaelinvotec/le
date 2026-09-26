@@ -436,6 +436,7 @@ ${p.comoNucleo && p.nucleoId ? `<div class="post-topo"><button type="button" cla
 <div class="quem"><button type="button" class="nome" data-perfil="${escapeHTML(p.autorUid)}">${escapeHTML(p.autorNome || 'Capoeirista')}</button><div class="meta">${meta}</div></div>`}
 <button type="button" class="post-menu" data-acao="menu" aria-label="Opções"><i class="fas fa-ellipsis"></i></button></div>
 ${revisao}
+${p.oculto ? `<div class="revisao oculto-aviso"><i class="fas fa-eye-slash"></i> Post ocultado pelo Admin Master — ${p.autorUid === uid ? 'só você e o Admin veem.' : 'só o autor e você veem.'}</div>` : ''}
 ${p.texto ? `<p class="post-texto">${formatarTexto(p.texto)}</p>` : ''}
 ${midiasHTML(p)}
 ${marcados}
@@ -458,6 +459,7 @@ return `<article class="card aviso-card" data-aviso="${a.id}"><div class="ic"><i
 // privado e a revisão pendente (foto de menor / sem termo de imagem fica
 // visível só pro autor e pra quem modera, até o responsável aprovar).
 function visivelParaMim(p) {
+if (p.oculto && p.autorUid !== uid && !ehAdmin()) return false; // ocultado pelo Admin Master
 if (p.autorUid === uid || ehModerador() || gerencia(p.autorAcademiaId) || gerencia(p.nucleoId)) return true;
 if (p.revisao === 'pendente' && midiasDe(p).length) return false;
 if (p.visibilidade === 'nucleo' && p.nucleoId !== perfil.academiaId) return false;
@@ -532,19 +534,32 @@ const url = `${location.origin}${location.pathname}#post/${p.id}`;
 try { if (navigator.share) await navigator.share({ title: 'Rede Liberdade', text: (p.texto || '').slice(0, 120), url }); else { await navigator.clipboard.writeText(url); toast('Link copiado (só quem tem cadastro abre).'); } } catch (e) { /* cancelado */ }
 }
 function menuPost(p, card) {
-const podeApagar = podeModerar(p);
+const podeApagar = p.autorUid === uid; // só quem publicou apaga
+const podeOcultar = ehAdmin(); // Admin Master oculta qualquer post ofensivo
 abrirFolha(`<h3>Post de ${escapeHTML(p.autorNome || '')}</h3>
 <div style="display:grid;gap:8px">
 ${p.autorUid === uid ? `<button type="button" class="btn-claro" data-m="momento"><i class="fas fa-star"></i> ${p.melhorMomento ? 'Tirar de melhores momentos' : 'Marcar como melhor momento'}</button>` : ''}
 <button type="button" class="btn-claro" data-m="perfil"><i class="far fa-user"></i> Ver perfil do autor</button>
 ${p.autorUid !== uid ? `<button type="button" class="btn-claro" data-m="denunciar"><i class="fas fa-flag"></i> Denunciar este post</button>` : ''}
+${podeOcultar ? `<button type="button" class="btn-claro" data-m="ocultar"><i class="fas ${p.oculto ? 'fa-eye' : 'fa-eye-slash'}"></i> ${p.oculto ? 'Mostrar o post de novo (Admin)' : 'Ocultar da rede (Admin)'}</button>` : ''}
 ${podeApagar ? `<button type="button" class="btn-perigo" data-m="apagar"><i class="fas fa-trash-can"></i> Apagar post</button>` : ''}
 </div>`, async (m) => {
 if (m === 'perfil') ir(`perfil/${p.autorUid}`);
 if (m === 'momento') { try { await updateDoc(doc(db, 'posts', p.id), { melhorMomento: !p.melhorMomento }); p.melhorMomento = !p.melhorMomento; card.outerHTML = postHTML(p); toast(p.melhorMomento ? 'Agora é um melhor momento ⭐' : 'Removido dos melhores momentos.'); } catch (e) { toast('Não foi possível alterar.'); } }
 if (m === 'denunciar') { const motivo = prompt('Por que este post deve ser revisado?'); if (motivo) { try { await addDoc(collection(db, 'denuncias'), { postId: p.id, autorPostUid: p.autorUid, autorPostAcademiaId: p.autorAcademiaId || null, denuncianteUid: uid, denuncianteNome: perfil.nome || '', motivo: motivo.slice(0, 300), criadoEm: new Date().toISOString(), status: 'aberta' }); toast('Denúncia enviada aos responsáveis. Obrigado.'); } catch (e) { toast('Não foi possível enviar a denúncia.'); } } }
-if (m === 'apagar') { if (!confirm('Apagar este post?')) return; try { await deleteDoc(doc(db, 'posts', p.id)); posts = posts.filter((x) => x.id !== p.id); card.remove(); toast('Post apagado.'); } catch (e) { toast('Sem permissão pra apagar este post.'); } }
+if (m === 'ocultar') { await alternarOcultoPost(p, card); return; }
+if (m === 'apagar') { if (p.autorUid !== uid) return; if (!confirm('Apagar este post?')) return; try { await deleteDoc(doc(db, 'posts', p.id)); posts = posts.filter((x) => x.id !== p.id); card.remove(); toast('Post apagado.'); } catch (e) { toast('Sem permissão pra apagar este post.'); } }
 });
+}
+// Ocultar (Admin Master): o post some da rede para todos; só o autor e o Admin
+// continuam vendo, com o aviso. Não apaga nada — dá pra mostrar de novo.
+async function alternarOcultoPost(p, card) {
+if (!ehAdmin()) return;
+const ocultar = !p.oculto;
+if (ocultar && !confirm('Ocultar este post da rede? Ele some para todos; só o autor e você continuam vendo.')) return;
+const dados = ocultar ? { oculto: true, ocultadoPor: uid, ocultadoEm: new Date().toISOString() } : { oculto: false, ocultadoPor: uid, ocultadoEm: new Date().toISOString() };
+try { await updateDoc(doc(db, 'posts', p.id), dados); Object.assign(p, dados); if (card && card.isConnected) card.outerHTML = postHTML(p); toast(ocultar ? 'Post ocultado da rede.' : 'Post visível de novo.'); }
+catch (e) { console.error(e); toast(explicarErro(e, 'o post')); }
 }
 async function abrirComentarios(p, card) {
 const box = card.querySelector('[data-comentarios]');
@@ -692,7 +707,7 @@ btn3d.remove();
 function celebrarBrasoes(ids) {
 const lista = ids.map(brasaoPorId).filter(Boolean); if (!lista.length) return;
 const a = lista[0];
-const f = abrirFolha(`<div class="celebra"><span class="eyebrow">${lista.length > 1 ? `${lista.length} brasões novos` : 'Brasão novo'}</span><h2>${escapeHTML(a.nome)}</h2><div class="celebra-palco"><img src="${urlPng(a)}" alt=""></div><p>${escapeHTML(a.como || '')}</p>${lista.length > 1 ? `<div class="brasoes-grade" style="margin-top:8px">${lista.slice(1, 5).map((x) => `<span class="brasao ganho"><img src="${urlThumb(x)}" alt=""><b>${escapeHTML(x.nome)}</b></span>`).join('')}</div>` : ''}<button type="button" class="btn-verde" data-m="ok" style="width:100%;margin-top:14px">Axé!</button></div>`);
+const f = abrirFolha(`<div class="celebra"><span class="eyebrow">${lista.length > 1 ? `${lista.length} brasões novos` : 'Brasão novo'}</span><h2>${escapeHTML(a.nome)}</h2><div class="celebra-palco"><img src="${urlPng(a)}" alt=""></div><p>${escapeHTML(a.como || '')}</p>${lista.length > 1 ? `<div class="brasoes-grade" style="margin-top:8px">${lista.slice(1, 5).map((x) => `<span class="brasao ganho"><img src="${urlThumb(x)}" alt=""><b>${escapeHTML(x.nome)}</b></span>`).join('')}</div>` : ''}<button type="button" class="btn-verde" data-m="ok" style="width:100%;margin-top:14px">Shalom, capoeira!</button></div>`);
 f.querySelector('.conteudo').classList.add('celebra-folha');
 }
 function trajetoriaHTML(pub) {
@@ -1183,10 +1198,10 @@ try { const qd = ehModerador() ? query(collection(db, 'denuncias'), where('statu
 try { pendentes = (await getDocs(query(collection(db, 'posts'), where('revisao', '==', 'pendente'), limit(50)))).docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => ehModerador() || gerencia(p.autorAcademiaId) || gerencia(p.nucleoId)); } catch (e) { /* ok */ }
 pendentes.forEach((p) => { if (!posts.some((x) => x.id === p.id)) posts.push(p); });
 vista.innerHTML = `<div class="titulo-sec">Posts aguardando revisão <span class="pill gold">${pendentes.length}</span></div>${pendentes.map(postHTML).join('') || '<div class="vazio"><i class="fas fa-check"></i>Nada pendente. Posts de menores e com atletas sem termo de imagem aparecem aqui.</div>'}
-<div class="titulo-sec">Denúncias abertas <span class="pill red">${denuncias.length}</span></div>${denuncias.map((d) => `<div class="card denuncia"><i class="fas fa-flag" style="color:var(--red)"></i><div class="q"><b>${escapeHTML(d.motivo)}</b><small>por ${escapeHTML(d.denuncianteNome || '')} · ${tempoRelativo(d.criadoEm)}</small></div><div style="display:grid;gap:6px"><button type="button" class="btn-claro" data-ver-post="${d.postId}">Ver post</button><button type="button" class="btn-perigo" data-apagar-post="${d.postId}" data-den="${d.id}">Apagar post</button><button type="button" class="btn-claro" data-fechar-den="${d.id}">Ignorar</button></div></div>`).join('') || '<div class="vazio"><i class="fas fa-flag"></i>Nenhuma denúncia aberta.</div>'}`;
+<div class="titulo-sec">Denúncias abertas <span class="pill red">${denuncias.length}</span></div>${denuncias.map((d) => `<div class="card denuncia"><i class="fas fa-flag" style="color:var(--red)"></i><div class="q"><b>${escapeHTML(d.motivo)}</b><small>por ${escapeHTML(d.denuncianteNome || '')} · ${tempoRelativo(d.criadoEm)}</small></div><div style="display:grid;gap:6px"><button type="button" class="btn-claro" data-ver-post="${d.postId}">Ver post</button>${ehAdmin() ? `<button type="button" class="btn-perigo" data-ocultar-post="${d.postId}" data-den="${d.id}"><i class="fas fa-eye-slash"></i> Ocultar post</button>` : ''}<button type="button" class="btn-claro" data-fechar-den="${d.id}">Ignorar</button></div></div>`).join('') || '<div class="vazio"><i class="fas fa-flag"></i>Nenhuma denúncia aberta.</div>'}`;
 vista.querySelectorAll('[data-ver-post]').forEach((b) => b.addEventListener('click', async () => { const s = await getDoc(doc(db, 'posts', b.dataset.verPost)); if (s.exists()) abrirPost({ id: s.id, ...s.data() }); else toast('Esse post já foi apagado.'); }));
 vista.querySelectorAll('[data-fechar-den]').forEach((b) => b.addEventListener('click', async () => { try { await updateDoc(doc(db, 'denuncias', b.dataset.fecharDen), { status: 'fechada', fechadaPor: uid }); b.closest('.card').remove(); } catch (e) { toast('Sem permissão.'); } }));
-vista.querySelectorAll('[data-apagar-post]').forEach((b) => b.addEventListener('click', async () => { if (!confirm('Apagar o post denunciado?')) return; try { await deleteDoc(doc(db, 'posts', b.dataset.apagarPost)); await updateDoc(doc(db, 'denuncias', b.dataset.den), { status: 'fechada', fechadaPor: uid, acao: 'post apagado' }); b.closest('.card').remove(); toast('Post apagado.'); } catch (e) { toast('Não foi possível apagar.'); } }));
+vista.querySelectorAll('[data-ocultar-post]').forEach((b) => b.addEventListener('click', async () => { if (!ehAdmin() || !confirm('Ocultar o post denunciado da rede?')) return; try { await updateDoc(doc(db, 'posts', b.dataset.ocultarPost), { oculto: true, ocultadoPor: uid, ocultadoEm: new Date().toISOString() }); await updateDoc(doc(db, 'denuncias', b.dataset.den), { status: 'fechada', fechadaPor: uid, acao: 'post ocultado' }); b.closest('.card').remove(); posts.forEach((x) => { if (x.id === b.dataset.ocultarPost) x.oculto = true; }); toast('Post ocultado da rede.'); } catch (e) { toast(explicarErro(e, 'o post')); } }));
 }
 
 /* ===================== TEMA ===================== */

@@ -292,14 +292,18 @@ request.resource.data.get('tipo', 'post') in ['post', 'aviso'] &&
 allow update: if logado() && (
 (resource.data.autorUid == request.auth.uid && request.resource.data.autorUid == resource.data.autorUid &&
 request.resource.data.get('tipo', 'post') == resource.data.get('tipo', 'post') &&
-request.resource.data.get('comoNucleo', false) == resource.data.get('comoNucleo', false)) ||
+request.resource.data.get('comoNucleo', false) == resource.data.get('comoNucleo', false) &&
+request.resource.data.get('oculto', false) == resource.data.get('oculto', false)) ||
+// Admin Master oculta/mostra qualquer post (conteúdo ofensivo) — só esses campos.
+(ehAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['oculto', 'ocultadoPor', 'ocultadoEm'])) ||
 (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['curtidas']) &&
 request.resource.data.curtidas.removeAll(resource.data.curtidas).hasOnly([request.auth.uid]) &&
 resource.data.curtidas.removeAll(request.resource.data.curtidas).hasOnly([request.auth.uid])) ||
 request.resource.data.diff(resource.data).affectedKeys().hasOnly(['comentariosCount']) ||
 (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['revisao', 'revisadoPor']) && moderaEstePost())
 );
-allow delete: if logado() && (resource.data.autorUid == request.auth.uid || moderaEstePost());
+// Apagar: só quem publicou (o Admin oculta, não apaga).
+allow delete: if logado() && resource.data.autorUid == request.auth.uid;
 match /comentarios/{cid} {
 allow read: if logado();
 allow create: if logado() && request.resource.data.autorUid == request.auth.uid &&

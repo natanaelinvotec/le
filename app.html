@@ -2157,7 +2157,8 @@ class Component extends DCLogic {
   }
 
   entrarComPerfil(p) {
-    const papel = p.papeis[0];
+    // O app é a área de atleta: abre sempre como aluno (ou família).
+    const papel = p.papeis.find((x) => x === 'aluno' || x === 'responsavel') || p.papeis[0];
     this.setState({
       perfil: p.id, papel: papel, atleta: p.atleta, escolhendo: p.conta === 'familia',
       aba: this.abaInicial(papel), trocador: false, avaliando: null, sheet: null,
@@ -2529,7 +2530,9 @@ class Component extends DCLogic {
         // quem é responsável por um núcleo — aqui é só um atalho pra lá.
         .concat(gestor && this._academiaGerenciadaId ? [{ rotulo:'Presenças por Face ID', ajuda:'Abre o painel de gestão — o reconhecimento facial roda no tablet do núcleo', icone:'fas fa-face-viewfinder', acao: () => { window.location.href = 'admin.html'; } }] : []),
 
-      temVariosPapeis: !!perfilAtual && perfilAtual.papeis.length > 1 && !!perfilAtual.academia,
+      // "Trocar de papel" saiu: as ferramentas de responsável ficam no painel do
+      // núcleo (item "Painel do meu núcleo" no fim do Perfil).
+      temVariosPapeis: false,
       papeisDisponiveis: (perfilAtual ? perfilAtual.papeis : []).map((r) => ({
         rotulo: PAPEL_ROTULO[r], icone: PAPEL_ICONE[r],
         trocar: () => this.setState({ papel: r, aba: this.abaInicial(r), trocador: false }),

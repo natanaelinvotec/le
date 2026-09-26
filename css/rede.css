@@ -486,3 +486,4 @@ body::before { content: ''; position: fixed; left: 0; right: 0; top: 0; height: 
 .btn-postar-nucleo i { background: linear-gradient(135deg, #3D8BFF, #1B5FC2) !important; }
 .nucleo-cabecalho .nucleo-endereco { display: inline-flex; align-items: center; gap: 6px; margin-top: 3px; color: #fff; font-size: .74rem; text-decoration: underline; text-underline-offset: 3px; opacity: .92; }
 .nucleo-cabecalho .nucleo-endereco:hover { opacity: 1; }
+.oculto-aviso { background: var(--tint) !important; color: var(--muted) !important; border-color: var(--border-strong) !important; }
