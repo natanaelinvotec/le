@@ -284,10 +284,15 @@ request.resource.data.texto is string && request.resource.data.texto.size() <= 8
 request.resource.data.get('midias', []).size() <= 4 &&
 request.resource.data.get('tipo', 'post') in ['post', 'aviso'] &&
 (request.resource.data.get('tipo', 'post') != 'aviso' || ehAdmin() || souFundador() ||
-(ehGestor() && request.resource.data.nucleoId == minhaAcademiaGerenciada()));
+(ehGestor() && request.resource.data.nucleoId == minhaAcademiaGerenciada())) &&
+// "Publicar como o núcleo": só o responsável do núcleo (ou Admin/Fundador no
+// próprio núcleo que administram) e sempre no núcleo que ele administra.
+(request.resource.data.get('comoNucleo', false) == false ||
+(minhaAcademiaGerenciada() != null && request.resource.data.nucleoId == minhaAcademiaGerenciada() && (ehGestor() || ehAdmin() || souFundador())));
 allow update: if logado() && (
 (resource.data.autorUid == request.auth.uid && request.resource.data.autorUid == resource.data.autorUid &&
-request.resource.data.get('tipo', 'post') == resource.data.get('tipo', 'post')) ||
+request.resource.data.get('tipo', 'post') == resource.data.get('tipo', 'post') &&
+request.resource.data.get('comoNucleo', false) == resource.data.get('comoNucleo', false)) ||
 (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['curtidas']) &&
 request.resource.data.curtidas.removeAll(resource.data.curtidas).hasOnly([request.auth.uid]) &&
 resource.data.curtidas.removeAll(request.resource.data.curtidas).hasOnly([request.auth.uid])) ||

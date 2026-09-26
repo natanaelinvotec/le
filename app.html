@@ -10,8 +10,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Liberdade e Expressão">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="assets/icon-192.png" sizes="192x192" type="image/png">
-<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="icon" href="assets/app-icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="assets/app-apple-touch-icon.png">
 <style>
 html,body{ height:100%; overscroll-behavior:none; }
 [data-chrome]{ display:none !important; }
@@ -1138,10 +1138,10 @@ a:hover{ color:#389E92; }
                       </div>
                     </div>
                     <div style="display:flex; gap:8px; margin-top:13px;">
-                      <div style="flex:1; background:#F5F9F8; border-radius:11px; padding:8px 10px; min-width:0;">
-                        <div style="font-size:.68rem; color:#5B6B68;">local</div>
-                        <div style="font-size:.72rem; font-weight:700; color:#0D211D; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ n.endereco }}</div>
-                      </div>
+                      <span role="link" tabindex="0" onClick="{{ n.abrirMapa }}" title="Abrir no mapa" style="flex:1; display:block; background:#F5F9F8; border-radius:11px; padding:8px 10px; min-width:0; cursor:pointer;">
+                        <span style="display:flex; align-items:center; justify-content:space-between; font-size:.68rem; color:#5B6B68;">local <span style="color:#1B5FC2; font-weight:800;"><i class="fas fa-diamond-turn-right"></i> rota</span></span>
+                        <span style="display:block; font-size:.72rem; font-weight:700; color:#1B5FC2; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:underline; text-underline-offset:2px;">{{ n.endereco }}</span>
+                      </span>
                     </div>
                   </button>
                 </sc-for>
@@ -1249,10 +1249,10 @@ a:hover{ color:#389E92; }
                       </div>
                     </div>
                     <div style="display:grid; grid-template-columns:1fr; gap:10px; margin-top:12px;">
-                      <div style="background:#fff; border:1px solid #E2E8E6; border-radius:14px; padding:13px;">
-                        <div style="font-size:.68rem; color:#5B6B68;">endereço</div>
-                        <div style="font-size:.8rem; font-weight:700; color:#0D211D; margin-top:3px;">{{ nucleoDetalhe.endereco }}</div>
-                      </div>
+                      <button onClick="{{ nucleoDetalhe.abrirMapa }}" title="Abrir no mapa" style="display:flex; align-items:center; gap:12px; width:100%; text-align:left; background:#fff; border:1px solid #E2E8E6; border-radius:14px; padding:13px; cursor:pointer; font-family:'Manrope',sans-serif;">
+                        <span style="flex:1; min-width:0;"><span style="display:block; font-size:.68rem; color:#5B6B68;">endereço</span><span style="display:block; font-size:.8rem; font-weight:700; color:#1B5FC2; margin-top:3px; text-decoration:underline; text-underline-offset:2px;">{{ nucleoDetalhe.endereco }}</span></span>
+                        <span style="flex:none; display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border-radius:999px; background:#EAF2FF; color:#1B5FC2; font-size:.74rem; font-weight:800;"><i class="fas fa-diamond-turn-right"></i> Como chegar</span>
+                      </button>
                     </div>
                     <sc-if value="{{ nucleoDetalhe.meu }}" hint-placeholder-val="{{ false }}">
                       <div style="margin-top:12px; background:#eaf6f4; border:1px solid #389E92; border-radius:14px; padding:12px 14px; font-size:.78rem; color:#0B5C52; font-weight:700;">Este é o núcleo onde você treina.</div>
@@ -1629,6 +1629,17 @@ function podeTerApresentacaoApp(p) {
   return p.acessoGeral === true;
 }
 
+// Endereço → rotas: abre o Google Maps (no celular o sistema oferece Maps,
+// Waze ou outro app de rotas). Usa a coordenada cadastrada quando existe.
+function linkMapa(n) {
+  if (!n) return '';
+  const lat = Number(n.latitude), lng = Number(n.longitude);
+  if (Number.isFinite(lat) && Number.isFinite(lng) && (lat || lng)) return 'https://www.google.com/maps/search/?api=1&query=' + lat + ',' + lng;
+  if (n.endereco) return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(n.endereco + (/campo grande/i.test(n.endereco) ? '' : ', Campo Grande - MS'));
+  return '';
+}
+function abrirMapaNucleo(n) { const url = linkMapa(n); if (url) window.open(url, '_blank', 'noopener'); }
+
 function brl(v) {
   return 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -1666,10 +1677,21 @@ class Component extends DCLogic {
           // núcleo) e não é aluno/família. Instrutor/professor/mestre SEM núcleo
           // fica aqui, com as ferramentas de aluno.
           const temPainel = !!perfil && (papeis.includes('admin') || perfil.acessoGeral === true || (!!perfil.academiaGerenciadaId && (papeis.includes('mestre') || papeis.includes('instrutor'))));
-          if (!perfil || (temPainel && !(papeis.includes('aluno') || papeis.includes('responsavel')))) {
-            window.location.href = 'admin.html';
+          // Quem tem painel abre direto o painel do núcleo (inclusive pelo app
+          // instalado). A área de atleta dele abre só pelo atalho do painel
+          // ("Minha área de atleta" → app.html?modo=aluno).
+          let modoAluno = false;
+          try {
+            if (new URLSearchParams(location.search).get('modo') === 'aluno') sessionStorage.setItem('app.modo', 'aluno');
+            modoAluno = sessionStorage.getItem('app.modo') === 'aluno';
+          } catch (_) { /* navegador sem storage */ }
+          const ehAtleta = papeis.includes('aluno') || papeis.includes('responsavel');
+          if (!perfil || (temPainel && !(modoAluno && ehAtleta))) {
+            window.location.replace('admin.html');
             return;
           }
+          this._temPainel = temPainel;
+          try { sessionStorage.setItem('rede.voltar', modoAluno ? 'app.html?modo=aluno' : 'app.html'); } catch (_) { /* ok */ }
           this._uid = user.uid;
           await this.montarPerfil(user.uid, perfil);
         } catch (e) {
@@ -2499,8 +2521,9 @@ class Component extends DCLogic {
       opcoesPerfil: [
         { rotulo:'Meus dados', ajuda:'Nome, foto e celular de contato', icone:'fas fa-id-card', acao: () => this.abrirSheet('dados') },
         { rotulo:'Trocar senha', ajuda:'Com a senha atual; se esqueceu, enviamos um link', icone:'fas fa-key', acao: () => this.trocarSenhaAcao() },
-      ].concat(podeTerApresentacaoApp(this._perfilBruto) ? [{ rotulo:'Minha apresentação', ajuda:'Vídeo que abre quando você entra na plataforma', icone:'fas fa-film', acao: () => this.minhaApresentacaoAcao() }] : []).concat(!gestor ? [{ rotulo:'Troféus & Brasões', ajuda:'Sua escada de cordoada e conquistas', icone:'fas fa-trophy', acao: () => { window.location.href = 'rede.html#brasoes'; } }] : [])
-        .concat(!gestor ? [{ rotulo:'Núcleos', ajuda:'Veja o seu núcleo e os demais do grupo', icone:'fas fa-map-marker-alt', acao: () => this.irPara('nucleos') }] : [])
+      ].concat(podeTerApresentacaoApp(this._perfilBruto) ? [{ rotulo:'Minha apresentação', ajuda:'Vídeo que abre quando você entra na plataforma', icone:'fas fa-film', acao: () => this.minhaApresentacaoAcao() }] : []).concat([{ rotulo:'Troféus & Brasões', ajuda:'Sua escada de cordoada e conquistas', icone:'fas fa-trophy', acao: () => { window.location.href = 'rede.html#brasoes'; } }])
+        .concat([{ rotulo:'Núcleos', ajuda:'Veja o seu núcleo e os demais do grupo', icone:'fas fa-map-marker-alt', acao: () => this.irPara('nucleos') }])
+        .concat(this._temPainel ? [{ rotulo:'Painel do meu núcleo', ajuda:'Voltar às ferramentas de responsável', icone:'fas fa-people-roof', acao: () => { try { sessionStorage.removeItem('app.modo'); } catch (_) {} window.location.href = 'admin.html'; } }] : [])
         .concat(familia ? [{ rotulo:'Vincular familiar', ajuda:'Ligar outro dependente à conta', icone:'fas fa-link', acao: () => this.abrirSheet('vincular') }] : [])
         // Face ID fica no painel de gestão (admin.html → Presenças) e só para
         // quem é responsável por um núcleo — aqui é só um atalho pra lá.
@@ -2624,6 +2647,7 @@ class Component extends DCLogic {
           nome: n.nome || 'Núcleo',
           professor: n.professorNome ? ('Prof. ' + n.professorNome) : 'Professor a confirmar',
           endereco: n.endereco || 'Endereço a confirmar com o professor',
+          abrirMapa: (ev) => { if (ev && ev.stopPropagation) ev.stopPropagation(); abrirMapaNucleo(n); },
           mensalidade: n.mensalidadeValor != null ? brl(n.mensalidadeValor) : 'A confirmar',
           meu: !!atleta.academiaId && n.id === atleta.academiaId,
           cartao: (!!atleta.academiaId && n.id === atleta.academiaId)
@@ -2649,13 +2673,14 @@ class Component extends DCLogic {
       ehSedeDoFundador: fundador && gestor && this.state.nucleoAberto === this._academiaGerenciadaId,
       nucleoDetalhe: (() => {
         const n = (this.state.nucleosLista || []).find((x) => x.id === this.state.nucleoAberto);
-        if (!n) return { nome:'Núcleo', professor:'', endereco:'Endereço a confirmar com o professor', mensalidade:'A confirmar', meu:false };
+        if (!n) return { nome:'Núcleo', professor:'', endereco:'Endereço a confirmar com o professor', mensalidade:'A confirmar', meu:false, abrirMapa: () => {} };
         const souAdmin = gestor && !!this._academiaGerenciadaId && n.id === this._academiaGerenciadaId;
         const stats = souAdmin ? this.state.meuNucleoStats : null;
         return {
           nome: n.nome || 'Núcleo',
           professor: n.professorNome || 'A confirmar',
           endereco: n.endereco || 'Endereço a confirmar com o professor',
+          abrirMapa: () => abrirMapaNucleo(n),
           mensalidade: n.mensalidadeValor != null ? brl(n.mensalidadeValor) : 'A confirmar',
           meu: !!atleta.academiaId && n.id === atleta.academiaId,
           responsavelNome: souAdmin ? (perfilAtual ? perfilAtual.nome : (n.professorNome || 'Você')) : (n.professorNome || 'A confirmar'),

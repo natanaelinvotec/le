@@ -3,8 +3,8 @@
 <head>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#002D72">
-<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<link rel="icon" href="assets/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="assets/app-apple-touch-icon.png">
+<link rel="icon" href="assets/app-icon-192.png" sizes="192x192" type="image/png">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="js/support.js"></script>
@@ -318,7 +318,7 @@ img{ display:block; max-width:100%; }
           <div style="padding:18px; display:flex; flex-direction:column; gap:10px; flex:1;">
             <div style="display:flex; gap:10px; color:#5A6B72; font-size:.92rem; line-height:1.45;"><i class="fas fa-calendar-day" style="color:#389E92; margin-top:3px;"></i><span>{{ a.dias }}</span></div>
             <div style="display:flex; gap:10px; color:#5A6B72; font-size:.92rem; line-height:1.45;"><i class="fas fa-clock" style="color:#389E92; margin-top:3px;"></i><span>{{ a.horario }}</span></div>
-            <div style="display:flex; gap:10px; color:#5A6B72; font-size:.92rem; line-height:1.45;"><i class="fas fa-map-marker-alt" style="color:#389E92; margin-top:3px;"></i><span>{{ a.endereco }}</span></div>
+            <div style="display:flex; gap:10px; color:#5A6B72; font-size:.92rem; line-height:1.45;"><i class="fas fa-map-marker-alt" style="color:#389E92; margin-top:3px;"></i><a href="{{ a.mapaUrl }}" target="_blank" rel="noopener" title="Abrir rota no mapa" style="color:#1B5FC2; text-decoration:underline; text-underline-offset:3px;">{{ a.endereco }}</a></div>
           </div>
           <div style="display:flex; gap:10px; padding:0 18px 18px;">
             <a href="{{ a.whatsapp }}" target="_blank" rel="noopener" style="flex:1; display:inline-flex; align-items:center; justify-content:center; gap:9px; padding:13px; border-radius:14px; background:#00E676; color:#05070C; font-weight:800; font-size:.92rem; box-shadow:0 4px 12px rgba(0,230,118,.3); transition:.25s var(--ease);" style-hover="filter:brightness(.94); transform:translateY(-1px);"><i class="fab fa-whatsapp"></i>{{ a.telefone }}</a>
@@ -681,7 +681,7 @@ class Component extends DCLogic {
       fecharMenu: () => this.setState({ menu: false }),
       dadosProntos: true,
       criterios: CRITERIOS,
-      academias: ACAD,
+      academias: ACAD.map((a) => Object.assign({}, a, { mapaUrl: a.endereco ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(a.endereco.replace(/\s+—\s+/g, ', ') + (/campo grande/i.test(a.endereco) ? '' : ', Campo Grande - MS')) : '#' })),
       mestres: MEST,
       eventos: (() => {
         const hoje = new Date(); hoje.setHours(0, 0, 0, 0);

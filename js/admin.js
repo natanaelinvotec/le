@@ -384,6 +384,7 @@ appPainel.classList.remove('oculto');
 
 aplicarVisibilidadePapeis();
 definirAutor(sessaoAtual); // quem assina alterações de apresentação (conta.js)
+try { sessionStorage.setItem('rede.voltar', 'admin.html'); sessionStorage.removeItem('app.modo'); } catch (e) { /* ok */ } // Rede volta pro painel
 
 document.getElementById('faixaAdminMaster').classList.toggle('oculto', !ehAdmin());
 document.getElementById('faixaFundador').classList.toggle('oculto', !souFundador(sessaoAtual));
@@ -438,6 +439,7 @@ carregarEventosResumo(),
 renderizarNucleosUI();
 atualizarEstrelaHeader();
 renderizarKpisGestao();
+preencherAlunosFinanceiro(); definirTipoLancamento('mensalidade');
 // Apresentação em vídeo: abre sozinha quando o Instrutor/Professor/Mestre
 // entra na plataforma (se tiver vídeo) e fecha na foto do cartão.
 migrarApresentacoesDosNucleos().catch(() => {});
@@ -478,6 +480,7 @@ const mapa = (pub && pub.brasoes) || {};
 const ganhos = Object.entries(mapa).map(([id, v]) => ({ b: brasaoPorId(id), em: (v && v.em) || '' })).filter((x) => x.b).sort((a, z) => String(z.em).localeCompare(String(a.em)));
 const total = pub ? ganhos.length : null;
 const alunosDoNucleo = sessaoAtual.academiaGerenciadaId ? todosUsuarios.filter((u) => u.academiaId === sessaoAtual.academiaGerenciadaId && u.id !== sessaoAtual.uid).length : 0;
+const nucleoRede = sessaoAtual.academiaGerenciadaId ? (todosNucleos.find((n) => n.id === sessaoAtual.academiaGerenciadaId) || { id: sessaoAtual.academiaGerenciadaId, nome: '' }) : null;
 const escopo = ehAdmin() ? 'Você concede qualquer brasão a qualquer pessoa (menos o de Presidente).' : `Você concede os ${BRASOES.filter(brasaoManual).length} brasões manuais${alunosDoNucleo ? ` aos ${alunosDoNucleo} alunos do seu núcleo` : ' aos alunos do seu núcleo'}.`;
 wrap.innerHTML = `
 <div class="crb-topo">
@@ -485,11 +488,14 @@ wrap.innerHTML = `
 <div class="crb-texto"><span class="eyebrow">Rede Liberdade</span><h3>Minha Rede e brasões</h3>
 <p>${total === null ? 'Abra a Rede Liberdade para consolidar seus brasões.' : `<strong>${total}</strong> de ${BRASOES.length} brasões conquistados${ganhos[0] ? ` · último: ${escapeHTML(ganhos[0].b.nome)}` : ''}.`}</p></div>
 </div>
+<div class="crb-principais">
+<a class="crb-grande crb-pessoal" href="rede.html#perfil"><i class="fas fa-user"></i><span><b>Minha rede pessoal</b><small>Seu perfil, fotos e conversas</small></span><i class="fas fa-arrow-right crb-seta"></i></a>
+${nucleoRede ? `<a class="crb-grande crb-nucleo" href="rede.html#nucleo/${encodeURIComponent(nucleoRede.id)}"><i class="fas fa-people-group"></i><span><b>Rede do núcleo</b><small>${escapeHTML(nucleoRede.nome || 'Seu núcleo')} · postar como o núcleo</small></span><i class="fas fa-arrow-right crb-seta"></i></a>` : ''}
+</div>
 <div class="crb-acoes">
 <a class="crb-btn crb-ouro" href="rede.html#brasoes"><i class="fas fa-medal"></i><span><b>Meus brasões</b><small>Sala de Brasões</small></span></a>
-<a class="crb-btn" href="rede.html#perfil"><i class="fas fa-user"></i><span><b>Meu perfil</b><small>Rede Liberdade</small></span></a>
-<a class="crb-btn" href="rede.html#feed"><i class="fas fa-house"></i><span><b>Feed</b><small>Novidades do grupo</small></span></a>
 <a class="crb-btn crb-ceu" href="brasoes.html"><i class="fas fa-award"></i><span><b>Conceder brasões</b><small>${escapeHTML(escopo)}</small></span></a>
+<a class="crb-btn" href="app.html?modo=aluno"><i class="fas fa-id-badge"></i><span><b>Minha área de atleta</b><small>Evolução, presenças, dados e senha</small></span></a>
 </div>`;
 wrap.classList.remove('oculto');
 }
@@ -618,6 +624,7 @@ document.querySelectorAll('.aba-content, .nav-item').forEach((el) => el.classLis
 const alvo = document.getElementById(`aba-${abaId}`);
 if (!alvo) return;
 alvo.classList.add('active');
+if (abaId === 'financeiro') { preencherAlunosFinanceiro(); definirTipoLancamento(tipoLancamento); }
 if (evt && evt.currentTarget && evt.currentTarget.classList) {
 evt.currentTarget.classList.add('active');
 } else {
@@ -708,7 +715,7 @@ ${resp ? `<div class="nucleo-responsavel"><img src="${escapeHTML(resp.fotoUrl ||
 <div class="nucleo-stats">
 <div class="nucleo-stat"><strong class="teal">${alunosAtivos}</strong><small>alunos ativos</small></div>
 <div class="nucleo-stat"><strong class="navy">${n.mensalidadeValor ? `R$ ${Number(n.mensalidadeValor).toFixed(0)}` : '—'}</strong><small>mensalidade</small></div>
-<div class="nucleo-stat"><strong title="${escapeHTML(n.endereco || '')}">${n.endereco ? escapeHTML(n.endereco.split(',')[0]) : '—'}</strong><small>local</small></div>
+<div class="nucleo-stat">${n.endereco || (n.latitude && n.longitude) ? `<a class="nucleo-mapa" href="${escapeHTML(linkMapaNucleo(n))}" target="_blank" rel="noopener" title="Abrir rota: ${escapeHTML(n.endereco || '')}"><strong>${escapeHTML((n.endereco || 'Ver no mapa').split(',')[0])}</strong></a>` : '<strong>—</strong>'}<small>local <i class="fas fa-diamond-turn-right"></i></small></div>
 </div>
 <div class="nucleo-estrelas">
 <div><strong>${estrelas} ${estrelas === 1 ? 'estrela' : 'estrelas'}</strong><small>${cordaoMaisAlta ? `corda mais alta: ${escapeHTML(cordaoMaisAlta)}` : 'nenhuma corda formada ainda'}</small></div>
@@ -1047,6 +1054,12 @@ return '<i class="fas fa-user"></i> Responsável';
 // "Mestre Profeta"; "Academia Professora Taynara" → "Professora Taynara").
 // Se a pessoa tem formadorUid gravado e ele administra um núcleo conhecido,
 // esse núcleo vence (a posição na árvore é permanente).
+function linkMapaNucleo(n) {
+const lat = Number(n && n.latitude); const lng = Number(n && n.longitude);
+if (Number.isFinite(lat) && Number.isFinite(lng) && (lat || lng)) return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+const e = (n && n.endereco) || '';
+return e ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e + (/campo grande/i.test(e) ? '' : ', Campo Grande - MS'))}` : '';
+}
 function rotuloDiretoDe(pessoa) {
 if (souFundador(pessoa)) return 'Direto Liberdade e Expressão';
 let nucleo = null;
@@ -2059,11 +2072,7 @@ return;
 bloqueado.classList.add('oculto');
 conteudo.classList.remove('oculto');
 
-const selAluno = document.getElementById('pagamentoAluno');
-if (selAluno) {
-const alunosAlvo = todosUsuarios.filter((u) => (u.papeis || []).includes('aluno') && (!nucleoAlvo || u.academiaId === nucleoAlvo));
-selAluno.innerHTML = '<option value="">Selecione o aluno...</option>' + alunosAlvo.map((a) => `<option value="${escapeHTML(a.id)}">${escapeHTML(a.nome)}</option>`).join('');
-}
+preencherAlunosFinanceiro();
 
 try {
 const pagamentos = nucleoAlvo ? await listarPagamentosDoNucleo(nucleoAlvo) : await listar('pagamentos');
@@ -2082,7 +2091,7 @@ lista.innerHTML = pagamentos.length
 <div class="lista-item">
 <div class="lista-item-info">
 <strong>${escapeHTML(p.alunoNome || 'Aluno')} <span class="pill ${p.pago ? 'pill-aprovado' : 'pill-pendente'}">${p.pago ? 'Pago' : 'Pendente'}</span></strong>
-<span>${escapeHTML(p.competencia || '')} · R$ ${Number(p.valor || 0).toFixed(2)}</span>
+<span>${p.tipo === 'adicional' ? `<b>${escapeHTML(p.descricao || 'Valor adicional')}</b> · ` : 'Mensalidade · '}${escapeHTML(p.competencia || '')} · R$ ${Number(p.valor || 0).toFixed(2)}</span>
 </div>
 <div class="lista-item-actions">
 <button class="btn-mini ${p.pago ? 'btn-mini-rejeitar' : 'btn-mini-aprovar'}" onclick="alternarPagamentoUI('${p.id}', ${!p.pago})">${p.pago ? 'Marcar não pago' : 'Marcar pago'}</button>
@@ -2100,6 +2109,47 @@ try { await marcarPagamento(id, pago); toast(pago ? 'Marcado como pago!' : 'Marc
 catch (e) { console.error(e); toast('Erro ao atualizar pagamento.', 'error'); }
 };
 
+// Lista de alunos do lançamento: preenchida quando os usuários já estão
+// carregados (antes rodava junto com a carga e ficava vazia) e de novo sempre
+// que a aba Financeiro abre ou o filtro de núcleo muda.
+function nucleoFinanceiro() { return ehAdmin() ? (document.getElementById('filtroAcademia')?.value || null) : sessaoAtual.academiaGerenciadaId; }
+function preencherAlunosFinanceiro() {
+const sel = document.getElementById('pagamentoAluno');
+if (!sel || !sessaoAtual) return;
+const alvo = nucleoFinanceiro();
+const antes = sel.value;
+const alunos = todosUsuarios
+.filter((u) => u.id !== sessaoAtual.uid || ehAdmin())
+.filter((u) => (u.papeis || []).includes('aluno') && u.statusAtual !== 'Inativo' && (!alvo || u.academiaId === alvo))
+.sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'));
+sel.innerHTML = alunos.length
+? '<option value="">Selecione o aluno…</option>' + alunos.map((a) => `<option value="${escapeHTML(a.id)}">${escapeHTML(a.nome || 'Aluno')}${a.cordaoAtual ? ` · ${escapeHTML(a.cordaoAtual)}` : ''}${ehAdmin() && !alvo ? ` · ${escapeHTML(a.academiaNome || a.academiaId || '')}` : ''}</option>`).join('')
+: `<option value="">${todosUsuarios.length ? 'Nenhum aluno ativo neste núcleo' : 'Carregando alunos…'}</option>`;
+if (antes && alunos.some((a) => a.id === antes)) sel.value = antes;
+}
+let tipoLancamento = 'mensalidade';
+function valorMensalidadeDe(alunoId) {
+const a = todosUsuarios.find((u) => u.id === alunoId);
+const n = a ? todosNucleos.find((x) => x.id === a.academiaId) : null;
+return n && n.mensalidadeValor ? Number(n.mensalidadeValor) : null;
+}
+function definirTipoLancamento(tipo) {
+tipoLancamento = tipo === 'adicional' ? 'adicional' : 'mensalidade';
+const adicional = tipoLancamento === 'adicional';
+document.querySelectorAll('[data-tipo-lanc]').forEach((b) => { const on = b.dataset.tipoLanc === tipoLancamento; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+const q = (id) => document.getElementById(id);
+if (!q('formNovoPagamento')) return;
+q('tituloLancamento').textContent = adicional ? 'Lançar valores adicionais' : 'Lançar mensalidade';
+document.querySelector('.lanc-desc').classList.toggle('oculto', !adicional);
+q('pagamentoDescricao').required = adicional;
+q('rotuloCompetencia').textContent = adicional ? 'Mês de cobrança' : 'Mês de referência';
+q('btnLancar').innerHTML = `<i class="fas fa-check"></i> ${adicional ? 'Lançar valor adicional' : 'Lançar mensalidade'}`;
+q('ajudaLancamento').textContent = adicional ? 'Uniforme, batizado, evento, material… entra no financeiro do aluno como pendente até ser marcado como pago.' : 'O valor já vem com a mensalidade do núcleo — ajuste se precisar.';
+if (!q('pagamentoCompetencia').value) { const d = new Date(); q('pagamentoCompetencia').value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; }
+if (!adicional) { const v = valorMensalidadeDe(q('pagamentoAluno').value); if (v) q('pagamentoValor').value = v.toFixed(2); } else q('pagamentoValor').value = '';
+}
+document.querySelectorAll('[data-tipo-lanc]').forEach((b) => b.addEventListener('click', () => definirTipoLancamento(b.dataset.tipoLanc)));
+document.getElementById('pagamentoAluno')?.addEventListener('change', (e) => { if (tipoLancamento === 'mensalidade') { const v = valorMensalidadeDe(e.target.value); if (v) document.getElementById('pagamentoValor').value = v.toFixed(2); } });
 const formNovoPagamento = document.getElementById('formNovoPagamento');
 if (formNovoPagamento) {
 formNovoPagamento.addEventListener('submit', async (e) => {
@@ -2110,18 +2160,27 @@ try {
 const alunoId = document.getElementById('pagamentoAluno').value;
 const aluno = todosUsuarios.find((u) => u.id === alunoId);
 if (!aluno) { toast('Selecione um aluno.', 'error'); return; }
+const adicional = tipoLancamento === 'adicional';
+const descricao = sanitizeInput(document.getElementById('pagamentoDescricao').value || '').slice(0, 60);
+if (adicional && !descricao) { toast('Descreva o valor adicional (ex.: Abadá, Batizado).', 'error'); return; }
+const valor = Number(document.getElementById('pagamentoValor').value);
+if (!(valor > 0)) { toast('Informe um valor maior que zero.', 'error'); return; }
 await lancarPagamento({
 alunoId,
 alunoNome: aluno.nome,
 academiaId: aluno.academiaId,
+tipo: adicional ? 'adicional' : 'mensalidade',
+...(adicional ? { descricao } : {}),
 competencia: document.getElementById('pagamentoCompetencia').value,
-valor: Number(document.getElementById('pagamentoValor').value) || 0,
+valor,
 pago: false,
+lancadoPor: sessaoAtual.uid,
 });
-toast('Mensalidade lançada!');
+toast(adicional ? `Valor adicional lançado: ${descricao}.` : 'Mensalidade lançada!');
 formNovoPagamento.reset();
+definirTipoLancamento(tipoLancamento);
 await carregarFinanceiro();
-} catch (err) { console.error(err); toast('Erro ao lançar mensalidade.', 'error'); }
+} catch (err) { console.error(err); toast('Não foi possível lançar agora (confira a conexão e a permissão do núcleo).', 'error'); }
 finally { btn.disabled = false; }
 });
 }

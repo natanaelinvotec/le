@@ -5,12 +5,12 @@ por Firebase Authentication (usuarios/{uid}.papeis). -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Painel de Gestão - Capoeira Liberdade</title><link rel="icon" type="image/png" href="assets/icon-192.png"><link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<title>Painel de Gestão - Capoeira Liberdade</title><link rel="icon" type="image/png" href="assets/app-icon-192.png"><link rel="apple-touch-icon" href="assets/app-apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<link rel="stylesheet" href="css/admin.css?v=20260927b">
+<link rel="stylesheet" href="css/admin.css?v=20260927c">
 </head>
 <body>
 <noscript>Este painel exige JavaScript habilitado para funcionar.</noscript>
@@ -369,13 +369,21 @@ Escolha um aluno já cadastrado para virar responsável por este núcleo
 </div>
 <div id="financeiroConteudo" class="oculto">
 <div class="card-padrao" style="margin-bottom:20px;">
-<h3>Lançar Mensalidade</h3>
-<form id="formNovoPagamento" style="display:grid; grid-template-columns: 2fr 1fr 1fr auto; gap:15px; margin-top:15px;">
-<select id="pagamentoAluno" class="input-padrao" required><option value="">Selecione o aluno...</option></select>
-<input type="month" id="pagamentoCompetencia" class="input-padrao" required>
-<input type="number" id="pagamentoValor" placeholder="Valor (R$)" class="input-padrao" min="0" step="0.01" required>
-<button type="submit" class="btn-detalhes">Lançar</button>
+<div class="lanc-topo">
+<h3 id="tituloLancamento">Lançar mensalidade</h3>
+<div class="lanc-seg" role="tablist" aria-label="Tipo de lançamento">
+<button type="button" class="lanc-seg-btn on" role="tab" aria-selected="true" data-tipo-lanc="mensalidade"><i class="fas fa-calendar-check"></i> Lançar mensalidade</button>
+<button type="button" class="lanc-seg-btn" role="tab" aria-selected="false" data-tipo-lanc="adicional"><i class="fas fa-plus-circle"></i> Lançar valores adicionais</button>
+</div>
+</div>
+<form id="formNovoPagamento" class="form-lancamento">
+<label class="lanc-campo lanc-aluno"><span>Aluno</span><select id="pagamentoAluno" class="input-padrao" required><option value="">Carregando alunos…</option></select></label>
+<label class="lanc-campo lanc-desc oculto"><span>Descrição</span><input type="text" id="pagamentoDescricao" class="input-padrao" maxlength="60" placeholder="ex.: Abadá, Batizado, Evento"></label>
+<label class="lanc-campo"><span id="rotuloCompetencia">Mês de referência</span><input type="month" id="pagamentoCompetencia" class="input-padrao" required></label>
+<label class="lanc-campo"><span>Valor (R$)</span><input type="number" id="pagamentoValor" placeholder="0,00" class="input-padrao" min="0" step="0.01" required></label>
+<button type="submit" class="btn-detalhes lanc-enviar" id="btnLancar"><i class="fas fa-check"></i> Lançar mensalidade</button>
 </form>
+<p class="lanc-ajuda" id="ajudaLancamento">O valor já vem com a mensalidade do núcleo — ajuste se precisar.</p>
 </div>
 <div class="financeiro-resumo" style="margin-bottom:20px;">
 <div><span>Recebido no mês</span><strong id="finTotalPago" style="color:#00B140;">R$ 0,00</strong></div>
@@ -601,6 +609,6 @@ pra não recalcular a cada aula. -->
 </div>
 </div>
 
-<script type="module" src="js/admin.js?v=20260927b"></script>
+<script type="module" src="js/admin.js?v=20260927c"></script>
 </body>
 </html>

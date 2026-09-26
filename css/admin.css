@@ -299,7 +299,7 @@ textarea.input-padrao { resize: vertical; min-height: 64px; }
 select.input-padrao { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%235B6B68' d='M1 1l5 5 5-5'/></svg>"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
 .form-group-mod label, label { display: block; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 5px; font-weight: 700; }
 .form-solicitacao { display: grid; margin-top: 10px; padding-top: 16px; border-top: 1px dashed var(--border-color); }
-@media (max-width: 700px) { #formNovoPagamento { grid-template-columns: 1fr !important; } }
+@media (max-width: 700px) { .form-lancamento { grid-template-columns: 1fr !important; } }
 
 /* ---------------------------------------------------------------- LISTAS */
 .lista-simples { display: flex; flex-direction: column; gap: 10px; margin-bottom: 26px; }
@@ -670,4 +670,32 @@ select.input-padrao { appearance: none; -webkit-appearance: none; background-ima
 .crb-btn.crb-ceu > i { background: linear-gradient(135deg, #3D8BFF, #1B5FC2); color: #fff; }
 .crb-btn b { display: block; font-size: 0.86rem; }
 .crb-btn small { display: block; font-size: 0.7rem; color: var(--text-muted); line-height: 1.3; }
-@media (max-width: 560px) { .crb-acoes { grid-template-columns: 1fr 1fr; } .crb-btn.crb-ceu { grid-column: 1 / -1; } }
+@media (max-width: 560px) { .crb-acoes { grid-template-columns: 1fr 1fr; } }
+
+/* ===== Financeiro: lançar mensalidade / valores adicionais ===== */
+.lanc-topo { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.lanc-seg { display: inline-flex; padding: 4px; border-radius: 999px; background: var(--bg-app); border: 1px solid var(--border-color); gap: 2px; }
+.lanc-seg-btn { border: 0; background: transparent; color: var(--text-muted); font: 700 0.8rem var(--font-body); padding: 8px 14px; border-radius: 999px; cursor: pointer; transition: background 0.3s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s; display: inline-flex; align-items: center; gap: 6px; }
+.lanc-seg-btn.on { background: #fff; color: var(--primary-blue); box-shadow: 0 2px 8px -3px rgba(0, 45, 114, 0.35); }
+.lanc-seg-btn:focus-visible { outline: 2px solid var(--sky, #3D8BFF); outline-offset: 2px; }
+.form-lancamento { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 12px; margin-top: 14px; align-items: end; }
+.form-lancamento:has(.lanc-desc:not(.oculto)) { grid-template-columns: 1.6fr 1.4fr 1fr 1fr auto; }
+.lanc-campo { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.lanc-campo > span { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); }
+.lanc-enviar { white-space: nowrap; }
+.lanc-ajuda { font-size: 0.76rem; color: var(--text-muted); margin-top: 8px; }
+@media (max-width: 560px) { .lanc-seg { width: 100%; } .lanc-seg-btn { flex: 1; justify-content: center; padding: 9px 8px; font-size: 0.74rem; } }
+.crb-principais { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 14px; position: relative; }
+.crb-grande { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: var(--radius-lg); text-decoration: none; color: #fff; box-shadow: 0 14px 28px -18px rgba(0, 45, 114, 0.8); transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s; }
+.crb-grande:hover { transform: translateY(-2px); box-shadow: 0 20px 34px -18px rgba(0, 45, 114, 0.85); }
+.crb-grande:focus-visible { outline: 3px solid var(--sky, #3D8BFF); outline-offset: 2px; }
+.crb-grande > i:first-child { width: 42px; height: 42px; flex: none; border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.18); font-size: 1.05rem; }
+.crb-grande b { display: block; font-size: 0.96rem; }
+.crb-grande small { display: block; font-size: 0.72rem; opacity: 0.85; }
+.crb-grande span { flex: 1; min-width: 0; }
+.crb-seta { opacity: 0.7; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+.crb-grande:hover .crb-seta { transform: translateX(3px); }
+.crb-pessoal { background: linear-gradient(135deg, #3D8BFF, #1B5FC2); }
+.crb-nucleo { background: linear-gradient(135deg, #002D72, #389E92); }
+@media (max-width: 560px) { .crb-acoes .crb-btn:last-child { grid-column: 1 / -1; } }
+.nucleo-mapa { color: var(--primary-blue); text-decoration: underline; text-underline-offset: 2px; }

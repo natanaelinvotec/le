@@ -1,0 +1,17 @@
+AJUSTES DO APP — inclui também as regras de brasões do pacote anterior
+=====================================================================
+
+1) GITHUB: cada arquivo na MESMA pasta em que está no zip
+   raiz:    TODOS os .html do zip (admin, app, brasoes, checkin, gerenciar, index,
+            inscricao, instalar, login, master, rede) + manifest.webmanifest e sw.js
+   js/:     admin.js, brasoes.js, brasoes-admin.js, login.js, rede.js
+   css/:    admin.css, rede.css
+   assets/: app-icon-192.png, app-icon-512.png, app-icon-1024.png,
+            app-icon-maskable-192.png, app-icon-maskable-512.png,
+            app-apple-touch-icon.png, app-favicon-32.png   (arquivos NOVOS)
+
+2) FIREBASE → Firestore → Regras: cole o firebase/firestore.rules inteiro → Publicar.
+   (brasões do Admin + "postar como o núcleo")
+
+3) ÍCONE NO CELULAR: o Android troca o ícone sozinho em até ~1 dia. Para ver na
+   hora: remova o app da tela inicial e instale de novo pelo navegador.

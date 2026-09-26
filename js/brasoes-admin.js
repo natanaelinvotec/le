@@ -145,36 +145,59 @@ async function alternarAtivo(id, btn) {
 const ativos = { ...(config.ativos || {}) }; const novo = !ativo(id); ativos[id] = novo;
 try { await setDoc(doc(db, 'config', 'brasoes'), { ativos, atualizadoEm: new Date().toISOString(), por: uid }, { merge: true }); config.ativos = ativos; renderTudo(); toast(novo ? 'Brasão ativado.' : 'Brasão desativado — some da Sala de Brasões de todos.'); } catch (e) { console.error(e); toast('Sem permissão pra alterar.'); }
 }
+// Conceder: um brasão para UM ou VÁRIOS atletas de uma vez (busca por nome,
+// "selecionar todos os da busca", quem já tem aparece marcado e fica de fora).
 function conceder(brasaoInicial) {
 const admin = ehAdmin();
-// Admin: todos os brasões (menos Presidente), manuais primeiro; demais: só manuais.
-const manuais = BRASOES.filter((b) => podeConceder(b, { admin })).sort((a, b) => (ehManual(b) ? 1 : 0) - (ehManual(a) ? 1 : 0));
-// Admin concede a qualquer pessoa do grupo; os outros, aos alunos do escopo deles.
+const opcoes = BRASOES.filter((b) => podeConceder(b, { admin })).sort((a, b) => (ehManual(b) ? 1 : 0) - (ehManual(a) ? 1 : 0));
 const alunos = usuarios.filter((u) => admin || ((u.papeis || []).includes('aluno') && u.id !== uid)).sort((a, b) => String(a.nome).localeCompare(String(b.nome)));
-let selB = brasaoInicial && podeConceder(porId(brasaoInicial), { admin }) ? brasaoInicial : null, selU = null;
-const f = abrirFolha(`<h3>Conceder brasão <button type="button" class="btn-mini" data-fechar><i class="fas fa-xmark"></i></button></h3>
-<label>1 · Escolha o brasão</label>${admin ? '<p style="font-size:.74rem;color:var(--text-muted);margin:2px 0 6px"><i class="fas fa-shield-halved"></i> Admin Master: os marcados com <b>auto</b> normalmente vêm dos dados reais — concedendo, a pessoa ganha na hora.</p>' : ''}<div class="escolha-brasao" id="escB">${manuais.map((b) => `<button type="button" data-b="${b.id}" class="${b.id === selB ? 'sel' : ''}"><img src="${urlThumb(b)}" alt="">${escapeHTML(texto(b).nome)}${ehManual(b) ? '' : '<small style="font-size:.56rem;color:var(--primary-blue)">auto</small>'}</button>`).join('')}</div>
-<label style="margin-top:12px">2 · Escolha o atleta</label><input class="input-padrao" id="buscaAluno" placeholder="Buscar pelo nome…"><div class="lista-atletas" id="listaAl"></div>
+let selB = brasaoInicial && podeConceder(porId(brasaoInicial), { admin }) ? brasaoInicial : null;
+const selU = new Set();
+let termo = '';
+const semAcento = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const f = abrirFolha(`<h3>Conceder brasão <button type="button" class="btn-mini" data-fechar aria-label="Fechar"><i class="fas fa-xmark"></i></button></h3>
+<label>1 · Escolha o brasão</label>${admin ? '<p class="conc-dica"><i class="fas fa-shield-halved"></i> Admin Master: os marcados com <b>auto</b> normalmente vêm dos dados reais — concedendo, a pessoa ganha na hora.</p>' : ''}
+<div class="escolha-brasao" id="escB">${opcoes.map((b) => `<button type="button" data-b="${b.id}" class="${b.id === selB ? 'sel' : ''}"><img src="${urlThumb(b)}" alt="">${escapeHTML(texto(b).nome)}${ehManual(b) ? '' : '<small class="auto">auto</small>'}</button>`).join('')}</div>
+<label style="margin-top:14px">2 · Escolha um ou vários atletas</label>
+<div class="conc-busca"><i class="fas fa-magnifying-glass"></i><input class="input-padrao" id="buscaAluno" type="search" placeholder="Buscar pelo nome…" autocomplete="off"></div>
+<div class="conc-barra"><button type="button" class="btn-mini" id="btnTodos"><i class="fas fa-check-double"></i> Selecionar todos da lista</button><button type="button" class="btn-mini" id="btnLimpar">Limpar</button><span class="conc-qtd" id="qtdSel">Nenhum selecionado</span></div>
+<div class="lista-atletas conc-lista" id="listaAl" role="listbox" aria-multiselectable="true"></div>
 <label style="margin-top:12px">3 · Observação (opcional — aparece no perfil)</label><input class="input-padrao" id="obsConc" maxlength="80" placeholder="ex.: Roda aberta da Praça, 18/10">
-<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button type="button" class="btn-mini" data-fechar>Cancelar</button><button type="button" class="btn-salvar-modal" id="btnOkConc" disabled><i class="fas fa-award"></i> Conceder</button></div>`);
+<div class="conc-rodape"><button type="button" class="btn-mini" data-fechar>Cancelar</button><button type="button" class="btn-salvar-modal" id="btnOkConc" disabled><i class="fas fa-award"></i> Conceder</button></div>`);
 const lista = f.querySelector('#listaAl'); const ok = f.querySelector('#btnOkConc');
-const desenharLista = (q = '') => { const qq = q.toLowerCase(); lista.innerHTML = alunos.filter((u) => String(u.nome || '').toLowerCase().includes(qq)).slice(0, 60).map((u) => `<button type="button" data-u="${u.id}" class="${u.id === selU ? 'sel' : ''}">${avatar(u)} ${escapeHTML(u.nome || '')}<small>${escapeHTML(u.cordaoAtual || '')}${admin ? ` · ${escapeHTML(nomeNucleo(u.academiaId))}` : ''}${selB && jaTem(u, selB) ? ' · já tem' : ''}</small></button>`).join('') || '<p class="cascata-vazio" style="padding:10px">Nenhum atleta encontrado no seu escopo.</p>'; };
-desenharLista();
-const atualizarOk = () => { ok.disabled = !(selB && selU); };
-f.querySelector('#escB').addEventListener('click', (ev) => { const b = ev.target.closest('[data-b]'); if (!b) return; selB = b.dataset.b; f.querySelectorAll('#escB button').forEach((x) => x.classList.toggle('sel', x === b)); desenharLista(f.querySelector('#buscaAluno').value); atualizarOk(); });
-lista.addEventListener('click', (ev) => { const b = ev.target.closest('[data-u]'); if (!b) return; selU = b.dataset.u; lista.querySelectorAll('button').forEach((x) => x.classList.toggle('sel', x === b)); atualizarOk(); });
-f.querySelector('#buscaAluno').addEventListener('input', (ev) => desenharLista(ev.target.value));
+const visiveis = () => { const q = semAcento(termo); return alunos.filter((u) => !q || semAcento(u.nome).includes(q)); };
+const desenharLista = () => {
+const vs = visiveis();
+lista.innerHTML = vs.slice(0, 200).map((u) => { const tem = !!(selB && jaTem(u, selB)); const on = selU.has(u.id); return `<button type="button" role="option" aria-selected="${on}" data-u="${u.id}" class="${on ? 'sel' : ''} ${tem ? 'tem' : ''}" ${tem ? 'disabled' : ''}><span class="conc-check"><i class="fas fa-check"></i></span>${avatar(u)}<span class="conc-nome">${escapeHTML(u.nome || '')}<small>${escapeHTML(u.cordaoAtual || '')}${admin ? ` · ${escapeHTML(nomeNucleo(u.academiaId))}` : ''}</small></span>${tem ? '<em class="conc-tem">já tem</em>' : ''}</button>`; }).join('')
+|| '<p class="cascata-vazio" style="padding:12px">Nenhum atleta com esse nome no seu escopo.</p>';
+};
+const atualizar = () => {
+// quem já tem o brasão escolhido sai da seleção
+if (selB) Array.from(selU).forEach((id) => { const u = alunos.find((x) => x.id === id); if (u && jaTem(u, selB)) selU.delete(id); });
+const n = selU.size;
+f.querySelector('#qtdSel').textContent = n ? `${n} selecionado${n > 1 ? 's' : ''}` : 'Nenhum selecionado';
+ok.disabled = !(selB && n);
+ok.innerHTML = `<i class="fas fa-award"></i> ${n > 1 ? `Conceder a ${n} atletas` : 'Conceder'}`;
+};
+desenharLista(); atualizar();
+f.querySelector('#escB').addEventListener('click', (ev) => { const b = ev.target.closest('[data-b]'); if (!b) return; selB = b.dataset.b; f.querySelectorAll('#escB button').forEach((x) => x.classList.toggle('sel', x === b)); desenharLista(); atualizar(); });
+lista.addEventListener('click', (ev) => { const b = ev.target.closest('[data-u]'); if (!b || b.disabled) return; const id = b.dataset.u; if (selU.has(id)) selU.delete(id); else selU.add(id); b.classList.toggle('sel', selU.has(id)); b.setAttribute('aria-selected', selU.has(id)); atualizar(); });
+f.querySelector('#buscaAluno').addEventListener('input', (ev) => { termo = ev.target.value; desenharLista(); });
+f.querySelector('#btnTodos').addEventListener('click', () => { visiveis().forEach((u) => { if (!(selB && jaTem(u, selB))) selU.add(u.id); }); desenharLista(); atualizar(); });
+f.querySelector('#btnLimpar').addEventListener('click', () => { selU.clear(); desenharLista(); atualizar(); });
 ok.addEventListener('click', async () => {
-const u = alunos.find((x) => x.id === selU); const b = porId(selB); if (!u || !b) return;
-ok.disabled = true;
-try {
+const b = porId(selB); const alvos = alunos.filter((u) => selU.has(u.id)); if (!b || !alvos.length) return;
 if (!podeConceder(b, { admin })) { toast('Este brasão não pode ser concedido.'); return; }
+if (alvos.length > 1 && !confirm(`Conceder "${texto(b).nome}" a ${alvos.length} atletas?`)) return;
+ok.disabled = true; ok.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Concedendo…';
 const campo = ehManual(b) ? 'brasoesManuais' : 'brasoesAdmin';
 const reg = { em: new Date().toISOString(), por: uid, porNome: perfil.nome || '', obs: sanitizeInput(f.querySelector('#obsConc').value || '').slice(0, 80) };
-await updateDoc(doc(db, 'usuarios', u.id), { [`${campo}.${b.id}`]: reg });
-u[campo] = { ...(u[campo] || {}), [b.id]: reg };
-f.remove(); renderTudo(); toast(`${texto(b).nome} concedido a ${u.nome.split(' ')[0]}. Aparece no perfil quando ele abrir a Rede.`);
-} catch (e) { console.error(e); ok.disabled = false; toast('Sem permissão pra conceder a este atleta.'); }
+const res = await Promise.allSettled(alvos.map((u) => updateDoc(doc(db, 'usuarios', u.id), { [`${campo}.${b.id}`]: reg }).then(() => { u[campo] = { ...(u[campo] || {}), [b.id]: reg }; })));
+const falhas = res.filter((r) => r.status === 'rejected'); falhas.forEach((r) => console.error(r.reason));
+const certos = alvos.length - falhas.length;
+f.remove(); renderTudo();
+if (!falhas.length) toast(certos === 1 ? `${texto(b).nome} concedido a ${alvos[0].nome.split(' ')[0]}. Aparece no perfil quando abrir a Rede.` : `${texto(b).nome} concedido a ${certos} atletas.`);
+else toast(`${certos} concedido${certos === 1 ? '' : 's'}, ${falhas.length} sem permissão (fora do seu núcleo?).`);
 });
 }
 async function revogar(uidAlvo, brasaoId, campo) {

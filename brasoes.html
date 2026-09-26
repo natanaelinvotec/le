@@ -9,11 +9,11 @@ acompanhar o ranking. Nada aqui é estimado: as contagens vêm de perfisPublicos
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Brasões - Capoeira Liberdade</title><link rel="icon" type="image/png" href="assets/icon-192.png"><link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<title>Brasões - Capoeira Liberdade</title><link rel="icon" type="image/png" href="assets/app-icon-192.png"><link rel="apple-touch-icon" href="assets/app-apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link rel="stylesheet" href="css/admin.css?v=20260927b">
+<link rel="stylesheet" href="css/admin.css?v=20260927c">
 <style>
 .bra-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
 .bra-card { position: relative; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 12px 10px 10px; text-align: center; box-shadow: var(--shadow-card); display: flex; flex-direction: column; align-items: center; gap: 4px; transition: transform .2s var(--ease-standard), box-shadow .2s var(--ease-standard); }
@@ -55,6 +55,24 @@ acompanhar o ranking. Nada aqui é estimado: as contagens vêm de perfisPublicos
 .escolha-brasao button { border: 2px solid var(--border-color); background: var(--card-bg); border-radius: var(--radius-md); padding: 8px 4px; cursor: pointer; font-family: inherit; font-size: .64rem; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .escolha-brasao button img { width: 48px; height: 48px; object-fit: contain; }
 .escolha-brasao button.sel { border-color: var(--green); background: var(--green-soft); }
+.lista-atletas .av { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex: none; background: var(--primary-blue); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: .72rem; font-family: var(--font-display); }
+.conc-dica { font-size: .74rem; color: var(--text-muted); margin: 2px 0 6px; }
+.escolha-brasao small.auto { font-size: .56rem; color: var(--primary-blue); }
+.conc-busca { position: relative; margin-top: 6px; }
+.conc-busca i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: .8rem; }
+.conc-busca input { padding-left: 34px; }
+.conc-barra { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 8px 0 6px; }
+.conc-qtd { margin-left: auto; font-size: .76rem; font-weight: 800; color: var(--primary-teal); font-family: var(--font-mono); }
+.conc-lista { max-height: 300px; }
+.conc-lista button { gap: 10px; transition: background .2s; }
+.conc-lista button.sel { background: var(--green-soft, #E8F9EF); }
+.conc-lista button.tem { opacity: .55; cursor: default; }
+.conc-check { width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--border-color); flex: none; display: inline-flex; align-items: center; justify-content: center; font-size: .6rem; color: transparent; transition: .2s; }
+.conc-lista button.sel .conc-check { background: var(--green); border-color: var(--green); color: #fff; }
+.conc-nome { display: flex; flex-direction: column; min-width: 0; font-weight: 700; font-size: .84rem; }
+.conc-nome small { margin: 0 !important; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conc-tem { margin-left: auto; font-style: normal; font-size: .66rem; font-weight: 800; color: var(--text-muted); }
+.conc-rodape { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; position: sticky; bottom: -22px; background: var(--card-bg); padding: 10px 0 4px; }
 .hero-brasoes { background: linear-gradient(135deg, var(--primary-blue), var(--primary-teal)); color: #fff; border-radius: var(--radius-xl); padding: 22px 24px; display: flex; align-items: center; gap: 18px; box-shadow: var(--shadow-navy); margin-bottom: 20px; }
 .hero-brasoes img { width: 96px; height: 96px; object-fit: contain; filter: drop-shadow(0 12px 18px rgba(0,0,0,.35)); }
 .hero-brasoes h2 { font-size: 1.3rem; } .hero-brasoes p { opacity: .88; font-size: .88rem; margin-top: 4px; max-width: 60ch; }
@@ -116,6 +134,6 @@ acompanhar o ranking. Nada aqui é estimado: as contagens vêm de perfisPublicos
 </div>
 
 <div id="toast" class="toast-simples" role="status" aria-live="polite"></div>
-<script type="module" src="js/brasoes-admin.js?v=20260927b"></script>
+<script type="module" src="js/brasoes-admin.js?v=20260927c"></script>
 </body>
 </html>

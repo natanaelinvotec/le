@@ -170,6 +170,13 @@ function apresentarPessoa(pessoa, ap, alvo) {
 const gerenciado = pessoa && pessoa.academiaGerenciadaId ? nucleoDe(pessoa.academiaGerenciadaId) : null;
 return tocarApresentacao(pessoa, ap, { alvo: alvo || null, comSom: true, direto: rotuloDiretoDe(pessoa), nucleoNome: gerenciado ? gerenciado.nome : '' });
 }
+// Endereço → rotas (Google Maps; no celular o sistema oferece Maps/Waze).
+function linkMapa(n) {
+const lat = Number(n && n.latitude); const lng = Number(n && n.longitude);
+if (Number.isFinite(lat) && Number.isFinite(lng) && (lat || lng)) return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+const e = (n && n.endereco) || '';
+return e ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e + (/campo grande/i.test(e) ? '' : ', Campo Grande - MS'))}` : '';
+}
 function rotuloDiretoDe(pub) {
 if (!pub) return '';
 if (pub.fundador) return 'Direto Liberdade e Expressão';
@@ -424,8 +431,9 @@ const revisao = p.revisao === 'pendente' && (ehModerador() || gerencia(p.autorAc
 return `<article class="card post ${tipo}" data-id="${p.id}">
 ${tipo === 'momento' ? `<div class="selo-momento"><i class="fas fa-star"></i> Melhor momento${p.nucleoNome ? ` · ${escapeHTML(nomeCurtoNucleo(p.nucleoNome))}` : ''}</div>` : ''}
 ${tipo === 'aviso' ? `<div class="selo-aviso"><i class="fas fa-bullhorn"></i> Aviso do núcleo${p.nucleoNome ? ` · ${escapeHTML(nomeCurtoNucleo(p.nucleoNome))}` : ''}</div>` : ''}
-<div class="post-topo"><button type="button" class="anel-btn" data-perfil="${escapeHTML(p.autorUid)}" style="background:none;border:0;padding:0">${anelHTML(autor)}</button>
-<div class="quem"><button type="button" class="nome" data-perfil="${escapeHTML(p.autorUid)}">${escapeHTML(p.autorNome || 'Capoeirista')}</button><div class="meta">${meta}</div></div>
+${p.comoNucleo && p.nucleoId ? `<div class="post-topo"><button type="button" class="anel-btn" data-nucleo="${escapeHTML(p.nucleoId)}" style="background:none;border:0;padding:0" aria-label="Abrir o núcleo"><span class="anel anel-nucleo"><span class="avatar" style="background:var(--navy)"><i class="fas fa-people-group"></i></span></span></button>
+<div class="quem"><button type="button" class="nome" data-nucleo="${escapeHTML(p.nucleoId)}">${escapeHTML(p.nucleoNome || 'Núcleo')} <span class="pill navy" style="font-size:.56rem;vertical-align:middle"><i class="fas fa-people-group"></i> núcleo</span></button><div class="meta"><span>por <button type="button" class="link-autor" data-perfil="${escapeHTML(p.autorUid)}">${escapeHTML(String(p.autorNome || '').split(' ').slice(0, 2).join(' '))}</button></span><span>${tempoRelativo(p.criadoEm)}</span></div></div>` : `<div class="post-topo"><button type="button" class="anel-btn" data-perfil="${escapeHTML(p.autorUid)}" style="background:none;border:0;padding:0">${anelHTML(autor)}</button>
+<div class="quem"><button type="button" class="nome" data-perfil="${escapeHTML(p.autorUid)}">${escapeHTML(p.autorNome || 'Capoeirista')}</button><div class="meta">${meta}</div></div>`}
 <button type="button" class="post-menu" data-acao="menu" aria-label="Opções"><i class="fas fa-ellipsis"></i></button></div>
 ${revisao}
 ${p.texto ? `<p class="post-texto">${formatarTexto(p.texto)}</p>` : ''}
@@ -855,7 +863,7 @@ const momentos = lista.filter((p) => p.melhorMomento && midiasDe(p).length);
 const avisosNuc = lista.filter((p) => p.tipo === 'aviso');
 const ordemAtletas = atletas.slice().sort((a, b) => (ORDEM_CORDOES.indexOf(b.cordaoAtual) - ORDEM_CORDOES.indexOf(a.cordaoAtual)) || String(a.nome).localeCompare(String(b.nome)));
 vista.innerHTML = `
-<div class="nucleo-cabecalho"><span class="avatar"><i class="fas fa-people-group"></i></span><div style="flex:1;min-width:0"><span class="eyebrow" style="color:rgba(255,255,255,.75)">Núcleo</span><h2>${escapeHTML(n.nome)}</h2>${prof ? `<small>Responsável: ${escapeHTML(prof.nome)}</small>` : (n.professorNome ? `<small>Responsável: ${escapeHTML(n.professorNome)}</small>` : '')}${n.endereco ? `<small><i class="fas fa-location-dot"></i> ${escapeHTML(n.endereco)}</small>` : ''}<div class="pills"><span class="pill"><i class="fas fa-users"></i> ${atletas.length} na rede</span><span class="pill"><i class="fas fa-star"></i> ${momentos.length} momentos</span>${perfil.academiaId === id ? '<span class="pill"><i class="fas fa-house"></i> seu núcleo</span>' : ''}</div>${aprNucleo ? '<button type="button" class="btn-apresentacao-nucleo" id="btnAprNucleo"><i class="fas fa-play"></i> Ver apresentação</button>' : ''}</div></div>
+<div class="nucleo-cabecalho"><span class="avatar"><i class="fas fa-people-group"></i></span><div style="flex:1;min-width:0"><span class="eyebrow" style="color:rgba(255,255,255,.75)">Núcleo</span><h2>${escapeHTML(n.nome)}</h2>${prof ? `<small>Responsável: ${escapeHTML(prof.nome)}</small>` : (n.professorNome ? `<small>Responsável: ${escapeHTML(n.professorNome)}</small>` : '')}${n.endereco || (n.latitude && n.longitude) ? `<a class="nucleo-endereco" href="${escapeHTML(linkMapa(n))}" target="_blank" rel="noopener" title="Abrir rota no mapa"><i class="fas fa-location-dot"></i> ${escapeHTML(n.endereco || 'Ver no mapa')} <i class="fas fa-diamond-turn-right"></i></a>` : ''}<div class="pills"><span class="pill"><i class="fas fa-users"></i> ${atletas.length} na rede</span><span class="pill"><i class="fas fa-star"></i> ${momentos.length} momentos</span>${perfil.academiaId === id ? '<span class="pill"><i class="fas fa-house"></i> seu núcleo</span>' : ''}</div><div class="nucleo-botoes">${aprNucleo ? '<button type="button" class="btn-apresentacao-nucleo" id="btnAprNucleo"><i class="fas fa-play"></i> Ver apresentação</button>' : ''}${gerencia(id) || (ehModerador() && meuNucleoGerenciado() === id) ? '<button type="button" class="btn-apresentacao-nucleo btn-postar-nucleo" id="btnPostarNucleo"><i class="fas fa-pen"></i> Postar como o núcleo</button>' : ''}</div></div></div>
 <div class="abas" id="abasNucleo">${[['momentos', 'Momentos'], ['posts', 'Publicações'], ['atletas', 'Atletas']].map(([k, t]) => `<button type="button" data-a="${k}" class="${nucleoAba === k ? 'ativa' : ''}">${t}</button>`).join('')}</div>
 <div id="painelNucleo"></div>`;
 const painel = el('painelNucleo');
@@ -867,6 +875,7 @@ painel.querySelectorAll('[data-abrir-post]').forEach((b) => b.addEventListener('
 painel.querySelectorAll('[data-seguir]').forEach((b) => b.addEventListener('click', async () => { const p = atletas.find((x) => x.id === b.dataset.seguir); await alternarSeguir(p); desenhar(); }));
 };
 desenhar();
+if (el('btnPostarNucleo')) el('btnPostarNucleo').addEventListener('click', () => ir('publicar/nucleo'));
 if (el('btnAprNucleo')) el('btnAprNucleo').addEventListener('click', () => apresentarPessoa(prof || { id: n.professorUid, nome: n.professorNome || '' }, aprNucleo, null));
 el('abasNucleo').addEventListener('click', (ev) => { const b = ev.target.closest('button'); if (!b) return; nucleoAba = b.dataset.a; el('abasNucleo').querySelectorAll('button').forEach((x) => x.classList.toggle('ativa', x === b)); desenhar(); });
 }
@@ -918,13 +927,17 @@ vista.innerHTML = `<div class="titulo-sec"><span>#${escapeHTML(tag)}</span><span
 let composicao = { midias: [], melhorMomento: false, nucleoId: null, marcados: [], visibilidade: 'rede', aviso: false };
 async function renderPublicar(param, vista) {
 el('tituloTopo').textContent = 'Nova publicação';
-composicao = { midias: [], melhorMomento: false, nucleoId: perfil.academiaId || null, marcados: [], visibilidade: 'rede', aviso: false, hoje: null };
+composicao = { midias: [], melhorMomento: false, nucleoId: perfil.academiaId || null, marcados: [], visibilidade: 'rede', aviso: false, hoje: null, comoNucleo: false };
+const podeComoNucleo = !!meuNucleoGerenciado() && (ehGestor() || ehModerador());
+if (param === 'nucleo' && podeComoNucleo) { composicao.comoNucleo = true; }
 // Núcleo/treino sugerido pela presença real de hoje (Face ID / painel)
 try { const pres = await presencasDoUsuario(uid, 10); const h = hoje0(); const deHoje = pres.find((p) => dataDe(p.entradaEm) >= h); if (deHoje) { composicao.hoje = deHoje; composicao.nucleoId = deHoje.nucleoVisitadoId || deHoje.nucleoId || composicao.nucleoId; } } catch (e) { /* sem leitura */ }
 let colegas = []; try { colegas = (await pubsDeNucleo(composicao.nucleoId || perfil.academiaId, 60)).filter((p) => p.id !== uid); } catch (e) { /* ok */ }
+if (composicao.comoNucleo) composicao.nucleoId = meuNucleoGerenciado();
 const nucSel = nucleoDe(composicao.nucleoId);
+const nucMeu = nucleoDe(meuNucleoGerenciado());
 vista.innerHTML = `<div class="card compor">
-<div class="quem">${anelHTML({ ...perfil, id: uid })}<div><b>${escapeHTML(perfil.nome || '')}</b><button type="button" class="visib" id="btnVisib"><i class="fas fa-users"></i> <span>Toda a rede</span> ▾</button></div></div>
+<div class="quem" id="quemPublica">${composicao.comoNucleo ? `<span class="anel anel-nucleo"><span class="avatar" style="background:var(--navy)"><i class="fas fa-people-group"></i></span></span>` : anelHTML({ ...perfil, id: uid })}<div><b id="quemNome">${escapeHTML(composicao.comoNucleo ? (nucMeu ? nucMeu.nome : 'Meu núcleo') : (perfil.nome || ''))}</b><button type="button" class="visib" id="btnVisib"><i class="fas fa-users"></i> <span>Toda a rede</span> ▾</button></div></div>
 <textarea id="texto" maxlength="${LIMITE_TEXTO}" placeholder="O que rolou no treino hoje? Use #hashtags e @nomes"></textarea>
 <div style="display:flex;justify-content:space-between;align-items:center"><span class="contador" id="contador">0/${LIMITE_TEXTO}</span><span class="contador" id="pesoInfo"></span></div>
 <div class="midias-sel" id="midiasSel"></div>
@@ -933,6 +946,7 @@ vista.innerHTML = `<div class="card compor">
 <div class="opc"><div class="ic n"><i class="fas fa-location-dot"></i></div><div class="t"><b>Núcleo do treino</b><small id="nucInfo">${composicao.hoje ? `Detectado pela sua presença de hoje às ${dataDe(composicao.hoje.entradaEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : 'Sem presença registrada hoje — escolha o núcleo'}</small></div><select id="selNucleo">${nucleos.filter((n) => n.ativo !== false).map((n) => `<option value="${escapeHTML(n.id)}" ${n.id === composicao.nucleoId ? 'selected' : ''}>${escapeHTML(nomeCurtoNucleo(n.nome))}</option>`).join('')}<option value="" ${!composicao.nucleoId ? 'selected' : ''}>Sem núcleo</option></select></div>
 <div class="opc" style="flex-wrap:wrap"><div class="ic"><i class="fas fa-user-tag"></i></div><div class="t"><b>Marcar atletas</b><small id="marcInfo">${colegas.length ? 'Toque pra marcar quem estava no treino' : 'Ninguém do núcleo abriu a rede ainda'}</small></div><span class="val mono" id="marcQtd">0</span><div class="marcar-lista" id="marcarLista" style="width:100%">${colegas.map((c) => `<button type="button" class="pill" data-marcar="${c.id}" data-img="${c.usoImagemOk ? '1' : '0'}">${escapeHTML(c.nome.split(' ').slice(0, 2).join(' '))}${c.usoImagemOk ? '' : ' <i class="fas fa-eye-slash" title="sem termo de imagem"></i>'}</button>`).join('')}</div></div>
 <div class="opc"><div class="ic"><i class="fas fa-shield-halved"></i></div><div class="t"><b>Proteger rostos</b><small id="rostosInfo">Detecta rostos nas fotos e deixa você desfocar quem não autorizou imagem</small></div><button type="button" class="val" id="btnRostos" disabled>Detectar</button></div>
+${podeComoNucleo ? `<div class="opc"><div class="ic" style="background:var(--sky-soft);color:var(--sky-texto)"><i class="fas fa-people-group"></i></div><div class="t"><b>Publicar como o núcleo</b><small>Sai com o nome e o selo de ${escapeHTML(nucMeu ? nomeCurtoNucleo(nucMeu.nome) : 'seu núcleo')} (você aparece como quem publicou)</small></div><button type="button" class="switch cinza ${composicao.comoNucleo ? 'on' : ''}" id="swComoNucleo" aria-label="Publicar como o núcleo"></button></div>` : ''}
 ${ehGestor() || ehModerador() ? `<div class="opc"><div class="ic" style="background:var(--green-soft);color:#1E8449"><i class="fas fa-bullhorn"></i></div><div class="t"><b>Publicar como aviso do núcleo</b><small>Aparece destacado em verde pra todo mundo no feed</small></div><button type="button" class="switch cinza" id="swAviso" aria-label="Aviso"></button></div>` : ''}
 </div>
 <div style="margin-top:14px"><button type="button" class="btn-verde" id="btnPublicar" style="width:100%;padding:13px" disabled><i class="fas fa-paper-plane"></i> Publicar na rede</button><p class="contador" style="text-align:center;margin-top:8px">Publique com respeito — o grupo tem crianças. Fotos são comprimidas automaticamente antes de subir.</p></div>
@@ -943,6 +957,13 @@ texto.addEventListener('input', atualizar_);
 el('swMomento').addEventListener('click', (e) => { composicao.melhorMomento = !composicao.melhorMomento; e.currentTarget.classList.toggle('on', composicao.melhorMomento); });
 const swAviso = el('swAviso'); if (swAviso) swAviso.addEventListener('click', (e) => { composicao.aviso = !composicao.aviso; e.currentTarget.classList.toggle('on', composicao.aviso); if (composicao.aviso && !ehModerador() && meuNucleoGerenciado()) { composicao.nucleoId = meuNucleoGerenciado(); el('selNucleo').value = composicao.nucleoId; } if (composicao.aviso) toast(`Este post vai sair como aviso do núcleo ${nomeCurtoNucleo((nucleoDe(composicao.nucleoId) || {}).nome || '')}.`); });
 el('selNucleo').addEventListener('change', (e) => { composicao.nucleoId = e.target.value || null; });
+const swComo = el('swComoNucleo');
+if (swComo) swComo.addEventListener('click', (e) => {
+composicao.comoNucleo = !composicao.comoNucleo; e.currentTarget.classList.toggle('on', composicao.comoNucleo);
+if (composicao.comoNucleo) { composicao.nucleoId = meuNucleoGerenciado(); el('selNucleo').value = composicao.nucleoId; }
+const q = el('quemPublica'); if (q) { const av = q.querySelector('.anel'); if (av) av.outerHTML = composicao.comoNucleo ? '<span class="anel anel-nucleo"><span class="avatar" style="background:var(--navy)"><i class="fas fa-people-group"></i></span></span>' : anelHTML({ ...perfil, id: uid }); }
+el('quemNome').textContent = composicao.comoNucleo ? ((nucleoDe(meuNucleoGerenciado()) || {}).nome || 'Meu núcleo') : (perfil.nome || '');
+});
 el('btnVisib').addEventListener('click', () => abrirFolha(`<h3>Quem pode ver</h3><div style="display:grid;gap:8px"><button type="button" class="btn-claro" data-m="rede"><i class="fas fa-users"></i> Toda a rede Liberdade</button><button type="button" class="btn-claro" data-m="nucleo"><i class="fas fa-people-group"></i> Só o meu núcleo</button><button type="button" class="btn-claro" data-m="seguidores"><i class="fas fa-user-check"></i> Só quem me segue</button></div>`, (m) => { composicao.visibilidade = m; el('btnVisib').querySelector('span').textContent = m === 'rede' ? 'Toda a rede' : m === 'nucleo' ? 'Só o núcleo' : 'Só seguidores'; }));
 el('marcarLista').addEventListener('click', (ev) => {
 const b = ev.target.closest('[data-marcar]'); if (!b) return; const c = colegas.find((x) => x.id === b.dataset.marcar);
@@ -1036,7 +1057,6 @@ async function publicar(texto) {
 const btn = el('btnPublicar'); if (!texto && !composicao.midias.length) return;
 btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publicando…';
 try {
-const nuc = nucleoDe(composicao.nucleoId);
 const midias = [];
 for (const m of composicao.midias) {
 if (m.tipo === 'video') { const r = storageRef(storage, `rede/${uid}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}.mp4`); await uploadBytes(r, m.arquivo, { contentType: m.arquivo.type || 'video/mp4' }); midias.push({ url: await getDownloadURL(r), tipo: 'video', dur: Math.round(m.dur || 0) }); }
@@ -1044,7 +1064,10 @@ else { midias.push({ url: await subirDataUrl(`rede/${uid}/${Date.now()}_${Math.r
 }
 const semTermo = composicao.marcados.some((x) => !x.usoImagemOk) && !composicao.midias.some((m) => m.rostos && m.rostos.some((r) => r.borrado));
 const precisaRevisao = midias.length > 0 && (souMenor() || semTermo);
+const comoNucleo = !!composicao.comoNucleo && !!meuNucleoGerenciado() && (ehModerador() || gerencia(composicao.nucleoId));
+if (comoNucleo) composicao.nucleoId = meuNucleoGerenciado();
 const ehAviso = composicao.aviso && (ehModerador() || gerencia(composicao.nucleoId));
+const nuc = nucleoDe(composicao.nucleoId);
 const docPost = {
 autorUid: uid, autorNome: perfil.nome || '', autorFoto: perfil.fotoUrl || '', autorAcademiaId: perfil.academiaId || null, autorAcademiaNome: perfil.academiaNome || '', autorCordao: perfil.cordaoAtual || '',
 autorMenor: !!souMenor(), texto, fotoUrl: midias.find((m) => m.tipo === 'imagem')?.url || null, midias,
@@ -1052,6 +1075,7 @@ tipo: ehAviso ? 'aviso' : 'post', melhorMomento: !!composicao.melhorMomento && !
 nucleoId: nuc ? nuc.id : null, nucleoNome: nuc ? nuc.nome : '', marcados: composicao.marcados.map((m) => ({ uid: m.uid, nome: m.nome })),
 visibilidade: composicao.visibilidade, hashtags: extrairHashtags(texto), revisao: precisaRevisao ? 'pendente' : 'ok',
 criadoEm: new Date().toISOString(), curtidas: [], comentariosCount: 0,
+...(comoNucleo ? { comoNucleo: true } : {}),
 };
 await addDoc(collection(db, 'posts'), docPost);
 posts = []; ultimoDoc = null; filtroFeed = 'rede';
@@ -1188,6 +1212,15 @@ try { const pubs = await Promise.all(nucleos.filter((n) => n.professorUid).map((
 if (!configBrasoes.presidenteUid && configBrasoes.nucleoFundadorId) { const nf = nucleos.find((n) => n.id === configBrasoes.nucleoFundadorId); if (nf && nf.professorUid) configBrasoes.presidenteUid = nf.professorUid; }
 meuPub = await pubDe(uid);
 el('app').classList.remove('oculto');
+// Voltar: quem tem painel (Admin, Fundador, responsável com núcleo) volta pro
+// painel do núcleo — antes caía no app como aluno e perdia as ferramentas.
+// Se a pessoa veio da área de atleta (app.html?modo=aluno), volta pra lá.
+{
+const temPainel = ehAdmin() || souFundador(perfil) || (!!perfil.academiaGerenciadaId && (papeis().includes('mestre') || papeis().includes('instrutor')));
+let origem = null; try { origem = sessionStorage.getItem('rede.voltar'); } catch (e) { /* ok */ }
+const destino = origem && /^(admin\.html|app\.html(\?modo=aluno)?)$/.test(origem) ? origem : (temPainel ? 'admin.html' : 'app.html');
+const bv = el('btnVoltarApp'); if (bv) { bv.href = destino; bv.title = destino.startsWith('admin') ? 'Voltar ao painel do núcleo' : 'Voltar ao app'; bv.setAttribute('aria-label', bv.title); }
+}
 let tema = 'light'; try { tema = localStorage.getItem('rede.tema') || 'light'; } catch (e) { /* ok */ }
 aplicarTema(tema);
 el('btnTema').addEventListener('click', () => aplicarTema(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));

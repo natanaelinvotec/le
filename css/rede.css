@@ -477,3 +477,12 @@ body::before { content: ''; position: fixed; left: 0; right: 0; top: 0; height: 
   .story-card, .leque .carta { animation: none; transition-duration: .15s; }
   .leque .carta[data-pos="c"] { --rx: 0deg !important; --ry: 0deg !important; }
 }
+
+/* Posts e botões "como núcleo" */
+.anel-nucleo { background: linear-gradient(135deg, #00B140, #002D72, #389E92); border-radius: 36%; }
+.anel-nucleo .avatar { border-radius: 30%; }
+.link-autor { background: none; border: 0; padding: 0; color: var(--sky-texto); font-weight: 800; font-size: inherit; cursor: pointer; }
+.nucleo-botoes { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-postar-nucleo i { background: linear-gradient(135deg, #3D8BFF, #1B5FC2) !important; }
+.nucleo-cabecalho .nucleo-endereco { display: inline-flex; align-items: center; gap: 6px; margin-top: 3px; color: #fff; font-size: .74rem; text-decoration: underline; text-underline-offset: 3px; opacity: .92; }
+.nucleo-cabecalho .nucleo-endereco:hover { opacity: 1; }
