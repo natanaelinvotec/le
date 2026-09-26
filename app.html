@@ -1655,7 +1655,7 @@ class Component extends DCLogic {
 
   async iniciar() {
     try {
-      const FB = await import('./js/firebase.js');
+      const FB = await import(new URL('js/firebase.js', document.baseURI).href);
       this._FB = FB;
       FB.observarSessao(async (user) => {
         if (!user) { window.location.href = 'login.html'; return; }
@@ -1735,7 +1735,7 @@ class Component extends DCLogic {
   }
 
   // conta.js (senha, celular, apresentação) — carregado sob demanda, uma vez.
-  conta() { if (!this._contaP) this._contaP = import('./js/conta.js?v=20260927a'); return this._contaP; }
+  conta() { if (!this._contaP) this._contaP = import(new URL('js/conta.js?v=20260927a', document.baseURI).href); return this._contaP; }
   async trocarSenhaAcao() { try { (await this.conta()).abrirTrocaSenha(); } catch (e) { console.error(e); this.toast('Não foi possível abrir a troca de senha.'); } }
   async minhaApresentacaoAcao() {
     try {
