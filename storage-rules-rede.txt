@@ -2,7 +2,7 @@ REGRAS DO FIREBASE STORAGE — Rede Liberdade 2.0
 ================================================
 Onde: Firebase Console → Storage → Regras → substitua TUDO pelo bloco abaixo
 e clique em Publicar. (Já inclui as fotos de perfil/inscrição em fotos_alunos/
-e a pasta nova apresentacoes/ dos vídeos dos núcleos.)
+e a pasta apresentacoes/<uid>/ dos vídeos de cada Instrutor/Professor/Mestre.)
 
 ATENÇÃO: a regra de apresentacoes/ consulta o seu cadastro no Firestore para
 saber se você é Admin/Fundador. Na primeira vez o Console pode mostrar um aviso
@@ -11,6 +11,19 @@ pedindo para "conceder permissão" do Storage ao Firestore — clique em Concede
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+
+    function perfilDe(id) { return firestore.get(/databases/(default)/documents/usuarios/$(id)).data; }
+    function podeMexerNaApresentacao(uid) {
+      let eu = perfilDe(request.auth.uid);
+      return 'admin' in eu.get('papeis', [])
+          || eu.get('acessoGeral', false) == true
+          || (request.auth.uid == uid && (
+                eu.get('cordaoAtual', '') in ['Instrutor', 'Professor', 'Mestre', 'Mestre/Presidente']
+                || eu.get('papeis', []).hasAny(['mestre', 'instrutor'])))
+          || ('mestre' in eu.get('papeis', [])
+              && eu.get('academiaGerenciadaId', '') != ''
+              && perfilDe(uid).get('academiaId', '') == eu.get('academiaGerenciadaId', ''));
+    }
 
     // Foto de perfil/carteirinha (inscrição, painel e Rede): qualquer pessoa
     // logada grava (imagem até 3 MB); leitura pública (aparece no app e no site).
@@ -36,23 +49,17 @@ service firebase.storage {
       allow delete: if request.auth != null && request.auth.uid == uid;
     }
 
-    // Apresentações em vídeo dos responsáveis de núcleo (painel → Núcleos →
-    // "Enviar vídeo"). Só o Admin Master ou o Fundador enviam/trocam
-    // (vídeo até 20 MB). Quem está logado assiste.
-    match /apresentacoes/{arquivo} {
+    // Apresentações em vídeo de cada Instrutor/Professor/Mestre: pasta
+    // apresentacoes/<uid da pessoa>/. Quem envia: a própria pessoa (cordão de
+    // Instrutor para cima ou papel mestre/instrutor), o Admin, o Fundador e o
+    // responsável do núcleo onde ela treina. Vídeo até 20 MB. Logado assiste.
+    match /apresentacoes/{uid}/{arquivo} {
       allow read: if request.auth != null;
       allow write: if request.auth != null
                    && request.resource.contentType.matches('video/.*')
                    && request.resource.size < 20 * 1024 * 1024
-                   && (
-                     'admin' in firestore.get(/databases/(default)/documents/usuarios/$(request.auth.uid)).data.papeis ||
-                     firestore.get(/databases/(default)/documents/usuarios/$(request.auth.uid)).data.get('acessoGeral', false) == true
-                   );
-      allow delete: if request.auth != null
-                   && (
-                     'admin' in firestore.get(/databases/(default)/documents/usuarios/$(request.auth.uid)).data.papeis ||
-                     firestore.get(/databases/(default)/documents/usuarios/$(request.auth.uid)).data.get('acessoGeral', false) == true
-                   );
+                   && podeMexerNaApresentacao(uid);
+      allow delete: if request.auth != null && podeMexerNaApresentacao(uid);
     }
 
     // Tudo o que não está listado acima: fechado.

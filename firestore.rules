@@ -58,6 +58,37 @@ allow read: if logado() && (request.auth.uid == uid || ehAdmin() || souFundador(
 allow create: if ehAdmin() || (ehGestor() && alunoDoMeuNucleo()) || souInstrutorDesteAluno();
 }
 
+// Apresentação em vídeo de cada Instrutor/Professor/Mestre (conta.js).
+// Leitura: qualquer pessoa logada (alunos veem a do responsável do núcleo).
+// Escrita: Admin, Fundador, a própria pessoa (se tiver cordão de Instrutor
+// para cima ou papel de mestre/instrutor) e o responsável do núcleo onde ela
+// treina. Só os campos conhecidos e só link https:// ou caminho apresentacoes/.
+match /apresentacoes/{uid} {
+function podeTerVideo() {
+let p = meuPerfil();
+return p.get('cordaoAtual', '') in ['Instrutor', 'Professor', 'Mestre', 'Mestre/Presidente']
+|| meusPapeis().hasAny(['mestre', 'instrutor'])
+|| p.get('acessoGeral', false) == true;
+}
+function responsavelDoNucleoDela() {
+return ehGestor() && get(/databases/$(database)/documents/usuarios/$(uid)).data.get('academiaId', '') == minhaAcademiaGerenciada();
+}
+function podeEditar() {
+return ehAdmin() || souFundador() || (request.auth.uid == uid && podeTerVideo()) || responsavelDoNucleoDela();
+}
+function dadosValidos() {
+let d = request.resource.data;
+return d.keys().hasOnly(['videoUrl', 'inicioNome', 'titulo', 'duracao', 'atualizadoEm', 'porNome', 'porUid'])
+&& d.videoUrl is string && d.videoUrl.size() < 1500
+&& d.videoUrl.matches('^(https://|apresentacoes/)[^ <>"]+$')
+&& (!('titulo' in d) || d.titulo == null || (d.titulo is string && d.titulo.size() <= 24))
+&& (!('inicioNome' in d) || d.inicioNome == null || (d.inicioNome is number && d.inicioNome >= 0 && d.inicioNome <= 30));
+}
+allow read: if logado();
+allow create, update: if logado() && podeEditar() && dadosValidos();
+allow delete: if logado() && podeEditar();
+}
+
 match /nucleos/{id} {
 allow read: if true;
 // souFundador() aditivo: aprovar uma solicitação de mensalidade no Painel

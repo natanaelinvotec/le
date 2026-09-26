@@ -7,6 +7,7 @@ import {
   getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
   sendPasswordResetEmail, onAuthStateChanged, signOut,
   setPersistence, browserLocalPersistence,
+  EmailAuthProvider, reauthenticateWithCredential, updatePassword,
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import {
   getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc,
@@ -103,6 +104,19 @@ export async function entrar(email, senha) {
 }
 export const recuperarSenha = (email) => sendPasswordResetEmail(auth, email.trim().toLowerCase());
 export const sair = () => signOut(auth);
+
+// Troca de senha feita pela própria pessoa (Meus dados / Minha conta / Rede).
+// O Firebase exige login recente para mudar senha: por isso a pessoa digita a
+// senha atual e reautenticamos antes de gravar a nova. A senha nunca passa
+// pelo Firestore — fica só no Firebase Authentication.
+export async function trocarSenha(senhaAtual, novaSenha) {
+  const u = auth.currentUser;
+  if (!u || !u.email) { const e = new Error('Sessão expirada.'); e.code = 'auth/no-current-user'; throw e; }
+  const cred = EmailAuthProvider.credential(u.email, senhaAtual);
+  await reauthenticateWithCredential(u, cred);
+  await updatePassword(u, novaSenha);
+}
+export const emailDaSessao = () => (auth.currentUser && auth.currentUser.email) || '';
 export const observarSessao = (cb) => onAuthStateChanged(auth, cb);
 export const meuUid = () => auth.currentUser && auth.currentUser.uid;
 

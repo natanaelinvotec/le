@@ -1458,6 +1458,14 @@ a:hover{ color:#389E92; }
               </sc-for>
             </div>
 
+            <sc-if value="{{ sheetEhDados }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;">
+                <button onClick="{{ trocarSenha }}" style="flex:1; min-width:140px; display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 14px; border:1px solid #D5DEE8; border-radius:14px; background:#fff; color:#002D72; font-family:'Manrope',sans-serif; font-weight:800; font-size:.84rem; cursor:pointer;"><i class="fas fa-key" style="color:#3D8BFF;"></i> Trocar senha</button>
+                <sc-if value="{{ sheetTemApresentacao }}" hint-placeholder-val="{{ false }}">
+                  <button onClick="{{ minhaApresentacao }}" style="flex:1; min-width:140px; display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 14px; border:1px solid rgba(218,165,32,.45); border-radius:14px; background:#fff6e0; color:#8a6a10; font-family:'Manrope',sans-serif; font-weight:800; font-size:.84rem; cursor:pointer;"><i class="fas fa-play" style="color:#DAA520;"></i> Minha apresentação</button>
+                </sc-if>
+              </div>
+            </sc-if>
             <input type="file" id="sheetFotoInput" accept="image/*" style="display:none" onChange="{{ sheetFotoMudar }}" />
             <button onClick="{{ confirmarSheet }}" style="margin-top:18px; width:100%; padding:16px; border:none; border-radius:20px; background:#002D72; color:#fff; font-family:'Sora',sans-serif; font-weight:700; font-size:.98rem; cursor:pointer;">{{ sheetBotao }}</button>
           </div>
@@ -1603,6 +1611,24 @@ function progressoDe(idade, idxCordao, notasObj) {
   return { ativos, total, max, progresso: max > 0 ? Math.floor((total / max) * 100) : 0 };
 }
 
+// Mesma máscara do conta.js, sem precisar carregar o módulo pra desenhar a tela.
+function formatarCelularApp(v) {
+  let d = String(v || '').replace(/\D/g, '');
+  if (d.startsWith('55') && d.length > 11) d = d.slice(2);
+  d = d.slice(0, 11);
+  if (d.length <= 2) return d ? '(' + d : '';
+  if (d.length <= 6) return '(' + d.slice(0, 2) + ') ' + d.slice(2);
+  if (d.length <= 10) return '(' + d.slice(0, 2) + ') ' + d.slice(2, 6) + '-' + d.slice(6);
+  return '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + '-' + d.slice(7);
+}
+// Mesma regra do apresentacao.js (Instrutor para cima, papéis de mestre/instrutor, fundador).
+function podeTerApresentacaoApp(p) {
+  if (!p) return false;
+  if (['Instrutor', 'Professor', 'Mestre', 'Mestre/Presidente'].indexOf(p.cordaoAtual) !== -1) return true;
+  if (Array.isArray(p.papeis) && (p.papeis.indexOf('mestre') !== -1 || p.papeis.indexOf('instrutor') !== -1)) return true;
+  return p.acessoGeral === true;
+}
+
 function brl(v) {
   return 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -1657,13 +1683,18 @@ class Component extends DCLogic {
     const idade = Number(u.idade) || 0;
     const idx = idxCordaoDe(idade, u.cordaoAtual);
     let mensalidadeValor = null;
-    let apresentacao = null; // vídeo do responsável do núcleo (nucleos/{id}.apresentacao)
+    let apresentacao = null; // vídeo do responsável do núcleo (apresentacoes/{professorUid})
     if (u.academiaId) {
       try {
         const nuc = await FB.buscar('nucleos', u.academiaId);
         if (nuc && nuc.mensalidadeValor !== undefined) mensalidadeValor = Number(nuc.mensalidadeValor) || 0;
-        if (nuc && nuc.apresentacao && nuc.apresentacao.videoUrl) {
-          apresentacao = { ...nuc.apresentacao, nucleoNome: nuc.nome || '', professorUid: nuc.professorUid || null, professorNome: nuc.professorNome || '' };
+        // Vídeo é da PESSOA responsável pelo núcleo (apresentacoes/{uid}), não do núcleo.
+        if (nuc && nuc.professorUid) {
+          try {
+            const C = await this.conta();
+            const ap = await C.apresentacaoDe(nuc.professorUid);
+            if (ap) apresentacao = { ...ap, nucleoNome: nuc.nome || '', professorUid: nuc.professorUid, professorNome: nuc.professorNome || '' };
+          } catch (_) { /* sem vídeo: pílula continua como texto */ }
         }
       } catch (_) { /* segue sem o valor */ }
     }
@@ -1694,21 +1725,23 @@ class Component extends DCLogic {
     if (!ap || !ap.videoUrl) return;
     let pub = null;
     try { pub = ap.professorUid ? await this._FB.buscar('perfisPublicos', ap.professorUid) : null; } catch (_) { pub = null; }
-    const CORES = { 'Iniciante':['#CCC','#CCC','#CCC'], 'Escravo':['#4F4F4F','#4F4F4F','#4F4F4F'], 'Fugitivo':['#4F4F4F','#DAA520','#4F4F4F'], 'Quilombola':['#DAA520','#DAA520','#DAA520'], 'Vagante':['#4F4F4F','#D32F2F','#4F4F4F'], 'Liberto':['#D32F2F','#D32F2F','#D32F2F'], 'Instrutor':['#4F4F4F','#DAA520','#D32F2F'], 'Professor':['#FFFFFF','#D32F2F','#FFFFFF'], 'Mestre':['#F5F5F5','#F5F5F5','#F5F5F5'], 'Mestre/Presidente':['#FFFFFF','#00B140','#002D72'] };
-    const cordao = (pub && pub.cordaoAtual) || '';
+    const pessoa = { ...(pub || {}), id: ap.professorUid, nome: (pub && pub.nome) || ap.professorNome || '' };
     const curto = (n) => String(n || '').replace(/^\s*(academia|núcleo|nucleo)\s+(d[oa]\s+)?/i, '').trim();
     const direto = pub ? (pub.fundador ? 'Direto Liberdade e Expressão' : (pub.academiaNome ? 'Direto ' + curto(pub.academiaNome) : '')) : '';
     try {
-      const M = await import('./apresentacao.js');
-      await M.abrirApresentacao({
-        videoUrl: ap.videoUrl, inicioNome: ap.inicioNome, comSom: true,
-        cargo: M.textoCargo(pub, ap.titulo),
-        nome: (pub && pub.nome) || ap.professorNome || '',
-        chips: [cordao ? { texto: 'Cordão ' + cordao, ouro: true } : null, direto ? { texto: direto } : null, ap.nucleoNome ? { texto: ap.nucleoNome } : null],
-        corda: CORES[cordao] || CORES['Professor'],
-        alvo: null, logoUrl: 'logo-liberdade150.png',
-      });
+      const C = await this.conta();
+      await C.tocarApresentacao(pessoa, ap, { comSom: true, direto, nucleoNome: ap.nucleoNome || '' });
     } catch (e) { console.error(e); this.toast('Não foi possível abrir a apresentação agora.'); }
+  }
+
+  // conta.js (senha, celular, apresentação) — carregado sob demanda, uma vez.
+  conta() { if (!this._contaP) this._contaP = import('./conta.js'); return this._contaP; }
+  async trocarSenhaAcao() { try { (await this.conta()).abrirTrocaSenha(); } catch (e) { console.error(e); this.toast('Não foi possível abrir a troca de senha.'); } }
+  async minhaApresentacaoAcao() {
+    try {
+      const C = await this.conta();
+      C.gerenciarApresentacao({ ...(this._perfilBruto || {}), id: this._uid }, { extras: { nucleoNome: (PERFIS[0] && PERFIS[0].academia) || '' } });
+    } catch (e) { console.error(e); this.toast('Não foi possível abrir a apresentação.'); }
   }
 
   async montarPerfil(uid, perfil) {
@@ -1734,9 +1767,11 @@ class Component extends DCLogic {
     }
 
     const papeisConta = (ehResp ? ['responsavel'] : ['aluno']).concat(gestorPapel ? [gestorPapel] : []);
+    this._perfilBruto = perfil;
     PERFIS = [{
       id: uid,
       email: perfil.email || '',
+      celular: perfil.celular || perfil.telefone || '',
       nome: perfil.nome || perfil.email || 'Conta',
       sub: ehResp ? ('Responsável · ' + ATLETAS.length + (ATLETAS.length === 1 ? ' atleta' : ' atletas')) : ('Cordão ' + ((ATLETAS[0] && ATLETAS[0].cordao) || 'Iniciante')),
       foto: perfil.fotoUrl || 'assets/logo-liberdade.png',
@@ -1751,6 +1786,13 @@ class Component extends DCLogic {
 
     this.setState({ carregando: false });
     this.entrarComPerfil(PERFIS[0]);
+
+    // Apresentação em vídeo: abre sozinha quando um Instrutor/Professor/Mestre
+    // com vídeo entra na plataforma (uma vez por login — ver conta.js).
+    this.conta().then((C) => {
+      C.definirAutor({ uid, nome: perfil.nome || '' });
+      return C.tocarAoEntrar({ ...perfil, id: uid }, { nucleoNome: PERFIS[0].academia || '' });
+    }).catch((e) => console.warn('apresentação ao entrar', e));
 
     if (gestorPapel && perfil.academiaGerenciadaId) {
       this.carregarTurma(perfil.academiaGerenciadaId);
@@ -2214,13 +2256,13 @@ class Component extends DCLogic {
     const sheetDefs = {
       dados: {
         titulo: 'Meus dados',
-        ajuda: 'Atualize seu nome, foto e telefone de contato. Para trocar de senha, use "Esqueci minha senha" na tela de login.',
+        ajuda: 'Atualize seu nome, foto e celular de contato. A senha você troca no botão logo abaixo.',
         botao: 'Salvar alterações',
         campos: [
           { chave:'foto', rotulo:'Foto de perfil:', tipo:'foto', padrao: (perfilAtual && perfilAtual.foto) || 'assets/logo-liberdade.png' },
           { chave:'nome', rotulo:'Nome completo:', tipo:'texto', entrada:'text', padrao: perfilAtual ? perfilAtual.nome : '' },
           { chave:'email', rotulo:'E-mail de acesso:', tipo:'texto', entrada:'email', padrao: perfilAtual ? perfilAtual.email : '' },
-          { chave:'telefone', rotulo:'Celular:', tipo:'texto', entrada:'tel', dica:'(67) 99129-3269', padrao:'' },
+          { chave:'celular', rotulo:'Celular / WhatsApp:', tipo:'texto', entrada:'tel', dica:'(67) 99129-3269', padrao: perfilAtual ? formatarCelularApp(perfilAtual.celular) : '' },
         ],
       },
       academia: {
@@ -2450,8 +2492,9 @@ class Component extends DCLogic {
       perfilSub: gestor && perfilAtual ? perfilAtual.sub : ('Cordão ' + atleta.cordao + ' · ' + atleta.academia),
 
       opcoesPerfil: [
-        { rotulo:'Meus dados', ajuda:'Nome, e-mail e telefone de contato', icone:'fas fa-id-card', acao: () => this.abrirSheet('dados') },
-      ].concat(!gestor ? [{ rotulo:'Troféus & Brasões', ajuda:'Sua escada de cordoada e conquistas', icone:'fas fa-trophy', acao: () => { window.location.href = 'rede.html#brasoes'; } }] : [])
+        { rotulo:'Meus dados', ajuda:'Nome, foto e celular de contato', icone:'fas fa-id-card', acao: () => this.abrirSheet('dados') },
+        { rotulo:'Trocar senha', ajuda:'Com a senha atual; se esqueceu, enviamos um link', icone:'fas fa-key', acao: () => this.trocarSenhaAcao() },
+      ].concat(podeTerApresentacaoApp(this._perfilBruto) ? [{ rotulo:'Minha apresentação', ajuda:'Vídeo que abre quando você entra na plataforma', icone:'fas fa-film', acao: () => this.minhaApresentacaoAcao() }] : []).concat(!gestor ? [{ rotulo:'Troféus & Brasões', ajuda:'Sua escada de cordoada e conquistas', icone:'fas fa-trophy', acao: () => { window.location.href = 'rede.html#brasoes'; } }] : [])
         .concat(!gestor ? [{ rotulo:'Núcleos', ajuda:'Veja o seu núcleo e os demais do grupo', icone:'fas fa-map-marker-alt', acao: () => this.irPara('nucleos') }] : [])
         .concat(familia ? [{ rotulo:'Vincular familiar', ajuda:'Ligar outro dependente à conta', icone:'fas fa-link', acao: () => this.abrirSheet('vincular') }] : [])
         // Face ID fica no painel de gestão (admin.html → Presenças) e só para
@@ -2910,9 +2953,13 @@ class Component extends DCLogic {
           statusFoto: this.state.sheetFotoStatus,
           abrirGaleria: () => { const el = document.getElementById('sheetFotoInput'); if (el) el.click(); },
           alternar: () => {},
-          mudar: (ev) => this.setState((s) => { const v = Object.assign({}, s.sheetVals); v[c.chave] = ev.target.value; return { sheetVals: v }; }),
+          mudar: (ev) => this.setState((s) => { const v = Object.assign({}, s.sheetVals); v[c.chave] = c.chave === 'celular' ? formatarCelularApp(ev.target.value) : ev.target.value; return { sheetVals: v }; }),
         };
       }) : [],
+      sheetEhDados: this.state.sheet === 'dados',
+      sheetTemApresentacao: this.state.sheet === 'dados' && podeTerApresentacaoApp(this._perfilBruto),
+      trocarSenha: () => this.trocarSenhaAcao(),
+      minhaApresentacao: () => this.minhaApresentacaoAcao(),
       sheetFotoMudar: (ev) => this.trocarFotoSheet(ev),
       fecharSheet: () => this.setState({ sheet: null, sheetVals: {}, sheetFotoStatus: '' }),
       confirmarSheet: async () => {
@@ -2923,11 +2970,18 @@ class Component extends DCLogic {
           try {
             const novoNome = pega('nome', perfilAtual ? perfilAtual.nome : '');
             const novaFoto = pega('foto', (perfilAtual && perfilAtual.foto) || '');
+            const novoCelular = formatarCelularApp(pega('celular', perfilAtual ? perfilAtual.celular : ''));
+            const digitos = novoCelular.replace(/\D/g, '').length;
+            if (digitos && digitos !== 10 && digitos !== 11) { this.toast('Celular com DDD: 10 ou 11 números.'); return; }
+            if (!String(novoNome || '').trim()) { this.toast('O nome não pode ficar vazio.'); return; }
+            // O cadastro inteiro usa o campo "celular" (inscrição e painel).
+            // Antes este formulário gravava em "telefone" e nunca mostrava de volta.
             await this._FB.atualizar('usuarios', this._uid, {
-              nome: novoNome,
-              telefone: pega('telefone', ''),
+              nome: String(novoNome).trim(),
+              celular: novoCelular,
               fotoUrl: novaFoto,
             });
+            if (perfilAtual) perfilAtual.celular = novoCelular;
             // Atualiza na hora a foto/nome exibidos (cabeçalho, perfil) sem
             // precisar recarregar a página inteira.
             if (perfilAtual) { perfilAtual.foto = novaFoto; perfilAtual.nome = novoNome; }

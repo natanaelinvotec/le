@@ -1,18 +1,16 @@
-/* apresentacao.js — entrada cinematográfica dos responsáveis de núcleo.
+/* apresentacao.js — entrada cinematográfica de Instrutores, Professores e Mestres.
 
-Um módulo só, usado no painel (cartão do responsável), no app do aluno (botão
-no nome da academia) e na Rede (perfil e página do núcleo).
+Um módulo só (sem Firebase), usado no painel, no app do aluno e na Rede.
+Os dados moram em apresentacoes/{uid} (ver conta.js): { videoUrl, inicioNome?,
+titulo?, duracao?, atualizadoEm, porNome, porUid }. Sem vídeo, nada aparece e
+a foto clássica do cadastro continua igual.
 
-Onde fica o vídeo: nucleos/{id}.apresentacao = { videoUrl, inicioNome?, duracao?,
-atualizadoEm, porNome }. O documento do núcleo é de leitura pública, então o
-aluno consegue ver a apresentação do próprio núcleo sem ler o cadastro do
-professor. Sem videoUrl, nada aparece (o cartão continua como hoje, com a foto
-clássica do cadastro).
-
-Roteiro (proporcional à duração do vídeo; inicioNome ajusta vídeos com
-abertura longa, ex.: drone): faixas de cinema + "apresenta" → cargo e nome →
-corda do cordão → selos → saída com a luz do Céu Claro → fecha num círculo
-sobre a foto do cartão (alvo) ou some em fade quando não há alvo. */
+O vídeo roda na velocidade e com o áudio ORIGINAIS (nada é esticado). Quando
+o vídeo é curto (ex.: 3 s de drone), o último quadro fica parado — com um
+leve avanço de câmera — até o nome, a corda e os selos terminarem de entrar.
+Roteiro: faixas de cinema + "apresenta" → cargo e nome → corda do cordão →
+selos → saída com a luz do Céu Claro → fecha num círculo sobre a foto (alvo)
+ou some em fade quando não há alvo. */
 
 const CSS = `
 .apr{position:fixed;inset:0;z-index:99999;background:#000;color:#fff;font-family:'Manrope',system-ui,sans-serif;clip-path:circle(150% at 50% 50%);transition:clip-path .95s cubic-bezier(.7,0,.2,1),opacity .35s linear}
@@ -21,6 +19,7 @@ const CSS = `
 .apr video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%;opacity:0;transform:scale(1.06);transition:opacity 1s ease,transform 9s linear}
 .apr.b-inicio video{opacity:1;transform:scale(1)}
 .apr.b-saida video.apr-principal{transform:scale(1.07);transition:opacity 1s ease,transform 1.6s cubic-bezier(.16,1,.3,1)}
+.apr.parado video.apr-principal{transform:scale(1.07);transition:opacity 1s ease,transform 6s cubic-bezier(.2,0,.2,1)}
 .apr video.apr-fundo{display:none}
 .apr.lado video.apr-fundo{display:block;opacity:1;filter:blur(26px) brightness(.6) saturate(1.2);transform:scale(1.25)!important;transition:none}
 .apr.lado video.apr-principal{left:auto;right:8%;width:auto;height:100%;aspect-ratio:var(--ar,9/16);box-shadow:0 0 70px rgba(0,0,0,.55)}
@@ -68,7 +67,17 @@ const st = document.createElement('style'); st.id = 'apresentacao-css'; st.textC
 }
 const esc = (v) => String(v == null ? '' : v).replace(/[&<>"'`=/]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;', '=': '&#61;', '/': '&#47;' }[c]));
 
-export function temApresentacao(nucleo) { return !!(nucleo && nucleo.apresentacao && nucleo.apresentacao.videoUrl); }
+export function temApresentacao(ap) { return !!(ap && typeof ap.videoUrl === 'string' && ap.videoUrl); }
+
+// Quem ganha a ferramenta: cordão de Instrutor para cima, quem tem papel de
+// mestre/instrutor no app e o fundador. Subiu para Instrutor → já pode ter vídeo.
+export const CORDOES_COM_APRESENTACAO = ['Instrutor', 'Professor', 'Mestre', 'Mestre/Presidente'];
+export function podeTerApresentacao(p) {
+if (!p) return false;
+if (CORDOES_COM_APRESENTACAO.includes(p.cordaoAtual)) return true;
+if (Array.isArray(p.papeis) && (p.papeis.includes('mestre') || p.papeis.includes('instrutor'))) return true;
+return p.acessoGeral === true || p.fundador === true;
+}
 
 // Movimento reduzido ou economia de dados: não abre sozinho (o botão continua).
 export function podeAbrirSozinho() {
@@ -84,7 +93,7 @@ export function marcarVistoHoje(chave) { try { localStorage.setItem(chaveDia(cha
 let aberta = null;
 
 /* opts: { videoUrl, inicioNome?, cargo, nome, chips:[{texto, ouro?}], corda:[c1,c2,c3],
-   alvo?: HTMLElement (foto onde a imagem se fecha), comSom?: bool, logoUrl? }
+   alvo?: HTMLElement | () => HTMLElement (foto onde a imagem se fecha), comSom?: bool, logoUrl? }
    Devolve uma Promise que resolve quando a apresentação fecha. */
 export function abrirApresentacao(opts) {
 if (aberta) return aberta;
@@ -113,14 +122,16 @@ const fundo = el.querySelector('.apr-fundo');
 const prog = el.querySelector('.apr-prog');
 const btnSom = el.querySelector('[data-apr="som"]');
 const overflowAntes = document.body.style.overflow; document.body.style.overflow = 'hidden';
-let raf = null; let fechou = false; let beats = null;
+let raf = null; let fechou = false; let beats = null; let total = null;
+let paradoDesde = null; // relógio do último quadro parado (vídeo curto)
 
 aberta = new Promise((resolve) => {
 function finalizar() { cancelAnimationFrame(raf); try { video.pause(); fundo.pause(); } catch (e) { /* ok */ } el.remove(); document.body.style.overflow = overflowAntes; document.removeEventListener('keydown', teclado); aberta = null; resolve(); }
 function fechar() {
 if (fechou) return; fechou = true; cancelAnimationFrame(raf);
 el.classList.add('b-saida');
-const alvo = o.alvo && o.alvo.isConnected ? o.alvo.getBoundingClientRect() : null;
+const alvoEl = typeof o.alvo === 'function' ? o.alvo() : o.alvo;
+const alvo = alvoEl && alvoEl.isConnected ? alvoEl.getBoundingClientRect() : null;
 if (alvo && alvo.width && alvo.bottom > 0 && alvo.top < window.innerHeight) {
 el.style.setProperty('--x', `${alvo.left + alvo.width / 2}px`); el.style.setProperty('--y', `${alvo.top + alvo.height / 2}px`); el.style.setProperty('--r', `${alvo.width / 2}px`);
 el.classList.add('fechando');
@@ -128,30 +139,43 @@ setTimeout(() => { el.classList.add('sumindo'); }, 880);
 setTimeout(finalizar, 1250);
 } else { el.classList.add('sumindo'); setTimeout(finalizar, 400); }
 }
+// d = duração real do vídeo. O roteiro pode passar dela (último quadro parado).
 function montarBeats(d) {
-const nome = Math.max(0.9, Math.min(Number(o.inicioNome) > 0 ? Number(o.inicioNome) : d * 0.4, d - 3.2));
-beats = [['b-inicio', 0.05], ['b-apresenta', 0.5], ['b-nome', nome], ['b-cordao', nome + 0.6], ['b-chips', nome + 1.4], ['b-saida', Math.max(nome + 2.6, d - 1.2)]];
+const auto = d < 5 ? d * 0.62 : d * 0.4;
+const pedido = Number(o.inicioNome) > 0 ? Number(o.inicioNome) : auto;
+const nome = Math.max(0.9, Math.min(pedido, Math.max(0.9, d)));
+total = Math.max(d, nome + 4.2);
+beats = [['b-inicio', 0.05], ['b-apresenta', 0.5], ['b-nome', nome], ['b-cordao', nome + 0.6], ['b-chips', nome + 1.4], ['b-saida', Math.max(nome + 2.8, total - 1.2)]];
 }
+function relogio() { const d = video.duration || 0; return paradoDesde !== null ? d + (performance.now() - paradoDesde) / 1000 : video.currentTime; }
 function tick() {
-const d = video.duration || 8; const t = video.currentTime;
+const d = video.duration;
+if (!(d > 0)) { raf = requestAnimationFrame(tick); return; }
 if (!beats) montarBeats(d);
-prog.style.width = `${Math.min(100, (t / d) * 100)}%`;
+const t = relogio();
+prog.style.width = `${Math.min(100, (t / total) * 100)}%`;
 beats.forEach((b) => { if (t >= b[1]) el.classList.add(b[0]); });
-if (t >= d - 0.45) { fechar(); return; }
+if (t >= total - 0.45) { fechar(); return; }
 raf = requestAnimationFrame(tick);
+}
+function terminouVideo() {
+if (fechou) return;
+if (!beats) montarBeats(video.duration || 0);
+if ((video.duration || 0) >= total - 0.45) { fechar(); return; }
+paradoDesde = performance.now(); el.classList.add('parado'); // segura o último quadro, som original já terminou
 }
 function som() { btnSom.textContent = video.muted ? '🔇 Ativar som' : '🔊 Som'; }
 function teclado(ev) { if (ev.key === 'Escape') fechar(); }
 document.addEventListener('keydown', teclado);
 btnSom.addEventListener('click', () => { video.muted = !video.muted; som(); });
 el.querySelector('[data-apr="pular"]').addEventListener('click', fechar);
-video.addEventListener('ended', fechar);
+video.addEventListener('ended', terminouVideo);
 video.addEventListener('error', fechar);
 video.addEventListener('loadedmetadata', () => {
 // vídeo em pé numa tela deitada (computador): vídeo à direita + cópia desfocada no fundo
 const arV = video.videoWidth / Math.max(1, video.videoHeight); const arT = window.innerWidth / Math.max(1, window.innerHeight);
 if (arV < 0.9 && arT > 1.15) { el.classList.add('lado'); el.style.setProperty('--ar', `${video.videoWidth}/${video.videoHeight}`); }
-montarBeats(video.duration || 8);
+if (video.duration > 0) montarBeats(video.duration);
 });
 video.muted = !o.comSom; som();
 video.src = o.videoUrl; fundo.src = o.videoUrl;
@@ -167,11 +191,13 @@ return aberta;
 }
 
 // Textos da apresentação a partir de dados do cadastro (usado por todas as telas).
+// titulo (definido nas configurações da pessoa, ex.: "Professora") vence o cordão.
 export function textoCargo(pessoa, titulo) {
-if (titulo) return `${titulo} · Responsável do núcleo`; // ex.: "Professora", definido no painel
-if (!pessoa) return 'Responsável do núcleo';
-if (pessoa.fundador || pessoa.acessoGeral) return 'Mestre · Fundador do grupo';
-const c = String(pessoa.cordaoAtual || '');
-const t = /mestre/i.test(c) ? 'Mestre' : (/professor/i.test(c) ? 'Professor' : (/instrutor/i.test(c) ? 'Instrutor' : ''));
-return t ? `${t} · Responsável do núcleo` : 'Responsável do núcleo';
+const p = pessoa || {};
+const c = String(p.cordaoAtual || '');
+const doCordao = /mestre/i.test(c) ? 'Mestre' : (/professor/i.test(c) ? 'Professor' : (/instrutor/i.test(c) ? 'Instrutor' : ''));
+const fundador = p.fundador === true || p.acessoGeral === true;
+const t = String(titulo || '').trim() || (fundador ? 'Mestre' : doCordao);
+const sufixo = fundador ? 'Fundador do grupo' : (p.academiaGerenciadaId ? 'Responsável do núcleo' : 'Capoeira Liberdade e Expressão');
+return t ? `${t} · ${sufixo}` : sufixo;
 }

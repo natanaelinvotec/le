@@ -63,6 +63,8 @@ btn.innerHTML = 'Entrando... <i class="fas fa-spinner fa-spin"></i>';
 try {
 const perfil = await entrar(email, senha);
 tentativas = 0;
+// Apresentação em vídeo (Instrutor/Professor/Mestre) toca ao entrar — ver conta.js tocarAoEntrar.
+try { sessionStorage.setItem('apr.aoEntrar', '1'); } catch (e) { /* navegador sem storage */ }
 window.location.href = destinoPorPapeis(perfil.papeis);
 } catch (e) {
 tentativas += 1;

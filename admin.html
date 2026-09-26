@@ -10,7 +10,7 @@ por Firebase Authentication (usuarios/{uid}.papeis). -->
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<link rel="stylesheet" href="admin.css?v=20260926c">
+<link rel="stylesheet" href="admin.css?v=20260926d">
 </head>
 <body>
 <noscript>Este painel exige JavaScript habilitado para funcionar.</noscript>
@@ -50,6 +50,7 @@ redirecionado pra login.html por admin.js (ver checarSessaoOuRedirecionar). -->
 <a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('presenca', event)">Presenças</a>
 <a href="#" class="nav-item" data-papel="gestor" onclick="irParaRelatorios(event)">Relatórios</a>
 <a href="brasoes.html" class="nav-item" data-papel="gestor" title="Gerenciar brasões e conquistas"><i class="fas fa-medal"></i> Brasões</a>
+<a href="#" class="nav-item nav-item-conta" data-papel="all" onclick="event.preventDefault(); document.getElementById('nav-links').classList.remove('show'); __abrirMinhaConta();"><i class="fas fa-user-gear"></i> Minha conta</a>
 </nav>
 
 <div class="user-area">
@@ -59,10 +60,11 @@ redirecionado pra login.html por admin.js (ver checarSessaoOuRedirecionar). -->
 <i class="fas fa-search"></i>
 </div>
 <a href="master.html" class="btn-fundador-link" data-papel="admin-fundador" title="Área exclusiva do Admin Master / Fundador"><i class="fas fa-crown"></i> <span class="btn-fundador-label">Painel do Fundador</span></a>
-<div class="admin-profile">
+<button type="button" class="admin-profile admin-profile-btn" onclick="__abrirMinhaConta()" title="Minha conta: celular, senha e apresentação" aria-label="Minha conta">
 <img src="logo-liberdade150.png" alt="" class="admin-avatar">
 <span id="nomePerfilLogado">—</span>
-</div>
+<i class="fas fa-gear admin-profile-gear" aria-hidden="true"></i>
+</button>
 <button id="btnLogout" class="btn-logout" title="Sair da Conta" aria-label="Sair da conta">
 <i class="fas fa-sign-out-alt"></i>
 </button>
@@ -496,6 +498,10 @@ pra não recalcular a cada aula. -->
 <input type="number" id="modIdadeInput" class="input-padrao" min="0" max="120">
 </div>
 <div class="form-group-mod" style="margin-bottom: 12px;">
+<label for="modCelularInput">Celular / WhatsApp:</label>
+<input type="tel" id="modCelularInput" class="input-padrao" inputmode="tel" autocomplete="off" placeholder="(67) 99129-3269">
+</div>
+<div class="form-group-mod" style="margin-bottom: 12px;">
 <label for="modFotoInput">URL da Foto:</label>
 <input type="text" id="modFotoInput" class="input-padrao">
 <div style="display:flex; gap:8px; margin-top:8px;">
@@ -534,8 +540,14 @@ pra não recalcular a cada aula. -->
 <select id="modInstrutorDoAluno" class="input-padrao"><option value="">Nenhum</option></select>
 </div>
 
+<div class="mod-apresentacao oculto" id="wrapApresentacaoModal">
+<div class="mod-apr-info"><i class="fas fa-film"></i><span><strong>Apresentação em vídeo</strong><small id="modAprInfo">—</small></span></div>
+<button type="button" class="btn-mini" onclick="__gerenciarApresentacaoModal()"><i class="fas fa-sliders"></i> Configurar</button>
+</div>
+
+<button type="button" class="btn-cam-mini btn-senha-modal oculto" id="btnMinhaSenhaModal" onclick="__trocarMinhaSenha()"><i class="fas fa-key"></i> Trocar minha senha</button>
 <button class="btn-excluir-aluno" id="btnExcluirModal" data-papel="admin" onclick="alternarStatusAlunoBtn()"><i class="fas fa-user-slash"></i> Desativar Aluno</button>
-<button class="btn-excluir-aluno" id="btnResetSenhaModal" data-papel="admin" onclick="resetarSenhaAluno()" style="margin-top:8px;"><i class="fas fa-key"></i> Enviar redefinição de senha</button>
+<button class="btn-excluir-aluno" id="btnResetSenhaModal" data-papel="gestor" onclick="resetarSenhaAluno()" style="margin-top:8px;"><i class="fas fa-key"></i> Enviar link para trocar a senha</button>
 <button class="btn-excluir-aluno btn-excluir-permanente" id="btnExcluirPermanenteModal" data-papel="admin" onclick="excluirAlunoPermanentemente()" style="margin-top:8px;"><i class="fas fa-trash-alt"></i> Excluir permanentemente</button>
 </div>
 <div class="mod-right">
@@ -585,6 +597,6 @@ pra não recalcular a cada aula. -->
 </div>
 </div>
 
-<script type="module" src="admin.js?v=20260926c"></script>
+<script type="module" src="admin.js?v=20260926d"></script>
 </body>
 </html>

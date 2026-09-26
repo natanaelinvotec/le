@@ -626,9 +626,25 @@ select.input-padrao { appearance: none; -webkit-appearance: none; background-ima
 .hero-apresentacao-btn:hover { background: rgba(255, 255, 255, 0.22); transform: translateY(-1px); }
 .hero-apresentacao-btn i { color: var(--accent-green); font-size: 0.66rem; }
 @media (max-width: 560px) { .hero-apresentacao-btn { position: static; margin-top: 14px; } }
+/* (vídeo saiu do núcleo — agora é da pessoa; regras antigas mantidas inofensivas) */
 .nucleo-apresentacao { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 12px; padding: 10px 12px; border-radius: var(--radius-md); background: var(--bg-app); border: 1px dashed var(--border-strong); }
 .nucleo-apr-info { display: flex; align-items: center; gap: 10px; font-size: 0.76rem; color: var(--text-muted); min-width: 0; }
 .nucleo-apr-info i { color: var(--sky); }
 .nucleo-apr-info strong { display: block; color: var(--text-dark); font-size: 0.8rem; }
 .nucleo-apr-acoes { display: flex; gap: 6px; flex-wrap: wrap; }
 .nucleo-apr-acoes .btn-mini { padding: 6px 10px; font-size: 0.72rem; }
+
+/* ===== Minha conta (cabeçalho) + apresentação e senha no modal do aluno ===== */
+.admin-profile-btn { border: 1px solid transparent; background: none; font-family: inherit; cursor: pointer; padding: 4px 10px 4px 4px; border-radius: var(--radius-pill); transition: background 0.2s var(--ease-standard), border-color 0.2s var(--ease-standard); }
+.admin-profile-btn:hover { background: var(--card-bg); border-color: var(--border-color); }
+.admin-profile-btn:focus-visible { outline: 2px solid var(--sky, #3D8BFF); outline-offset: 2px; }
+.admin-profile-gear { color: var(--text-muted); font-size: 0.78rem; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+.admin-profile-btn:hover .admin-profile-gear { transform: rotate(60deg); color: var(--primary-blue); }
+.nav-item-conta { display: none; }
+@media (max-width: 900px) { .nav-item-conta { display: block; border-top: 1px solid var(--border-color); margin-top: 6px; padding-top: 12px; } }
+.mod-apresentacao { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 4px 0 12px; padding: 10px 12px; border-radius: var(--radius-md); background: linear-gradient(135deg, rgba(61, 139, 255, 0.08), rgba(218, 165, 32, 0.08)); border: 1px solid rgba(61, 139, 255, 0.22); }
+.mod-apr-info { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.mod-apr-info i { color: #DAA520; }
+.mod-apr-info strong { display: block; font-size: 0.8rem; color: var(--text-dark); }
+.mod-apr-info small { display: block; font-size: 0.72rem; color: var(--text-muted); }
+.btn-senha-modal { width: 100%; margin-bottom: 8px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
