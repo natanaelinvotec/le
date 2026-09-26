@@ -414,3 +414,10 @@ body::before { content: ''; position: fixed; left: 0; right: 0; top: 0; height: 
 @keyframes pulsa { 0%, 100% { opacity: .6; } 50% { opacity: 1; } }
 .celebra-folha { border: 2px solid var(--gold); }
 @media (min-width: 560px) { .brasoes-grade { grid-template-columns: repeat(4, 1fr); } }
+
+/* Apresentação em vídeo do responsável (apresentacao.js) */
+.btn-apresentacao i { color: #C9A227; font-size: .7rem; }
+.btn-apresentacao-nucleo { margin-top: 10px; display: inline-flex; align-items: center; gap: 7px; background: rgba(255,255,255,.94); color: var(--navy); border: 0; border-radius: 999px; padding: 7px 14px 7px 8px; font-size: .74rem; font-weight: 800; font-family: inherit; cursor: pointer; box-shadow: 0 8px 20px -10px rgba(0,20,50,.6); transition: transform .25s cubic-bezier(0.16, 1, 0.3, 1); }
+.btn-apresentacao-nucleo i { width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(135deg, #E9C35A, #C9A227); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: .6rem; padding-left: 2px; }
+.btn-apresentacao-nucleo:hover { transform: translateY(-1px); }
+.btn-apresentacao-nucleo:focus-visible, .btn-apresentacao:focus-visible { outline: 2px solid var(--sky, #3D8BFF); outline-offset: 2px; }

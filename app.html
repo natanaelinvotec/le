@@ -150,7 +150,12 @@ a:hover{ color:#389E92; }
                 </div>
                 <div style="margin-top:13px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                   <span style="background:#eaf6f4; color:#0B5C52; font-size:.72rem; font-weight:700; padding:4px 10px; border-radius:999px;">Corda: {{ cordaoAtualNome }}</span>
-                  <span style="background:#fff6e0; color:#8a6a10; font-size:.72rem; font-weight:600; padding:4px 10px; border-radius:999px;">{{ atletaAcademia }}</span>
+                  <sc-if value="{{ temApresentacaoNucleo }}" hint-placeholder-val="{{ false }}">
+                    <button onClick="{{ verApresentacaoNucleo }}" aria-label="Ver a apresentação do responsável do núcleo" style="display:inline-flex; align-items:center; gap:6px; background:#fff6e0; color:#8a6a10; font-size:.72rem; font-weight:700; padding:4px 10px 4px 5px; border-radius:999px; border:1px solid rgba(218,165,32,.45); cursor:pointer; font-family:'Manrope',sans-serif; box-shadow:0 4px 10px -6px rgba(218,165,32,.8);"><span style="width:18px; height:18px; border-radius:50%; background:#DAA520; color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:.5rem;"><i class="fas fa-play" style="margin-left:1px;"></i></span>{{ atletaAcademia }}</button>
+                  </sc-if>
+                  <sc-if value="{{ semApresentacaoNucleo }}" hint-placeholder-val="{{ true }}">
+                    <span style="background:#fff6e0; color:#8a6a10; font-size:.72rem; font-weight:600; padding:4px 10px; border-radius:999px;">{{ atletaAcademia }}</span>
+                  </sc-if>
                   <span style="font-size:.7rem; color:#5B6B68;">próxima: <strong style="color:#0D211D;">{{ proximoCordao }}</strong></span>
                 </div>
                 <button onClick="{{ irTrofeus }}" aria-label="Ver brasões" style="display:block; width:100%; margin-top:12px; background:none; border:none; padding:0; text-align:left; cursor:pointer; font-family:'Manrope',sans-serif;">
@@ -1652,10 +1657,14 @@ class Component extends DCLogic {
     const idade = Number(u.idade) || 0;
     const idx = idxCordaoDe(idade, u.cordaoAtual);
     let mensalidadeValor = null;
+    let apresentacao = null; // vídeo do responsável do núcleo (nucleos/{id}.apresentacao)
     if (u.academiaId) {
       try {
         const nuc = await FB.buscar('nucleos', u.academiaId);
         if (nuc && nuc.mensalidadeValor !== undefined) mensalidadeValor = Number(nuc.mensalidadeValor) || 0;
+        if (nuc && nuc.apresentacao && nuc.apresentacao.videoUrl) {
+          apresentacao = { ...nuc.apresentacao, nucleoNome: nuc.nome || '', professorUid: nuc.professorUid || null, professorNome: nuc.professorNome || '' };
+        }
       } catch (_) { /* segue sem o valor */ }
     }
     return {
@@ -1670,8 +1679,36 @@ class Component extends DCLogic {
       academiaId: u.academiaId || null,
       notasReais: u.notas || {},
       mensalidadeValor,
+      apresentacao,
       papelFamilia: '',
     };
+  }
+
+  // Botão ▶ no nome da academia: apresentação do responsável do núcleo do atleta.
+  // Dados do professor vêm do perfil público (perfisPublicos), que qualquer
+  // pessoa logada lê — o cadastro completo dele continua privado.
+  async verApresentacaoNucleo() {
+    const familia = !!(PERFIS[0] && PERFIS[0].conta === 'familia');
+    const atleta = (familia ? ATLETAS[this.state.atleta] : ATLETAS[0]) || null;
+    const ap = atleta && atleta.apresentacao;
+    if (!ap || !ap.videoUrl) return;
+    let pub = null;
+    try { pub = ap.professorUid ? await this._FB.buscar('perfisPublicos', ap.professorUid) : null; } catch (_) { pub = null; }
+    const CORES = { 'Iniciante':['#CCC','#CCC','#CCC'], 'Escravo':['#4F4F4F','#4F4F4F','#4F4F4F'], 'Fugitivo':['#4F4F4F','#DAA520','#4F4F4F'], 'Quilombola':['#DAA520','#DAA520','#DAA520'], 'Vagante':['#4F4F4F','#D32F2F','#4F4F4F'], 'Liberto':['#D32F2F','#D32F2F','#D32F2F'], 'Instrutor':['#4F4F4F','#DAA520','#D32F2F'], 'Professor':['#FFFFFF','#D32F2F','#FFFFFF'], 'Mestre':['#F5F5F5','#F5F5F5','#F5F5F5'], 'Mestre/Presidente':['#FFFFFF','#00B140','#002D72'] };
+    const cordao = (pub && pub.cordaoAtual) || '';
+    const curto = (n) => String(n || '').replace(/^\s*(academia|núcleo|nucleo)\s+(d[oa]\s+)?/i, '').trim();
+    const direto = pub ? (pub.fundador ? 'Direto Liberdade e Expressão' : (pub.academiaNome ? 'Direto ' + curto(pub.academiaNome) : '')) : '';
+    try {
+      const M = await import('./apresentacao.js');
+      await M.abrirApresentacao({
+        videoUrl: ap.videoUrl, inicioNome: ap.inicioNome, comSom: true,
+        cargo: M.textoCargo(pub, ap.titulo),
+        nome: (pub && pub.nome) || ap.professorNome || '',
+        chips: [cordao ? { texto: 'Cordão ' + cordao, ouro: true } : null, direto ? { texto: direto } : null, ap.nucleoNome ? { texto: ap.nucleoNome } : null],
+        corda: CORES[cordao] || CORES['Professor'],
+        alvo: null, logoUrl: 'logo-liberdade150.png',
+      });
+    } catch (e) { console.error(e); this.toast('Não foi possível abrir a apresentação agora.'); }
   }
 
   async montarPerfil(uid, perfil) {
@@ -2374,6 +2411,9 @@ class Component extends DCLogic {
       ehFamilia: familia,
       atletaNome: familia ? atleta.curto : (perfilAtual ? perfilAtual.nome.split(' ')[0] : ''),
       atletaAcademia: atleta.academia,
+      temApresentacaoNucleo: !!(atleta.apresentacao && atleta.apresentacao.videoUrl),
+      semApresentacaoNucleo: !(atleta.apresentacao && atleta.apresentacao.videoUrl),
+      verApresentacaoNucleo: () => this.verApresentacaoNucleo(),
       atletaCordao: 'Cordão ' + atleta.cordao,
       cordaoAtualNome: atleta.cordao,
       proximoCordao: (listaCordoes[Math.min(listaCordoes.length - 1, atleta.idxCordao + 1)] || { nome: atleta.cordao }).nome,

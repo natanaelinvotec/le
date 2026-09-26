@@ -1,7 +1,12 @@
 REGRAS DO FIREBASE STORAGE — Rede Liberdade 2.0
 ================================================
 Onde: Firebase Console → Storage → Regras → substitua TUDO pelo bloco abaixo
-e clique em Publicar. (Já inclui as fotos de perfil/inscrição em fotos_alunos/.)
+e clique em Publicar. (Já inclui as fotos de perfil/inscrição em fotos_alunos/
+e a pasta nova apresentacoes/ dos vídeos dos núcleos.)
+
+ATENÇÃO: a regra de apresentacoes/ consulta o seu cadastro no Firestore para
+saber se você é Admin/Fundador. Na primeira vez o Console pode mostrar um aviso
+pedindo para "conceder permissão" do Storage ao Firestore — clique em Conceder.
 
 rules_version = '2';
 service firebase.storage {
@@ -29,6 +34,25 @@ service firebase.storage {
                      (request.resource.contentType.matches('video/.*') && request.resource.size < 12 * 1024 * 1024)
                    );
       allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Apresentações em vídeo dos responsáveis de núcleo (painel → Núcleos →
+    // "Enviar vídeo"). Só o Admin Master ou o Fundador enviam/trocam
+    // (vídeo até 20 MB). Quem está logado assiste.
+    match /apresentacoes/{arquivo} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                   && request.resource.contentType.matches('video/.*')
+                   && request.resource.size < 20 * 1024 * 1024
+                   && (
+                     'admin' in firestore.get(/databases/(default)/documents/usuarios/$(request.auth.uid)).data.papeis ||
+                     firestore.get(/databases/(default)/documents/usuarios/$(request.auth.uid)).data.get('acessoGeral', false) == true
+                   );
+      allow delete: if request.auth != null
+                   && (
+                     'admin' in firestore.get(/databases/(default)/documents/usuarios/$(request.auth.uid)).data.papeis ||
+                     firestore.get(/databases/(default)/documents/usuarios/$(request.auth.uid)).data.get('acessoGeral', false) == true
+                   );
     }
 
     // Tudo o que não está listado acima: fechado.

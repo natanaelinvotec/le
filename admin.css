@@ -620,3 +620,15 @@ select.input-padrao { appearance: none; -webkit-appearance: none; background-ima
 .chart-titulo span { font-size: 0.76rem; color: var(--text-muted); }
 .canvas-container.canvas-alto { height: 360px; }
 .chart-vazio { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.84rem; background: var(--card-bg); border-radius: var(--radius-md); border: 1.5px dashed var(--border-color); }
+
+/* ---------------------------------------------------------------- APRESENTAÇÃO (vídeo do responsável) */
+.hero-apresentacao-btn { position: absolute; right: 18px; bottom: 46px; z-index: 2; display: inline-flex; align-items: center; gap: 7px; border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.12); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); color: #fff; font: 800 0.72rem var(--font-body); padding: 7px 12px; border-radius: var(--radius-pill); cursor: pointer; transition: background 0.2s, transform 0.2s var(--ease-standard); }
+.hero-apresentacao-btn:hover { background: rgba(255, 255, 255, 0.22); transform: translateY(-1px); }
+.hero-apresentacao-btn i { color: var(--accent-green); font-size: 0.66rem; }
+@media (max-width: 560px) { .hero-apresentacao-btn { position: static; margin-top: 14px; } }
+.nucleo-apresentacao { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 12px; padding: 10px 12px; border-radius: var(--radius-md); background: var(--bg-app); border: 1px dashed var(--border-strong); }
+.nucleo-apr-info { display: flex; align-items: center; gap: 10px; font-size: 0.76rem; color: var(--text-muted); min-width: 0; }
+.nucleo-apr-info i { color: var(--sky); }
+.nucleo-apr-info strong { display: block; color: var(--text-dark); font-size: 0.8rem; }
+.nucleo-apr-acoes { display: flex; gap: 6px; flex-wrap: wrap; }
+.nucleo-apr-acoes .btn-mini { padding: 6px 10px; font-size: 0.72rem; }

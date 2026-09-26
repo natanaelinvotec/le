@@ -25,7 +25,9 @@ publicarMaterialFormacao, listarMateriaisFormacao, removerMaterialFormacao,
 lancarPagamento, listarPagamentosDoNucleo, marcarPagamento,
 lancarDespesaComRateio, todosRateios, marcarRateioPago,
   presencasDoNucleo, presencasVisitantesDoNucleo,
+  storage, storageRef, uploadBytes, getDownloadURL,
 } from './firebase.js';
+import { abrirApresentacao, temApresentacao, podeAbrirSozinho, jaViuHoje, marcarVistoHoje, textoCargo } from './apresentacao.js';
 import { escapeHTML, sanitizeInput, debounce, gerarSlug } from './shared.js';
 import { configurarFaceId, atualizarContextoFaceId, pararFaceId } from './faceid.js';
 
@@ -667,6 +669,15 @@ ${resp ? `<div class="nucleo-responsavel"><img src="${escapeHTML(resp.fotoUrl ||
 <div><strong>${estrelas} ${estrelas === 1 ? 'estrela' : 'estrelas'}</strong><small>${cordaoMaisAlta ? `corda mais alta: ${escapeHTML(cordaoMaisAlta)}` : 'nenhuma corda formada ainda'}</small></div>
 <span class="estrelas"><span class="on">${'★'.repeat(estrelas)}</span><span class="off">${'★'.repeat(7 - estrelas)}</span></span>
 </div>
+<div class="nucleo-apresentacao">
+<div class="nucleo-apr-info"><i class="fas fa-film"></i><span><strong>Apresentação</strong>${temApresentacao(n) ? `vídeo publicado${n.apresentacao.duracao ? ` · ${escapeHTML(String(n.apresentacao.duracao).replace('.', ','))} s` : ''}${n.apresentacao.titulo ? ` · "${escapeHTML(n.apresentacao.titulo)}"` : ''}${n.apresentacao.inicioNome ? ` · nome aos ${escapeHTML(String(n.apresentacao.inicioNome).replace('.', ','))} s` : ''}` : 'sem vídeo — o cartão abre direto com a foto'}</span></div>
+<div class="nucleo-apr-acoes">
+${temApresentacao(n) ? `<button type="button" class="btn-mini" onclick="__verApresentacaoNucleo('${escapeHTML(n.id)}')"><i class="fas fa-play"></i> Ver</button>` : ''}
+<button type="button" class="btn-mini" onclick="__enviarApresentacao('${escapeHTML(n.id)}')"><i class="fas fa-upload"></i> ${temApresentacao(n) ? 'Trocar' : 'Enviar vídeo'}</button>
+<button type="button" class="btn-mini" onclick="__linkApresentacao('${escapeHTML(n.id)}')" title="Usar um vídeo já publicado no site"><i class="fas fa-link"></i></button>
+${temApresentacao(n) ? `<button type="button" class="btn-mini" onclick="__ajustarApresentacao('${escapeHTML(n.id)}')" title="Título e momento do nome"><i class="fas fa-sliders"></i></button><button type="button" class="btn-mini btn-mini-rejeitar" onclick="__removerApresentacao('${escapeHTML(n.id)}')" title="Remover"><i class="fas fa-trash-can"></i></button>` : ''}
+</div>
+</div>
 <div class="academia-actions">
 <button class="btn-edit-ac" onclick="abrirEditarNucleo('${n.id}')"><i class="fas fa-pen"></i> Editar núcleo</button>
 </div>
@@ -1054,7 +1065,124 @@ if (!wrap) return;
 if (!a) { wrap.classList.add('oculto'); wrap.innerHTML = ''; return; }
 wrap.innerHTML = construirHeroCardHTML(a, todosUsuarios, true);
 wrap.classList.remove('oculto');
+anexarApresentacaoHero(a, wrap);
 }
+
+/* ---------------------- APRESENTAÇÃO (vídeo do responsável) ----------------------
+   O vídeo mora em nucleos/{id}.apresentacao. O cartão continua com a foto
+   clássica do cadastro; a apresentação só entra quando o núcleo tem vídeo.
+   Abre sozinha 1x por dia no próprio cartão (sem som — regra do navegador) e
+   sempre pelo botão "Ver apresentação" (com som). */
+let heroApresentacaoAutoFeita = false;
+const cacheNucleoApresentacao = {};
+async function nucleoDaApresentacao(id) {
+if (!id) return null;
+const daLista = todosNucleos.find((n) => n.id === id);
+if (daLista) return daLista;
+if (cacheNucleoApresentacao[id] !== undefined) return cacheNucleoApresentacao[id];
+try { cacheNucleoApresentacao[id] = await buscar('nucleos', id); } catch (e) { cacheNucleoApresentacao[id] = null; }
+return cacheNucleoApresentacao[id];
+}
+function corCordaoDe(pessoa) {
+const idade = Number(pessoa.idade) || 0;
+const lista = idade < 12 ? cordoesKids : cordoesAdulto;
+const item = lista.find((c) => c.nome === (pessoa.cordaoAtual || 'Iniciante')) || lista[0];
+return item.cor;
+}
+function abrirApresentacaoDe(pessoa, nucleo, alvo, comSom) {
+const total = contarTotalAtletasGrupo(pessoa.id, todosUsuarios, todosNucleos);
+const ap = nucleo.apresentacao || {};
+return abrirApresentacao({
+videoUrl: ap.videoUrl, inicioNome: ap.inicioNome, comSom,
+cargo: textoCargo({ ...pessoa, fundador: souFundador(pessoa) }, ap.titulo),
+nome: pessoa.nome || nucleo.professorNome || '',
+chips: [
+{ texto: `Cordão ${pessoa.cordaoAtual || 'Iniciante'}`, ouro: true },
+{ texto: rotuloDiretoDe(pessoa) },
+{ texto: nucleo.nome || '' },
+total ? { texto: `${total} atleta${total === 1 ? '' : 's'} no grupo` } : null,
+],
+corda: corCordaoDe(pessoa), alvo,
+});
+}
+async function anexarApresentacaoHero(a, wrap) {
+const nuc = await nucleoDaApresentacao(a.academiaGerenciadaId);
+if (!temApresentacao(nuc) || !wrap.isConnected) return;
+const card = wrap.querySelector('.hero-fundador-card');
+if (!card || card.querySelector('.hero-apresentacao-btn')) return;
+const foto = () => wrap.querySelector('.hero-fundador-anel-miolo img');
+const reentrar = () => { card.style.animation = 'none'; void card.offsetWidth; card.style.animation = ''; };
+const btn = document.createElement('button');
+btn.type = 'button'; btn.className = 'hero-apresentacao-btn';
+btn.innerHTML = '<i class="fas fa-play"></i> Ver apresentação';
+btn.addEventListener('click', () => abrirApresentacaoDe(a, nuc, foto(), true).then(reentrar));
+card.appendChild(btn);
+const chave = `${a.id}.${nuc.apresentacao.atualizadoEm || ''}`;
+if (a.id === sessaoAtual.uid && !heroApresentacaoAutoFeita && !jaViuHoje(chave) && podeAbrirSozinho()) {
+heroApresentacaoAutoFeita = true; marcarVistoHoje(chave);
+abrirApresentacaoDe(a, nuc, foto(), false).then(reentrar);
+}
+}
+window.__verApresentacaoNucleo = async function (id) {
+const nuc = await nucleoDaApresentacao(id); if (!temApresentacao(nuc)) return;
+const resp = todosUsuarios.find((u) => u.id === nuc.professorUid) || { id: nuc.professorUid, nome: nuc.professorNome || '' };
+abrirApresentacaoDe(resp, nuc, null, true);
+};
+
+// ---- Painel de núcleos: enviar / trocar / remover o vídeo (Admin) ----
+const APR_MAX_MB = 15; const APR_MAX_SEG = 30;
+function duracaoDoArquivo(file) {
+return new Promise((res) => { const v = document.createElement('video'); v.preload = 'metadata'; v.onloadedmetadata = () => { URL.revokeObjectURL(v.src); res(v.duration); }; v.onerror = () => res(NaN); v.src = URL.createObjectURL(file); });
+}
+async function salvarApresentacao(nucleoId, dados) {
+await atualizar('nucleos', nucleoId, { apresentacao: dados });
+const n = todosNucleos.find((x) => x.id === nucleoId); if (n) n.apresentacao = dados;
+renderizarNucleosUI();
+}
+window.__enviarApresentacao = function (nucleoId) {
+const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'video/mp4,video/webm,video/quicktime';
+inp.onchange = async () => {
+const f = inp.files && inp.files[0]; if (!f) return;
+if (f.size > APR_MAX_MB * 1024 * 1024) { toast(`Vídeo acima de ${APR_MAX_MB} MB. Me envie o arquivo que eu comprimo antes.`, 'error'); return; }
+const dur = await duracaoDoArquivo(f);
+if (!(dur > 0) || dur > APR_MAX_SEG) { toast(`O vídeo precisa ter até ${APR_MAX_SEG} s (este tem ${dur > 0 ? Math.round(dur) : '?'} s).`, 'error'); return; }
+const n = todosNucleos.find((x) => x.id === nucleoId) || {};
+const ant = n.apresentacao || {};
+toast('Enviando o vídeo…', 'success', 6000);
+try {
+const ext = (f.name.split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '') || 'mp4';
+const r = storageRef(storage, `apresentacoes/${nucleoId}-${Date.now()}.${ext}`);
+await uploadBytes(r, f, { contentType: f.type || 'video/mp4', cacheControl: 'public,max-age=31536000' });
+const url = await getDownloadURL(r);
+await salvarApresentacao(nucleoId, { videoUrl: url, duracao: Math.round(dur * 10) / 10, inicioNome: ant.inicioNome || null, titulo: ant.titulo || null, atualizadoEm: new Date().toISOString(), porNome: sessaoAtual.nome || '' });
+toast('Apresentação publicada. Abre sozinha no próximo login do responsável.');
+} catch (e) { console.error(e); toast(/storage/i.test(String(e.code || '')) ? `O vídeo não subiu (${e.code}): confira as regras do Storage, pasta apresentacoes/.` : 'Não foi possível salvar a apresentação.', 'error'); }
+};
+inp.click();
+};
+window.__linkApresentacao = async function (nucleoId) {
+const n = todosNucleos.find((x) => x.id === nucleoId) || {};
+const ant = n.apresentacao || {};
+const url = prompt('Link ou caminho do vídeo já publicado (ex.: apresentacoes/taynara.mp4):', ant.videoUrl || '');
+if (url === null) return;
+const limpo = url.trim();
+if (!limpo) return;
+if (!/^(https:\/\/|apresentacoes\/)[^\s<>"']+$/i.test(limpo)) { toast('Use um link https:// ou um caminho em apresentacoes/.', 'error'); return; }
+try { await salvarApresentacao(nucleoId, { ...ant, videoUrl: limpo, atualizadoEm: new Date().toISOString(), porNome: sessaoAtual.nome || '' }); toast('Apresentação salva.'); } catch (e) { console.error(e); toast('Sem permissão para salvar no núcleo.', 'error'); }
+};
+window.__ajustarApresentacao = async function (nucleoId) {
+const n = todosNucleos.find((x) => x.id === nucleoId) || {}; const ant = n.apresentacao || {};
+const titulo = prompt('Como chamar na apresentação (ex.: Professora, Mestre, Instrutor). Deixe vazio para usar o cordão:', ant.titulo || '');
+if (titulo === null) return;
+const ini = prompt('Em que segundo o nome aparece? (vazio = automático; use quando o vídeo tem abertura longa, ex.: drone)', ant.inicioNome || '');
+if (ini === null) return;
+const inicioNome = ini.trim() ? Math.max(0, Number(String(ini).replace(',', '.'))) || null : null;
+try { await salvarApresentacao(nucleoId, { ...ant, titulo: sanitizeInput(titulo).slice(0, 24) || null, inicioNome, atualizadoEm: ant.atualizadoEm || new Date().toISOString() }); toast('Ajustes salvos.'); } catch (e) { toast('Sem permissão para salvar no núcleo.', 'error'); }
+};
+window.__removerApresentacao = async function (nucleoId) {
+if (!confirm('Remover a apresentação deste núcleo? O cartão volta a abrir direto.')) return;
+try { await salvarApresentacao(nucleoId, null); toast('Apresentação removida.'); } catch (e) { toast('Sem permissão para remover.', 'error'); }
+};
 
 window.transferirAluno = async function (idAluno, novoNucleoId) {
 if (!novoNucleoId) return;

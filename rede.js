@@ -26,6 +26,7 @@ collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, w
 arrayUnion, arrayRemove, increment, onSnapshot, storageRef, uploadString, uploadBytes, getDownloadURL,
 } from './firebase.js';
 import { escapeHTML } from './shared.js';
+import { abrirApresentacao, temApresentacao, textoCargo } from './apresentacao.js';
 import { BRASOES, SERIES, avaliar as avaliarBrasoes, consolidar as consolidarBrasoes, resumirPresencas, urlThumb, urlPng, urlGlb, textoMetrica, porId as brasaoPorId } from './brasoes.js';
 
 /* ===================== CONSTANTES (mesmas do painel) ===================== */
@@ -163,6 +164,19 @@ const snap = await getDocs(query(collection(db, 'perfisPublicos'), where('academ
 const lista = snap.docs.map((d) => ({ id: d.id, ...d.data() })); lista.forEach((p) => pubCache.set(p.id, p)); return lista;
 }
 const nucleoDe = (id) => nucleos.find((n) => n.id === id) || null;
+// Apresentação em vídeo do responsável do núcleo (nucleos/{id}.apresentacao).
+// A foto do perfil continua a clássica; o vídeo só toca quando alguém toca no botão.
+function apresentarResponsavel(n, resp, alvo) {
+if (!temApresentacao(n)) return Promise.resolve();
+const ap = n.apresentacao;
+const pessoa = resp || { id: n.professorUid, nome: n.professorNome || '' };
+const chips = [
+pessoa.cordaoAtual ? { texto: `Cordão ${pessoa.cordaoAtual}`, ouro: true } : null,
+rotuloDiretoDe(pessoa) ? { texto: rotuloDiretoDe(pessoa) } : null,
+n.nome ? { texto: n.nome } : null,
+].filter(Boolean);
+return abrirApresentacao({ videoUrl: ap.videoUrl, inicioNome: ap.inicioNome, comSom: true, cargo: textoCargo(pessoa, ap.titulo), nome: pessoa.nome || n.professorNome || '', chips, corda: coresCordao(pessoa), alvo: alvo || null });
+}
 function rotuloDiretoDe(pub) {
 if (!pub) return '';
 if (pub.fundador) return 'Direto Liberdade e Expressão';
@@ -641,7 +655,7 @@ const comMidia = lista.filter((p) => midiasDe(p).length);
 const r = pub.resumoPresencas;
 vista.innerHTML = `
 <div class="perfil-capa">${pub.capaUrl ? `<img src="${escapeHTML(pub.capaUrl)}" alt="">` : ''}<div class="acoes-capa">${meu ? `<button type="button" class="btn-icone" id="btnCapa" title="Trocar capa"><i class="fas fa-image"></i></button><button type="button" class="btn-icone" id="btnEditarBio" title="Editar perfil"><i class="fas fa-pen"></i></button>` : `<button type="button" class="btn-icone" id="btnMsgPerfil" title="Mensagem"><i class="far fa-comment"></i></button>`}</div></div>
-<div class="perfil-topo">${anelHTML(pub)}<div class="bt">${meu ? `<button type="button" class="btn-verde" id="btnFotoPerfil" style="padding:8px 14px;font-size:.76rem"><i class="fas fa-camera"></i> Foto</button>` : `<button type="button" class="${sigo ? 'btn-claro' : 'btn-navy'}" id="btnSeguir">${sigo ? '<i class="fas fa-user-check"></i> Seguindo' : pedi ? '<i class="fas fa-clock"></i> Pedido enviado' : `<i class="fas fa-user-plus"></i> ${pub.privado ? 'Pedir pra seguir' : 'Seguir'}`}</button>`}</div></div>
+<div class="perfil-topo">${anelHTML(pub)}<div class="bt">${temApresentacao(gerenciado) ? '<button type="button" class="btn-claro btn-apresentacao" id="btnAprPerfil" title="Ver a apresentação em vídeo"><i class="fas fa-play"></i> Apresentação</button>' : ''}${meu ? `<button type="button" class="btn-verde" id="btnFotoPerfil" style="padding:8px 14px;font-size:.76rem"><i class="fas fa-camera"></i> Foto</button>` : `<button type="button" class="${sigo ? 'btn-claro' : 'btn-navy'}" id="btnSeguir">${sigo ? '<i class="fas fa-user-check"></i> Seguindo' : pedi ? '<i class="fas fa-clock"></i> Pedido enviado' : `<i class="fas fa-user-plus"></i> ${pub.privado ? 'Pedir pra seguir' : 'Seguir'}`}</button>`}</div></div>
 <div class="perfil-nome"><h2>${escapeHTML(pub.nome)} ${pub.fundador ? '<i class="fas fa-crown verif" title="Fundador" style="color:var(--gold)"></i>' : (pub.mestre || pub.instrutor) ? '<i class="fas fa-circle-check verif" title="Responsável de núcleo"></i>' : ''}</h2>
 ${pub.apelido ? `<div class="apelido">"${escapeHTML(pub.apelido)}"</div>` : ''}
 ${titulo ? `<div class="titulo">${titulo}</div>` : ''}
@@ -675,6 +689,7 @@ if (el('listaPedidos')) renderPedidos(pub);
 el('btnSeguir').addEventListener('click', () => alternarSeguir(pub).then(() => renderPerfil(param, vista)));
 el('btnMsgPerfil').addEventListener('click', () => abrirDireta(pub));
 }
+if (el('btnAprPerfil')) el('btnAprPerfil').addEventListener('click', () => apresentarResponsavel(gerenciado, pub, vista.querySelector('.perfil-topo .avatar')));
 }
 function formacaoHTML(pub) {
 const n = nucleoDe(pub.academiaId); const prof = n && n.professorUid && n.professorUid !== pub.id ? (pubCache.get(n.professorUid) || { id: n.professorUid, nome: n.professorNome || 'Responsável' }) : null;
@@ -775,7 +790,7 @@ const momentos = lista.filter((p) => p.melhorMomento && midiasDe(p).length);
 const avisosNuc = lista.filter((p) => p.tipo === 'aviso');
 const ordemAtletas = atletas.slice().sort((a, b) => (ORDEM_CORDOES.indexOf(b.cordaoAtual) - ORDEM_CORDOES.indexOf(a.cordaoAtual)) || String(a.nome).localeCompare(String(b.nome)));
 vista.innerHTML = `
-<div class="nucleo-cabecalho"><span class="avatar"><i class="fas fa-people-group"></i></span><div style="flex:1;min-width:0"><span class="eyebrow" style="color:rgba(255,255,255,.75)">Núcleo</span><h2>${escapeHTML(n.nome)}</h2>${prof ? `<small>Responsável: ${escapeHTML(prof.nome)}</small>` : (n.professorNome ? `<small>Responsável: ${escapeHTML(n.professorNome)}</small>` : '')}${n.endereco ? `<small><i class="fas fa-location-dot"></i> ${escapeHTML(n.endereco)}</small>` : ''}<div class="pills"><span class="pill"><i class="fas fa-users"></i> ${atletas.length} na rede</span><span class="pill"><i class="fas fa-star"></i> ${momentos.length} momentos</span>${perfil.academiaId === id ? '<span class="pill"><i class="fas fa-house"></i> seu núcleo</span>' : ''}</div></div></div>
+<div class="nucleo-cabecalho"><span class="avatar"><i class="fas fa-people-group"></i></span><div style="flex:1;min-width:0"><span class="eyebrow" style="color:rgba(255,255,255,.75)">Núcleo</span><h2>${escapeHTML(n.nome)}</h2>${prof ? `<small>Responsável: ${escapeHTML(prof.nome)}</small>` : (n.professorNome ? `<small>Responsável: ${escapeHTML(n.professorNome)}</small>` : '')}${n.endereco ? `<small><i class="fas fa-location-dot"></i> ${escapeHTML(n.endereco)}</small>` : ''}<div class="pills"><span class="pill"><i class="fas fa-users"></i> ${atletas.length} na rede</span><span class="pill"><i class="fas fa-star"></i> ${momentos.length} momentos</span>${perfil.academiaId === id ? '<span class="pill"><i class="fas fa-house"></i> seu núcleo</span>' : ''}</div>${temApresentacao(n) ? '<button type="button" class="btn-apresentacao-nucleo" id="btnAprNucleo"><i class="fas fa-play"></i> Ver apresentação</button>' : ''}</div></div>
 <div class="abas" id="abasNucleo">${[['momentos', 'Momentos'], ['posts', 'Publicações'], ['atletas', 'Atletas']].map(([k, t]) => `<button type="button" data-a="${k}" class="${nucleoAba === k ? 'ativa' : ''}">${t}</button>`).join('')}</div>
 <div id="painelNucleo"></div>`;
 const painel = el('painelNucleo');
@@ -787,6 +802,7 @@ painel.querySelectorAll('[data-abrir-post]').forEach((b) => b.addEventListener('
 painel.querySelectorAll('[data-seguir]').forEach((b) => b.addEventListener('click', async () => { const p = atletas.find((x) => x.id === b.dataset.seguir); await alternarSeguir(p); desenhar(); }));
 };
 desenhar();
+if (el('btnAprNucleo')) el('btnAprNucleo').addEventListener('click', () => apresentarResponsavel(n, prof, null));
 el('abasNucleo').addEventListener('click', (ev) => { const b = ev.target.closest('button'); if (!b) return; nucleoAba = b.dataset.a; el('abasNucleo').querySelectorAll('button').forEach((x) => x.classList.toggle('ativa', x === b)); desenhar(); });
 }
 

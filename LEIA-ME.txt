@@ -1,0 +1,20 @@
+APRESENTAÇÃO EM VÍDEO DOS RESPONSÁVEIS DE NÚCLEO
+================================================
+
+1) SUBIR NO GITHUB (substituir os arquivos que já existem, na raiz do site)
+   apresentacao.js (novo), admin.js, admin.css, admin.html, app.html,
+   rede.js, rede.css, rede.html, master.html, brasoes.html, sw.js
+   + a pasta apresentacoes/ com taynara.mp4 (Add file → Upload files,
+     arraste a PASTA apresentacoes inteira)
+
+2) FIREBASE STORAGE → Regras: colar o conteúdo de storage-rules-rede.txt
+   e Publicar. Se o Console pedir para "conceder permissão" ao Firestore, conceda.
+   (Só é necessário para o botão "Enviar vídeo" do painel. O vídeo da Taynara
+   pelo caminho apresentacoes/taynara.mp4 funciona mesmo sem esse passo.)
+
+3) ATIVAR A TAYNARA (painel → Núcleos → cartão "Academia Professora Taynara")
+   • botão 🔗 → digitar:  apresentacoes/taynara.mp4
+   • botão ⚙ → título: Professora   · início do nome: 4.4
+
+4) PRÓXIMOS NÚCLEOS: no cartão de cada núcleo, "Enviar vídeo" (até 15 MB e 30 s,
+   vertical 9:16 fica melhor). Sem vídeo, tudo continua como hoje, com a foto.
