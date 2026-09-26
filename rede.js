@@ -291,13 +291,26 @@ const lista = Array.from(grupos.values()).map((g) => ({ ...g, visto: g.itens.eve
 lista.sort((a, b) => (a.id === uid ? -1 : b.id === uid ? 1 : 0) || (a.visto - b.visto) || (a.nucleo ? -1 : 1));
 return lista;
 }
+// Stories em cards verticais (3:4): o 1º é "Seu story" (fundo branco, avatar
+// central com "+" azul); os demais mostram a própria mídia do story de fundo,
+// com o mini-avatar no canto (anel colorido = ainda não visto).
 function storiesHTML() {
 const grupos = gruposStories();
-return `<div class="stories">
-<button type="button" class="story novo" data-story-novo><span class="anel"><span class="avatar"><i class="fas fa-plus"></i></span></span><span>Seu story</span></button>
-${grupos.map((g) => `<button type="button" class="story ${g.visto ? 'visto' : ''} ${g.nucleo ? 'nucleo' : ''}" data-story="${escapeHTML(g.chave)}">${g.nucleo ? `<span class="anel" style="--c1:#00B140;--c2:#002D72;--c3:#389E92"><span class="avatar" style="background:var(--navy)"><i class="fas fa-people-group"></i></span></span>` : anelHTML({ ...g, nome: g.nome })}<span>${escapeHTML(g.id === uid ? 'Você' : (g.nucleo ? nomeCurtoNucleo(g.nome) : String(g.nome || '').split(' ')[0]))}</span></button>`).join('')}
+const eu = { ...(meuPub || {}), ...(perfil || {}), id: uid };
+const card = (g, k) => {
+const capa = (g.itens.find((s) => !storiesVistos.has(s.id)) || g.itens[0] || {}).midiaUrl || '';
+const nome = g.id === uid ? 'Você' : (g.nucleo ? nomeCurtoNucleo(g.nome) : String(g.nome || '').split(' ')[0]);
+const mini = g.nucleo ? '<span class="avatar" style="background:var(--navy)"><i class="fas fa-people-group"></i></span>' : avatarHTML({ ...g, nome: g.nome });
+return `<button type="button" class="story-card ${g.visto ? 'visto' : ''} ${g.nucleo ? 'nucleo' : ''}" data-story="${escapeHTML(g.chave)}" style="--i:${k + 1}" aria-label="Story de ${escapeHTML(nome)}${g.visto ? ' (visto)' : ''}">
+${capa ? `<img class="sc-fundo" src="${escapeHTML(capa)}" alt="" loading="lazy" draggable="false">` : ''}<span class="sc-sombra"></span>
+<span class="sc-mini">${mini}</span><span class="sc-nome">${escapeHTML(nome)}</span></button>`;
+};
+return `<div class="stories" role="list">
+<button type="button" class="story-card novo" data-story-novo style="--i:0" aria-label="Publicar seu story"><span class="sc-av">${avatarHTML(eu)}<i class="sc-mais" aria-hidden="true">+</i></span><span class="sc-nome">Seu story</span></button>
+${grupos.map(card).join('')}
 </div>`;
 }
+
 let storyAtual = { itens: [], i: 0, timer: null };
 function abrirStories(chave) {
 const g = gruposStories().find((x) => x.chave === chave); if (!g) return;
@@ -342,11 +355,64 @@ return p.fotoUrl ? [{ url: p.fotoUrl, tipo: 'imagem' }] : [];
 function midiasHTML(p) {
 const m = midiasDe(p); if (!m.length) return '';
 const local = p.nucleoNome ? `<span class="tag-local"><i class="fas fa-location-dot"></i> ${escapeHTML(nomeCurtoNucleo(p.nucleoNome))}</span>` : '';
+// 3 ou mais fotos (sem vídeo): "cartas em leque" — uma no centro e duas ao
+// fundo, inclinadas. Toque na lateral (ou arraste) para girar; toque na do
+// centro para ampliar. Vídeo ou 1–2 fotos seguem no carrossel de sempre.
+if (m.length >= 3 && m.every((x) => x.tipo !== 'video')) {
+return `<div class="leque" data-leque data-k="0" data-n="${m.length}" aria-roledescription="galeria" aria-label="${m.length} fotos">
+${m.map((x, i) => `<button type="button" class="carta" data-carta="${i}" data-pos="${posCarta(i, 0, m.length)}" style="--o:${i}" aria-label="Foto ${i + 1} de ${m.length}"><img src="${escapeHTML(x.url)}" alt="" loading="lazy" draggable="false"></button>`).join('')}
+<span class="cont">1/${m.length}</span>${local}
+</div>`;
+}
 return `<div class="midias" data-midias>
 <div class="faixa">${m.map((x, i) => x.tipo === 'video' ? `<video src="${escapeHTML(x.url)}" controls playsinline preload="metadata"></video>` : `<img src="${escapeHTML(x.url)}" alt="" loading="lazy" data-ver="${i}">`).join('')}</div>
 ${m.length > 1 ? `<span class="cont">1/${m.length}</span><div class="pontos">${m.map((x, i) => `<i class="${i ? '' : 'ativo'}"></i>`).join('')}</div>` : ''}${local}
 </div>`;
 }
+function posCarta(i, k, n) { const r = (i - k + n) % n; return r === 0 ? 'c' : (r === 1 ? 'd' : (r === n - 1 ? 'e' : 'x')); }
+function girarLeque(leque, dir) {
+const n = Number(leque.dataset.n) || 0; if (n < 2) return;
+const k = ((Number(leque.dataset.k) || 0) + dir + n) % n; leque.dataset.k = k;
+leque.querySelectorAll('[data-carta]').forEach((c) => { c.dataset.pos = posCarta(Number(c.dataset.carta), k, n); c.style.removeProperty('--rx'); c.style.removeProperty('--ry'); });
+const cont = leque.querySelector('.cont'); if (cont) cont.textContent = `${k + 1}/${n}`;
+}
+// Interações do leque ficam no documento (feed, perfil, núcleo e post aberto).
+(function ligarLeques() {
+const finoMouse = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+let arrasto = null;
+document.addEventListener('click', (ev) => {
+const carta = ev.target.closest('[data-carta]'); if (!carta) return;
+const leque = carta.closest('[data-leque]'); if (!leque) return;
+if (arrasto && arrasto.moveu) { arrasto = null; return; }
+const pos = carta.dataset.pos;
+if (pos === 'c') { const img = carta.querySelector('img'); if (img) abrirMidia(`<img src="${escapeHTML(img.src)}" alt="">`); }
+else girarLeque(leque, pos === 'e' ? -1 : 1);
+});
+document.addEventListener('keydown', (ev) => {
+const leque = ev.target.closest && ev.target.closest('[data-leque]'); if (!leque) return;
+if (ev.key === 'ArrowRight') { ev.preventDefault(); girarLeque(leque, 1); leque.querySelector('[data-pos="c"]')?.focus({ preventScroll: true }); }
+if (ev.key === 'ArrowLeft') { ev.preventDefault(); girarLeque(leque, -1); leque.querySelector('[data-pos="c"]')?.focus({ preventScroll: true }); }
+});
+document.addEventListener('pointerdown', (ev) => { const leque = ev.target.closest('[data-leque]'); arrasto = leque ? { leque, x: ev.clientX, y: ev.clientY, moveu: false } : null; });
+document.addEventListener('pointerup', (ev) => {
+if (!arrasto) return; const dx = ev.clientX - arrasto.x; const dy = ev.clientY - arrasto.y;
+if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) { arrasto.moveu = true; girarLeque(arrasto.leque, dx < 0 ? 1 : -1); } else arrasto = null;
+});
+if (!finoMouse) return;
+// Mouse: a carta do centro inclina em 3D seguindo o cursor, com brilho.
+document.addEventListener('pointermove', (ev) => {
+const leque = ev.target.closest('[data-leque]'); if (!leque) return;
+const c = leque.querySelector('[data-pos="c"]'); if (!c) return;
+const r = c.getBoundingClientRect(); const px = (ev.clientX - r.left) / r.width; const py = (ev.clientY - r.top) / r.height;
+if (px < -0.2 || px > 1.2 || py < -0.2 || py > 1.2) { c.style.removeProperty('--rx'); c.style.removeProperty('--ry'); return; }
+c.style.setProperty('--ry', `${((px - 0.5) * 14).toFixed(2)}deg`); c.style.setProperty('--rx', `${((0.5 - py) * 12).toFixed(2)}deg`);
+c.style.setProperty('--mx', `${(px * 100).toFixed(1)}%`); c.style.setProperty('--my', `${(py * 100).toFixed(1)}%`);
+});
+document.addEventListener('pointerout', (ev) => {
+const leque = ev.target.closest && ev.target.closest('[data-leque]'); if (!leque || leque.contains(ev.relatedTarget)) return;
+leque.querySelectorAll('[data-carta]').forEach((c) => { c.style.removeProperty('--rx'); c.style.removeProperty('--ry'); });
+});
+})();
 function postHTML(p) {
 const curtido = (p.curtidas || []).includes(uid); const salvo = salvos.has(p.id);
 const autor = { id: p.autorUid, nome: p.autorNome, fotoUrl: p.autorFoto, cordaoAtual: p.autorCordao };
