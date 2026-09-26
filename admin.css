@@ -9,10 +9,15 @@
    ====================================================================== */
 
 :root {
-  --bg-app: #F5F9F8;
+  --bg-app: #F3F7FB; /* superfícies tintadas; a página em si é branca (Céu Claro) */
+  --bg-pagina: #FFFFFF;
   --card-bg: #FFFFFF;
-  --border-color: #E2E8E6;
-  --border-strong: #CFD9D6;
+  --card-vidro: rgba(255, 255, 255, 0.86);
+  --border-color: #E8EEF4;
+  --border-strong: #D5DEE8;
+  --sky: #3D8BFF;
+  --sky-soft: #EAF2FF;
+  --sky-texto: #1B5FC2;
   --text-dark: #0D211D;
   --text-muted: #5B6B68;
   --text-soft: #8795A0;
@@ -53,7 +58,11 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: var(--font-body); scrollbar-width: thin; }
 html { -webkit-text-size-adjust: 100%; }
-body { background: var(--bg-app); color: var(--text-dark); overflow-x: hidden; scroll-behavior: smooth; -webkit-font-smoothing: antialiased; line-height: 1.45; }
+body { background: var(--bg-pagina); color: var(--text-dark); overflow-x: hidden; scroll-behavior: smooth; -webkit-font-smoothing: antialiased; line-height: 1.45; position: relative; }
+/* Céu Claro: luz azul/verde/teal desfocada atrás do topo da página */
+body::before { content: ''; position: fixed; left: 0; right: 0; top: 0; height: 52vh; max-height: 520px; pointer-events: none; z-index: 0; filter: blur(40px); opacity: .9;
+  background: radial-gradient(520px 300px at 12% 14%, rgba(61,139,255,.30), transparent 70%), radial-gradient(460px 280px at 88% 2%, rgba(0,230,118,.20), transparent 70%), radial-gradient(420px 260px at 52% 40%, rgba(56,158,146,.18), transparent 70%); }
+body > * { position: relative; z-index: 1; }
 h1, h2, h3, h4 { font-family: var(--font-display); color: var(--text-dark); letter-spacing: -0.01em; text-wrap: balance; }
 h3 { font-size: 1.02rem; font-weight: 700; }
 h4 { font-size: 0.95rem; font-weight: 700; }
@@ -68,8 +77,8 @@ button { font-family: var(--font-body); }
 /* ---------------------------------------------------------------- TOP NAV */
 .top-nav {
   display: flex; align-items: center; justify-content: space-between; gap: 18px;
-  background: color-mix(in srgb, var(--card-bg) 92%, transparent);
-  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  background: color-mix(in srgb, var(--card-bg) 72%, transparent);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border-color);
   padding: 12px 28px; position: sticky; top: 0; z-index: 100;
 }
@@ -83,7 +92,7 @@ button { font-family: var(--font-body); }
   white-space: nowrap;
 }
 .nav-item:hover { background: var(--teal-soft); color: var(--primary-teal); }
-.nav-item.active { background: var(--primary-teal); color: #fff; box-shadow: 0 8px 18px -10px rgba(11, 92, 82, 0.7); }
+.nav-item.active { background: var(--sky); color: #fff; box-shadow: 0 8px 18px -10px rgba(61, 139, 255, 0.7); }
 .user-area { display: flex; align-items: center; gap: 12px; }
 .search-bar {
   background: var(--bg-app); border: 1px solid var(--border-color); border-radius: var(--radius-pill);
@@ -181,7 +190,7 @@ button { font-family: var(--font-body); }
 /* ---------------------------------------------------------------- KPI TILES */
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 22px; }
 .kpi-tile {
-  position: relative; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-lg);
+  position: relative; background: var(--card-vidro); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--border-color); border-radius: var(--radius-lg);
   padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 4px; box-shadow: var(--shadow-card);
   text-align: left; cursor: default; transition: transform 0.15s var(--ease-standard), box-shadow 0.2s var(--ease-standard);
   animation: cardIn 0.4s var(--ease-standard) both; animation-delay: calc(var(--card-index, 0) * 50ms);
@@ -221,7 +230,7 @@ button { font-family: var(--font-body); }
 
 /* ---------------------------------------------------------------- CARTÕES */
 .card-padrao, .widget {
-  background: var(--card-bg); padding: 22px; border-radius: var(--radius-lg); border: 1px solid var(--border-color); box-shadow: var(--shadow-card);
+  background: var(--card-vidro); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding: 22px; border-radius: var(--radius-lg); border: 1px solid var(--border-color); box-shadow: var(--shadow-card);
 }
 .card-padrao > h3, .widget > h3 { margin-bottom: 6px; }
 .card-padrao > p:first-of-type { font-size: 0.85rem; }

@@ -78,7 +78,7 @@ a:hover{ color:#389E92; }
   </div>
 
   <div data-moldura="1" style="position:relative; width:390px; max-width:100%; height:844px; border-radius:46px; background:#0B0F18; padding:10px; box-shadow:0 40px 90px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.08);">
-    <div data-tela="1" style="position:relative; width:100%; height:100%; border-radius:38px; overflow:hidden; background:#EAF2F1; display:flex; flex-direction:column;">
+    <div data-tela="1" style="position:relative; width:100%; height:100%; border-radius:38px; overflow:hidden; background:#FFFFFF; display:flex; flex-direction:column;">
 
       <div data-chrome="1" style="position:absolute; top:0; left:0; right:0; z-index:40; display:flex; align-items:center; justify-content:space-between; padding:14px 26px 0; font-size:.8rem; font-weight:800; color:#fff; pointer-events:none;">
         <span>9:41</span>
@@ -122,11 +122,11 @@ a:hover{ color:#389E92; }
       </sc-if>
 
       <sc-if value="{{ telaApp }}" hint-placeholder-val="{{ false }}">
-        <div data-rolagem="1" style="flex:1; overflow-y:auto; overflow-x:hidden; padding-bottom:104px; background:#EAF2F1;">
+        <div data-rolagem="1" style="flex:1; overflow-y:auto; overflow-x:hidden; padding-bottom:104px; background:#FFFFFF; position:relative;">
 
           <sc-if value="{{ ehInicio }}" hint-placeholder-val="{{ false }}">
             <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
-              <div style="background:#fff; padding:48px 20px 18px; border-bottom:1px solid #E2E8E6;">
+              <div style="background:rgba(255,255,255,.55); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); padding:48px 20px 18px; border-bottom:1px solid rgba(232,238,244,.9);">
                 <div style="display:flex; align-items:center; gap:12px;">
                   <button onClick="{{ abrirTrocador }}" aria-label="Trocar de atleta" style="position:relative; width:48px; height:48px; padding:0; border:none; background:none; cursor:pointer; flex:none;">
                     <span class="cordao-anel" style="position:absolute; inset:0; border-radius:50%; background:conic-gradient(from 0deg,#ffffff 0deg 120deg,#00B140 120deg 240deg,#0057D9 240deg 360deg);"></span>
@@ -668,7 +668,7 @@ a:hover{ color:#389E92; }
 
           <sc-if value="{{ ehPerfil }}" hint-placeholder-val="{{ false }}">
             <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
-              <div style="background:#fff; padding:48px 20px 18px; border-bottom:1px solid #E2E8E6;">
+              <div style="background:rgba(255,255,255,.55); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); padding:48px 20px 18px; border-bottom:1px solid rgba(232,238,244,.9);">
                 <div style="display:flex; align-items:center; justify-content:space-between;">
                   <span style="width:32px; height:32px;"></span>
                   <h1 style="margin:0; font-size:1rem; font-weight:800; color:#0D211D; font-family:'Sora',sans-serif;">Perfil</h1>
@@ -1093,7 +1093,7 @@ a:hover{ color:#389E92; }
 
           <sc-if value="{{ ehNucleos }}" hint-placeholder-val="{{ false }}">
             <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
-              <div style="background:#fff; padding:48px 20px 18px; border-bottom:1px solid #E2E8E6;">
+              <div style="background:rgba(255,255,255,.55); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); padding:48px 20px 18px; border-bottom:1px solid rgba(232,238,244,.9);">
                 <div>
                   <div style="font-size:.66rem; letter-spacing:.06em; color:#5B6B68; text-transform:uppercase;">Capoeira Liberdade</div>
                   <h1 style="margin:0; font-size:1.15rem; font-weight:800; color:#0D211D; font-family:'Sora',sans-serif;">Núcleos</h1>
@@ -1260,7 +1260,7 @@ a:hover{ color:#389E92; }
 
           <sc-if value="{{ ehTrofeus }}" hint-placeholder-val="{{ false }}">
             <div style="animation:apEntra .35s cubic-bezier(.16,1,.3,1) both;">
-              <div style="background:#fff; padding:48px 20px 18px; border-bottom:1px solid #E2E8E6;">
+              <div style="background:rgba(255,255,255,.55); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); padding:48px 20px 18px; border-bottom:1px solid rgba(232,238,244,.9);">
                 <div style="display:flex; align-items:center; gap:10px;">
                   <button onClick="{{ irPerfil }}" aria-label="Voltar" style="width:34px; height:34px; border-radius:50%; background:#F5F9F8; border:1px solid #E2E8E6; color:#0D211D; cursor:pointer; flex:none;"><i class="fas fa-arrow-left"></i></button>
                   <div>
@@ -1334,7 +1334,7 @@ a:hover{ color:#389E92; }
       </sc-if>
 
       <sc-if value="{{ avaliacaoAberta }}" hint-placeholder-val="{{ false }}">
-        <div style="position:absolute; inset:0; z-index:70; display:flex; flex-direction:column; background:#EAF2F1; animation:apSobeSheet .3s cubic-bezier(.16,1,.3,1) both;">
+        <div style="position:absolute; inset:0; z-index:70; display:flex; flex-direction:column; background:#FFFFFF; animation:apSobeSheet .3s cubic-bezier(.16,1,.3,1) both;">
           <div style="background:linear-gradient(158deg,#0B5C52 0%,#12796B 42%,#002D72 100%); padding:46px 18px 20px; display:flex; align-items:center; gap:13px;">
             <button onClick="{{ fecharAvaliacao }}" aria-label="Fechar prontuário" style="width:38px; height:38px; border-radius:50%; border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.12); color:#fff; cursor:pointer; flex:none; transition:.25s cubic-bezier(.16,1,.3,1);" style-hover="transform:rotate(90deg);"><i class="fas fa-times"></i></button>
             <div style="flex:1; min-width:0;">
@@ -2938,7 +2938,7 @@ class Component extends DCLogic {
         this.setState({ sheet: null, sheetVals: {} });
       },
 
-      pilulaEstilo: 'position:absolute; top:6px; bottom:6px; width:' + (100 / ABAS.length - 1.5) + '%; left:' + (idx * (100 / ABAS.length) + 0.75) + '%; border-radius:999px; background:#E6F2EF; box-shadow:inset 0 1px 2px rgba(11,92,82,.12), 0 1px 0 #fff; transition:left .38s cubic-bezier(.16,1,.3,1);',
+      pilulaEstilo: 'position:absolute; top:6px; bottom:6px; width:' + (100 / ABAS.length - 1.5) + '%; left:' + (idx * (100 / ABAS.length) + 0.75) + '%; border-radius:999px; background:#EAF2FF; box-shadow:inset 0 1px 2px rgba(61,139,255,.16), 0 1px 0 #fff; transition:left .38s cubic-bezier(.16,1,.3,1);',
       abas: ABAS.map((t) => {
         const ativa = t.id === abaParaPilula;
         if (t.id === 'vazio') {
@@ -2947,8 +2947,8 @@ class Component extends DCLogic {
         return {
           rotulo: t.rotulo, icone: t.icone, abrir: () => this.irPara(t.id),
           botao: "position:relative; z-index:2; flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; padding:9px 2px; border:none; background:none; cursor:pointer; font-family:'Manrope',sans-serif;",
-          iconeEstilo: 'font-size:1.02rem; transition:.3s cubic-bezier(.16,1,.3,1); transform:translateY(' + (ativa ? '-2px' : '0') + '); color:' + (ativa ? '#0B5C52' : '#8795A0') + ';' + (ativa ? ' filter:drop-shadow(0 2px 3px rgba(11,92,82,.25));' : ''),
-          rotuloEstilo: 'font-size:.66rem; font-weight:800; letter-spacing:.02em; color:' + (ativa ? '#0B5C52' : '#8795A0') + ';',
+          iconeEstilo: 'font-size:1.02rem; transition:.3s cubic-bezier(.16,1,.3,1); transform:translateY(' + (ativa ? '-2px' : '0') + '); color:' + (ativa ? '#1B5FC2' : '#8795A0') + ';' + (ativa ? ' filter:drop-shadow(0 2px 3px rgba(61,139,255,.3));' : ''),
+          rotuloEstilo: 'font-size:.66rem; font-weight:800; letter-spacing:.02em; color:' + (ativa ? '#1B5FC2' : '#8795A0') + ';',
         };
       }),
 
@@ -2994,6 +2994,14 @@ class Component extends DCLogic {
 [data-dc-tpl="82"] {
   font-variant-numeric: tabular-nums !important;
 }
+/* Céu Claro (2026-09): fundo branco + luz azul/verde/teal desfocada atrás do
+   topo de cada tela do app. O container de rolagem já é position:relative;
+   o pseudo-elemento rola junto com o conteúdo, ficando atrás do cabeçalho. */
+[data-rolagem="1"]::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 300px; pointer-events: none; z-index: 0; filter: blur(30px); opacity: .95;
+  background: radial-gradient(230px 170px at 18% 20%, rgba(61,139,255,.45), transparent 70%), radial-gradient(210px 150px at 84% 6%, rgba(0,230,118,.32), transparent 70%), radial-gradient(190px 140px at 58% 46%, rgba(56,158,146,.28), transparent 70%);
+}
+[data-rolagem="1"] > * { position: relative; z-index: 1; }
 </style>
 </body>
 </html>

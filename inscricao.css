@@ -7,7 +7,8 @@
     --accent-green: #00E676;
     --dark-green: #00B140;
     --accent-gold: #DAA520;
-    --bg-light: #F5F9F8;
+    --bg-light: #F3F7FB;
+    --bg-pagina: #FFFFFF;
     --border-color: #E2E8E6;
     --text-dark: #0D211D;
     --text-muted: #5B6B68;
@@ -18,9 +19,11 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: var(--font-body); }
 
-body { background-color: var(--bg-light); color: var(--text-dark); padding-bottom: 50px; -webkit-font-smoothing: antialiased; }
+body { background-color: var(--bg-pagina); color: var(--text-dark); padding-bottom: 50px; -webkit-font-smoothing: antialiased; position: relative; overflow-x: hidden; }
+body::before { content: ''; position: fixed; inset: 0 0 auto 0; height: 50vh; pointer-events: none; z-index: 0; filter: blur(40px); opacity: .95; background: radial-gradient(360px 260px at 18% 20%, rgba(61,139,255,.40), transparent 70%), radial-gradient(320px 240px at 84% 6%, rgba(0,230,118,.28), transparent 70%), radial-gradient(300px 220px at 56% 48%, rgba(56,158,146,.24), transparent 70%); }
+body > * { position: relative; z-index: 1; }
 
-.header { background: var(--white); color: var(--text-dark); padding: 34px 20px 44px; text-align: center; border-bottom: 1px solid var(--border-color); }
+.header { background: rgba(255,255,255,.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: var(--text-dark); padding: 34px 20px 44px; text-align: center; border-bottom: 1px solid var(--border-color); }
 .header h1 { font-family: var(--font-display); font-size: 1.5rem; font-weight: 800; letter-spacing: -0.01em; }
 .header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; }
 .logo-esfera { width: 84px; height: 84px; border-radius: 24px; object-fit: cover; box-shadow: 0 10px 24px -14px rgba(0,45,114,0.5); margin-bottom: 14px; background-color: var(--white); }
