@@ -28,6 +28,7 @@ lancarDespesaComRateio, todosRateios, marcarRateioPago,
 } from './firebase.js';
 import { apresentacaoDe, migrarApresentacao, tocarApresentacao, tocarAoEntrar, gerenciarApresentacao, abrirMinhaConta, abrirTrocaSenha, definirAutor, podeTerApresentacao, formatarCelular, celularValido, celularDe } from './conta.js?v=20260927a';
 import { escapeHTML, sanitizeInput, debounce, gerarSlug } from './shared.js';
+import { BRASOES, porId as brasaoPorId, urlThumb as brasaoThumb, ehManual as brasaoManual } from './brasoes.js?v=20260927b';
 import { configurarFaceId, atualizarContextoFaceId, pararFaceId } from './faceid.js';
 
 let sessaoAtual = null; // { uid, nome, email, papeis, academiaId, academiaGerenciadaId, ... }
@@ -293,20 +294,22 @@ function irParaLogin(motivo) {
 window.location.href = motivo ? `login.html?erro=${motivo}` : 'login.html';
 }
 
+// Painel: Admin Master, Fundador e responsáveis com núcleo. Instrutor/professor/
+// mestre sem núcleo usa o app do aluno (mesmas ferramentas de qualquer aluno).
 function temAcessoAoPainel(perfil) {
 const p = (perfil && perfil.papeis) || [];
-return p.includes('admin') || p.includes('mestre') || p.includes('instrutor');
+if (p.includes('admin') || (perfil && perfil.acessoGeral === true)) return true;
+return !!(perfil && perfil.academiaGerenciadaId) && (p.includes('mestre') || p.includes('instrutor'));
 }
 
 observarSessao(async (user) => {
 if (!user) { sessaoAtual = null; irParaLogin(); return; }
 try {
 const perfil = await buscar('usuarios', user.uid);
-if (!perfil || !temAcessoAoPainel(perfil)) {
-await sair();
-irParaLogin('sem-acesso');
-return;
-}
+if (!perfil) { await sair(); irParaLogin('sem-acesso'); return; }
+// Conta válida sem núcleo (aluno, instrutor/professor/mestre sem núcleo):
+// vai para o app do aluno, sem derrubar a sessão.
+if (!temAcessoAoPainel(perfil)) { window.location.replace('app.html'); return; }
 sessaoAtual = { uid: user.uid, ...perfil };
 } catch (e) {
 console.error(e);
@@ -438,6 +441,7 @@ renderizarKpisGestao();
 // Apresentação em vídeo: abre sozinha quando o Instrutor/Professor/Mestre
 // entra na plataforma (se tiver vídeo) e fecha na foto do cartão.
 migrarApresentacoesDosNucleos().catch(() => {});
+renderizarCardRedeBrasoes().catch((e) => console.warn('card rede/brasões', e));
 {
 const eu = todosUsuarios.find((u) => u.id === sessaoAtual.uid) || { id: sessaoAtual.uid, ...sessaoAtual };
 tocarAoEntrar(pessoaApresentacao({ ...sessaoAtual, ...eu }), {
@@ -457,6 +461,37 @@ escapeHTML,
 aoRegistrar: () => carregarPresencas(),
 });
 await atualizarContextoFaceId();
+}
+
+/* ===================== MINHA REDE E BRASÕES =====================
+   Atalhos do responsável: a própria Sala de Brasões e o próprio perfil na Rede
+   (brasões conquistados vêm de perfisPublicos/{uid}, consolidados quando a
+   pessoa abre a Rede) e o gerenciamento, onde concede brasões manuais aos
+   alunos do núcleo. Admin Master concede qualquer um; ninguém concede o de
+   Presidente do Grupo. */
+async function renderizarCardRedeBrasoes() {
+const wrap = document.getElementById('cardRedeBrasoes');
+if (!wrap || !sessaoAtual) return;
+let pub = null;
+try { pub = await buscar('perfisPublicos', sessaoAtual.uid); } catch (e) { pub = null; }
+const mapa = (pub && pub.brasoes) || {};
+const ganhos = Object.entries(mapa).map(([id, v]) => ({ b: brasaoPorId(id), em: (v && v.em) || '' })).filter((x) => x.b).sort((a, z) => String(z.em).localeCompare(String(a.em)));
+const total = pub ? ganhos.length : null;
+const alunosDoNucleo = sessaoAtual.academiaGerenciadaId ? todosUsuarios.filter((u) => u.academiaId === sessaoAtual.academiaGerenciadaId && u.id !== sessaoAtual.uid).length : 0;
+const escopo = ehAdmin() ? 'Você concede qualquer brasão a qualquer pessoa (menos o de Presidente).' : `Você concede os ${BRASOES.filter(brasaoManual).length} brasões manuais${alunosDoNucleo ? ` aos ${alunosDoNucleo} alunos do seu núcleo` : ' aos alunos do seu núcleo'}.`;
+wrap.innerHTML = `
+<div class="crb-topo">
+<div class="crb-medalhas" aria-hidden="true">${ganhos.slice(0, 3).map((x, i) => `<img src="${escapeHTML(brasaoThumb(x.b))}" alt="" style="--i:${i}">`).join('') || '<span class="crb-vazio"><i class="fas fa-medal"></i></span>'}</div>
+<div class="crb-texto"><span class="eyebrow">Rede Liberdade</span><h3>Minha Rede e brasões</h3>
+<p>${total === null ? 'Abra a Rede Liberdade para consolidar seus brasões.' : `<strong>${total}</strong> de ${BRASOES.length} brasões conquistados${ganhos[0] ? ` · último: ${escapeHTML(ganhos[0].b.nome)}` : ''}.`}</p></div>
+</div>
+<div class="crb-acoes">
+<a class="crb-btn crb-ouro" href="rede.html#brasoes"><i class="fas fa-medal"></i><span><b>Meus brasões</b><small>Sala de Brasões</small></span></a>
+<a class="crb-btn" href="rede.html#perfil"><i class="fas fa-user"></i><span><b>Meu perfil</b><small>Rede Liberdade</small></span></a>
+<a class="crb-btn" href="rede.html#feed"><i class="fas fa-house"></i><span><b>Feed</b><small>Novidades do grupo</small></span></a>
+<a class="crb-btn crb-ceu" href="brasoes.html"><i class="fas fa-award"></i><span><b>Conceder brasões</b><small>${escapeHTML(escopo)}</small></span></a>
+</div>`;
+wrap.classList.remove('oculto');
 }
 
 /* ===================== FACE ID (contexto do painel) =====================

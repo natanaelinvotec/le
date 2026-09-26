@@ -6,11 +6,16 @@ Nada aqui inventa número. As fontes são:
 - resumoPresencas                                   → presenças do Face ID/painel (coleção presencas)
 - resumoRede                                        → posts do próprio atleta na Rede
 - resumoFormacao                                    → alunos do núcleo que ele administra com graduação dada por ele
-- brasoesManuais                                    → concedidos pelo responsável do núcleo/Admin/Fundador (brasoes.html)
+- brasoesManuais                                    → brasões MANUAIS concedidos pelo responsável do núcleo/Fundador/Admin (brasoes.html)
+- brasoesAdmin                                      → QUALQUER brasão (até automático) concedido pelo Admin Master
+                                                      (as regras do Firestore só deixam o Admin gravar este campo)
+
+Presidente do Grupo ('mestre-fundador'): travado em UMA pessoa — config.presidenteUid
+(o Mestre Profeta). Ninguém concede esse brasão, nem o Admin.
 
 Métrica de cada brasão:
   tipo 'cordao'      → cordaoAtual está no nível do brasão ou acima (graduação é cumulativa)
-  tipo 'fundador'    → acessoGeral === true
+  tipo 'fundador'    → acessoGeral === true E é a pessoa travada em config.presidenteUid
   tipo 'presencas'   → resumoPresencas.total ≥ meta
   tipo 'sequencia'   → resumoPresencas.maiorSequencia (semanas seguidas, recorde) ≥ meta
   tipo 'nucleos'     → resumoPresencas.nucleosVisitados ≥ meta
@@ -103,6 +108,13 @@ export const urlThumb = (brasao) => `${PASTA}/thumb/${brasao.arquivo}.png`;
 export const urlPng = (brasao) => `${PASTA}/png/${brasao.arquivo}.png`;
 export const urlGlb = (brasao) => (brasao.glb ? `${PASTA}/glb/${brasao.glb}.glb` : null);
 export const ehManual = (brasao) => brasao.regra.tipo === 'manual';
+// Presidente do Grupo: único brasão que não se concede — é travado numa pessoa.
+export const ID_PRESIDENTE = 'mestre-fundador';
+export const ehPresidente = (brasao) => !!brasao && (brasao.id === ID_PRESIDENTE || brasao.regra.tipo === 'fundador');
+// Quem pode conceder o quê (a tela usa isto; as regras do Firestore conferem de novo).
+//   admin  → qualquer brasão, menos o de Presidente
+//   outros (Fundador / responsável com núcleo) → só os manuais
+export const podeConceder = (brasao, { admin } = {}) => !!brasao && !ehPresidente(brasao) && (admin || ehManual(brasao));
 
 // Texto humano da métrica (usado no painel e no detalhe do brasão).
 export function textoMetrica(brasao) {
@@ -136,6 +148,8 @@ const rp = dados.resumoPresencas || null;
 const rr = dados.resumoRede || null;
 const rf = dados.resumoFormacao || null;
 const manuais = dados.brasoesManuais || {};
+const doAdmin = dados.brasoesAdmin || {};
+const presidenteUid = config.presidenteUid || null;
 const idxCordao = ORDEM_CORDOES.indexOf(dados.cordaoAtual || 'Iniciante');
 const anos = dados.criadoEm ? Math.floor((Date.now() - new Date(dados.criadoEm).getTime()) / (365.25 * 86400000)) : 0;
 const nucleoFundador = config.nucleoFundadorId || null;
@@ -144,7 +158,7 @@ const r = br.regra; let ganho = false; let progresso = null;
 const num = (atual, meta) => { progresso = { atual: Math.min(atual, meta), meta }; return atual >= meta; };
 switch (r.tipo) {
 case 'cordao': { const alvo = ORDEM_CORDOES.indexOf(r.meta); ganho = idxCordao >= alvo; break; }
-case 'fundador': ganho = dados.fundador === true; break;
+case 'fundador': ganho = dados.fundador === true && (!presidenteUid || dados.uid === presidenteUid); break;
 case 'presencas': ganho = rp ? num(rp.total || 0, r.meta) : false; if (!rp) progresso = { atual: 0, meta: r.meta }; break;
 case 'sequencia': ganho = rp ? num(Math.max(rp.maiorSequencia || 0, rp.semanasSeguidas || 0), r.meta) : false; if (!rp) progresso = { atual: 0, meta: r.meta }; break;
 case 'nucleos': ganho = rp ? num(rp.nucleosVisitados || 0, r.meta) : false; if (!rp) progresso = { atual: 0, meta: r.meta }; break;
@@ -159,7 +173,13 @@ case 'linhagem': ganho = dados.fundador === true || (!!nucleoFundador && dados.a
 case 'aniversario': ganho = dados.criadoEm ? num(anos, r.meta) : false; break;
 default: ganho = false;
 }
-const manual = manuais[br.id] || null;
+// Concessões: manuais só valem para brasão manual; as do Admin valem para
+// qualquer um. O de Presidente ignora concessão (travado em uma pessoa).
+let manual = null;
+if (!ehPresidente(br)) {
+if (r.tipo === 'manual' && manuais[br.id]) manual = manuais[br.id];
+else if (doAdmin[br.id]) manual = { ...doAdmin[br.id], admin: true };
+}
 if (manual) ganho = true;
 // data real da conquista quando ela existe no cadastro (troca de cordão registrada pelo mestre)
 let emReal = null;
@@ -170,7 +190,7 @@ const t = textos[br.id] || {};
 const anterior = (dados.brasoes || {})[br.id] || null;
 return {
 ...br, nome: t.nome || br.nome, como: t.como || br.como, descricao: t.descricao || br.descricao,
-ativo, ganho: ativo && ganho, progresso, manual: !!manual,
+ativo, ganho: ativo && ganho, progresso, manual: !!manual, concedidoAdmin: !!(manual && manual.admin),
 em: manual ? manual.em : (anterior ? anterior.em : emReal), por: manual ? (manual.porNome || null) : null,
 };
 });
@@ -183,7 +203,7 @@ anteriores = anteriores || {}; const mapa = {}; const novos = [];
 avaliacao.forEach((a) => {
 if (!a.ganho) return;
 const antes = anteriores[a.id];
-mapa[a.id] = { em: (antes && antes.em) || a.em || new Date().toISOString(), ...(a.manual ? { manual: true, por: a.por || null } : {}) };
+mapa[a.id] = { em: (antes && antes.em) || a.em || new Date().toISOString(), ...(a.manual ? { manual: true, por: a.por || null } : {}), ...(a.concedidoAdmin ? { admin: true } : {}) };
 if (!antes) novos.push(a.id);
 });
 return { mapa, novos, total: Object.keys(mapa).length };

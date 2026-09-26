@@ -30,9 +30,13 @@ infoTexto.textContent = msg;
 infoBox.style.display = 'block';
 }
 
-function destinoPorPapeis(papeis) {
-if (!Array.isArray(papeis)) return 'app.html';
-if (papeis.includes('admin') || papeis.includes('mestre') || papeis.includes('instrutor')) return 'admin.html';
+// Painel de Gestão: Admin Master, Fundador (acesso geral) e quem é responsável
+// por um núcleo (academiaGerenciadaId). Mestre/professor/instrutor SEM núcleo
+// usa o app como qualquer aluno.
+function destinoPorPapeis(perfil) {
+const papeis = (perfil && Array.isArray(perfil.papeis)) ? perfil.papeis : [];
+if (papeis.includes('admin') || (perfil && perfil.acessoGeral === true)) return 'admin.html';
+if (perfil && perfil.academiaGerenciadaId && (papeis.includes('mestre') || papeis.includes('instrutor'))) return 'admin.html';
 return 'app.html';
 }
 
@@ -65,7 +69,7 @@ const perfil = await entrar(email, senha);
 tentativas = 0;
 // Apresentação em vídeo (Instrutor/Professor/Mestre) toca ao entrar — ver conta.js tocarAoEntrar.
 try { sessionStorage.setItem('apr.aoEntrar', '1'); } catch (e) { /* navegador sem storage */ }
-window.location.href = destinoPorPapeis(perfil.papeis);
+window.location.href = destinoPorPapeis(perfil);
 } catch (e) {
 tentativas += 1;
 if (tentativas >= 5) {

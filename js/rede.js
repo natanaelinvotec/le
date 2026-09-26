@@ -27,7 +27,7 @@ arrayUnion, arrayRemove, increment, onSnapshot, storageRef, uploadString, upload
 } from './firebase.js';
 import { escapeHTML } from './shared.js';
 import { apresentacaoDe, tocarApresentacao, gerenciarApresentacao, abrirTrocaSenha, definirAutor, podeTerApresentacao } from './conta.js?v=20260927a';
-import { BRASOES, SERIES, avaliar as avaliarBrasoes, consolidar as consolidarBrasoes, resumirPresencas, urlThumb, urlPng, urlGlb, textoMetrica, porId as brasaoPorId } from './brasoes.js';
+import { BRASOES, SERIES, avaliar as avaliarBrasoes, consolidar as consolidarBrasoes, resumirPresencas, urlThumb, urlPng, urlGlb, textoMetrica, porId as brasaoPorId } from './brasoes.js?v=20260927b';
 
 /* ===================== CONSTANTES (mesmas do painel) ===================== */
 const ORDEM_CORDOES = ['Iniciante', 'Escravo', 'Fugitivo', 'Quilombola', 'Vagante', 'Liberto', 'Instrutor', 'Professor', 'Mestre', 'Mestre/Presidente'];
@@ -248,7 +248,7 @@ if (perfil.academiaGerenciadaId) {
 try { const alunos = await pubsDeNucleo(perfil.academiaGerenciadaId, 120); dados.resumoFormacao = { formados: alunos.filter((a) => (a.historicoGraduacoes || []).some((h) => h.por === uid)).length, calculadoEm: new Date().toISOString() }; } catch (e) { /* ok */ }
 }
 // Brasões: avalia com os dados reais e consolida com o que já estava desbloqueado.
-const avaliacao = avaliarBrasoes({ ...dados, brasoesManuais: perfil.brasoesManuais || {}, brasoes: (meuPub && meuPub.brasoes) || {} }, configBrasoes);
+const avaliacao = avaliarBrasoes({ ...dados, uid, brasoesManuais: perfil.brasoesManuais || {}, brasoesAdmin: perfil.brasoesAdmin || {}, brasoes: (meuPub && meuPub.brasoes) || {} }, configBrasoes);
 const cons = consolidarBrasoes(avaliacao, (meuPub && meuPub.brasoes) || {});
 const tinhaMapa = !!(meuPub && meuPub.brasoes); // 1ª sincronização não faz festa de tudo de uma vez
 dados.brasoes = cons.mapa; dados.brasoesTotal = cons.total;
@@ -619,8 +619,9 @@ return `<div class="grade">${lista.map((p, i) => { const m = midiasDe(p)[0]; ret
 /* ===================== BRASÕES (catálogo real em brasoes.js) ===================== */
 // Dados de avaliação a partir do perfil público (o que a pessoa publicou sobre si).
 function dadosBrasoesDe(pub) {
-const manuais = {}; Object.entries(pub.brasoes || {}).forEach(([id, v]) => { if (v && v.manual) manuais[id] = { em: v.em, porNome: v.por || null }; });
-return { cordaoAtual: pub.cordaoAtual, fundador: !!pub.fundador, historicoGraduacoes: pub.historicoGraduacoes || [], criadoEm: pub.criadoEm, resumoPresencas: pub.resumoPresencas || null, resumoRede: pub.resumoRede || null, resumoFormacao: pub.resumoFormacao || null, academiaId: pub.academiaId, academiaGerenciadaId: pub.academiaGerenciadaId, brasoesManuais: manuais, brasoes: pub.brasoes || {} };
+const manuais = {}; const doAdmin = {};
+Object.entries(pub.brasoes || {}).forEach(([id, v]) => { if (v && v.manual) (v.admin ? doAdmin : manuais)[id] = { em: v.em, porNome: v.por || null }; });
+return { cordaoAtual: pub.cordaoAtual, fundador: !!pub.fundador, historicoGraduacoes: pub.historicoGraduacoes || [], criadoEm: pub.criadoEm, resumoPresencas: pub.resumoPresencas || null, resumoRede: pub.resumoRede || null, resumoFormacao: pub.resumoFormacao || null, academiaId: pub.academiaId, academiaGerenciadaId: pub.academiaGerenciadaId, uid: pub.id, brasoesManuais: manuais, brasoesAdmin: doAdmin, brasoes: pub.brasoes || {} };
 }
 function avaliacaoDe(pub) { return avaliarBrasoes(dadosBrasoesDe(pub), configBrasoes).filter((a) => a.ativo); }
 function brasaoCardHTML(a, tam = '') {
@@ -1182,6 +1183,9 @@ try { configBrasoes = (await buscar('config', 'brasoes')) || {}; } catch (e) { c
 if (!configBrasoes.nucleoFundadorId) { // padrão honesto: o núcleo cujo responsável tem Acesso Geral
 try { const pubs = await Promise.all(nucleos.filter((n) => n.professorUid).map((n) => pubDe(n.professorUid))); const i = pubs.findIndex((p) => p && p.fundador); if (i >= 0) configBrasoes.nucleoFundadorId = nucleos.filter((n) => n.professorUid)[i].id; } catch (e) { /* ok */ }
 }
+// Presidente do Grupo travado em uma pessoa: se o Admin ainda não gravou
+// config.presidenteUid, vale o responsável do núcleo do Fundador.
+if (!configBrasoes.presidenteUid && configBrasoes.nucleoFundadorId) { const nf = nucleos.find((n) => n.id === configBrasoes.nucleoFundadorId); if (nf && nf.professorUid) configBrasoes.presidenteUid = nf.professorUid; }
 meuPub = await pubDe(uid);
 el('app').classList.remove('oculto');
 let tema = 'light'; try { tema = localStorage.getItem('rede.tema') || 'light'; } catch (e) { /* ok */ }

@@ -18,6 +18,10 @@ function academiaGerenciadaInalterada() { return request.resource.data.academiaG
 function notasInalteradas() { return request.resource.data.notas == resource.data.notas; }
 function acessoGeralInalterado() { return request.resource.data.acessoGeral == resource.data.acessoGeral; }
 function souInstrutorDoAluno() { return ehInstrutor() && resource.data.instrutorUid == request.auth.uid; }
+// Brasões: 'brasoesAdmin' (qualquer brasão, até automático) só o Admin Master
+// grava; 'brasoesManuais' só Admin, Fundador e o responsável do núcleo do aluno.
+function brasoesAdminInalterados() { return request.resource.data.get('brasoesAdmin', null) == resource.data.get('brasoesAdmin', null); }
+function brasoesManuaisInalterados() { return request.resource.data.get('brasoesManuais', null) == resource.data.get('brasoesManuais', null); }
 
 match /usuarios/{uid} {
 allow read: if logado() && (
@@ -40,11 +44,11 @@ allow create: if ehAdmin() ||
 // um aluno PARA o próprio núcleo (request academiaId == o núcleo dele), sem
 // mexer em papéis, notas, acesso geral nem no núcleo que o aluno administra.
 // É o efeito do botão "Aceitar aluno" em Solicitações → Transferências.
-allow update: if ehAdmin() || souFundador() ||
-(ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada() && academiaInalterada() && papeisInalterados() && acessoGeralInalterado()) ||
-(ehGestor() && request.resource.data.academiaId == minhaAcademiaGerenciada() && papeisInalterados() && academiaGerenciadaInalterada() && notasInalteradas() && acessoGeralInalterado()) ||
-(souInstrutorDoAluno() && academiaInalterada() && papeisInalterados() && academiaGerenciadaInalterada() && acessoGeralInalterado()) ||
-(request.auth.uid == uid && papeisInalterados() && academiaInalterada() && academiaGerenciadaInalterada() && notasInalteradas() && acessoGeralInalterado());
+allow update: if ehAdmin() || (souFundador() && brasoesAdminInalterados()) ||
+(ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada() && academiaInalterada() && papeisInalterados() && acessoGeralInalterado() && brasoesAdminInalterados()) ||
+(ehGestor() && request.resource.data.academiaId == minhaAcademiaGerenciada() && papeisInalterados() && academiaGerenciadaInalterada() && notasInalteradas() && acessoGeralInalterado() && brasoesAdminInalterados() && brasoesManuaisInalterados()) ||
+(souInstrutorDoAluno() && academiaInalterada() && papeisInalterados() && academiaGerenciadaInalterada() && acessoGeralInalterado() && brasoesAdminInalterados() && brasoesManuaisInalterados()) ||
+(request.auth.uid == uid && papeisInalterados() && academiaInalterada() && academiaGerenciadaInalterada() && notasInalteradas() && acessoGeralInalterado() && brasoesAdminInalterados() && brasoesManuaisInalterados());
 
 allow delete: if ehAdmin();
 }
@@ -378,7 +382,12 @@ allow delete: if logado() && (resource.data.autorUid == request.auth.uid || ehAd
 // logado lê (a Sala de Brasões precisa), só Admin/Fundador gravam.
 match /config/{id} {
 allow read: if logado();
-allow write: if ehAdmin() || souFundador();
+// O Fundador edita a configuração, mas a trava do Presidente do Grupo
+// (config/brasoes.presidenteUid) só o Admin troca depois de gravada.
+allow write: if ehAdmin() || (souFundador() && (
+id != 'brasoes' || resource == null ||
+resource.data.get('presidenteUid', null) == null ||
+request.resource.data.get('presidenteUid', null) == resource.data.get('presidenteUid', null)));
 }
 // "Eu vou" num evento: cada pessoa marca/desmarca só a si mesma.
 match /eventos/{id}/confirmados/{uid} {

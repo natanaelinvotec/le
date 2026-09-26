@@ -1662,7 +1662,11 @@ class Component extends DCLogic {
         try {
           const perfil = await FB.buscar('usuarios', user.uid);
           const papeis = (perfil && perfil.papeis) || [];
-          if (!perfil || !(papeis.includes('aluno') || papeis.includes('responsavel'))) {
+          // Só vai pro painel quem tem painel (Admin, Fundador ou responsável com
+          // núcleo) e não é aluno/família. Instrutor/professor/mestre SEM núcleo
+          // fica aqui, com as ferramentas de aluno.
+          const temPainel = !!perfil && (papeis.includes('admin') || perfil.acessoGeral === true || (!!perfil.academiaGerenciadaId && (papeis.includes('mestre') || papeis.includes('instrutor'))));
+          if (!perfil || (temPainel && !(papeis.includes('aluno') || papeis.includes('responsavel')))) {
             window.location.href = 'admin.html';
             return;
           }
@@ -1747,7 +1751,8 @@ class Component extends DCLogic {
   async montarPerfil(uid, perfil) {
     const papeis = perfil.papeis || ['aluno'];
     const ehResp = papeis.includes('responsavel');
-    const gestorPapel = papeis.includes('mestre') ? 'mestre' : (papeis.includes('admin') ? 'admin' : null);
+    // Ferramentas de gestão no app só para quem tem núcleo (ou é Admin).
+    const gestorPapel = (papeis.includes('mestre') && perfil.academiaGerenciadaId) ? 'mestre' : (papeis.includes('admin') ? 'admin' : null);
     this._academiaGerenciadaId = perfil.academiaGerenciadaId || null;
     this._ehAdmin = gestorPapel === 'admin';
     this._acessoGeral = !!perfil.acessoGeral;
