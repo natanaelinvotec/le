@@ -472,11 +472,12 @@ allow read, update: if ehAdmin() || souFundador() ||
 allow delete: if ehAdmin();
 }
 
-// Conteúdo do site público (index.html): todo mundo lê, só o Admin edita
-// (gerenciar.html).
+// Conteúdo do site público (index.html): todo mundo lê; só o Admin Master
+// grava (gerenciar.html), e só nos documentos que o site usa
+// (site = no ar, site-anterior = cópia para desfazer, landing = site antigo).
 match /siteConteudo/{id} {
-allow read: if true;
-allow write: if ehAdmin();
+allow read: if id == 'site' || id == 'landing' || ehAdmin();
+allow write: if ehAdmin() && id in ['site', 'site-anterior', 'landing'];
 }
 
 // Coleções do sistema antigo (antes do Firebase Authentication). Nenhuma

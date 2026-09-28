@@ -36,7 +36,7 @@ try {
 
 // Guardados já na instalação: abrir qualquer tela principal não depende da internet.
 const ESSENCIAIS = [
-  './', 'index.html', 'app.html', 'rede.html', 'admin.html', 'login.html', 'offline.html', 'instalar.html', 'instalar-rede.html',
+  './', 'index.html', 'gerenciar.html', 'css/site.css', 'js/site.js', 'js/site-render.js', 'js/site-padrao.js', 'app.html', 'rede.html', 'admin.html', 'login.html', 'offline.html', 'instalar.html', 'instalar-rede.html',
   'css/rede.css', 'css/admin.css',
   'js/firebase.js', 'js/escola.js', 'js/shared.js', 'js/support.js', 'js/experiencia.js', 'js/notificacoes.js',
   'js/brasoes.js', 'js/conta.js', 'js/apresentacao.js', 'js/moderacao.js', 'js/lgpd.js', 'js/gestao.js', 'js/login.js',

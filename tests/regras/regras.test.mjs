@@ -157,6 +157,13 @@ test('LGPD e coleções antigas', async () => {
   await assertFails(getDoc(doc(db('nat'), 'admins', 'antigo')));
   await assertSucceeds(getDoc(doc(db(null), 'siteConteudo', 'landing')));
   await assertFails(setDoc(doc(db('nat'), 'siteConteudo', 'landing'), { titulo: 'hack' }));
+  // Site novo: Admin publica em siteConteudo/site (e guarda a anterior); ninguém mais grava; outros ids fechados.
+  await assertSucceeds(setDoc(doc(db('admin'), 'siteConteudo', 'site'), { versao: 1, topo: { titulo: 'A roda' } }));
+  await assertSucceeds(setDoc(doc(db('admin'), 'siteConteudo', 'site-anterior'), { versao: 1 }));
+  await assertSucceeds(getDoc(doc(db(null), 'siteConteudo', 'site')));
+  await assertFails(getDoc(doc(db(null), 'siteConteudo', 'site-anterior')));
+  await assertFails(setDoc(doc(db('profeta'), 'siteConteudo', 'site'), { versao: 1 }));
+  await assertFails(setDoc(doc(db('admin'), 'siteConteudo', 'qualquer'), { versao: 1 }));
   await assertFails(setDoc(doc(db('admin'), 'config', 'migracoes'), { m1: 'x' }));
   await assertSucceeds(addDoc(collection(db('admin'), 'comandos'), { tipo: 'excluirConta', uid: 'nat', porUid: 'admin', status: 'pendente' }));
   await assertFails(addDoc(collection(db('tay'), 'comandos'), { tipo: 'excluirConta', uid: 'nat', porUid: 'tay', status: 'pendente' }));
