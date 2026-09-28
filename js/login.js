@@ -69,7 +69,7 @@ const perfil = await entrar(email, senha);
 tentativas = 0;
 // Apresentação em vídeo (Instrutor/Professor/Mestre) toca ao entrar — ver conta.js tocarAoEntrar.
 try { sessionStorage.setItem('apr.aoEntrar', '1'); } catch (e) { /* navegador sem storage */ }
-window.location.href = destinoPorPapeis(perfil);
+{ const destino = destinoPorPapeis(perfil); try { localStorage.setItem('le.destino', destino.startsWith('admin') ? 'admin' : 'app'); } catch (e) { /* ok */ } window.location.href = destino; }
 } catch (e) {
 tentativas += 1;
 if (tentativas >= 5) {

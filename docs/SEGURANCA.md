@@ -36,6 +36,13 @@ ou gerar custo.
    quase todo o tráfego aparecer como "verificado", clique em **Aplicar** no
    Firestore e no Storage.
 
+> **Velocidade (28/09/2026):** o App Check liga ~3 s depois que a tela abre
+> (`APP_CHECK_IMEDIATO = false` em `js/firebase.js`). Ligado logo no início, o
+> reCAPTCHA (~800 KB) fazia o login e o banco esperarem o token: 2–4 s a mais em
+> cada tela. Em modo monitoramento isso não muda nada na proteção.
+> **Antes de clicar em "Aplicar"**, troque para `APP_CHECK_IMEDIATO = true` e
+> envie o arquivo — senão as primeiras leituras de cada tela seriam barradas.
+
 ## Testes das regras
 
 `tests/regras/regras.test.mjs` cobre cada brecha acima (a pessoa tentando se

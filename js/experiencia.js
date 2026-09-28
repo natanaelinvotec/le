@@ -187,4 +187,33 @@ export function iniciarExperiencia() {
   aplicarAcessibilidade();
   if (document.body) ligarAvisoOffline(); else document.addEventListener('DOMContentLoaded', ligarAvisoOffline, { once: true });
   registrarServiceWorker();
+  ouvirVersaoNova();
+}
+
+// ---------- Versão nova ----------
+// O sw.js abre as telas direto do aparelho (rápido) e confere o servidor por
+// trás. Quando baixa uma versão nova inteira, avisa aqui: aparece uma pílula
+// "Versão nova pronta · Atualizar". Quem não tocar recebe a nova na próxima abertura.
+let ouvindoVersao = false;
+function ouvirVersaoNova() {
+  if (ouvindoVersao || !('serviceWorker' in navigator)) return;
+  ouvindoVersao = true;
+  navigator.serviceWorker.addEventListener('message', (ev) => {
+    if (ev.data && ev.data.tipo === 'le-nova-versao') mostrarPilulaVersao();
+  });
+  // A versão nova pode ter terminado de baixar antes desta tela começar a ouvir.
+  navigator.serviceWorker.ready.then((reg) => { if (reg.active) reg.active.postMessage({ tipo: 'le-tem-novidade' }); }).catch(() => {});
+}
+function mostrarPilulaVersao() {
+  if (document.getElementById('xpVersao')) return;
+  garantirCss();
+  const p = document.createElement('div');
+  p.id = 'xpVersao'; p.setAttribute('role', 'status');
+  p.style.cssText = 'position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:99985;display:flex;align-items:center;gap:10px;background:#0f2230;color:#fff;border-radius:999px;padding:8px 8px 8px 16px;font:700 .85rem/1.2 Manrope,system-ui,sans-serif;box-shadow:0 12px 30px rgba(0,0,0,.28);animation:xpSobe .45s cubic-bezier(.16,1,.3,1)';
+  p.innerHTML = '<i class="fas fa-rotate" style="color:#00E676"></i><span>Versão nova pronta</span><button type="button" style="border:0;border-radius:999px;padding:8px 14px;background:#00E676;color:#002D72;font:800 .82rem Manrope,system-ui,sans-serif;cursor:pointer">Atualizar</button>';
+  p.querySelector('button').addEventListener('click', () => {
+    try { navigator.serviceWorker.controller && navigator.serviceWorker.controller.postMessage({ tipo: 'le-aplicou' }); } catch (e) { /* ok */ }
+    location.reload();
+  });
+  document.body.appendChild(p);
 }

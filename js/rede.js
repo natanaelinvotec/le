@@ -35,7 +35,7 @@ import { ESCOLA, CORDOES_ADULTO, CORDOES_KIDS, ORDEM_CORDOES, linkMapa as linkMa
 import { termosOfensivos, MOTIVOS_DENUNCIA } from './moderacao.js';
 import { iniciarExperiencia, abrirAcessibilidade, instalar, estaInstalado, tutorial, pedirAceiteSeNecessario } from './experiencia.js';
 import { ligarContador, listar as listarNotificacoes, marcarTodasLidas, itemHTML as notificacaoHTML, CSS_NOTIF, ativarPush, desativarPush, estadoPush, ouvirPushComAppAberto } from './notificacoes.js';
-import { exportarMeusDados, pedirExclusaoDaConta } from './lgpd.js';
+import { pedirExclusaoDaConta } from './lgpd.js';
 import { apresentacaoDe, tocarApresentacao, gerenciarApresentacao, abrirTrocaSenha, definirAutor, podeTerApresentacao } from './conta.js?v=20260927a';
 import { BRASOES, SERIES, avaliar as avaliarBrasoes, consolidar as consolidarBrasoes, resumirPresencas, urlThumb, urlPng, urlGlb, textoMetrica, porId as brasaoPorId } from './brasoes.js?v=20260927b';
 
@@ -71,6 +71,7 @@ const guardarAvulsos = (lista) => lista.forEach((p) => { if (!posts.some((x) => 
 let ultimoDoc = null;
 let avisos = [];
 let stories = [];
+let preCargaFeed = null;      // feed já baixando desde o login (ver BOOT)
 let filtroFeed = 'rede';
 let carregando = false;
 let toastTimer = null;
@@ -504,15 +505,17 @@ async function carregarPosts(mais = false) {
 const filtro = [where('publico', '==', true), orderBy('criadoEm', 'desc')];
 let q = query(collection(db, 'posts'), ...filtro, limit(PAGINA));
 if (mais && ultimoDoc) q = query(collection(db, 'posts'), ...filtro, startAfter(ultimoDoc), limit(PAGINA));
+// Públicos e "os meus" saem juntos (antes um esperava o outro).
+const meusP = mais ? null : getDocs(query(collection(db, 'posts'), where('autorUid', '==', uid), orderBy('criadoEm', 'desc'), limit(10))).catch(() => null);
 const snap = await getDocs(q);
 let novos = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 if (!mais) {
-try {
-const meus = await getDocs(query(collection(db, 'posts'), where('autorUid', '==', uid), orderBy('criadoEm', 'desc'), limit(10)));
+const meus = await meusP; // null = índice ainda sendo criado: segue só com os públicos
+if (meus) {
 const ids = new Set(novos.map((p) => p.id));
 meus.docs.forEach((d) => { if (!ids.has(d.id)) novos.push({ id: d.id, ...d.data() }); });
 novos.sort((a, b) => String(b.criadoEm).localeCompare(String(a.criadoEm)));
-} catch (e) { /* índice ainda sendo criado: segue só com os públicos */ }
+}
 }
 const ja = new Set(mais ? posts.map((p) => p.id) : []);
 posts = mais ? posts.concat(novos.filter((p) => !ja.has(p.id))) : novos;
@@ -532,7 +535,10 @@ return (Date.now() - new Date(a.criadoEm).getTime()) < 14 * 86400000;
 }
 async function renderFeed(param, vista, soRedesenhar = false) {
 vista = vista || el('vista');
-if (!soRedesenhar) { await Promise.all([carregarStories(), carregarAvisos(), posts.length ? Promise.resolve() : carregarPosts(false)]); }
+if (!soRedesenhar) {
+if (preCargaFeed) { const p = preCargaFeed; preCargaFeed = null; await Promise.all([p, carregarAvisos()]); }
+else await Promise.all([carregarStories(), carregarAvisos(), posts.length ? Promise.resolve() : carregarPosts(false)]);
+}
 const visiveis = filtrarPosts(posts);
 vista.innerHTML = `
 ${storiesHTML()}
@@ -1504,7 +1510,6 @@ vista.innerHTML = `<div class="card conf-lista">
 </div>
 <div class="titulo-sec">Seus dados <span class="contador">LGPD</span></div>
 <div class="card conf-lista">
-<button type="button" class="conf" id="cfExportar"><i class="fas fa-file-arrow-down"></i><div><b>Baixar meus dados</b><small>Cadastro, presenças, pagamentos e publicações num arquivo</small></div><i class="fas fa-chevron-right"></i></button>
 <a class="conf" href="privacidade.html" target="_blank" rel="noopener"><i class="fas fa-shield-halved"></i><div><b>Política de privacidade</b><small>Como o grupo cuida dos seus dados</small></div><i class="fas fa-arrow-up-right-from-square"></i></a>
 <button type="button" class="conf perigo" id="cfExcluir"><i class="fas fa-user-xmark"></i><div><b>Pedir exclusão da conta</b><small>O Admin Master confirma e o sistema apaga seus dados</small></div><i class="fas fa-chevron-right"></i></button>
 </div>`;
@@ -1520,7 +1525,6 @@ sw.classList.toggle('on', ligar); sw.setAttribute('aria-checked', String(ligar))
 el('cfA11y').addEventListener('click', abrirAcessibilidade);
 el('cfInstalar').addEventListener('click', () => instalar({ nome: ESCOLA.nomeRede, icone: 'assets/rede-icon-192.png' }));
 el('cfTutorial').addEventListener('click', () => tutorialRede(true));
-el('cfExportar').addEventListener('click', async () => { toast('Juntando seus dados…'); try { await exportarMeusDados(uid); toast('Arquivo baixado.'); } catch (e) { toast('Não foi possível gerar o arquivo agora.'); } });
 el('cfExcluir').addEventListener('click', async () => {
 if (!confirm('Pedir a exclusão da sua conta e dos seus dados? O Admin Master confirma e o sistema apaga cadastro, publicações, presenças e conversas. Pagamentos ficam anonimizados (obrigação fiscal).')) return;
 const motivo = prompt('Quer contar o motivo? (opcional)') || '';
@@ -1546,21 +1550,30 @@ observarSessao(async (user) => {
 el('telaCarregando').classList.add('oculto');
 if (!user) { el('telaSemSessao').classList.remove('oculto'); return; }
 uid = user.uid;
-try { perfil = await buscar('usuarios', uid); } catch (e) { perfil = null; }
+// Velocidade: o feed (stories + posts) começa a baixar JÁ, junto com o cadastro,
+// em vez de esperar 5 leituras em fila. No celular cada ida ao banco custa
+// 150–400 ms — em fila eram ~2 s só de espera.
+const rotaInicial = (location.hash || '#feed').slice(1).split('/')[0];
+if (!rotaInicial || rotaInicial === 'feed') preCargaFeed = Promise.all([carregarStories(), carregarPosts(false).catch(() => null)]);
+const ok = (p, padrao) => p.catch(() => padrao);
+const [perfilLido, nucleosLidos, cfgBrasoes, cfgModeracao, meuPubLido] = await Promise.all([
+ok(buscar('usuarios', uid), null), ok(listar('nucleos'), []), ok(buscar('config', 'brasoes'), {}), ok(buscar('config', 'moderacao'), null), ok(pubDe(uid), null),
+]);
+perfil = perfilLido;
 if (!perfil) { el('telaSemSessao').classList.remove('oculto'); return; }
 definirAutor({ uid, nome: perfil.nome || '' });
 seguindo = new Set(Array.isArray(perfil.seguindo) ? perfil.seguindo : []);
 salvos = new Set(Array.isArray(perfil.salvos) ? perfil.salvos : []);
-try { nucleos = await listar('nucleos'); } catch (e) { nucleos = []; }
-try { configBrasoes = (await buscar('config', 'brasoes')) || {}; } catch (e) { configBrasoes = {}; }
-try { const mod = await buscar('config', 'moderacao'); configBrasoes.palavrasExtras = (mod && Array.isArray(mod.palavras)) ? mod.palavras : []; } catch (e) { /* sem lista extra */ }
+nucleos = nucleosLidos || [];
+configBrasoes = cfgBrasoes || {};
+configBrasoes.palavrasExtras = (cfgModeracao && Array.isArray(cfgModeracao.palavras)) ? cfgModeracao.palavras : [];
 if (!configBrasoes.nucleoFundadorId) { // padrão honesto: o núcleo cujo responsável tem Acesso Geral
 try { const pubs = await Promise.all(nucleos.filter((n) => n.professorUid).map((n) => pubDe(n.professorUid))); const i = pubs.findIndex((p) => p && p.fundador); if (i >= 0) configBrasoes.nucleoFundadorId = nucleos.filter((n) => n.professorUid)[i].id; } catch (e) { /* ok */ }
 }
 // Presidente do Grupo travado em uma pessoa: se o Admin ainda não gravou
 // config.presidenteUid, vale o responsável do núcleo do Fundador.
 if (!configBrasoes.presidenteUid && configBrasoes.nucleoFundadorId) { const nf = nucleos.find((n) => n.id === configBrasoes.nucleoFundadorId); if (nf && nf.professorUid) configBrasoes.presidenteUid = nf.professorUid; }
-meuPub = await pubDe(uid);
+meuPub = meuPubLido;
 el('app').classList.remove('oculto');
 // Voltar: quem tem painel (Admin, Fundador, responsável com núcleo) volta pro
 // painel do núcleo — antes caía no app como aluno e perdia as ferramentas.

@@ -27,7 +27,7 @@ lancarDespesaComRateio, todosRateios, marcarRateioPago,
   presencasDoNucleo, presencasVisitantesDoNucleo, salvarFotoPerfil,
 } from './firebase.js';
 import { iniciarGestao, abrirTela as abrirTelaGestao } from './gestao.js?v=20260926e';
-import { iniciarExperiencia, abrirAcessibilidade, tutorial, pedirAceiteSeNecessario } from './experiencia.js?v=20260926e';
+import { iniciarExperiencia, abrirAcessibilidade, tutorial, pedirAceiteSeNecessario } from './experiencia.js';
 import { ligarContador, abrirCentral, ouvirPushComAppAberto } from './notificacoes.js?v=20260926e';
 import { apresentacaoDe, migrarApresentacao, tocarApresentacao, tocarAoEntrar, gerenciarApresentacao, abrirMinhaConta, abrirTrocaSenha, definirAutor, podeTerApresentacao, formatarCelular, celularValido, celularDe } from './conta.js?v=20260927a';
 import { escapeHTML, sanitizeInput, debounce, gerarSlug } from './shared.js';
@@ -313,6 +313,9 @@ const perfil = await buscar('usuarios', user.uid);
 if (!perfil) { await sair(); irParaLogin('sem-acesso'); return; }
 // Conta válida sem núcleo (aluno, instrutor/professor/mestre sem núcleo):
 // vai para o app do aluno, sem derrubar a sessão.
+// Guarda no aparelho para onde esta conta vai (app.html usa isso para abrir o
+// painel direto, sem carregar o app antes). Só rota: a checagem é sempre esta aqui.
+try { localStorage.setItem('le.destino', temAcessoAoPainel(perfil) ? 'admin' : 'app'); } catch (e) { /* ok */ }
 if (!temAcessoAoPainel(perfil)) { window.location.replace('app.html'); return; }
 sessaoAtual = { uid: user.uid, ...perfil };
 } catch (e) {

@@ -19,10 +19,34 @@ html,body{ height:100%; overscroll-behavior:none; }
 [data-moldura]{ width:100% !important; max-width:none !important; height:100dvh !important; border-radius:0 !important; padding:0 !important; box-shadow:none !important; }
 [data-tela]{ border-radius:0 !important; }
 </style>
-<script src="js/support.js"></script>
 <script>
+// Atalho de velocidade: quem tem painel (Admin, Fundador, responsável de núcleo)
+// sempre acabava indo para admin.html DEPOIS de carregar este app inteiro.
+// A última decisão fica guardada no aparelho e o desvio acontece aqui, antes de
+// baixar qualquer coisa. É só rota: o admin.html confere o login e o papel de
+// novo e, se não for o caso, devolve para cá (e corrige o aparelho).
+(function () {
+  try {
+    var q = new URLSearchParams(location.search);
+    var modoAluno = q.get('modo') === 'aluno' || sessionStorage.getItem('app.modo') === 'aluno';
+    if (!modoAluno && localStorage.getItem('le.destino') === 'admin') location.replace('admin.html' + location.hash);
+  } catch (e) { /* sem storage: segue o caminho normal */ }
+})();
 if ('serviceWorker' in navigator) { window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
 </script>
+<!-- Conexões e módulos pedidos já no início (antes o app só descobria que
+     precisava deles depois de montar a tela, ~1 s depois). -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
+<link rel="modulepreload" href="js/firebase.js">
+<link rel="modulepreload" href="js/escola.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js">
+<script src="js/support.js"></script>
 </head>
 <body>
 <x-dc>
@@ -1686,7 +1710,9 @@ class Component extends DCLogic {
             modoAluno = sessionStorage.getItem('app.modo') === 'aluno';
           } catch (_) { /* navegador sem storage */ }
           const ehAtleta = papeis.includes('aluno') || papeis.includes('responsavel');
-          if (!perfil || (temPainel && !(modoAluno && ehAtleta))) {
+          const vaiProPainel = !perfil || (temPainel && !(modoAluno && ehAtleta));
+          try { localStorage.setItem('le.destino', temPainel ? 'admin' : 'app'); } catch (_) { /* ok */ }
+          if (vaiProPainel) {
             window.location.replace('admin.html');
             return;
           }
@@ -1709,22 +1735,14 @@ class Component extends DCLogic {
     const idade = Number(u.idade) || 0;
     const idx = idxCordaoDe(idade, u.cordaoAtual);
     let mensalidadeValor = null;
-    let apresentacao = null; // vídeo do responsável do núcleo (apresentacoes/{professorUid})
+    let nucleo = null;
     if (u.academiaId) {
       try {
-        const nuc = await FB.buscar('nucleos', u.academiaId);
-        if (nuc && nuc.mensalidadeValor !== undefined) mensalidadeValor = Number(nuc.mensalidadeValor) || 0;
-        // Vídeo é da PESSOA responsável pelo núcleo (apresentacoes/{uid}), não do núcleo.
-        if (nuc && nuc.professorUid) {
-          try {
-            const C = await this.conta();
-            const ap = await C.apresentacaoDe(nuc.professorUid);
-            if (ap) apresentacao = { ...ap, nucleoNome: nuc.nome || '', professorUid: nuc.professorUid, professorNome: nuc.professorNome || '' };
-          } catch (_) { /* sem vídeo: pílula continua como texto */ }
-        }
+        nucleo = await FB.buscar('nucleos', u.academiaId);
+        if (nucleo && nucleo.mensalidadeValor !== undefined) mensalidadeValor = Number(nucleo.mensalidadeValor) || 0;
       } catch (_) { /* segue sem o valor */ }
     }
-    return {
+    const atleta = {
       uid: uidDoAtleta,
       nome: u.nome || 'Aluno',
       curto: (u.nome || 'Aluno').split(' ')[0],
@@ -1736,9 +1754,20 @@ class Component extends DCLogic {
       academiaId: u.academiaId || null,
       notasReais: u.notas || {},
       mensalidadeValor,
-      apresentacao,
+      apresentacao: null, // vídeo do responsável do núcleo — chega depois, sem segurar a tela
       papelFamilia: '',
     };
+    // Vídeo é da PESSOA responsável pelo núcleo (apresentacoes/{uid}), não do núcleo.
+    // Antes a tela inteira esperava baixar conta.js + ler o vídeo; agora abre na
+    // hora e o botão ▶ aparece quando o vídeo chega.
+    if (nucleo && nucleo.professorUid) {
+      this.conta().then((C) => C.apresentacaoDe(nucleo.professorUid)).then((ap) => {
+        if (!ap) return;
+        atleta.apresentacao = { ...ap, nucleoNome: nucleo.nome || '', professorUid: nucleo.professorUid, professorNome: nucleo.professorNome || '' };
+        this.setState({ apresentacaoPronta: Date.now() });
+      }).catch(() => { /* sem vídeo: pílula continua como texto */ });
+    }
+    return atleta;
   }
 
   // Botão ▶ no nome da academia: apresentação do responsável do núcleo do atleta.
@@ -1763,12 +1792,11 @@ class Component extends DCLogic {
   // conta.js (senha, celular, apresentação) — carregado sob demanda, uma vez.
   conta() { if (!this._contaP) this._contaP = import(new URL('js/conta.js?v=20260927a', document.baseURI).href); return this._contaP; }
   // Módulos compartilhados com a Rede e o painel (acessibilidade, notificações, LGPD).
-  xp() { if (!this._xpP) this._xpP = import(new URL('js/experiencia.js?v=20260926e', document.baseURI).href); return this._xpP; }
+  xp() { if (!this._xpP) this._xpP = import(new URL('js/experiencia.js', document.baseURI).href); return this._xpP; }
   notif() { if (!this._notifP) this._notifP = import(new URL('js/notificacoes.js?v=20260926e', document.baseURI).href); return this._notifP; }
   lgpd() { if (!this._lgpdP) this._lgpdP = import(new URL('js/lgpd.js?v=20260926e', document.baseURI).href); return this._lgpdP; }
   async abrirNotificacoes() { try { (await this.notif()).abrirCentral(this._uid); } catch (e) { console.error(e); this.toast('Não foi possível abrir as notificações.'); } }
   async abrirAcessibilidadeAcao() { try { (await this.xp()).abrirAcessibilidade(); } catch (e) { this.toast('Não foi possível abrir agora.'); } }
-  async baixarMeusDados() { this.toast('Juntando seus dados…'); try { await (await this.lgpd()).exportarMeusDados(this._uid); this.toast('Arquivo baixado.'); } catch (e) { console.error(e); this.toast('Não foi possível gerar o arquivo agora.'); } }
   async pedirExclusaoAcao() {
     if (!window.confirm('Pedir a exclusão da sua conta e dos seus dados? O Admin Master confirma e o sistema apaga cadastro, publicações, presenças e conversas. Pagamentos ficam anonimizados (obrigação fiscal).')) return;
     const motivo = window.prompt('Quer contar o motivo? (opcional)') || '';
@@ -1804,13 +1832,13 @@ class Component extends DCLogic {
 
     if (ehResp) {
       const filhos = Array.isArray(perfil.responsavelDe) ? perfil.responsavelDe : [];
-      const carregados = [];
-      for (const filhoUid of filhos) {
+      // Todos os filhos ao mesmo tempo (antes um de cada vez).
+      const carregados = (await Promise.all(filhos.map(async (filhoUid) => {
         try {
           const doc = await this._FB.buscar('usuarios', filhoUid);
-          if (doc) carregados.push(await this.montarAtleta(doc, filhoUid));
-        } catch (_) { /* ignora filho que falhar ao carregar */ }
-      }
+          return doc ? await this.montarAtleta(doc, filhoUid) : null;
+        } catch (_) { return null; /* ignora filho que falhar ao carregar */ }
+      }))).filter(Boolean);
       ATLETAS = carregados.length ? carregados : [await this.montarAtleta(perfil, uid)];
     } else {
       ATLETAS = [await this.montarAtleta(perfil, uid)];
@@ -2558,9 +2586,8 @@ class Component extends DCLogic {
         .concat([
           { rotulo:'Agenda de eventos', ajuda:'Batizados, rodas e oficinas — inscrição em um toque', icone:'fas fa-calendar-days', acao: () => { window.location.href = 'rede.html#agenda'; } },
           { rotulo:'Notificações', ajuda:'Curtidas, mensagens, brasões e avisos — e o aviso no celular', icone:'fas fa-bell', acao: () => this.abrirNotificacoes() },
-          { rotulo:'Rede Liberdade no celular', ajuda:'Instala um atalho da Rede na tela inicial (abre direto nela)', icone:'fas fa-mobile-screen-button', acao: () => { window.location.href = 'rede.html#instalar'; } },
+          { rotulo:'Rede Liberdade no celular', ajuda:'Instala um atalho da Rede na tela inicial (abre direto nela)', icone:'fas fa-mobile-screen-button', acao: () => { window.location.href = 'instalar-rede.html'; } },
           { rotulo:'Acessibilidade', ajuda:'Texto maior e alto contraste', icone:'fas fa-universal-access', acao: () => this.abrirAcessibilidadeAcao() },
-          { rotulo:'Baixar meus dados', ajuda:'Cópia do seu cadastro, presenças e pagamentos (LGPD)', icone:'fas fa-file-arrow-down', acao: () => this.baixarMeusDados() },
           { rotulo:'Pedir exclusão da conta', ajuda:'O Admin Master confirma e o sistema apaga seus dados', icone:'fas fa-user-xmark', acao: () => this.pedirExclusaoAcao() },
           { rotulo:'Ver o tutorial', ajuda:'Como o app funciona, em 4 passos', icone:'fas fa-circle-question', acao: () => this.tutorialApp(true) },
         ])

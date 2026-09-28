@@ -24,7 +24,7 @@ a:hover{color:#389E92}
 .marca{position:relative;width:120px;height:120px;border-radius:50%;background:#fff;border:3px solid #00E676;margin:0 auto 18px;display:block}
 h1{font-family:'Montserrat',sans-serif;font-weight:800;font-size:2rem;margin:0 0 8px;position:relative}
 .sub{margin:0 auto;max-width:560px;color:rgba(255,255,255,.78);font-size:1.05rem;line-height:1.5;position:relative}
-.btnInstalar{position:relative;display:none;align-items:center;gap:10px;margin:24px auto 0;padding:16px 28px;border:none;border-radius:20px;background:#00E676;color:#05070C;font-family:'Montserrat',sans-serif;font-weight:800;font-size:1rem;cursor:pointer;box-shadow:0 12px 28px rgba(0,230,118,.35)}
+.btnInstalar{position:relative;display:inline-flex;align-items:center;gap:10px;margin:24px auto 0;padding:16px 28px;border:none;border-radius:20px;background:#00E676;color:#05070C;font-family:'Montserrat',sans-serif;font-weight:800;font-size:1rem;cursor:pointer;box-shadow:0 12px 28px rgba(0,230,118,.35)}
 .grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;margin:-40px 0 0;position:relative}
 .card{background:#fff;border:1px solid #E0E6E5;border-radius:20px;padding:26px;box-shadow:0 4px 15px rgba(0,0,0,.03)}
 .card h2{font-family:'Montserrat',sans-serif;color:#002D72;font-size:1.2rem;margin:0 0 4px;display:flex;align-items:center;gap:10px}
@@ -40,6 +40,12 @@ ol li strong{color:#002D72}
 .ben i{color:#389E92;font-size:1.2rem}
 .ben strong{display:block;font-family:'Montserrat',sans-serif;color:#002D72;margin:10px 0 4px}
 .ben span{color:#7F8C8D;font-size:.88rem;line-height:1.45}
+.dois{position:relative;display:flex;justify-content:center;gap:14px;margin:22px auto 0;flex-wrap:wrap}
+.dois figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:6px;font-weight:800;font-size:.82rem;color:rgba(255,255,255,.9)}
+.dois img{width:64px;height:64px;border-radius:16px;box-shadow:0 10px 22px rgba(0,0,0,.28);background:#fff}
+.dois .mais{align-self:center;font:800 1.3rem Montserrat,sans-serif;color:#00E676;margin-top:-18px}
+.estado{position:relative;margin:14px auto 0;max-width:520px;color:rgba(255,255,255,.85);font-size:.95rem;min-height:1.4em}
+.sec{position:relative;display:inline-flex;align-items:center;gap:8px;margin:12px auto 0;color:#fff;font-weight:700;font-size:.9rem;border-bottom:1px dashed rgba(255,255,255,.5)}
 .rodape{text-align:center;padding:48px 24px 60px;color:#7F8C8D;font-size:.9rem}
 .voltar{display:inline-flex;align-items:center;gap:8px;margin-top:34px;padding:14px 22px;border:1px solid #E0E6E5;border-radius:20px;background:#fff;font-weight:800;color:#002D72}
 </style>
@@ -51,7 +57,14 @@ ol li strong{color:#002D72}
   <img class="marca" src="assets/logo-liberdade.png" alt="Brasão do Grupo Liberdade e Expressão">
   <h1>Instale o aplicativo do grupo</h1>
   <p class="sub">O Portal do Aluno no seu celular: presença por QR, evolução do cordão, mensalidade, agenda e loja oficial. Sem loja de aplicativos, direto do nosso site.</p>
+  <div class="dois" aria-label="Você vai ganhar dois ícones">
+    <figure><img src="assets/app-icon-192.png" alt="">App do grupo</figure>
+    <span class="mais" aria-hidden="true">+</span>
+    <figure><img src="assets/rede-icon-192.png" alt="">Rede Liberdade</figure>
+  </div>
   <button class="btnInstalar" id="btnInstalar"><i class="fas fa-download"></i> Instalar agora</button>
+  <p class="estado" id="estado" role="status" aria-live="polite">Um toque instala o app e, na sequência, o atalho da Rede.</p>
+  <a class="sec" href="instalar-rede.html"><i class="fas fa-circle-nodes"></i> Já tenho o app — instalar só a Rede</a>
 </header>
 
 <main class="wrap">
@@ -64,7 +77,7 @@ ol li strong{color:#002D72}
         <li>Toque no botão <span class="chip"><i class="fas fa-download"></i> Instalar agora</span> aqui em cima. Se ele não aparecer, toque nos <strong>três pontinhos</strong> do navegador.</li>
         <li>Escolha <strong>Instalar aplicativo</strong> (ou "Adicionar à tela inicial").</li>
         <li>Confirme. O brasão do grupo aparece na sua tela inicial.</li>
-        <li>Abra pelo ícone: o app inicia no <strong>Portal do Aluno</strong>, em tela cheia.</li>
+        <li>Na mesma hora abre o <strong>passo 2</strong>: toque em <strong>Instalar a Rede</strong> e confirme. Pronto, os dois ícones estão no celular.</li>
       </ol>
     </section>
 
@@ -76,7 +89,7 @@ ol li strong{color:#002D72}
         <li>Toque no botão <strong>Compartilhar</strong> <span class="chip"><i class="fas fa-arrow-up-from-bracket"></i> na barra inferior</span>.</li>
         <li>Role a lista e toque em <strong>Adicionar à Tela de Início</strong>.</li>
         <li>Toque em <strong>Adicionar</strong>, no canto superior direito.</li>
-        <li>Pronto: o app abre em tela cheia, sem a barra do navegador.</li>
+        <li>Para a Rede: abra <a href="instalar-rede.html"><strong>esta página</strong></a> no Safari e repita os passos 2 a 4.</li>
       </ol>
     </section>
   </div>
@@ -94,21 +107,50 @@ ol li strong{color:#002D72}
 <p class="rodape">Grupo de Capoeira Liberdade e Expressão · Mestre Profeta · Campo Grande — MS</p>
 
 <script>
-let prompt_ = null;
-const btn = document.getElementById('btnInstalar');
-window.addEventListener('beforeinstallprompt', function (e) {
-  e.preventDefault();
-  prompt_ = e;
-  btn.style.display = 'inline-flex';
+// "Instalar agora" = os dois ícones em sequência. O navegador exige uma
+// confirmação por ícone (é regra de segurança do Android/Chrome — nenhum site
+// consegue instalar dois apps com um toque só). Por isso: toque 1 instala o
+// app do grupo e já leva ao passo 2, onde um toque instala a Rede.
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
+var prompt_ = null;
+var jaTentou = false; // o convite do navegador só vem 1 vez por abertura da página
+var btn = document.getElementById('btnInstalar');
+var estado = document.getElementById('estado');
+var ehIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+var instalado = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+function irParaRede() { location.href = 'instalar-rede.html?passo=2'; }
+window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); prompt_ = e; });
+window.addEventListener('appinstalled', function () {
+  estado.textContent = 'App instalado ✓ — abrindo o passo 2 (Rede)…';
+  setTimeout(irParaRede, 900);
 });
 btn.addEventListener('click', async function () {
-  if (!prompt_) return;
-  prompt_.prompt();
-  await prompt_.userChoice;
-  prompt_ = null;
-  btn.style.display = 'none';
+  if (instalado) { irParaRede(); return; }
+  // O convite do navegador às vezes chega 1 s depois da página abrir: espera um pouco.
+  if (!prompt_ && jaTentou) {
+    estado.innerHTML = 'Para tentar de novo: recarregue a página, ou use os <b>três pontinhos → Instalar app</b>. <a href="instalar-rede.html" style="color:#00E676">Pular para a Rede</a>';
+    return;
+  }
+  if (!prompt_ && !ehIOS) {
+    estado.textContent = 'Preparando…';
+    await new Promise(function (ok) {
+      var t = setTimeout(ok, 1500);
+      window.addEventListener('beforeinstallprompt', function () { clearTimeout(t); ok(); }, { once: true });
+    });
+  }
+  if (prompt_) {
+    var p = prompt_; prompt_ = null; jaTentou = true;
+    p.prompt();
+    var r = await p.userChoice.catch(function () { return null; });
+    if (r && r.outcome === 'accepted') { estado.textContent = 'App instalado ✓ — abrindo o passo 2 (Rede)…'; setTimeout(irParaRede, 900); }
+    else estado.textContent = 'Instalação cancelada. Toque de novo quando quiser.';
+    return;
+  }
+  // Sem o convite do navegador: iPhone, app já instalado ou navegador sem suporte.
+  if (ehIOS) { estado.innerHTML = 'No iPhone é pelo Safari: <b>Compartilhar → Adicionar à Tela de Início</b>. Depois faça o mesmo na página da Rede (passo 2).'; document.querySelector('.card:nth-child(2)').scrollIntoView({ behavior: 'smooth' }); return; }
+  // Nenhum convite chegou: app já instalado, ou navegador sem instalação (ex.: Firefox no PC).
+  estado.innerHTML = 'Este navegador não ofereceu a instalação agora — o app pode já estar instalado. Use os <b>três pontinhos → Instalar app</b>, ou <a href="instalar-rede.html" style="color:#00E676">siga para a Rede</a>.';
 });
-window.addEventListener('appinstalled', function () { btn.style.display = 'none'; });
 </script>
 </body>
 </html>

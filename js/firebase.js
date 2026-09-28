@@ -4,9 +4,9 @@
 // inscricao.js), um deles até com um erro de digitação na apiKey.
 import { initializeApp, deleteApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import {
-  getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
+  getAuth, initializeAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
   sendPasswordResetEmail, onAuthStateChanged, signOut,
-  setPersistence, browserLocalPersistence,
+  browserLocalPersistence, indexedDBLocalPersistence,
   EmailAuthProvider, reauthenticateWithCredential, updatePassword,
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import {
@@ -33,21 +33,36 @@ export const firebaseConfig = FIREBASE_CONFIG;
 
 const app = initializeApp(firebaseConfig);
 export const firebaseApp = app;
-// App Check (reCAPTCHA v3): só liga quando a chave do site estiver em escola.js.
-// Bloqueia chamadas ao banco que não venham do site/app de verdade.
-if (APP_CHECK_SITE_KEY) {
-  try {
-    const { initializeAppCheck, ReCaptchaV3Provider } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-check.js');
-    if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-    initializeAppCheck(app, { provider: new ReCaptchaV3Provider(APP_CHECK_SITE_KEY), isTokenAutoRefreshEnabled: true });
-  } catch (e) { console.warn('App Check não carregou', e); }
-}
-export const auth = getAuth(app);
+// Login "manter-me sempre conectado" (localStorage). initializeAuth já nasce com
+// essa persistência — antes era getAuth + await setPersistence, que segurava a
+// página inteira até o Auth terminar de trocar de lugar a sessão.
+// indexedDB fica como 2ª opção só para migrar sessões antigas gravadas lá.
+export const auth = initializeAuth(app, { persistence: [browserLocalPersistence, indexedDBLocalPersistence] });
 // Cache local ligado - visões repetidas na mesma sessão não voltam a ler do
 // servidor o que não mudou (parte do esforço de reduzir leituras do Firestore).
 export const db = initializeFirestore(app, { localCache: persistentLocalCache() });
 export const storage = getStorage(app);
-await setPersistence(auth, browserLocalPersistence); // "manter-me sempre conectado"
+
+// App Check (reCAPTCHA v3): só liga quando a chave do site estiver em escola.js.
+// Liga DEPOIS que a tela abriu (modo monitoramento): o reCAPTCHA pesa ~800 KB e,
+// ligado no início, o login e o banco esperavam o token (2–4 s a mais por tela).
+// Firestore, Auth e Storage passam a mandar o token assim que ele existe.
+// Antes de clicar em "Aplicar" no Console, troque APP_CHECK_IMEDIATO para true
+// (docs/SEGURANCA.md) — senão as primeiras chamadas de cada tela seriam barradas.
+const APP_CHECK_IMEDIATO = false;
+function ligarAppCheck() {
+  import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-check.js').then(({ initializeAppCheck, ReCaptchaV3Provider }) => {
+    if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    initializeAppCheck(app, { provider: new ReCaptchaV3Provider(APP_CHECK_SITE_KEY), isTokenAutoRefreshEnabled: true });
+  }).catch((e) => console.warn('App Check não carregou', e));
+}
+if (APP_CHECK_SITE_KEY && typeof window !== 'undefined') {
+  if (APP_CHECK_IMEDIATO) ligarAppCheck();
+  else {
+    const depois = () => setTimeout(() => (window.requestIdleCallback || ((f) => f()))(ligarAppCheck, { timeout: 4000 }), 2500);
+    if (document.readyState === 'complete') depois(); else window.addEventListener('load', depois, { once: true });
+  }
+}
 
 // Upload de foto (carteirinha/perfil) - usado pela inscrição e pela troca de
 // foto no painel. Retorna a URL pública já pronta para gravar no Firestore.
@@ -117,7 +132,7 @@ export async function entrar(email, senha) {
   return { uid: cred.user.uid, ...perfil.data() };
 }
 export const recuperarSenha = (email) => sendPasswordResetEmail(auth, email.trim().toLowerCase());
-export const sair = () => signOut(auth);
+export const sair = () => { try { localStorage.removeItem('le.destino'); } catch (e) { /* ok */ } return signOut(auth); };
 
 // Troca de senha feita pela própria pessoa (Meus dados / Minha conta / Rede).
 // O Firebase exige login recente para mudar senha: por isso a pessoa digita a
