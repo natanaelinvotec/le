@@ -1762,6 +1762,29 @@ class Component extends DCLogic {
 
   // conta.js (senha, celular, apresentação) — carregado sob demanda, uma vez.
   conta() { if (!this._contaP) this._contaP = import(new URL('js/conta.js?v=20260927a', document.baseURI).href); return this._contaP; }
+  // Módulos compartilhados com a Rede e o painel (acessibilidade, notificações, LGPD).
+  xp() { if (!this._xpP) this._xpP = import(new URL('js/experiencia.js?v=20260926e', document.baseURI).href); return this._xpP; }
+  notif() { if (!this._notifP) this._notifP = import(new URL('js/notificacoes.js?v=20260926e', document.baseURI).href); return this._notifP; }
+  lgpd() { if (!this._lgpdP) this._lgpdP = import(new URL('js/lgpd.js?v=20260926e', document.baseURI).href); return this._lgpdP; }
+  async abrirNotificacoes() { try { (await this.notif()).abrirCentral(this._uid); } catch (e) { console.error(e); this.toast('Não foi possível abrir as notificações.'); } }
+  async abrirAcessibilidadeAcao() { try { (await this.xp()).abrirAcessibilidade(); } catch (e) { this.toast('Não foi possível abrir agora.'); } }
+  async baixarMeusDados() { this.toast('Juntando seus dados…'); try { await (await this.lgpd()).exportarMeusDados(this._uid); this.toast('Arquivo baixado.'); } catch (e) { console.error(e); this.toast('Não foi possível gerar o arquivo agora.'); } }
+  async pedirExclusaoAcao() {
+    if (!window.confirm('Pedir a exclusão da sua conta e dos seus dados? O Admin Master confirma e o sistema apaga cadastro, publicações, presenças e conversas. Pagamentos ficam anonimizados (obrigação fiscal).')) return;
+    const motivo = window.prompt('Quer contar o motivo? (opcional)') || '';
+    try { const b = this._perfilBruto || {}; const r = await (await this.lgpd()).pedirExclusaoDaConta(this._uid, b.nome || '', b.academiaId || null, motivo); this.toast(r.jaExistia ? 'Seu pedido já está com o Admin Master.' : 'Pedido enviado ao Admin Master.'); } catch (e) { this.toast('Não foi possível enviar o pedido agora.'); }
+  }
+  async tutorialApp(forcar) {
+    try {
+      const X = await this.xp();
+      X.tutorial('app', [
+        { icone: 'fa-temperature-half', titulo: 'Seu termômetro de graduação', texto: 'A barra colorida mostra quanto falta para o próximo cordão, calculado pelas notas que o responsável do núcleo lança.' },
+        { icone: 'fa-calendar-check', titulo: 'Presença, avisos e agenda', texto: 'Suas presenças do Face ID, os avisos do núcleo e os eventos do grupo — com inscrição em um toque.' },
+        { icone: 'fa-medal', titulo: 'Brasões e Rede Liberdade', texto: 'Treinar, graduar e participar vira brasão. Na Rede você posta os momentos do treino com segurança.' },
+        { icone: 'fa-user-shield', titulo: 'Seus dados, seu controle', texto: 'No Perfil você troca a senha, liga as notificações, aumenta o texto e pode baixar ou pedir a exclusão dos seus dados.' },
+      ], { forcar: !!forcar });
+    } catch (e) { /* sem tutorial */ }
+  }
   async trocarSenhaAcao() { try { (await this.conta()).abrirTrocaSenha(); } catch (e) { console.error(e); this.toast('Não foi possível abrir a troca de senha.'); } }
   async minhaApresentacaoAcao() {
     try {
@@ -1828,6 +1851,14 @@ class Component extends DCLogic {
 
     this.carregarMateriaisReais();
     this.carregarNucleos();
+    // Acessibilidade salva, aviso de sem-internet e tutorial do 1º acesso.
+    this.xp().then((X) => {
+      X.iniciarExperiencia();
+      // Aceite da política de privacidade (LGPD) antes do tutorial.
+      X.pedirAceiteSeNecessario(perfil, (d) => this._FB.atualizar('usuarios', uid, d));
+      setTimeout(() => this.tutorialApp(false), 1200);
+    }).catch(() => {});
+    this.notif().then((N) => N.ouvirPushComAppAberto((n) => this.toast((n.title || 'Notificação') + (n.body ? ' — ' + n.body : '')))).catch(() => {});
     this.carregarAvisos();
     this.carregarEventos();
     if (!gestorPapel) this.carregarPresenca();
@@ -2524,6 +2555,15 @@ class Component extends DCLogic {
         { rotulo:'Trocar senha', ajuda:'Com a senha atual; se esqueceu, enviamos um link', icone:'fas fa-key', acao: () => this.trocarSenhaAcao() },
       ].concat(podeTerApresentacaoApp(this._perfilBruto) ? [{ rotulo:'Minha apresentação', ajuda:'Vídeo que abre quando você entra na plataforma', icone:'fas fa-film', acao: () => this.minhaApresentacaoAcao() }] : []).concat([{ rotulo:'Troféus & Brasões', ajuda:'Sua escada de cordoada e conquistas', icone:'fas fa-trophy', acao: () => { window.location.href = 'rede.html#brasoes'; } }])
         .concat([{ rotulo:'Núcleos', ajuda:'Veja o seu núcleo e os demais do grupo', icone:'fas fa-map-marker-alt', acao: () => this.irPara('nucleos') }])
+        .concat([
+          { rotulo:'Agenda de eventos', ajuda:'Batizados, rodas e oficinas — inscrição em um toque', icone:'fas fa-calendar-days', acao: () => { window.location.href = 'rede.html#agenda'; } },
+          { rotulo:'Notificações', ajuda:'Curtidas, mensagens, brasões e avisos — e o aviso no celular', icone:'fas fa-bell', acao: () => this.abrirNotificacoes() },
+          { rotulo:'Rede Liberdade no celular', ajuda:'Instala um atalho da Rede na tela inicial (abre direto nela)', icone:'fas fa-mobile-screen-button', acao: () => { window.location.href = 'rede.html#instalar'; } },
+          { rotulo:'Acessibilidade', ajuda:'Texto maior e alto contraste', icone:'fas fa-universal-access', acao: () => this.abrirAcessibilidadeAcao() },
+          { rotulo:'Baixar meus dados', ajuda:'Cópia do seu cadastro, presenças e pagamentos (LGPD)', icone:'fas fa-file-arrow-down', acao: () => this.baixarMeusDados() },
+          { rotulo:'Pedir exclusão da conta', ajuda:'O Admin Master confirma e o sistema apaga seus dados', icone:'fas fa-user-xmark', acao: () => this.pedirExclusaoAcao() },
+          { rotulo:'Ver o tutorial', ajuda:'Como o app funciona, em 4 passos', icone:'fas fa-circle-question', acao: () => this.tutorialApp(true) },
+        ])
         .concat(this._temPainel ? [{ rotulo:'Painel do meu núcleo', ajuda:'Voltar às ferramentas de responsável', icone:'fas fa-people-roof', acao: () => { try { sessionStorage.removeItem('app.modo'); } catch (_) {} window.location.href = 'admin.html'; } }] : [])
         .concat(familia ? [{ rotulo:'Vincular familiar', ajuda:'Ligar outro dependente à conta', icone:'fas fa-link', acao: () => this.abrirSheet('vincular') }] : [])
         // Face ID fica no painel de gestão (admin.html → Presenças) e só para
@@ -3009,17 +3049,19 @@ class Component extends DCLogic {
             if (!String(novoNome || '').trim()) { this.toast('O nome não pode ficar vazio.'); return; }
             // O cadastro inteiro usa o campo "celular" (inscrição e painel).
             // Antes este formulário gravava em "telefone" e nunca mostrava de volta.
+            // Foto nova (texto base64 do celular) sobe pro Storage; no banco fica só o link.
+            const fotoFinal = this._FB.salvarFotoPerfil ? await this._FB.salvarFotoPerfil(this._uid, novaFoto) : novaFoto;
             await this._FB.atualizar('usuarios', this._uid, {
               nome: String(novoNome).trim(),
               celular: novoCelular,
-              fotoUrl: novaFoto,
+              fotoUrl: fotoFinal,
             });
             if (perfilAtual) perfilAtual.celular = novoCelular;
             // Atualiza na hora a foto/nome exibidos (cabeçalho, perfil) sem
             // precisar recarregar a página inteira.
-            if (perfilAtual) { perfilAtual.foto = novaFoto; perfilAtual.nome = novoNome; }
+            if (perfilAtual) { perfilAtual.foto = fotoFinal; perfilAtual.nome = novoNome; }
             const meuAtleta = ATLETAS.find((a) => a.uid === this._uid);
-            if (meuAtleta) { meuAtleta.foto = novaFoto; meuAtleta.nome = novoNome; meuAtleta.curto = novoNome.split(' ')[0]; }
+            if (meuAtleta) { meuAtleta.foto = fotoFinal; meuAtleta.nome = novoNome; meuAtleta.curto = novoNome.split(' ')[0]; }
             this.toast('Seus dados foram atualizados.');
           } catch (e) {
             console.error(e);

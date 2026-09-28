@@ -22,26 +22,39 @@ Authentication, Cloud Firestore e Storage.
 ├── checkin.html       check-in de presença
 ├── gerenciar.html     editor de conteúdo do site
 ├── instalar.html      como instalar o app no celular
-├── manifest.webmanifest, sw.js   app instalável (PWA)
+├── privacidade.html   política de privacidade (LGPD)
+├── offline.html       tela de "sem internet"
+├── manifest.webmanifest, sw.js   app instalável (PWA), offline e push
+├── rede.webmanifest   a Rede Liberdade como app próprio (ícone separado)
 ├── service-worker.js  desativado — só limpa aparelhos com a versão antiga
 │
 ├── js/                lógica das páginas (módulos ES)
-│   ├── firebase.js    configuração única do Firebase + funções de dados
+│   ├── escola.js      identidade da escola (white-label): nomes, cores, cordões, chaves públicas
+│   ├── firebase.js    inicialização do Firebase + funções de dados
 │   ├── shared.js      utilidades (escapeHTML, sanitizeInput…)
 │   ├── conta.js       minha conta: celular, troca de senha, apresentação
 │   ├── apresentacao.js  vídeo de apresentação (Instrutor/Professor/Mestre)
 │   ├── admin.js · master.js · login.js · inscricao.js · checkin.js
 │   ├── rede.js · brasoes.js · brasoes-admin.js · faceid.js
+│   ├── gestao.js      indicadores, graduação + certificado, eventos, exportações, auditoria, LGPD
+│   ├── notificacoes.js  central de notificações + push
+│   ├── experiencia.js acessibilidade, offline, instalar, tutorial, aceite do termo
+│   ├── moderacao.js   filtro de palavras (app e servidor)
+│   ├── lgpd.js        baixar meus dados / pedir exclusão
 │   └── support.js     runtime das telas feitas no editor de design
 ├── css/               estilos (admin, master, inscricao, rede)
 ├── assets/            logos, ícones do app e fotos do site
 ├── brasoes/           imagens (png/thumb) e modelos 3D (glb) dos brasões
 ├── apresentacoes/     vídeos de apresentação publicados junto com o site
 ├── _ds/               design system (tokens e componentes)
-├── firebase/          regras do Firebase (copiar e colar no Console)
-│   ├── firestore.rules
+├── firebase/          regras e índices do Firebase (publicados pelo GitHub Actions)
+│   ├── firestore.rules · firestore.indexes.json
 │   └── storage.rules
-└── docs/              instruções, notas de segurança e histórico
+├── functions/         Cloud Functions (servidor): brasões, push, moderação, auditoria, LGPD
+├── tests/regras/      testes das regras no emulador
+├── tools/             aplicar-escola.mjs (white-label)
+├── .github/workflows/ firebase.yml — testa e publica regras, índices e funções
+└── docs/              SERVIDOR.md, SEGURANCA.md, WHITE-LABEL.md e histórico
 ```
 
 ## Publicar uma alteração
@@ -51,9 +64,9 @@ Authentication, Cloud Firestore e Storage.
    *Add file → Upload files*.
 2. Quando o arquivo muda, o número `?v=` que o chama na página também muda —
    isso força o navegador a baixar a versão nova.
-3. Mudou alguma regra? Copie o arquivo de `firebase/` e cole no Console:
-   - **Firestore → Regras** ← `firebase/firestore.rules`
-   - **Storage → Regras** ← `firebase/storage.rules`
+3. Regras, índices e funções (`firebase/`, `functions/`) são publicados sozinhos
+   pelo GitHub Actions depois dos testes — veja `docs/SERVIDOR.md`. (Colar no
+   Console continua funcionando para as regras, se precisar.)
 
 ## Regras de ouro
 

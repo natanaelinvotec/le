@@ -196,7 +196,7 @@ const res = await Promise.allSettled(alvos.map((u) => updateDoc(doc(db, 'usuario
 const falhas = res.filter((r) => r.status === 'rejected'); falhas.forEach((r) => console.error(r.reason));
 const certos = alvos.length - falhas.length;
 f.remove(); renderTudo();
-if (!falhas.length) toast(certos === 1 ? `${texto(b).nome} concedido a ${alvos[0].nome.split(' ')[0]}. Aparece no perfil quando abrir a Rede.` : `${texto(b).nome} concedido a ${certos} atletas.`);
+if (!falhas.length) toast(certos === 1 ? `${texto(b).nome} concedido a ${alvos[0].nome.split(' ')[0]}. Em instantes aparece no perfil (o servidor avisa o atleta).` : `${texto(b).nome} concedido a ${certos} atletas.`);
 else toast(`${certos} concedido${certos === 1 ? '' : 's'}, ${falhas.length} sem permissão (fora do seu núcleo?).`);
 });
 }
@@ -204,7 +204,7 @@ async function revogar(uidAlvo, brasaoId, campo) {
 const u = usuarios.find((x) => x.id === uidAlvo); const b = porId(brasaoId); if (!u || !b) return;
 const c = campo === 'brasoesAdmin' ? 'brasoesAdmin' : 'brasoesManuais';
 if (!confirm(`Revogar "${texto(b).nome}" de ${u.nome}?`)) return;
-try { await updateDoc(doc(db, 'usuarios', u.id), { [`${c}.${b.id}`]: deleteField() }); if (u[c]) delete u[c][b.id]; renderTudo(); toast('Brasão revogado. Sai do perfil quando o atleta abrir a Rede.'); } catch (e) { console.error(e); toast('Sem permissão pra revogar.'); }
+try { await updateDoc(doc(db, 'usuarios', u.id), { [`${c}.${b.id}`]: deleteField() }); if (u[c]) delete u[c][b.id]; renderTudo(); toast('Brasão revogado. Em instantes sai do perfil.'); } catch (e) { console.error(e); toast('Sem permissão pra revogar.'); }
 }
 function configurar() {
 const f = abrirFolha(`<h3>Configurações dos brasões <button type="button" class="btn-mini" data-fechar><i class="fas fa-xmark"></i></button></h3>

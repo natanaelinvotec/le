@@ -1,0 +1,18 @@
+{
+  "name": "le-functions",
+  "description": "Cloud Functions da Capoeira Liberdade e Expressão: brasões e cartão público calculados no servidor, notificações push, moderação automática, auditoria, limpeza e LGPD.",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "test": "node --test test/logica.test.mjs",
+    "migrar": "node scripts/migrar.mjs"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^6.1.1"
+  }
+}

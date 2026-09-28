@@ -1,52 +1,69 @@
 // Regras do Firebase Storage — Capoeira Liberdade e Expressão
-// Onde publicar: Firebase Console → Storage → Regras → substituir tudo → Publicar.
-// A regra de apresentacoes/ consulta usuarios/{uid} no Firestore; na primeira
-// vez o Console pode pedir para "conceder permissão" ao Firestore — conceda.
+// Publicação: automática pelo GitHub Actions (.github/workflows/firebase.yml).
+// Também dá pra colar no Console: Storage → Regras.
+// Algumas regras consultam usuarios/{uid} no Firestore; na primeira vez o
+// Console pode pedir para "conceder permissão" ao Firestore — conceda.
 
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
     function perfilDe(id) { return firestore.get(/databases/(default)/documents/usuarios/$(id)).data; }
-    function podeMexerNaApresentacao(uid) {
+    function souAdminOuFundador() {
       return 'admin' in perfilDe(request.auth.uid).get('papeis', [])
-          || perfilDe(request.auth.uid).get('acessoGeral', false) == true
+          || perfilDe(request.auth.uid).get('acessoGeral', false) == true;
+    }
+    function gerenciaNucleoDe(uid) {
+      return 'mestre' in perfilDe(request.auth.uid).get('papeis', [])
+          && perfilDe(request.auth.uid).get('academiaGerenciadaId', null) != null
+          && perfilDe(uid).get('academiaId', '') == perfilDe(request.auth.uid).get('academiaGerenciadaId', null);
+    }
+    function souInstrutorDe(uid) {
+      return 'instrutor' in perfilDe(request.auth.uid).get('papeis', [])
+          && perfilDe(uid).get('instrutorUid', '') == request.auth.uid;
+    }
+    function podeMexerNaApresentacao(uid) {
+      return souAdminOuFundador()
           || (request.auth.uid == uid && (
                 perfilDe(request.auth.uid).get('cordaoAtual', '') in ['Instrutor', 'Professor', 'Mestre', 'Mestre/Presidente']
                 || perfilDe(request.auth.uid).get('papeis', []).hasAny(['mestre', 'instrutor'])))
-          || ('mestre' in perfilDe(request.auth.uid).get('papeis', [])
-              && perfilDe(request.auth.uid).get('academiaGerenciadaId', null) != null
-              && perfilDe(uid).get('academiaId', '') == perfilDe(request.auth.uid).get('academiaGerenciadaId', null));
+          || gerenciaNucleoDe(uid);
+    }
+    function imagem(maxMB) {
+      return request.resource.contentType.matches('image/.*') && request.resource.size < maxMB * 1024 * 1024;
     }
 
-    // Foto de perfil/carteirinha (inscrição, painel e Rede): qualquer pessoa
-    // logada grava (imagem até 3 MB); leitura pública (aparece no app e no site).
+    // Foto de perfil/carteirinha: pasta de cada pessoa fotos/<uid>/.
+    // Grava a própria pessoa (inscrição, Meus dados, Rede), o Admin/Fundador,
+    // o responsável do núcleo onde ela treina e o instrutor dela (painel). Só logado vê.
+    match /fotos/{uid}/{arquivo} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && imagem(3)
+                   && (request.auth.uid == uid || souAdminOuFundador() || gerenciaNucleoDe(uid) || souInstrutorDe(uid));
+      allow delete: if request.auth != null
+                    && (request.auth.uid == uid || souAdminOuFundador() || gerenciaNucleoDe(uid));
+    }
+
+    // Pasta antiga das fotos de perfil (links já gravados continuam abrindo).
+    // Uploads novos vão para fotos/<uid>/ — aqui ninguém grava mais.
     match /fotos_alunos/{arquivo} {
       allow read: if true;
-      allow write: if request.auth != null
-                   && request.resource.contentType.matches('image/.*')
-                   && request.resource.size < 3 * 1024 * 1024;
+      allow write: if false;
     }
 
     // Rede Liberdade: cada pessoa grava só na própria pasta rede/<uid>/.
-    // Fotos já chegam comprimidas pelo app (~350 KB) — o limite de 2 MB é só
-    // a trava de segurança. Vídeos curtos (até 20 s no app) até 12 MB.
-    // Leitura só pra quem está logado (rede fechada).
+    // Fotos já chegam comprimidas (~350 KB); vídeos curtos (até 20 s) chegam
+    // recomprimidos pelo app. Leitura só pra quem está logado (rede fechada).
     match /rede/{uid}/{arquivo} {
       allow read: if request.auth != null;
       allow write: if request.auth != null
                    && request.auth.uid == uid
-                   && (
-                     (request.resource.contentType.matches('image/.*') && request.resource.size < 2 * 1024 * 1024) ||
-                     (request.resource.contentType.matches('video/.*') && request.resource.size < 12 * 1024 * 1024)
-                   );
+                   && (imagem(2) ||
+                       (request.resource.contentType.matches('video/.*') && request.resource.size < 12 * 1024 * 1024));
       allow delete: if request.auth != null && request.auth.uid == uid;
     }
 
-    // Apresentações em vídeo de cada Instrutor/Professor/Mestre: pasta
-    // apresentacoes/<uid da pessoa>/. Quem envia: a própria pessoa (cordão de
-    // Instrutor para cima ou papel mestre/instrutor), o Admin, o Fundador e o
-    // responsável do núcleo onde ela treina. Vídeo até 20 MB. Logado assiste.
+    // Apresentações em vídeo (Instrutor/Professor/Mestre): apresentacoes/<uid>/.
     match /apresentacoes/{uid}/{arquivo} {
       allow read: if request.auth != null;
       allow write: if request.auth != null

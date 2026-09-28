@@ -5,7 +5,7 @@ inscreve aqui entra com papeis:['aluno'] — inclusive quem um dia vai
 virar professor/mestre (isso o admin concede depois ao mesmo cadastro,
 sem precisar de uma inscrição separada).
 */
-import { criarConta, enviarFoto, listarNucleosAtivos, comprimirImagemDataUrl, arquivoParaDataUrlComprimido } from './firebase.js';
+import { criarConta, listarNucleosAtivos, comprimirImagemDataUrl, arquivoParaDataUrlComprimido, registroConsentimento } from './firebase.js';
 import { sanitizeInput, gerarSlug } from './shared.js';
 
 const steps = document.querySelectorAll('.form-step');
@@ -275,9 +275,6 @@ form.addEventListener('submit', async (e) => {
   const academiaId = data.localTreino || gerarSlug(nomeAcademiaSelecionada);
 
   try {
-    const nomeArquivo = 'fotos_alunos/' + Date.now() + '_' + (data.nome || 'aluno').replace(/\s+/g, '_') + '.jpg';
-    const fotoFinalUrl = await enviarFoto(nomeArquivo, fotoDataUrl.value);
-
     const dadosPerfil = {
       nome: data.nome,
       dataNasc: data.dataNasc,
@@ -291,7 +288,6 @@ form.addEventListener('submit', async (e) => {
       academiaNome: nomeAcademiaSelecionada,
       cordaoAtual: 'Iniciante',
       statusAtual: 'Ativo',
-      fotoUrl: fotoFinalUrl,
       saude: {
         doencaCronica: data.doencaCronica, qualDoenca: data.qualDoenca || '',
         cardiaco: data.cardiaco, asma: data.asma,
@@ -307,13 +303,16 @@ form.addEventListener('submit', async (e) => {
       },
       financeiro: { dataPagamento: data.dataPagamento, formaPagamento: data.formaPagamento },
       usoImagem: data.usoImagem,
+      // Aceite do termo e da política de privacidade (LGPD): quem aceitou e quando.
+      consentimento: registroConsentimento(idadeAluno < 18 ? (inputResponsavel.value || data.emergenciaNome || data.nome) : data.nome, data.usoImagem),
       responsavelContato: idadeAluno < 18 ? {
         nome: data.emergenciaNome || '', telefone: data.emergenciaTel || '',
         parentesco: data.parentesco || '', email: (data.emailResponsavel || '').trim().toLowerCase(),
       } : null,
     };
 
-    await criarConta(data.email, data.senha, dadosPerfil);
+    // A foto sobe depois do login criado, direto na pasta do aluno (fotos/<uid>/).
+    await criarConta(data.email, data.senha, dadosPerfil, fotoDataUrl.value);
 
     alert("Inscrição salva com sucesso! Gerando ficha para impressão...");
     window.print();

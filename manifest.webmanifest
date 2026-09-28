@@ -1,4 +1,5 @@
 {
+  "id": "./app.html",
   "name": "Capoeira Liberdade e Expressão",
   "short_name": "Liberdade e Expressão",
   "description": "Portal do Aluno, Mestre e Master Admin do Grupo de Capoeira Liberdade e Expressão.",
@@ -39,6 +40,41 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Rede Liberdade",
+      "short_name": "Rede",
+      "url": "./rede.html#feed",
+      "icons": [
+        {
+          "src": "assets/rede-icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Painel do núcleo",
+      "short_name": "Painel",
+      "url": "./admin.html",
+      "icons": [
+        {
+          "src": "assets/app-icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Agenda de eventos",
+      "short_name": "Agenda",
+      "url": "./rede.html#agenda",
+      "icons": [
+        {
+          "src": "assets/app-icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }

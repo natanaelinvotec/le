@@ -1,0 +1,24 @@
+{
+  "id": "./rede.html",
+  "name": "Rede Liberdade",
+  "short_name": "Rede Liberdade",
+  "description": "A rede social interna do Grupo de Capoeira Liberdade e Expressão — com atalho para o seu painel de gestão.",
+  "start_url": "./rede.html#feed",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B5C52",
+  "theme_color": "#389E92",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "assets/rede-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/rede-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/rede-icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "assets/rede-icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Publicar", "url": "./rede.html#publicar", "icons": [{ "src": "assets/rede-icon-192.png", "sizes": "192x192" }] },
+    { "name": "Mensagens", "url": "./rede.html#mensagens", "icons": [{ "src": "assets/rede-icon-192.png", "sizes": "192x192" }] },
+    { "name": "Meu painel", "url": "./admin.html", "icons": [{ "src": "assets/app-icon-192.png", "sizes": "192x192" }] }
+  ]
+}

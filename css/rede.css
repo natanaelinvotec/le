@@ -487,3 +487,56 @@ body::before { content: ''; position: fixed; left: 0; right: 0; top: 0; height: 
 .nucleo-cabecalho .nucleo-endereco { display: inline-flex; align-items: center; gap: 6px; margin-top: 3px; color: #fff; font-size: .74rem; text-decoration: underline; text-underline-offset: 3px; opacity: .92; }
 .nucleo-cabecalho .nucleo-endereco:hover { opacity: 1; }
 .oculto-aviso { background: var(--tint) !important; color: var(--muted) !important; border-color: var(--border-strong) !important; }
+
+/* ===== 2026-09: painel, notificações, comentários em conversa, agenda e álbuns ===== */
+.btn-painel { display: inline-flex; align-items: center; gap: 7px; height: 38px; padding: 0 12px 0 10px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: .78rem; color: #fff; background: linear-gradient(135deg, var(--teal-light), var(--teal)); box-shadow: 0 8px 18px -10px rgba(11,92,82,.8); flex: none; transition: transform .25s var(--ease), box-shadow .25s var(--ease); }
+.btn-painel:hover { transform: translateY(-1px); box-shadow: 0 12px 22px -10px rgba(11,92,82,.9); }
+.btn-painel:active { transform: scale(.96); }
+.cont-notif { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--red); color: #fff; font-size: .62rem; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px var(--card); animation: notifPula .5s var(--ease) both; }
+@keyframes notifPula { from { transform: scale(.3); } to { transform: scale(1); } }
+.mencao { background: none; border: 0; padding: 0; color: var(--sky-texto); font-weight: 800; font: inherit; font-weight: 800; }
+button.mencao { cursor: pointer; }
+.mencao-sugestoes { position: relative; z-index: 40; margin-top: 6px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 16px 36px -18px rgba(13,33,29,.45); overflow: hidden; animation: sobeSug .3s var(--ease) both; }
+.mencao-sugestoes button { display: flex; gap: 10px; align-items: center; width: 100%; border: 0; background: none; padding: 8px 10px; text-align: left; }
+.mencao-sugestoes button:hover, .mencao-sugestoes button:focus-visible { background: var(--tint); }
+.mencao-sugestoes b { display: block; font-size: .8rem; } .mencao-sugestoes small { font-size: .68rem; color: var(--muted); }
+@keyframes sobeSug { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.comentario .bolha-wrap { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.comentario.resposta { margin-top: 6px; }
+.comentario .comentario { margin-left: 2px; }
+.coment-acoes { display: flex; gap: 12px; padding-left: 10px; }
+.coment-acoes button { background: none; border: 0; font-size: .66rem; font-weight: 800; color: var(--soft); padding: 0; }
+.coment-acoes button:hover { color: var(--teal); }
+.bolha.escondido { opacity: .7; border: 1px dashed var(--red); }
+.aviso-mod { display: block; font-size: .68rem; color: var(--red); font-style: normal; margin-bottom: 3px; }
+.em-resposta { display: block; font-size: .66rem; color: var(--muted); font-weight: 700; }
+.novo-comentario { flex-direction: column; align-items: stretch; }
+.linha-comentar { display: flex; gap: 8px; align-items: center; }
+.respondendo { font-size: .72rem; color: var(--muted); display: flex; align-items: center; gap: 6px; padding: 0 6px; }
+.respondendo button { background: var(--tint); border: 0; width: 22px; height: 22px; border-radius: 50%; font-size: .6rem; }
+.tag-evento { display: inline-flex; align-items: center; gap: 6px; margin: 2px 14px 8px; border: 0; border-radius: 999px; padding: 6px 12px; font-size: .72rem; font-weight: 800; background: var(--gold-soft); color: var(--gold-texto); transition: transform .25s var(--ease); }
+.tag-evento:hover { transform: translateY(-1px); }
+.evento.grande { padding-bottom: 16px; }
+.evento .ev-desc { font-size: .84rem; opacity: .92; margin: 8px 0 4px; line-height: 1.45; }
+.lista-ev { display: grid; gap: 4px; padding: 8px; }
+.ev-linha { display: flex; gap: 12px; align-items: center; width: 100%; text-align: left; border: 0; background: none; padding: 8px; border-radius: 14px; transition: background .25s var(--ease), transform .25s var(--ease); }
+.ev-linha:hover { background: var(--tint); transform: translateX(2px); }
+.ev-linha .d { width: 48px; height: 52px; border-radius: 14px; flex: none; display: grid; place-items: center; align-content: center; background: linear-gradient(160deg, var(--teal-light), var(--navy)); color: #fff; line-height: 1; }
+.ev-linha .d b { font-family: var(--display); font-size: 1.15rem; } .ev-linha .d small { font-size: .6rem; text-transform: uppercase; font-weight: 800; opacity: .9; }
+.ev-linha .t { flex: 1; min-width: 0; } .ev-linha .t b { display: block; font-size: .88rem; } .ev-linha .t small { font-size: .72rem; color: var(--muted); }
+.ev-linha > i { color: var(--soft); }
+.push-convite { display: flex; gap: 12px; align-items: center; background: linear-gradient(135deg, var(--teal-soft), var(--green-soft)); }
+.push-convite > i { font-size: 1.3rem; color: var(--teal); }
+.push-convite b { display: block; font-size: .86rem; } .push-convite small { font-size: .74rem; color: var(--muted); }
+.push-convite .btn-verde { margin-left: auto; flex: none; }
+.conf-lista { display: grid; gap: 2px; padding: 6px; }
+.conf { display: flex; gap: 12px; align-items: center; width: 100%; text-align: left; border: 0; background: none; padding: 12px 10px; border-radius: 14px; text-decoration: none; color: var(--text); transition: background .25s var(--ease); }
+.conf:hover { background: var(--tint); }
+.conf > i:first-child { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--teal-soft); color: var(--teal); flex: none; }
+.conf > div { flex: 1; min-width: 0; } .conf b { display: block; font-size: .86rem; } .conf small { font-size: .72rem; color: var(--muted); }
+.conf > i:last-child { color: var(--soft); font-size: .8rem; }
+.conf.perigo > i:first-child { background: var(--red-soft); color: var(--red); }
+.conf .switch.cinza, .opc .switch.cinza { background: var(--border-strong); }
+.conf .switch.cinza.on { background: var(--neon); }
+.mod-auto { margin: 4px 6px -4px; color: var(--red); }
+.fim-feed { text-align: center; padding: 14px 0 4px; }

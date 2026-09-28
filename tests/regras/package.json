@@ -1,0 +1,13 @@
+{
+  "name": "le-testes-regras",
+  "private": true,
+  "type": "module",
+  "description": "Testes das regras do Firestore no emulador (rodam no GitHub Actions antes de publicar).",
+  "scripts": {
+    "test": "node --test regras.test.mjs"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.4",
+    "firebase": "^10.12.0"
+  }
+}

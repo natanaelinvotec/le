@@ -1,5 +1,7 @@
 // Regras do Cloud Firestore — Capoeira Liberdade e Expressão
-// Onde publicar: Firebase Console → Firestore Database → Regras → substituir tudo → Publicar.
+// Publicação: automática pelo GitHub Actions (.github/workflows/firebase.yml)
+// a cada upload nesta pasta. Também dá pra colar no Console: Firestore → Regras.
+// Testes: tests/regras (rodam no GitHub antes de publicar).
 rules_version = '2';
 service cloud.firestore {
 match /databases/{database}/documents {
@@ -10,18 +12,27 @@ function meusPapeis() { return meuPerfil().papeis; }
 function ehAdmin() { return logado() && 'admin' in meusPapeis(); }
 function ehGestor() { return logado() && meusPapeis().hasAny(['admin', 'mestre']); }
 function ehInstrutor() { return logado() && 'instrutor' in meusPapeis(); }
-function souFundador() { return logado() && meuPerfil().acessoGeral == true; }
-function minhaAcademiaGerenciada() { return meuPerfil().academiaGerenciadaId; }
-function papeisInalterados() { return request.resource.data.papeis == resource.data.papeis; }
-function academiaInalterada() { return request.resource.data.academiaId == resource.data.academiaId; }
-function academiaGerenciadaInalterada() { return request.resource.data.academiaGerenciadaId == resource.data.academiaGerenciadaId; }
-function notasInalteradas() { return request.resource.data.notas == resource.data.notas; }
-function acessoGeralInalterado() { return request.resource.data.acessoGeral == resource.data.acessoGeral; }
-function souInstrutorDoAluno() { return ehInstrutor() && resource.data.instrutorUid == request.auth.uid; }
+function souFundador() { return logado() && meuPerfil().get('acessoGeral', false) == true; }
+function minhaAcademiaGerenciada() { return meuPerfil().get('academiaGerenciadaId', null); }
+function mudou() { return request.resource.data.diff(resource.data).affectedKeys(); }
+// .get(campo, padrão): cadastro antigo sem o campo não trava a gravação.
+function papeisInalterados() { return request.resource.data.get('papeis', null) == resource.data.get('papeis', null); }
+function academiaInalterada() { return request.resource.data.get('academiaId', null) == resource.data.get('academiaId', null); }
+function academiaGerenciadaInalterada() { return request.resource.data.get('academiaGerenciadaId', null) == resource.data.get('academiaGerenciadaId', null); }
+function notasInalteradas() { return request.resource.data.get('notas', null) == resource.data.get('notas', null); }
+function acessoGeralInalterado() { return request.resource.data.get('acessoGeral', false) == resource.data.get('acessoGeral', false); }
+function souInstrutorDoAluno() { return ehInstrutor() && resource.data.get('instrutorUid', null) == request.auth.uid; }
 // Brasões: 'brasoesAdmin' (qualquer brasão, até automático) só o Admin Master
 // grava; 'brasoesManuais' só Admin, Fundador e o responsável do núcleo do aluno.
 function brasoesAdminInalterados() { return request.resource.data.get('brasoesAdmin', null) == resource.data.get('brasoesAdmin', null); }
 function brasoesManuaisInalterados() { return request.resource.data.get('brasoesManuais', null) == resource.data.get('brasoesManuais', null); }
+// Campos que a própria pessoa NÃO pode mudar no próprio cadastro: graduação,
+// histórico, quem avalia, quem é o responsável legal, idade (define se é
+// menor) e o total de brasões (calculado no servidor).
+function camposTravadosDoProprio() {
+return ['cordaoAtual', 'historicoGraduacoes', 'instrutorUid', 'responsavelUid', 'idade', 'dataNasc',
+'statusAtual', 'brasoesTotal', 'origemTransferenciaDireta', 'academiaAnteriorId'];
+}
 
 match /usuarios/{uid} {
 allow read: if logado() && (
@@ -33,22 +44,29 @@ souFundador() ||
 resource.data.responsavelUid == request.auth.uid
 );
 
-allow create: if ehAdmin() ||
-(request.auth.uid == uid && request.resource.data.papeis == ['aluno']);
+// Autocadastro (inscrição): sempre aluno, Iniciante, sem núcleo próprio, sem
+// acesso geral, sem brasões, sem notas e sem responsável definido por conta própria.
+allow create: if ehAdmin() || (
+request.auth.uid == uid &&
+request.resource.data.papeis == ['aluno'] &&
+!request.resource.data.keys().hasAny(['acessoGeral', 'brasoesAdmin', 'brasoesManuais', 'instrutorUid',
+'historicoGraduacoes', 'brasoesTotal', 'origemTransferenciaDireta', 'academiaAnteriorId']) &&
+request.resource.data.get('academiaGerenciadaId', null) == null &&
+request.resource.data.get('cordaoAtual', 'Iniciante') == 'Iniciante' &&
+request.resource.data.get('notas', {}) == {} &&
+request.resource.data.get('responsavelUid', null) == null &&
+request.resource.data.get('statusAtual', 'Ativo') == 'Ativo'
+);
 
-// souFundador() aditivo, sem restrição de campo: o Mestre Profeta precisa
-// poder aplicar o efeito de uma transferência aprovada (muda academiaId do
-// aluno) em qualquer núcleo do grupo, igual ao admin já podia — mesmo nível
-// de confiança que ele já tem em leitura (souFundador() acima).
-// Cláusula "aceitar transferência": o gestor do núcleo de DESTINO pode mover
-// um aluno PARA o próprio núcleo (request academiaId == o núcleo dele), sem
-// mexer em papéis, notas, acesso geral nem no núcleo que o aluno administra.
-// É o efeito do botão "Aceitar aluno" em Solicitações → Transferências.
+// souFundador(): o Mestre Profeta aplica transferências aprovadas em qualquer núcleo.
+// "Aceitar transferência": o gestor do núcleo de DESTINO move um aluno PARA o
+// próprio núcleo sem mexer em papéis, notas, acesso geral nem núcleo administrado.
 allow update: if ehAdmin() || (souFundador() && brasoesAdminInalterados()) ||
 (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada() && academiaInalterada() && papeisInalterados() && acessoGeralInalterado() && brasoesAdminInalterados()) ||
 (ehGestor() && request.resource.data.academiaId == minhaAcademiaGerenciada() && papeisInalterados() && academiaGerenciadaInalterada() && notasInalteradas() && acessoGeralInalterado() && brasoesAdminInalterados() && brasoesManuaisInalterados()) ||
 (souInstrutorDoAluno() && academiaInalterada() && papeisInalterados() && academiaGerenciadaInalterada() && acessoGeralInalterado() && brasoesAdminInalterados() && brasoesManuaisInalterados()) ||
-(request.auth.uid == uid && papeisInalterados() && academiaInalterada() && academiaGerenciadaInalterada() && notasInalteradas() && acessoGeralInalterado() && brasoesAdminInalterados() && brasoesManuaisInalterados());
+(request.auth.uid == uid && papeisInalterados() && academiaInalterada() && academiaGerenciadaInalterada() && notasInalteradas() && acessoGeralInalterado() && brasoesAdminInalterados() && brasoesManuaisInalterados()
+&& !mudou().hasAny(camposTravadosDoProprio()));
 
 allow delete: if ehAdmin();
 }
@@ -64,11 +82,40 @@ allow read: if logado() && (request.auth.uid == uid || ehAdmin() || souFundador(
 allow create: if ehAdmin() || (ehGestor() && alunoDoMeuNucleo()) || souInstrutorDesteAluno();
 }
 
+// Aparelhos que recebem notificação push (token do Firebase Cloud Messaging).
+// Só o dono lê e grava; quem envia é o servidor (Cloud Functions).
+match /usuarios/{uid}/dispositivos/{id} {
+allow read, delete: if logado() && request.auth.uid == uid;
+allow create, update: if logado() && request.auth.uid == uid &&
+request.resource.data.keys().hasOnly(['token', 'plataforma', 'base', 'criadoEm', 'atualizadoEm']) &&
+request.resource.data.token is string && request.resource.data.token.size() < 400;
+}
+
+// Central de notificações: escrita só pelo servidor; o dono lê, marca como
+// lida e apaga.
+match /notificacoes/{uid}/itens/{id} {
+allow read, delete: if logado() && request.auth.uid == uid;
+allow update: if logado() && request.auth.uid == uid && mudou().hasOnly(['lida', 'lidaEm']);
+allow create: if false;
+}
+
+// Pedidos do Admin ao servidor (excluir conta — LGPD, recalcular brasões).
+// O servidor executa e grava o resultado; ninguém edita depois.
+match /comandos/{id} {
+allow read: if ehAdmin();
+allow create: if ehAdmin() && request.resource.data.porUid == request.auth.uid &&
+request.resource.data.status == 'pendente' &&
+request.resource.data.tipo in ['excluirConta', 'recalcularAtleta', 'recalcularTodos', 'migrar'];
+allow update, delete: if false;
+}
+
+// Registro de auditoria (quem fez o quê). Só o servidor grava; ninguém edita.
+match /auditoria/{id} {
+allow read: if ehAdmin() || souFundador();
+allow write: if false;
+}
+
 // Apresentação em vídeo de cada Instrutor/Professor/Mestre (conta.js).
-// Leitura: qualquer pessoa logada (alunos veem a do responsável do núcleo).
-// Escrita: Admin, Fundador, a própria pessoa (se tiver cordão de Instrutor
-// para cima ou papel de mestre/instrutor) e o responsável do núcleo onde ela
-// treina. Só os campos conhecidos e só link https:// ou caminho apresentacoes/.
 match /apresentacoes/{uid} {
 function perfilDela() { return get(/databases/$(database)/documents/usuarios/$(uid)).data; }
 function podeTerVideo() {
@@ -97,106 +144,81 @@ allow delete: if request.auth != null && podeEditar();
 
 match /nucleos/{id} {
 allow read: if true;
-// souFundador() aditivo: aprovar uma solicitação de mensalidade no Painel
-// do Fundador precisa gravar o novo valor no próprio núcleo.
 allow write: if ehAdmin() || souFundador();
 }
 
-    match /presencas/{id} {
-      // souFundador() aditivo: o Painel do Fundador mostra uma "presença
-      // geral" real do grupo inteiro (mesmo motivo dos blocos de
-      // solicitacoes/pagamentos acima) — só leitura, cada aluno continua
-      // só podendo criar/editar a própria presença.
-      // nucleoVisitadoId: o professor do núcleo VISITADO também enxerga a
-      // presença de um aluno de fora que treinou com ele (Face ID do aluno).
-      allow read: if logado() && (
-        resource.data.uid == request.auth.uid ||
-        ehAdmin() ||
-        souFundador() ||
-        (ehGestor() && resource.data.nucleoId == minhaAcademiaGerenciada()) ||
-        (ehGestor() && resource.data.nucleoVisitadoId == minhaAcademiaGerenciada())
-      );
-      // Presença só é criada pelo RESPONSÁVEL do núcleo (Face ID ou marcação
-      // manual no painel), pelo Fundador ou pelo Admin — já nasce confirmada
-      // (não existe "confirmar aos 30 min"). Aluno, família e instrutor sem
-      // núcleo não registram presença.
-      allow create: if logado() &&
-        request.resource.data.origem in ['faceid', 'manual'] &&
-        request.resource.data.registradoPor == request.auth.uid && (
-          ehAdmin() || souFundador() ||
-          (ehGestor() && request.resource.data.nucleoId == minhaAcademiaGerenciada())
-        );
-      allow update: if logado() &&
-        resource.data.uid == request.auth.uid &&
-        request.resource.data.uid == resource.data.uid &&
-        request.resource.data.nucleoId == resource.data.nucleoId &&
-        request.resource.data.entradaEm == resource.data.entradaEm;
-      allow delete: if ehAdmin();
-    }
+match /presencas/{id} {
+// O professor do núcleo VISITADO também enxerga a presença de um aluno de
+// fora que treinou com ele (Face ID do aluno).
+allow read: if logado() && (
+resource.data.uid == request.auth.uid ||
+ehAdmin() ||
+souFundador() ||
+(ehGestor() && resource.data.nucleoId == minhaAcademiaGerenciada()) ||
+(ehGestor() && resource.data.nucleoVisitadoId == minhaAcademiaGerenciada())
+);
+// Presença só é criada pelo RESPONSÁVEL do núcleo (Face ID ou marcação manual),
+// pelo Fundador ou pelo Admin — já nasce confirmada.
+allow create: if logado() &&
+request.resource.data.origem in ['faceid', 'manual'] &&
+request.resource.data.registradoPor == request.auth.uid && (
+ehAdmin() || souFundador() ||
+(ehGestor() && request.resource.data.nucleoId == minhaAcademiaGerenciada())
+);
+allow update: if logado() &&
+resource.data.uid == request.auth.uid &&
+request.resource.data.uid == resource.data.uid &&
+request.resource.data.nucleoId == resource.data.nucleoId &&
+request.resource.data.entradaEm == resource.data.entradaEm;
+allow delete: if ehAdmin();
+}
 
 match /solicitacoes/{id} {
-// Além do próprio solicitante e do admin, o mestre/professor responsável pelo
-// núcleo também precisa ler os pedidos que chegam PARA o próprio núcleo (vínculo
-// de parentesco de um aluno, ou transferência de aluno pedindo pra entrar) —
-// sem isso, o botão "Aprovar" dessas duas telas nunca funciona pra quem não é admin.
-// souFundador() aqui é aditivo: o Mestre Profeta (acessoGeral, sem o papel
-// literal 'admin') precisa enxergar as solicitações de TODOS os núcleos pra
-// o Painel do Fundador mostrar números reais do grupo inteiro — só leitura,
-// aprovar/rejeitar continua exigindo ehAdmin() ou ser o gestor do próprio núcleo.
-// Última cláusula (dadosPedido.destinoId): o professor do núcleo de DESTINO
-// de uma transferência precisa ler o pedido pra aceitar/recusar o aluno —
-// ele não é o solicitante nem o gestor do núcleo de origem, então sem isso
-// a lista "Transferências aguardando seu aceite" era negada pelas regras.
-allow read: if ehAdmin() || souFundador() || (ehGestor() && (
-resource.data.solicitanteUid == request.auth.uid ||
+// Leitura: quem pediu, Admin, Fundador e o responsável do núcleo envolvido
+// (origem ou destino de uma transferência).
+allow read: if (logado() && resource.data.solicitanteUid == request.auth.uid) || ehAdmin() || souFundador() || (ehGestor() && (
 resource.data.academiaId == minhaAcademiaGerenciada() ||
 resource.data.dadosPedido.destinoId == minhaAcademiaGerenciada()
 ));
-allow create: if ehGestor() &&
+// Gestor pede mensalidade/evento/transferência para o próprio núcleo.
+// Qualquer pessoa pede a EXCLUSÃO DA PRÓPRIA CONTA (LGPD).
+allow create: if (ehGestor() &&
 request.resource.data.solicitanteUid == request.auth.uid &&
 request.resource.data.academiaId == minhaAcademiaGerenciada() &&
-request.resource.data.status == 'pendente';
-// Só o admin aprova/rejeita pedidos de mensalidade e evento (decisão financeira
-// sobe pro admin, por desenho). Vínculo de parentesco e transferência PARA o
-// próprio núcleo, o mestre/professor responsável pode aprovar/rejeitar sozinho —
-// e só pode mudar o campo status, nada mais no documento.
-// souFundador() aditivo: o Painel do Fundador aprova/rejeita solicitações de
-// QUALQUER tipo e núcleo (mensalidade, evento, transferência, vínculo de
-// família), igual ao admin — é o mesmo alcance que ele já tem em leitura.
+request.resource.data.status == 'pendente') || (
+logado() &&
+request.resource.data.tipo == 'exclusao_conta' &&
+request.resource.data.solicitanteUid == request.auth.uid &&
+request.resource.data.status == 'pendente');
 allow update: if ehAdmin() || souFundador() || (
 ehGestor() &&
 resource.data.academiaId == minhaAcademiaGerenciada() &&
 resource.data.tipo in ['vinculo_familia', 'transferencia'] &&
-request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+mudou().hasOnly(['status'])
 ) || (
-// Professor do núcleo de DESTINO aceitando/recusando uma transferência
-// dirigida a ele — só pode mudar o campo status.
 ehGestor() &&
 resource.data.tipo == 'transferencia' &&
 resource.data.dadosPedido.destinoId == minhaAcademiaGerenciada() &&
-request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+mudou().hasOnly(['status'])
 );
-// Quem enviou o pedido pode cancelar (apagar) enquanto ele ainda estiver
-// pendente — antes só o admin conseguia apagar, então quem se arrependia
-// de um pedido de mensalidade/evento/transferência ficava travado.
 allow delete: if ehAdmin() || souFundador() ||
 (logado() && resource.data.solicitanteUid == request.auth.uid && resource.data.status == 'pendente');
 }
 
 match /eventos/{id} {
 allow read: if logado();
-// souFundador() aditivo: aprovar uma solicitação de evento/batizado no
-// Painel do Fundador precisa criar o documento em eventos.
 allow write: if ehAdmin() || souFundador();
+}
+// Inscrição no evento ("Eu vou"): cada pessoa marca/desmarca só a si mesma.
+match /eventos/{id}/confirmados/{uid} {
+allow read: if logado();
+allow create, update: if logado() && request.auth.uid == uid &&
+request.resource.data.keys().hasOnly(['nome', 'em', 'academiaId', 'cordaoAtual', 'fotoUrl']);
+allow delete: if logado() && (request.auth.uid == uid || ehAdmin() || souFundador());
 }
 
 match /avisos/{id} {
 allow read: if logado();
-// souFundador() aditivo em create/update/delete: o Mestre Profeta também
-// publica/exclui avisos (inclusive "Geral", academiaId nulo), igual ao
-// admin — sem isso o botão "Excluir aviso" do Painel do Fundador aparece
-// na tela mas a exclusão falha por permissão, igual já aconteceu antes
-// com solicitações/eventos/núcleos.
 allow create: if ehAdmin() || souFundador() || (ehGestor() && request.resource.data.academiaId == minhaAcademiaGerenciada());
 allow update, delete: if ehAdmin() || souFundador();
 }
@@ -206,34 +228,23 @@ allow read: if logado();
 allow write: if ehGestor();
 }
 
-// Conteúdo de formação (vídeos, conduta, ética, preparação de graduação),
-// curado pelo Admin Master. Visível ao próprio alvo (instrutor/professor),
-// ao mestre/professor que supervisiona, e ao Admin.
 match /materiaisFormacao/{id} {
 allow read: if ehAdmin() || ehGestor() || ehInstrutor();
 allow write: if ehAdmin();
 }
 
-// Pagamentos manuais (mensalidade paga/não paga) — restrito ao próprio
-// núcleo de quem lança, exceto o Admin que vê/gerencia tudo.
+// Pagamentos manuais — restritos ao próprio núcleo de quem lança; Admin vê tudo.
 match /pagamentos/{id} {
-// souFundador() aditivo pelo mesmo motivo do bloco de solicitacoes acima —
-// Financeiro do grupo e Árvore do grupo precisam de leitura real de todos
-// os núcleos pro Mestre Profeta, sem abrir escrita além do que já existia.
 allow read: if logado() && (resource.data.alunoId == request.auth.uid || ehAdmin() || souFundador() || (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada()));
 allow create: if ehAdmin() || (ehGestor() && request.resource.data.academiaId == minhaAcademiaGerenciada());
 allow update, delete: if ehAdmin() || (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada());
 }
 
-// Despesas administrativas do grupo (marketing, jurídico etc.) lançadas
-// pelo Admin Master, com rateio individual por responsável de núcleo.
 match /despesasAdministrativas/{id} {
 allow read: if ehAdmin();
 allow write: if ehAdmin();
 }
 
-// Parcela individual do rateio de uma despesa — cada responsável só vê e
-// só pode marcar como paga a própria parcela; quem cria/edita o valor é o Admin.
 match /rateios/{id} {
 allow read: if ehAdmin() || (logado() && resource.data.responsavelUid == request.auth.uid);
 allow create, delete: if ehAdmin();
@@ -245,79 +256,121 @@ request.resource.data.despesaId == resource.data.despesaId
 );
 }
 
-// ===== Rede Liberdade 2.0 (rede social interna) =====
-// perfisPublicos: cartão público que a própria pessoa grava ao entrar na rede.
-// Outra pessoa só pode mexer em DOIS campos, e só com o PRÓPRIO uid:
-// seguidores (seguir/deixar de seguir) e pedidosSeguir (pedir pra seguir um
-// perfil privado). O responsável legal cadastrado (usuarios.responsavelUid)
-// também administra o perfil do menor (aceitar seguidores, deixar privado).
+// ===== Rede Liberdade (rede social interna) =====
+// perfisPublicos: o cartão público. Os campos que valem conquista ou
+// segurança (cordão, núcleo, idade/menor, presenças, brasões, graduações…)
+// são calculados e gravados SÓ pelo servidor (Cloud Functions). A pessoa só
+// mexe nos campos de apresentação abaixo; outra pessoa só entra/sai de
+// seguidores e pedidosSeguir com o PRÓPRIO uid. O responsável legal
+// (usuarios.responsavelUid) administra privacidade e seguidores do menor.
 match /perfisPublicos/{uid} {
-function souResponsavelLegal() { return get(/databases/$(database)/documents/usuarios/$(uid)).data.responsavelUid == request.auth.uid; }
+function souResponsavelLegal() { return get(/databases/$(database)/documents/usuarios/$(uid)).data.get('responsavelUid', null) == request.auth.uid; }
 function soMeuUidEm(campo) {
 return request.resource.data.get(campo, []).removeAll(resource.data.get(campo, [])).hasOnly([request.auth.uid]) &&
 resource.data.get(campo, []).removeAll(request.resource.data.get(campo, [])).hasOnly([request.auth.uid]);
 }
-allow read: if logado();
-allow create: if logado() && request.auth.uid == uid;
-allow update: if logado() && (
-request.auth.uid == uid || souResponsavelLegal() ||
-(request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seguidores', 'pedidosSeguir']) &&
-(!('seguidores' in request.resource.data.diff(resource.data).affectedKeys()) || soMeuUidEm('seguidores')) &&
-(!('pedidosSeguir' in request.resource.data.diff(resource.data).affectedKeys()) || soMeuUidEm('pedidosSeguir')))
-);
-allow delete: if ehAdmin() || (logado() && request.auth.uid == uid);
+function camposDoDono() {
+return ['capaUrl', 'bio', 'apelido', 'funcoes', 'cidade', 'privado', 'seguidores', 'pedidosSeguir', 'seguindoCount', 'atualizadoEm'];
 }
-// posts: texto até 800 caracteres, mídias são links do Storage. tipo 'aviso'
-// (destaque verde no feed) só pra Admin, Fundador ou o responsável do núcleo.
-// Curtir: só adiciona/remove o PRÓPRIO uid. revisao (pendente → ok): só
-// Admin/Fundador/responsável do núcleo do autor ou do núcleo marcado.
-// Apagar: autor, Admin, Fundador, responsável do núcleo do autor ou do núcleo marcado.
+function tamanhosOk() {
+return request.resource.data.get('bio', '').size() <= 600 &&
+request.resource.data.get('apelido', '').size() <= 30 &&
+request.resource.data.get('cidade', '').size() <= 60 &&
+request.resource.data.get('funcoes', []).size() <= 6;
+}
+allow read: if logado();
+allow create: if logado() && request.auth.uid == uid && request.resource.data.keys().hasOnly(camposDoDono()) && tamanhosOk();
+allow update: if logado() && (
+(request.auth.uid == uid && mudou().hasOnly(camposDoDono()) && tamanhosOk()) ||
+(souResponsavelLegal() && mudou().hasOnly(['privado', 'seguidores', 'pedidosSeguir', 'atualizadoEm'])) ||
+(mudou().hasOnly(['seguidores', 'pedidosSeguir']) &&
+(!('seguidores' in mudou()) || soMeuUidEm('seguidores')) &&
+(!('pedidosSeguir' in mudou()) || soMeuUidEm('pedidosSeguir')))
+);
+allow delete: if ehAdmin();
+}
+
+// posts: texto até 800 caracteres, mídias são links do Storage.
+// "publico" = pode aparecer para toda a rede (não ocultado e revisão ok). Quem
+// não é o autor/moderador só consegue LER posts com publico == true — assim um
+// post ocultado ou uma foto de menor aguardando revisão não vaza nem pela API.
 match /posts/{id} {
+function pp(u) { return get(/databases/$(database)/documents/perfisPublicos/$(u)).data; }
 function moderaEstePost() {
 return ehAdmin() || souFundador() ||
 (ehGestor() && (resource.data.autorAcademiaId == minhaAcademiaGerenciada() || resource.data.nucleoId == minhaAcademiaGerenciada()));
 }
-allow read: if logado();
+function publicoCoerente(ocultoNovo, revisaoNova) {
+return request.resource.data.publico == (ocultoNovo == false && revisaoNova == 'ok');
+}
+// Post apagado: responde "não existe" em vez de "sem permissão".
+allow get: if logado() && resource == null;
+allow read: if logado() && (
+resource.data.publico == true ||
+resource.data.autorUid == request.auth.uid ||
+ehAdmin() || souFundador() ||
+(ehGestor() && (resource.data.autorAcademiaId == minhaAcademiaGerenciada() || resource.data.nucleoId == minhaAcademiaGerenciada()))
+);
 allow create: if logado() &&
 request.resource.data.autorUid == request.auth.uid &&
 request.resource.data.texto is string && request.resource.data.texto.size() <= 800 &&
 request.resource.data.get('midias', []).size() <= 4 &&
 request.resource.data.get('tipo', 'post') in ['post', 'aviso'] &&
+request.resource.data.oculto == false &&
+request.resource.data.revisao in ['ok', 'pendente'] &&
+publicoCoerente(false, request.resource.data.revisao) &&
+// Menor de idade publicando foto/vídeo: sempre passa pela revisão.
+(request.resource.data.get('midias', []).size() == 0 || pp(request.auth.uid).get('menor', false) == false || request.resource.data.revisao == 'pendente') &&
+// O cordão mostrado no post é o do cartão público (calculado no servidor).
+(request.resource.data.get('autorCordao', '') == '' || request.resource.data.autorCordao == pp(request.auth.uid).get('cordaoAtual', '')) &&
 (request.resource.data.get('tipo', 'post') != 'aviso' || ehAdmin() || souFundador() ||
 (ehGestor() && request.resource.data.nucleoId == minhaAcademiaGerenciada())) &&
-// "Publicar como o núcleo": só o responsável do núcleo (ou Admin/Fundador no
-// próprio núcleo que administram) e sempre no núcleo que ele administra.
+// "Publicar como o núcleo": só o responsável, sempre no núcleo que administra.
 (request.resource.data.get('comoNucleo', false) == false ||
 (minhaAcademiaGerenciada() != null && request.resource.data.nucleoId == minhaAcademiaGerenciada() && (ehGestor() || ehAdmin() || souFundador())));
 allow update: if logado() && (
-(resource.data.autorUid == request.auth.uid && request.resource.data.autorUid == resource.data.autorUid &&
-request.resource.data.get('tipo', 'post') == resource.data.get('tipo', 'post') &&
-request.resource.data.get('comoNucleo', false) == resource.data.get('comoNucleo', false) &&
-request.resource.data.get('oculto', false) == resource.data.get('oculto', false)) ||
-// Admin Master oculta/mostra qualquer post (conteúdo ofensivo) — só esses campos.
-(ehAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['oculto', 'ocultadoPor', 'ocultadoEm'])) ||
-(request.resource.data.diff(resource.data).affectedKeys().hasOnly(['curtidas']) &&
-request.resource.data.curtidas.removeAll(resource.data.curtidas).hasOnly([request.auth.uid]) &&
-resource.data.curtidas.removeAll(request.resource.data.curtidas).hasOnly([request.auth.uid])) ||
-request.resource.data.diff(resource.data).affectedKeys().hasOnly(['comentariosCount']) ||
-(request.resource.data.diff(resource.data).affectedKeys().hasOnly(['revisao', 'revisadoPor']) && moderaEstePost())
+// Autor: só edita texto, marcações e o selo de melhor momento.
+(resource.data.autorUid == request.auth.uid &&
+mudou().hasOnly(['texto', 'melhorMomento', 'hashtags', 'mencoes', 'marcados', 'visibilidade', 'editadoEm']) &&
+request.resource.data.texto is string && request.resource.data.texto.size() <= 800) ||
+// Admin Master oculta/mostra qualquer post.
+(ehAdmin() && mudou().hasOnly(['oculto', 'ocultadoPor', 'ocultadoEm', 'publico']) &&
+publicoCoerente(request.resource.data.oculto, resource.data.get('revisao', 'ok'))) ||
+// Curtir: só adiciona/remove o PRÓPRIO uid.
+(mudou().hasOnly(['curtidas']) &&
+request.resource.data.get('curtidas', []).removeAll(resource.data.get('curtidas', [])).hasOnly([request.auth.uid]) &&
+resource.data.get('curtidas', []).removeAll(request.resource.data.get('curtidas', [])).hasOnly([request.auth.uid])) ||
+(mudou().hasOnly(['comentariosCount']) &&
+request.resource.data.comentariosCount - resource.data.get('comentariosCount', 0) in [-1, 1]) ||
+// Revisão (foto de menor / sem termo de imagem): quem modera o post aprova.
+(mudou().hasOnly(['revisao', 'revisadoPor', 'publico']) && moderaEstePost() &&
+request.resource.data.revisao in ['ok', 'pendente'] &&
+publicoCoerente(resource.data.get('oculto', false), request.resource.data.revisao))
 );
 // Apagar: só quem publicou (o Admin oculta, não apaga).
 allow delete: if logado() && resource.data.autorUid == request.auth.uid;
 match /comentarios/{cid} {
-allow read: if logado();
-allow create: if logado() && request.resource.data.autorUid == request.auth.uid &&
-request.resource.data.texto is string && request.resource.data.texto.size() <= 400;
+function post() { return get(/databases/$(database)/documents/posts/$(id)).data; }
+function vejoOPost() {
+return post().get('publico', false) == true || post().autorUid == request.auth.uid ||
+ehAdmin() || souFundador() ||
+(ehGestor() && (post().get('autorAcademiaId', '') == minhaAcademiaGerenciada() || post().get('nucleoId', '') == minhaAcademiaGerenciada()));
+}
+allow read: if logado() && vejoOPost();
+allow create: if logado() && vejoOPost() && request.resource.data.autorUid == request.auth.uid &&
+request.resource.data.keys().hasOnly(['autorUid', 'autorNome', 'autorFoto', 'texto', 'criadoEm', 'respostaA', 'respostaANome', 'mencoes']) &&
+request.resource.data.texto is string && request.resource.data.texto.size() <= 400 &&
+request.resource.data.get('mencoes', []).size() <= 10;
 allow delete: if logado() && (
 resource.data.autorUid == request.auth.uid || ehAdmin() || souFundador() ||
-get(/databases/$(database)/documents/posts/$(id)).data.autorUid == request.auth.uid ||
-(ehGestor() && get(/databases/$(database)/documents/posts/$(id)).data.autorAcademiaId == minhaAcademiaGerenciada())
+post().autorUid == request.auth.uid ||
+(ehGestor() && post().get('autorAcademiaId', '') == minhaAcademiaGerenciada())
 );
 }
 }
+
 // stories: foto + legenda por 24h. "Como núcleo" só o responsável do núcleo,
-// Admin ou Fundador. O cliente só consulta expiraEm > agora; aqui garantimos
-// que expiraEm não passe de 24h depois de criadoEm (em texto ISO, comparável).
+// Admin ou Fundador.
 match /stories/{id} {
 allow read: if logado();
 allow create: if logado() &&
@@ -331,33 +384,37 @@ request.resource.data.expiraEm > request.resource.data.criadoEm &&
 allow delete: if logado() && (resource.data.autorUid == request.auth.uid || ehAdmin() || souFundador() ||
 (ehGestor() && resource.data.nucleoId == minhaAcademiaGerenciada()));
 }
+
 // conversas: direta (2 participantes; id = uids ordenados) ou grupo do núcleo.
-// Regra das crianças: se um dos dois é menor (perfisPublicos.menor), a direta
-// só existe dentro do MESMO núcleo ou com o responsável desse núcleo. Quem lê:
-// participantes, Admin, Fundador e o responsável de qualquer núcleo envolvido
-// (nucleosIds) — é o "conversa visível ao responsável do núcleo".
+// Menores: a direta só existe dentro do MESMO núcleo (ou com o responsável
+// desse núcleo). Quem ACOMPANHA a conversa de um menor é o responsável legal
+// (pai/mãe cadastrado): o servidor grava os uids deles em responsaveisIds.
+// O núcleo não lê conversa direta de ninguém — só modera o grupo do núcleo.
 match /conversas/{id} {
 function pp(u) { return get(/databases/$(database)/documents/perfisPublicos/$(u)).data; }
 // Sem .get()/valor padrão aqui: nas consultas em lista o Firestore precisa
-// PROVAR a regra a partir dos filtros (array-contains em participantes,
-// tipo == 'grupo' + nucleoId, array-contains em nucleosIds) — com .get() ele
-// não consegue e nega a consulta inteira ("Missing or insufficient permissions").
+// PROVAR a regra a partir dos filtros (array-contains em participantes ou em
+// responsaveisIds; tipo == 'grupo' + nucleoId).
 function participo() { return request.auth.uid in resource.data.participantes; }
 function membroDoGrupo() { return resource.data.tipo == 'grupo' && resource.data.nucleoId == meuPerfil().academiaId; }
-function gestorEnvolvido() { return ehGestor() && minhaAcademiaGerenciada() in resource.data.nucleosIds; }
-function podeLer() { return logado() && (participo() || membroDoGrupo() || gestorEnvolvido() || ehAdmin() || souFundador()); }
+function gestorDoGrupo() { return resource.data.tipo == 'grupo' && ehGestor() && resource.data.nucleoId == minhaAcademiaGerenciada(); }
+function responsavelLegal() { return request.auth.uid in resource.data.responsaveisIds; }
+function podeEscrever() { return logado() && (participo() || membroDoGrupo() || gestorDoGrupo()); }
+function podeLer() { return podeEscrever() || (logado() && (ehAdmin() || souFundador() || responsavelLegal())); }
 function outroNaDireta() {
 return request.resource.data.participantes[0] == request.auth.uid ? request.resource.data.participantes[1] : request.resource.data.participantes[0];
 }
 function diretaPermitida() {
 return (pp(request.auth.uid).get('menor', false) == false && pp(outroNaDireta()).get('menor', false) == false) ||
-pp(request.auth.uid).academiaId == pp(outroNaDireta()).academiaId ||
-(ehGestor() && pp(outroNaDireta()).academiaId == minhaAcademiaGerenciada()) ||
-pp(outroNaDireta()).get('academiaGerenciadaId', '') == pp(request.auth.uid).academiaId ||
+pp(request.auth.uid).get('academiaId', '') == pp(outroNaDireta()).get('academiaId', '-') ||
+(ehGestor() && pp(outroNaDireta()).get('academiaId', '') == minhaAcademiaGerenciada()) ||
+pp(outroNaDireta()).get('academiaGerenciadaId', '') == pp(request.auth.uid).get('academiaId', '-') ||
 ehAdmin() || souFundador();
 }
-allow read: if podeLer();
-allow create: if logado() && (
+// Conferir se uma conversa AINDA NÃO existe (antes de criar) não revela nada.
+allow get: if (logado() && resource == null) || podeLer();
+allow list: if podeLer();
+allow create: if logado() && !request.resource.data.keys().hasAny(['responsaveisIds']) && (
 (request.resource.data.tipo == 'direta' &&
 request.resource.data.participantes.size() == 2 &&
 request.auth.uid in request.resource.data.participantes &&
@@ -365,77 +422,72 @@ diretaPermitida()) ||
 (request.resource.data.tipo == 'grupo' &&
 (ehAdmin() || souFundador() || (ehGestor() && request.resource.data.nucleoId == minhaAcademiaGerenciada())))
 );
-allow update: if podeLer() &&
+allow update: if podeEscrever() &&
 request.resource.data.tipo == resource.data.tipo &&
 request.resource.data.get('nucleoId', '') == resource.data.get('nucleoId', '') &&
+request.resource.data.get('responsaveisIds', null) == resource.data.get('responsaveisIds', null) &&
 (resource.data.tipo == 'grupo' || request.resource.data.participantes == resource.data.participantes);
 allow delete: if ehAdmin() || souFundador();
 match /mensagens/{mid} {
 function conversa() { return get(/databases/$(database)/documents/conversas/$(id)).data; }
-function podeLerConversa() {
+function escreveNaConversa() {
 return logado() && (
 request.auth.uid in conversa().participantes ||
 (conversa().tipo == 'grupo' && conversa().nucleoId == meuPerfil().academiaId) ||
-(ehGestor() && minhaAcademiaGerenciada() in conversa().nucleosIds) ||
-ehAdmin() || souFundador()
+(conversa().tipo == 'grupo' && ehGestor() && conversa().nucleoId == minhaAcademiaGerenciada())
 );
 }
-allow read: if podeLerConversa();
-allow create: if podeLerConversa() && request.resource.data.autorUid == request.auth.uid &&
+function leConversa() {
+return escreveNaConversa() || (logado() && (
+request.auth.uid in conversa().get('responsaveisIds', []) || ehAdmin() || souFundador()));
+}
+allow read: if leConversa();
+allow create: if escreveNaConversa() && request.resource.data.autorUid == request.auth.uid &&
 request.resource.data.get('texto', '').size() <= 1000;
 allow delete: if logado() && (resource.data.autorUid == request.auth.uid || ehAdmin() || souFundador() ||
-(ehGestor() && minhaAcademiaGerenciada() in conversa().nucleosIds));
+(conversa().tipo == 'grupo' && ehGestor() && conversa().nucleoId == minhaAcademiaGerenciada()));
 }
 }
+
 // Configuração dos brasões (ativos, textos, núcleo do Fundador): todo mundo
-// logado lê (a Sala de Brasões precisa), só Admin/Fundador gravam.
+// logado lê, só Admin/Fundador gravam. A trava do Presidente do Grupo
+// (config/brasoes.presidenteUid) só o Admin troca depois de gravada.
+// config/migracoes é do servidor (marca as migrações já feitas).
 match /config/{id} {
 allow read: if logado();
-// O Fundador edita a configuração, mas a trava do Presidente do Grupo
-// (config/brasoes.presidenteUid) só o Admin troca depois de gravada.
-allow write: if ehAdmin() || (souFundador() && (
+allow write: if id != 'migracoes' && (ehAdmin() || (souFundador() && (
 id != 'brasoes' || resource == null ||
 resource.data.get('presidenteUid', null) == null ||
-request.resource.data.get('presidenteUid', null) == resource.data.get('presidenteUid', null)));
+request.resource.data.get('presidenteUid', null) == resource.data.get('presidenteUid', null))));
 }
-// "Eu vou" num evento: cada pessoa marca/desmarca só a si mesma.
-match /eventos/{id}/confirmados/{uid} {
-allow read: if logado();
-allow create, update, delete: if logado() && request.auth.uid == uid;
-}
-// Denúncias de post: qualquer logado denuncia; quem trata é Admin, Fundador ou
-// o responsável do núcleo do autor do post.
+
+// Denúncias de post ou comentário: qualquer logado denuncia; quem trata é
+// Admin, Fundador ou o responsável do núcleo do autor do post.
 match /denuncias/{id} {
 allow create: if logado() && request.resource.data.denuncianteUid == request.auth.uid &&
-request.resource.data.get('motivo', '').size() <= 300;
+request.resource.data.get('motivo', '').size() <= 300 &&
+request.resource.data.status == 'aberta';
 allow read, update: if ehAdmin() || souFundador() ||
 (ehGestor() && resource.data.autorPostAcademiaId == minhaAcademiaGerenciada());
 allow delete: if ehAdmin();
 }
 
-match /academias/{id} {
-allow read, write: if true;
-}
-match /admins/{id} {
-allow read, write: if true;
-}
-match /alunos/{id} {
-allow read, write: if true;
-}
+// Conteúdo do site público (index.html): todo mundo lê, só o Admin edita
+// (gerenciar.html).
 match /siteConteudo/{id} {
-allow read, write: if true;
+allow read: if true;
+allow write: if ehAdmin();
 }
-match /site_agenda/{id} {
-allow read, write: if true;
-}
-match /site_equipe/{id} {
-allow read, write: if true;
-}
-match /site_locais/{id} {
-allow read, write: if true;
-}
-match /site_loja/{id} {
-allow read, write: if true;
-}
+
+// Coleções do sistema antigo (antes do Firebase Authentication). Nenhuma
+// tela usa mais; ficam guardadas só para o Admin consultar. Antes estavam
+// abertas para qualquer pessoa na internet ler e gravar.
+match /academias/{id} { allow read, write: if ehAdmin(); }
+match /admins/{id} { allow read, write: if ehAdmin(); }
+match /alunos/{id} { allow read, write: if ehAdmin(); }
+match /site_agenda/{id} { allow read, write: if ehAdmin(); }
+match /site_equipe/{id} { allow read, write: if ehAdmin(); }
+match /site_locais/{id} { allow read, write: if ehAdmin(); }
+match /site_loja/{id} { allow read, write: if ehAdmin(); }
 }
 }

@@ -24,12 +24,16 @@ publicarMaterial, listarMateriais, removerMaterial, excluirUsuarioPermanente,
 publicarMaterialFormacao, listarMateriaisFormacao, removerMaterialFormacao,
 lancarPagamento, listarPagamentosDoNucleo, marcarPagamento,
 lancarDespesaComRateio, todosRateios, marcarRateioPago,
-  presencasDoNucleo, presencasVisitantesDoNucleo,
+  presencasDoNucleo, presencasVisitantesDoNucleo, salvarFotoPerfil,
 } from './firebase.js';
+import { iniciarGestao, abrirTela as abrirTelaGestao } from './gestao.js?v=20260926e';
+import { iniciarExperiencia, abrirAcessibilidade, tutorial, pedirAceiteSeNecessario } from './experiencia.js?v=20260926e';
+import { ligarContador, abrirCentral, ouvirPushComAppAberto } from './notificacoes.js?v=20260926e';
 import { apresentacaoDe, migrarApresentacao, tocarApresentacao, tocarAoEntrar, gerenciarApresentacao, abrirMinhaConta, abrirTrocaSenha, definirAutor, podeTerApresentacao, formatarCelular, celularValido, celularDe } from './conta.js?v=20260927a';
 import { escapeHTML, sanitizeInput, debounce, gerarSlug } from './shared.js';
 import { BRASOES, porId as brasaoPorId, urlThumb as brasaoThumb, ehManual as brasaoManual } from './brasoes.js?v=20260927b';
 import { configurarFaceId, atualizarContextoFaceId, pararFaceId } from './faceid.js';
+import { ESCOLA, ORDEM_CORDOES as ORDEM_ESCOLA, CORDOES_ADULTO as ADULTO_ESCOLA, CORDOES_KIDS as KIDS_ESCOLA, CRITERIOS as CRITERIOS_ESCOLA, linkMapa as linkMapaEscola } from './escola.js';
 
 let sessaoAtual = null; // { uid, nome, email, papeis, academiaId, academiaGerenciadaId, ... }
 
@@ -444,6 +448,17 @@ preencherAlunosFinanceiro(); definirTipoLancamento('mensalidade');
 // entra na plataforma (se tiver vídeo) e fecha na foto do cartão.
 migrarApresentacoesDosNucleos().catch(() => {});
 renderizarCardRedeBrasoes().catch((e) => console.warn('card rede/brasões', e));
+// Indicadores, graduação, eventos, exportações, auditoria e LGPD (gestao.js).
+iniciarGestao({
+sessao: () => sessaoAtual, usuarios: () => todosUsuarios, nucleos: () => todosNucleos, toast,
+ehAdmin, ehGestor, fundador: () => souFundador(sessaoAtual), instrutor: ehInstrutorLogado, recarregarUsuarios: carregarUsuarios,
+});
+iniciarExperiencia();
+{ const eu = todosUsuarios.find((u) => u.id === sessaoAtual.uid) || sessaoAtual; pedirAceiteSeNecessario({ ...sessaoAtual, ...eu }, (d) => atualizar('usuarios', sessaoAtual.uid, d)); }
+ligarContador(sessaoAtual.uid, (n) => { const b = document.getElementById('sinoContPainel'); if (!b) return; b.textContent = n > 9 ? '9+' : String(n); b.classList.toggle('oculto', !n); });
+ouvirPushComAppAberto((n) => toast(`${n.title || 'Notificação'}${n.body ? ` — ${n.body}` : ''}`));
+if (location.hash === '#lgpd' && ehAdmin()) window.mudarAba('lgpd');
+setTimeout(() => window.__tutorialPainel(false), 1500);
 {
 const eu = todosUsuarios.find((u) => u.id === sessaoAtual.uid) || { id: sessaoAtual.uid, ...sessaoAtual };
 tocarAoEntrar(pessoaApresentacao({ ...sessaoAtual, ...eu }), {
@@ -467,7 +482,7 @@ await atualizarContextoFaceId();
 
 /* ===================== MINHA REDE E BRASÕES =====================
    Atalhos do responsável: a própria Sala de Brasões e o próprio perfil na Rede
-   (brasões conquistados vêm de perfisPublicos/{uid}, consolidados quando a
+   (brasões conquistados vêm de perfisPublicos/{uid}, calculados no servidor — antes era quando a
    pessoa abre a Rede) e o gerenciamento, onde concede brasões manuais aos
    alunos do núcleo. Admin Master concede qualquer um; ninguém concede o de
    Presidente do Grupo. */
@@ -496,6 +511,7 @@ ${nucleoRede ? `<a class="crb-grande crb-nucleo" href="rede.html#nucleo/${encode
 <a class="crb-btn crb-ouro" href="rede.html#brasoes"><i class="fas fa-medal"></i><span><b>Meus brasões</b><small>Sala de Brasões</small></span></a>
 <a class="crb-btn crb-ceu" href="brasoes.html"><i class="fas fa-award"></i><span><b>Conceder brasões</b><small>${escapeHTML(escopo)}</small></span></a>
 <a class="crb-btn" href="app.html?modo=aluno"><i class="fas fa-id-badge"></i><span><b>Minha área de atleta</b><small>Evolução, presenças, dados e senha</small></span></a>
+<a class="crb-btn crb-verde" href="rede.html#instalar"><i class="fas fa-mobile-screen-button"></i><span><b>Rede no celular</b><small>Atalho que abre direto na Rede, com botão pro painel</small></span></a>
 </div>`;
 wrap.classList.remove('oculto');
 }
@@ -625,6 +641,7 @@ const alvo = document.getElementById(`aba-${abaId}`);
 if (!alvo) return;
 alvo.classList.add('active');
 if (abaId === 'financeiro') { preencherAlunosFinanceiro(); definirTipoLancamento(tipoLancamento); }
+if (['indicadores', 'graduacao', 'eventos', 'auditoria', 'lgpd'].includes(abaId)) abrirTelaGestao(abaId);
 if (evt && evt.currentTarget && evt.currentTarget.classList) {
 evt.currentTarget.classList.add('active');
 } else {
@@ -1054,20 +1071,15 @@ return '<i class="fas fa-user"></i> Responsável';
 // "Mestre Profeta"; "Academia Professora Taynara" → "Professora Taynara").
 // Se a pessoa tem formadorUid gravado e ele administra um núcleo conhecido,
 // esse núcleo vence (a posição na árvore é permanente).
-function linkMapaNucleo(n) {
-const lat = Number(n && n.latitude); const lng = Number(n && n.longitude);
-if (Number.isFinite(lat) && Number.isFinite(lng) && (lat || lng)) return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
-const e = (n && n.endereco) || '';
-return e ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e + (/campo grande/i.test(e) ? '' : ', Campo Grande - MS'))}` : '';
-}
+const linkMapaNucleo = linkMapaEscola;
 function rotuloDiretoDe(pessoa) {
-if (souFundador(pessoa)) return 'Direto Liberdade e Expressão';
+if (souFundador(pessoa)) return ESCOLA.rotuloLinhagem;
 let nucleo = null;
 if (pessoa.formadorUid) nucleo = todosNucleos.find((n) => n.professorUid === pessoa.formadorUid) || null;
 if (!nucleo && pessoa.academiaId) nucleo = todosNucleos.find((n) => n.id === pessoa.academiaId) || null;
 const nomeNucleo = nucleo ? (nucleo.nome || '') : (pessoa.academiaNome || '');
 const mestre = String(nomeNucleo).replace(/^\s*(academia|núcleo|nucleo)\s+(d[oa]\s+)?/i, '').trim();
-return mestre ? `Direto ${mestre}` : 'Direto Liberdade e Expressão';
+return mestre ? `Direto ${mestre}` : ESCOLA.rotuloLinhagem;
 }
 
 function construirHeroCardHTML(a, todosUsuarios, mostrarTotalGrupo) {
@@ -1165,6 +1177,17 @@ const u = usuarioSelecionado; if (!u) return;
 gerenciarApresentacao(pessoaApresentacao(u), { extras: extrasApresentacao(u), aoMudar: () => { pintarApresentacaoNoModal(u); if (u.id === sessaoAtual.uid) renderizarHeroFundador(todosUsuarios.find((x) => x.id === u.id) || { id: sessaoAtual.uid, ...sessaoAtual }); } });
 };
 window.__trocarMinhaSenha = () => abrirTrocaSenha();
+window.__abrirAcessibilidade = () => abrirAcessibilidade();
+window.__abrirNotificacoes = () => { if (sessaoAtual) abrirCentral(sessaoAtual.uid); };
+window.__tutorialPainel = function (forcar) {
+const gestor = ehGestor();
+tutorial('painel', [
+{ icone: 'fa-gauge-high', titulo: 'Seu painel de gestão', texto: gestor ? 'Alunos do núcleo, avaliações por estrela, presenças pelo Face ID, financeiro e solicitações — tudo em um lugar.' : 'Seus alunos, as avaliações e o conteúdo de formação.' },
+{ icone: 'fa-chart-line', titulo: 'Indicadores e exportações', texto: 'Veja quem sumiu dos treinos (e chame no WhatsApp), a inadimplência do mês e o crescimento. Exporte alunos, presenças e financeiro em Excel ou PDF.' },
+{ icone: 'fa-ribbon', titulo: 'Graduação com certificado', texto: 'Em Graduação aparecem os aptos pelo termômetro. Registre a troca de cordão de vários de uma vez e baixe os certificados em PDF.' },
+{ icone: 'fa-mobile-screen-button', titulo: 'Rede no celular', texto: 'No card da Rede, instale o atalho da Rede Liberdade: abre direto na rede e tem o botão "Painel" para voltar aqui.' },
+], { forcar: !!forcar });
+};
 window.__abrirMinhaConta = function () {
 const eu = todosUsuarios.find((u) => u.id === sessaoAtual.uid) || { id: sessaoAtual.uid, ...sessaoAtual };
 abrirMinhaConta(pessoaApresentacao({ ...sessaoAtual, ...eu }), { extras: extrasApresentacao(eu), aoSalvar: (d) => { Object.assign(sessaoAtual, d); Object.assign(eu, d); } });
@@ -1210,41 +1233,12 @@ anterior, agora lendo/gravando em usuarios/{id}. Quando o usuário
 selecionado é mestre/professor ou instrutor, a avaliação troca para os
 critérios de desempenho de formador (canto, condução de eventos,
 progressão de alunos formados, qualidade técnica, instrumental). --- */
-const ordemCordoes = [
-'Iniciante', 'Escravo', 'Fugitivo', 'Quilombola', 'Vagante',
-'Liberto', 'Instrutor', 'Professor', 'Mestre', 'Mestre/Presidente',
-];
-// Cores atualizadas em 2026-09 — combinações "cor A e cor B" viram gradiente
-// [A, B, A]; combinações de 3 cores seguem a ordem citada literalmente.
-// "Bege" foi substituído por dourado em todo o código (não existe mais bege).
-const cordoesAdulto = [
-{ nome: 'Iniciante', cor: ['#CCC', '#CCC', '#CCC'] }, { nome: 'Escravo', cor: ['#4F4F4F', '#4F4F4F', '#4F4F4F'] },
-{ nome: 'Fugitivo', cor: ['#4F4F4F', '#DAA520', '#4F4F4F'] }, { nome: 'Quilombola', cor: ['#DAA520', '#DAA520', '#DAA520'] },
-{ nome: 'Vagante', cor: ['#4F4F4F', '#D32F2F', '#4F4F4F'] }, { nome: 'Liberto', cor: ['#D32F2F', '#D32F2F', '#D32F2F'] },
-{ nome: 'Instrutor', cor: ['#4F4F4F', '#DAA520', '#D32F2F'] }, { nome: 'Professor', cor: ['#FFFFFF', '#D32F2F', '#FFFFFF'] },
-{ nome: 'Mestre', cor: ['#F5F5F5', '#F5F5F5', '#F5F5F5'] },
-// Rank mais alto, exclusivo do fundador do grupo (Mestre Profeta) — mostrado
-// só como opção pra quem já tem acessoGeral (ver abrirModal). Cores da logo:
-// branco, verde e azul.
-{ nome: 'Mestre/Presidente', cor: ['#FFFFFF', '#00B140', '#002D72'] },
-];
-// Infantil (<12 anos) reaproveita os MESMOS nomes de graduação do adulto
-// (Escravo/Fugitivo/Quilombola), só que em tons mais claros — o aluno segue
-// pra escada adulta normalmente ao completar 12 anos.
-const cordoesKids = [
-{ nome: 'Iniciante', cor: ['#CCC', '#CCC', '#CCC'] }, { nome: 'Escravo', cor: ['#D3D3D3', '#D3D3D3', '#D3D3D3'] },
-{ nome: 'Fugitivo', cor: ['#D3D3D3', '#EEDC82', '#D3D3D3'] }, { nome: 'Quilombola', cor: ['#EEDC82', '#EEDC82', '#EEDC82'] },
-];
-const criteriosRegras = [
-{ id: 'c1', txt: 'Ginga e Base', reqAdulto: 0, reqKids: true }, { id: 'c2', txt: 'Acrobacias', reqAdulto: 3, reqKids: false },
-{ id: 'c3', txt: 'Respeito', reqAdulto: 0, reqKids: true }, { id: 'c4', txt: 'Disciplina', reqAdulto: 0, reqKids: true },
-{ id: 'c5', txt: 'Pontualidade', reqAdulto: 0, reqKids: true }, { id: 'c6', txt: 'Freq. Aulas', reqAdulto: 0, reqKids: true },
-{ id: 'c7', txt: 'Freq. Rodas', reqAdulto: 0, reqKids: true }, { id: 'c8', txt: 'Eventos', reqAdulto: 0, reqKids: true },
-{ id: 'c9', txt: 'Pandeiro', reqAdulto: 5, reqKids: false }, { id: 'c10', txt: 'Atabaque', reqAdulto: 5, reqKids: false },
-{ id: 'c11', txt: 'Berimbau', reqAdulto: 5, reqKids: false }, { id: 'c12', txt: 'Canta/Responde', reqAdulto: 5, reqKids: false },
-{ id: 'c13', txt: 'Higiene', reqAdulto: 0, reqKids: true }, { id: 'c14', txt: 'Aprendizado', reqAdulto: 0, reqKids: true },
-{ id: 'c15', txt: 'Fundamentos', reqAdulto: 0, reqKids: true },
-];
+// Escada de cordões, cores e critérios: vêm de escola.js (white-label).
+// Infantil (<12 anos) reaproveita os MESMOS nomes do adulto em tons mais claros.
+const ordemCordoes = ORDEM_ESCOLA;
+const cordoesAdulto = ADULTO_ESCOLA;
+const cordoesKids = KIDS_ESCOLA;
+const criteriosRegras = CRITERIOS_ESCOLA;
 // Avaliação de formadores (mestre/professor/instrutor) — dimensões diferentes
 // da graduação de aluno, conforme definido para o grupo.
 const criteriosFormador = [
@@ -1531,10 +1525,13 @@ const campoCelular = document.getElementById('modCelularInput');
 const novoCelular = campoCelular ? formatarCelular(campoCelular.value) : null;
 if (novoCelular !== null && !celularValido(novoCelular)) { toast('Celular com DDD: 10 ou 11 números.', 'error'); return; }
 
+// Foto nova (base64 do celular) sobe pro Storage na pasta do aluno; no banco fica só o link.
+let fotoFinal = novaFoto;
+try { fotoFinal = await salvarFotoPerfil(usuarioSelecionado.id, novaFoto); } catch (e) { console.warn('foto', e); fotoFinal = usuarioSelecionado.fotoUrl || ''; toast('A foto não subiu (sem permissão no Storage); o resto foi salvo.', 'error'); }
 const dadosAtualizados = {
 nome: novoNome,
 idade: novaIdade,
-fotoUrl: novaFoto,
+fotoUrl: fotoFinal,
 statusAtual: document.getElementById('modStatus').value,
 };
 // Celular de contato: o cadastro usa o campo "celular" (inscrição, app e

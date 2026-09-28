@@ -18,6 +18,7 @@ import {
   getStorage, ref as storageRef, uploadString, getDownloadURL, uploadBytes, deleteObject,
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 import { arrayRemove, increment, onSnapshot, writeBatch, deleteField } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { FIREBASE_CONFIG, APP_CHECK_SITE_KEY, ESCOLA } from './escola.js';
 
 // Re-export do SDK: as páginas importam tudo daqui (uma versão só do
 // Firebase em todo o app; e os testes locais conseguem simular num módulo só).
@@ -27,16 +28,20 @@ export {
   storageRef, uploadString, uploadBytes, getDownloadURL, deleteObject,
 };
 
-export const firebaseConfig = {
-  apiKey: 'AIzaSyBkwCDziIv-Uh7MLzsy9OYJmA_LMnn7jbg',
-  authDomain: 'capoeira-liberdade.firebaseapp.com',
-  projectId: 'capoeira-liberdade',
-  storageBucket: 'capoeira-liberdade.firebasestorage.app',
-  messagingSenderId: '492022804215',
-  appId: '1:492022804215:web:c61aed556d9f1aa9576df2',
-};
+// Chaves públicas do projeto: ficam em escola.js (white-label).
+export const firebaseConfig = FIREBASE_CONFIG;
 
 const app = initializeApp(firebaseConfig);
+export const firebaseApp = app;
+// App Check (reCAPTCHA v3): só liga quando a chave do site estiver em escola.js.
+// Bloqueia chamadas ao banco que não venham do site/app de verdade.
+if (APP_CHECK_SITE_KEY) {
+  try {
+    const { initializeAppCheck, ReCaptchaV3Provider } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-check.js');
+    if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    initializeAppCheck(app, { provider: new ReCaptchaV3Provider(APP_CHECK_SITE_KEY), isTokenAutoRefreshEnabled: true });
+  } catch (e) { console.warn('App Check não carregou', e); }
+}
 export const auth = getAuth(app);
 // Cache local ligado - visões repetidas na mesma sessão não voltam a ler do
 // servidor o que não mudou (parte do esforço de reduzir leituras do Firestore).
@@ -48,8 +53,17 @@ await setPersistence(auth, browserLocalPersistence); // "manter-me sempre conect
 // foto no painel. Retorna a URL pública já pronta para gravar no Firestore.
 export async function enviarFoto(caminho, dataUrl) {
   const r = storageRef(storage, caminho);
-  await uploadString(r, dataUrl, 'data_url');
+  await uploadString(r, dataUrl, 'data_url', { cacheControl: 'public,max-age=31536000' });
   return getDownloadURL(r);
+}
+// Foto de perfil SEMPRE no Storage (pasta fotos/<uid>/) — no banco fica só o
+// link. Antes a foto ia em texto (base64) dentro do cadastro, deixando cada
+// leitura pesada. Se já vier um link https, devolve o próprio link.
+export async function salvarFotoPerfil(uidAlvo, dataUrlOuLink) {
+  const v = String(dataUrlOuLink || '');
+  if (!v || /^https?:\/\//.test(v) || v.startsWith('assets/')) return v;
+  if (!v.startsWith('data:image/')) throw new Error('Foto inválida.');
+  return enviarFoto(`fotos/${uidAlvo}/perfil_${Date.now()}.jpg`, v);
 }
 
 // ===== Compressão de imagem (evita que uma foto de 15MB da galeria pese o
@@ -125,22 +139,48 @@ export const meuUid = () => auth.currentUser && auth.currentUser.uid;
 // também garante isso nas regras, isto aqui é só a primeira camada).
 // `dados` deve trazer pelo menos: nome, idade, academiaId, cordaoAtual,
 // statusAtual, fotoUrl, responsavelUid (ou null), responsavelDe ([]).
-export async function criarConta(email, senha, dados) {
+// A foto sobe DEPOIS de criar o login (o Storage só aceita gravação de quem
+// está logado, na própria pasta fotos/<uid>/). `consentimento` registra o
+// aceite do termo de uso/privacidade (LGPD): versão, data e quem aceitou.
+export async function criarConta(email, senha, dados, fotoDataUrl = '') {
   const emailNorm = email.trim().toLowerCase();
   const cred = await createUserWithEmailAndPassword(auth, emailNorm, senha);
+  let fotoUrl = dados.fotoUrl || '';
+  if (fotoDataUrl) { try { fotoUrl = await salvarFotoPerfil(cred.user.uid, fotoDataUrl); } catch (e) { console.warn('foto da inscrição não subiu', e); } }
   const perfil = {
     notas: {},
     responsavelUid: null,
     responsavelDe: [],
     academiaGerenciadaId: null,
     ...dados,
+    fotoUrl,
     papeis: ['aluno'],
+    cordaoAtual: 'Iniciante',
     email: emailNorm,
     ativo: true,
     criadoEm: new Date().toISOString(),
   };
   await setDoc(doc(db, 'usuarios', cred.user.uid), perfil);
   return { uid: cred.user.uid, ...perfil };
+}
+
+// Registro do aceite do termo (LGPD) — também usado quando o termo muda de versão.
+export const registroConsentimento = (aceitoPor, usoImagem) => ({
+  versaoTermo: ESCOLA.versaoTermo, aceitoEm: new Date().toISOString(), aceitoPor: String(aceitoPor || '').slice(0, 120),
+  usoImagem: String(usoImagem || ''), navegador: String(navigator.userAgent || '').slice(0, 160),
+});
+
+// Pedido ao servidor (só Admin): grava em comandos/ e espera a resposta.
+export async function pedirAoServidor(tipo, dados = {}, esperaMs = 120000) {
+  const uid = auth.currentUser && auth.currentUser.uid;
+  const ref = await addDoc(collection(db, 'comandos'), { ...dados, tipo, porUid: uid, status: 'pendente', criadoEm: new Date().toISOString() });
+  return new Promise((resolve, reject) => {
+    const fim = setTimeout(() => { parar(); reject(new Error('O servidor demorou para responder. Confira as funções no GitHub (aba Actions).')); }, esperaMs);
+    const parar = onSnapshot(ref, (s) => {
+      const d = s.data() || {};
+      if (['ok', 'erro', 'negado'].includes(d.status)) { clearTimeout(fim); parar(); if (d.status === 'ok') resolve(d.resultado || {}); else reject(new Error(d.erro || 'Não foi possível.')); }
+    }, (e) => { clearTimeout(fim); reject(e); });
+  });
 }
 
 // Criação de conta feita PELO ADMIN (ex.: novo professor/mestre) sem derrubar

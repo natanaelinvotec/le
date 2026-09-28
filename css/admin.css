@@ -699,3 +699,74 @@ select.input-padrao { appearance: none; -webkit-appearance: none; background-ima
 .crb-nucleo { background: linear-gradient(135deg, #002D72, #389E92); }
 @media (max-width: 560px) { .crb-acoes .crb-btn:last-child { grid-column: 1 / -1; } }
 .nucleo-mapa { color: var(--primary-blue); text-decoration: underline; text-underline-offset: 2px; }
+
+/* ================= 2026-09: indicadores, graduação, eventos, auditoria, LGPD ================= */
+.btn-sino { position: relative; width: 42px; height: 42px; border-radius: var(--radius-pill); border: 1px solid var(--border-color); background: var(--card-bg); color: var(--primary-blue); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; transition: transform .25s var(--ease-standard), box-shadow .25s var(--ease-standard); }
+.btn-sino:hover { transform: translateY(-1px); box-shadow: var(--shadow-soft); }
+.sino-cont { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--accent-red); color: #fff; font-size: .62rem; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #fff; animation: sinoPula .5s var(--ease-standard) both; }
+@keyframes sinoPula { from { transform: scale(.3); } to { transform: scale(1); } }
+.crb-verde > i { background: #E4F7EA !important; color: #1E8449 !important; }
+.section-header { flex-wrap: wrap; gap: 10px; }
+.exp-grupo { display: inline-flex; align-items: center; gap: 6px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-pill); padding: 4px 6px 4px 12px; }
+.exp-grupo > span { font-size: .72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; }
+.exp-btn { border-radius: var(--radius-pill) !important; }
+.exp-btn .fa-file-excel { color: #1E7145; } .exp-btn .fa-file-pdf { color: #C62828; }
+.gs-barra { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.gs-sel { max-width: 300px; }
+.gs-exportar { display: flex; flex-wrap: wrap; gap: 8px; }
+.gs-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 18px; }
+.gs-grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; }
+.gs-grade .card-padrao h3, .gs-evento strong { display: flex; align-items: center; gap: 8px; }
+.gs-ajuda { font-size: .82rem; color: var(--text-muted); margin: 6px 0 12px; line-height: 1.5; }
+.gs-lista { max-height: 420px; overflow: auto; }
+.gs-valor { font-family: 'JetBrains Mono', monospace; color: var(--accent-red); }
+.gs-sem { font-size: .72rem; color: var(--text-soft); }
+.gs-barras { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; align-items: end; height: 190px; padding-top: 8px; }
+.gs-col { height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; }
+.gs-col i { display: block; width: 100%; max-width: 38px; height: var(--h); min-height: 3px; border-radius: 10px 10px 4px 4px; background: linear-gradient(180deg, #00E676, #389E92 55%, #0B5C52); transform-origin: bottom; animation: gsSobe .8s var(--ease-standard) both; animation-delay: calc(var(--i) * 60ms); box-shadow: 0 8px 18px -10px rgba(11, 92, 82, .7); }
+.gs-col b { font-family: 'JetBrains Mono', monospace; font-size: .74rem; color: var(--text-dark); }
+.gs-col small { font-size: .62rem; color: var(--text-soft); white-space: nowrap; }
+@keyframes gsSobe { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.gs-check { display: inline-flex; align-items: center; gap: 8px; font-size: .84rem; color: var(--text-muted); cursor: pointer; }
+.gs-grad-lista { display: grid; gap: 8px; max-height: 520px; overflow: auto; margin: 6px 0 14px; }
+.gs-grad { display: grid; grid-template-columns: auto minmax(140px, 1.2fr) minmax(200px, 1.4fr) minmax(90px, .6fr); align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: #fff; cursor: pointer; transition: border-color .25s var(--ease-standard), transform .25s var(--ease-standard), box-shadow .25s; }
+.gs-grad:hover { transform: translateY(-1px); box-shadow: var(--shadow-soft); }
+.gs-grad:has(input:checked) { border-color: var(--teal-light); background: var(--teal-soft); }
+.gs-grad input { width: 18px; height: 18px; accent-color: #0B5C52; }
+.gs-grad-nome b { display: block; font-size: .9rem; } .gs-grad-nome small { font-size: .74rem; color: var(--text-muted); }
+.gs-grad-troca { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: .76rem; color: var(--text-muted); }
+.gs-grad-troca .fa-arrow-right { color: var(--teal-light); font-size: .7rem; }
+.gs-cordao { width: 34px; height: 10px; border-radius: 99px; border: 1px solid rgba(0, 0, 0, .12); background: linear-gradient(90deg, var(--c1) 0 33%, var(--c2) 33% 66%, var(--c3) 66%); flex: none; }
+.gs-pront { position: relative; height: 22px; border-radius: 99px; background: var(--bg-app); overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.gs-pront i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, #F39C12, #F7C948); border-radius: 99px; transition: width .6s var(--ease-standard); }
+.gs-pront.ok i { background: linear-gradient(90deg, #389E92, #00E676); }
+.gs-pront small { position: relative; font-size: .7rem; font-weight: 800; color: var(--text-dark); }
+.gs-grad-form { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.gs-grad-form label { display: grid; gap: 4px; font-size: .74rem; font-weight: 800; color: var(--text-muted); }
+.gs-feitos { border: 1px solid #BDEBD0; background: linear-gradient(135deg, #F2FBF6, #fff); }
+.gs-form-evento { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: end; }
+.gs-form-evento label { display: grid; gap: 4px; font-size: .74rem; font-weight: 800; color: var(--text-muted); }
+.gs-form-evento .gs-largo { grid-column: 1 / -1; }
+.gs-evento { margin-bottom: 12px; }
+.gs-evento.passado { opacity: .78; }
+.gs-ev-topo { display: flex; align-items: center; gap: 12px; }
+.gs-ev-data { width: 52px; height: 56px; border-radius: 14px; flex: none; display: grid; place-items: center; align-content: center; line-height: 1; color: #fff; background: linear-gradient(160deg, #389E92, #002D72); box-shadow: 0 10px 20px -12px rgba(0, 45, 114, .8); }
+.gs-ev-data b { font-family: 'Sora', sans-serif; font-size: 1.2rem; } .gs-ev-data small { font-size: .6rem; font-weight: 800; text-transform: uppercase; }
+.gs-ev-info { flex: 1; min-width: 0; display: grid; gap: 2px; } .gs-ev-info span { font-size: .8rem; color: var(--text-muted); }
+.gs-evento details { margin: 10px 0 6px; } .gs-evento summary { cursor: pointer; font-size: .8rem; font-weight: 800; color: var(--primary-teal); }
+.gs-inscritos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.gs-inscritos span { background: var(--teal-soft); color: var(--primary-teal); border-radius: 999px; padding: 4px 10px; font-size: .76rem; font-weight: 700; }
+.gs-inscritos small { opacity: .75; font-weight: 600; }
+.gs-ev-acoes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.gs-aud summary { display: flex; gap: 12px; align-items: center; cursor: pointer; list-style: none; width: 100%; }
+.gs-aud summary::-webkit-details-marker { display: none; }
+.gs-aud { display: block; }
+.gs-aud-ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--navy-soft); color: var(--primary-blue); flex: none; }
+.gs-aud-det { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-top: 10px; }
+.gs-aud-det pre { background: var(--bg-app); border-radius: 10px; padding: 10px; font-size: .72rem; max-height: 240px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+@media (max-width: 640px) {
+  .gs-grad { grid-template-columns: auto 1fr; }
+  .gs-grad-troca, .gs-pront { grid-column: 2; }
+  .gs-barras { gap: 4px; } .gs-col small { font-size: .55rem; }
+  .user-area { gap: 8px; }
+}

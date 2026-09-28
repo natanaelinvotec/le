@@ -19,36 +19,28 @@ Coleções (custo baixo: cobra-se por documento lido/escrito, não por tamanho):
 - eventos/{id}/confirmados/{uid}   "eu vou" num evento.
 - denuncias/{id}         denúncia de post (lida pelos moderadores).
 - usuarios/{uid}         (privado) seguindo[], salvos[] — só o dono lê.
+- notificacoes/{uid}/itens  central de notificações (escrita pelo servidor).
+O cartão público (cordão, presenças, brasões…) é calculado pelo SERVIDOR
+(functions/src/perfil.js); aqui a pessoa só edita bio, capa e privacidade.
+Posts: a rede só lê os com publico == true (+ os próprios) — post ocultado
+ou em revisão não sai nem pela API.
 Leituras por abertura do feed: stories (1 consulta) + avisos (1) + 20 posts. */
 import {
 db, storage, observarSessao, buscar, atualizar, listar, contar, presencasDoUsuario, souFundador, arquivoParaDataUrlComprimido,
 collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, limit, startAfter,
-arrayUnion, arrayRemove, increment, onSnapshot, storageRef, uploadString, uploadBytes, getDownloadURL,
+arrayUnion, arrayRemove, increment, onSnapshot, storageRef, uploadString, uploadBytes, getDownloadURL, salvarFotoPerfil,
 } from './firebase.js';
 import { escapeHTML } from './shared.js';
+import { ESCOLA, CORDOES_ADULTO, CORDOES_KIDS, ORDEM_CORDOES, linkMapa as linkMapaEscola, proximoCordao as proximoCordaoEscola } from './escola.js';
+import { termosOfensivos, MOTIVOS_DENUNCIA } from './moderacao.js';
+import { iniciarExperiencia, abrirAcessibilidade, instalar, estaInstalado, tutorial, pedirAceiteSeNecessario } from './experiencia.js';
+import { ligarContador, listar as listarNotificacoes, marcarTodasLidas, itemHTML as notificacaoHTML, CSS_NOTIF, ativarPush, desativarPush, estadoPush, ouvirPushComAppAberto } from './notificacoes.js';
+import { exportarMeusDados, pedirExclusaoDaConta } from './lgpd.js';
 import { apresentacaoDe, tocarApresentacao, gerenciarApresentacao, abrirTrocaSenha, definirAutor, podeTerApresentacao } from './conta.js?v=20260927a';
 import { BRASOES, SERIES, avaliar as avaliarBrasoes, consolidar as consolidarBrasoes, resumirPresencas, urlThumb, urlPng, urlGlb, textoMetrica, porId as brasaoPorId } from './brasoes.js?v=20260927b';
 
-/* ===================== CONSTANTES (mesmas do painel) ===================== */
-const ORDEM_CORDOES = ['Iniciante', 'Escravo', 'Fugitivo', 'Quilombola', 'Vagante', 'Liberto', 'Instrutor', 'Professor', 'Mestre', 'Mestre/Presidente'];
-const CORDOES_ADULTO = [
-{ nome: 'Iniciante', cor: ['#CCC', '#CCC', '#CCC'] }, { nome: 'Escravo', cor: ['#4F4F4F', '#4F4F4F', '#4F4F4F'] },
-{ nome: 'Fugitivo', cor: ['#4F4F4F', '#DAA520', '#4F4F4F'] }, { nome: 'Quilombola', cor: ['#DAA520', '#DAA520', '#DAA520'] },
-{ nome: 'Vagante', cor: ['#4F4F4F', '#D32F2F', '#4F4F4F'] }, { nome: 'Liberto', cor: ['#D32F2F', '#D32F2F', '#D32F2F'] },
-{ nome: 'Instrutor', cor: ['#4F4F4F', '#DAA520', '#D32F2F'] }, { nome: 'Professor', cor: ['#FFFFFF', '#D32F2F', '#FFFFFF'] },
-{ nome: 'Mestre', cor: ['#F5F5F5', '#F5F5F5', '#F5F5F5'] }, { nome: 'Mestre/Presidente', cor: ['#FFFFFF', '#00B140', '#002D72'] },
-];
-const CORDOES_KIDS = [
-{ nome: 'Iniciante', cor: ['#CCC', '#CCC', '#CCC'] }, { nome: 'Escravo', cor: ['#D3D3D3', '#D3D3D3', '#D3D3D3'] },
-{ nome: 'Fugitivo', cor: ['#D3D3D3', '#EEDC82', '#D3D3D3'] }, { nome: 'Quilombola', cor: ['#EEDC82', '#EEDC82', '#EEDC82'] },
-];
-const CRITERIOS = [
-{ id: 'c1', reqAdulto: 0, reqKids: true }, { id: 'c2', reqAdulto: 3, reqKids: false }, { id: 'c3', reqAdulto: 0, reqKids: true },
-{ id: 'c4', reqAdulto: 0, reqKids: true }, { id: 'c5', reqAdulto: 0, reqKids: true }, { id: 'c6', reqAdulto: 0, reqKids: true },
-{ id: 'c7', reqAdulto: 0, reqKids: true }, { id: 'c8', reqAdulto: 0, reqKids: true }, { id: 'c9', reqAdulto: 5, reqKids: false },
-{ id: 'c10', reqAdulto: 5, reqKids: false }, { id: 'c11', reqAdulto: 5, reqKids: false }, { id: 'c12', reqAdulto: 5, reqKids: false },
-{ id: 'c13', reqAdulto: 0, reqKids: true }, { id: 'c14', reqAdulto: 0, reqKids: true }, { id: 'c15', reqAdulto: 0, reqKids: true },
-];
+/* ===================== CONSTANTES ===================== */
+// Cordões, cores e critérios ficam em escola.js (white-label).
 const PAGINA = 20;
 const LIMITE_TEXTO = 800;
 const MAX_MIDIAS = 4;
@@ -56,7 +48,8 @@ const IMG_MAX_DIM = 1280;      // maior lado da foto de post
 const IMG_ALVO_KB = 350;       // tamanho alvo por foto — preserva o Storage
 const STORY_MAX_DIM = 1080;
 const STORY_ALVO_KB = 300;
-const VIDEO_MAX_MB = 12;
+const VIDEO_MAX_MB = 12;       // depois de comprimido (limite do Storage)
+const VIDEO_BRUTO_MAX_MB = 80; // o que dá pra escolher da galeria antes de comprimir
 const VIDEO_MAX_SEG = 20;
 const FACEAPI_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1/dist/face-api.esm.js';
 const MODELOS_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1/model/';
@@ -72,6 +65,9 @@ let salvos = new Set();
 let nucleos = [];
 const pubCache = new Map(); // uid → perfil público
 let posts = [];             // feed carregado
+const postsAvulsos = new Map(); // posts de outras telas (núcleo, moderação, álbum) — não entram no feed
+const postPorId = (id) => posts.find((x) => x.id === id) || postsAvulsos.get(id) || null;
+const guardarAvulsos = (lista) => lista.forEach((p) => { if (!posts.some((x) => x.id === p.id)) postsAvulsos.set(p.id, p); });
 let ultimoDoc = null;
 let avisos = [];
 let stories = [];
@@ -102,7 +98,7 @@ return foto ? `<img class="avatar ${classe}" src="${escapeHTML(foto)}" alt="" lo
 : `<span class="avatar ${classe}" style="background:${corAvatar(pessoa && (pessoa.id || pessoa.uid || pessoa.nome))}">${escapeHTML(iniciais(pessoa && pessoa.nome))}</span>`;
 }
 function coresCordao(pessoa) {
-const lista = pessoa && pessoa.menor && (Number(pessoa.idade) || 0) < 12 ? CORDOES_KIDS : CORDOES_ADULTO;
+const lista = pessoa && pessoa.menor && (Number(pessoa.idade) || 0) > 0 && (Number(pessoa.idade) || 0) < 12 ? CORDOES_KIDS : CORDOES_ADULTO;
 const item = lista.find((c) => c.nome === (pessoa && pessoa.cordaoAtual || 'Iniciante')) || lista[0];
 return item.cor;
 }
@@ -131,25 +127,14 @@ const podeModerar = (p) => p.autorUid === uid || ehModerador() || gerencia(p.aut
 const souMenor = () => perfil && Number(perfil.idade) > 0 && Number(perfil.idade) < 18;
 const podeVerPerfil = (pub) => !pub.privado || pub.id === uid || ehModerador() || gerencia(pub.academiaId) || (pub.seguidores || []).includes(uid);
 
-function porcentagemEvolucao(u) {
-if (!u || !u.notas || !Object.keys(u.notas).length) return null;
-const idade = Number(u.idade) || 0; const rank = u.cordaoAtual || 'Iniciante';
-let idx = (idade < 12 ? CORDOES_KIDS : CORDOES_ADULTO).findIndex((c) => c.nome === rank); if (idx === -1) idx = 0;
-const ativos = CRITERIOS.filter((c) => (idade < 12 ? c.reqKids : idx >= (c.reqAdulto - 1)));
-if (!ativos.length) return null;
-let total = 0; ativos.forEach((c) => { if (u.notas[c.id] !== undefined) total += Number(u.notas[c.id]) || 0; });
-return Math.min(100, Math.floor((total / (ativos.length * 10)) * 100));
-}
-function proximoCordao(pessoa) {
-const lista = pessoa && (Number(pessoa.idade) || 0) < 12 && pessoa.menor ? CORDOES_KIDS : CORDOES_ADULTO;
-const i = lista.findIndex((c) => c.nome === (pessoa.cordaoAtual || 'Iniciante'));
-return lista[Math.min(lista.length - 1, (i === -1 ? 0 : i) + 1)];
-}
+const proximoCordao = (pessoa) => proximoCordaoEscola(pessoa && pessoa.menor ? pessoa : { ...(pessoa || {}), idade: null });
 // Texto com #hashtags e @menções clicáveis (sempre escapado antes).
-function formatarTexto(txt) {
+// mencoes: [{uid, nome, token}] gravados junto do texto — o @token vira link pro perfil.
+function formatarTexto(txt, mencoes = []) {
+const porToken = new Map((mencoes || []).filter((m) => m && m.token && m.uid).map((m) => [String(m.token).toLowerCase(), m.uid]));
 return escapeHTML(txt || '')
 .replace(/(^|\s)#([\p{L}\p{N}_]{2,40})/gu, (m, pre, tag) => `${pre}<button type="button" class="hash" data-hash="${escapeHTML(tag.toLowerCase())}">#${tag}</button>`)
-.replace(/(^|\s)@([\p{L}\p{N}_.]{2,40})/gu, (m, pre, nome) => `${pre}<span class="mencao">@${nome}</span>`);
+.replace(/(^|\s)@([\p{L}\p{N}_.]{2,40})/gu, (m, pre, nome) => { const alvo = porToken.get(nome.toLowerCase()); return alvo ? `${pre}<button type="button" class="mencao" data-perfil="${escapeHTML(alvo)}">@${nome}</button>` : `${pre}<span class="mencao">@${nome}</span>`; });
 }
 const extrairHashtags = (txt) => Array.from(new Set((String(txt || '').match(/#[\p{L}\p{N}_]{2,40}/gu) || []).map((h) => h.slice(1).toLowerCase())));
 
@@ -171,15 +156,10 @@ const gerenciado = pessoa && pessoa.academiaGerenciadaId ? nucleoDe(pessoa.acade
 return tocarApresentacao(pessoa, ap, { alvo: alvo || null, comSom: true, direto: rotuloDiretoDe(pessoa), nucleoNome: gerenciado ? gerenciado.nome : '' });
 }
 // Endereço → rotas (Google Maps; no celular o sistema oferece Maps/Waze).
-function linkMapa(n) {
-const lat = Number(n && n.latitude); const lng = Number(n && n.longitude);
-if (Number.isFinite(lat) && Number.isFinite(lng) && (lat || lng)) return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
-const e = (n && n.endereco) || '';
-return e ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e + (/campo grande/i.test(e) ? '' : ', Campo Grande - MS'))}` : '';
-}
+const linkMapa = linkMapaEscola;
 function rotuloDiretoDe(pub) {
 if (!pub) return '';
-if (pub.fundador) return 'Direto Liberdade e Expressão';
+if (pub.fundador) return ESCOLA.rotuloLinhagem;
 const n = nucleoDe(pub.academiaId);
 return n ? `Direto ${nomeCurtoNucleo(n.nome)}` : (pub.academiaNome ? `Direto ${nomeCurtoNucleo(pub.academiaNome)}` : '');
 }
@@ -212,61 +192,93 @@ v.onloadedmetadata = () => { URL.revokeObjectURL(v.src); res({ dur: v.duration, 
 v.onerror = () => res({ dur: NaN }); v.src = URL.createObjectURL(file);
 });
 }
-async function subirDataUrl(caminho, dataUrl) { const r = storageRef(storage, caminho); await uploadString(r, dataUrl, 'data_url'); return getDownloadURL(r); }
-
-/* ===================== PERFIL PÚBLICO (sincronização honesta) ===================== */
-// resumirPresencas vem de brasoes.js (mesma conta em toda a rede).
-let configBrasoes = {};
-async function sincronizarPerfilPublico() {
-let resumo = null;
-try { resumo = resumirPresencas(await presencasDoUsuario(uid, 400)); } catch (e) { /* sem leitura de presenças: não inventa */ }
-const menor = souMenor();
-const dados = {
-nome: perfil.nome || perfil.email || 'Capoeirista',
-nomeBusca: String(perfil.nome || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''),
-fotoUrl: perfil.fotoUrl || '',
-cordaoAtual: perfil.cordaoAtual || 'Iniciante',
-idade: menor ? (Number(perfil.idade) || 0) : null, // idade só pra escolher a escada kids; adulto não expõe
-menor,
-academiaId: perfil.academiaId || null,
-academiaNome: perfil.academiaNome || '',
-academiaGerenciadaId: perfil.academiaGerenciadaId || null,
-mestre: papeis().includes('mestre'), instrutor: papeis().includes('instrutor'), fundador: souFundador(perfil),
-usoImagemOk: String(perfil.usoImagem || '').toUpperCase().startsWith('AUTORIZO') && !String(perfil.usoImagem || '').toUpperCase().startsWith('NÃO'),
-historicoGraduacoes: Array.isArray(perfil.historicoGraduacoes) ? perfil.historicoGraduacoes : [],
-prontidao: porcentagemEvolucao(perfil),
-criadoEm: perfil.criadoEm || null,
-seguindoCount: seguindo.size,
-atualizadoEm: new Date().toISOString(),
-};
-if (resumo) dados.resumoPresencas = resumo;
-if (!meuPub || meuPub.privado === undefined) dados.privado = menor; // menor nasce privado
-// Resumo da Rede (posts, melhores momentos, curtidas recebidas) — recalculado
-// no máximo a cada 6h pra não gastar leitura à toa.
-const antigoRede = meuPub && meuPub.resumoRede;
-if (!antigoRede || (Date.now() - new Date(antigoRede.calculadoEm || 0).getTime()) > 6 * 3600 * 1000) {
+// Vídeo: recomprime no próprio celular (canvas + MediaRecorder, até 960 px e
+// ~1,6 Mbps) — um vídeo de 25 MB da câmera costuma virar 3–4 MB. Se o
+// navegador não souber fazer isso, devolve null e sobe o original.
+async function comprimirVideo(file, aoProgresso) {
+if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) return null;
+const tipo = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'].find((t) => MediaRecorder.isTypeSupported(t));
+if (!tipo) return null;
+const url = URL.createObjectURL(file);
+const v = document.createElement('video'); v.src = url; v.playsInline = true; v.preload = 'auto';
 try {
-const meus = await postsDoAutor(uid);
-dados.resumoRede = { posts: meus.length, momentos: meus.filter((p) => p.melhorMomento).length, curtidas: meus.reduce((sm, p) => sm + ((p.curtidas || []).length), 0), calculadoEm: new Date().toISOString() };
-} catch (e) { /* sem leitura: não inventa */ }
-} else dados.resumoRede = antigoRede;
-// Formação: alunos do núcleo que administro com troca de cordão registrada por mim.
-if (perfil.academiaGerenciadaId) {
-try { const alunos = await pubsDeNucleo(perfil.academiaGerenciadaId, 120); dados.resumoFormacao = { formados: alunos.filter((a) => (a.historicoGraduacoes || []).some((h) => h.por === uid)).length, calculadoEm: new Date().toISOString() }; } catch (e) { /* ok */ }
+await new Promise((res, rej) => { v.onloadedmetadata = res; v.onerror = () => rej(new Error('video')); });
+const escala = Math.min(1, 960 / Math.max(v.videoWidth || 960, v.videoHeight || 960));
+const w = Math.max(2, Math.round((v.videoWidth * escala) / 2) * 2); const h = Math.max(2, Math.round((v.videoHeight * escala) / 2) * 2);
+const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d');
+const stream = canvas.captureStream(30);
+let audioCtx = null;
+try { // o som vai pro arquivo sem tocar no alto-falante
+audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const fonte = audioCtx.createMediaElementSource(v); const destino = audioCtx.createMediaStreamDestination();
+fonte.connect(destino); destino.stream.getAudioTracks().forEach((t) => stream.addTrack(t));
+} catch (e) { v.muted = true; }
+const rec = new MediaRecorder(stream, { mimeType: tipo, videoBitsPerSecond: 1600000, audioBitsPerSecond: 96000 });
+const partes = []; rec.ondataavailable = (e) => { if (e.data && e.data.size) partes.push(e.data); };
+const parou = new Promise((res) => { rec.onstop = res; });
+const desenhar = () => { if (v.ended || v.paused) return; ctx.drawImage(v, 0, 0, w, h); if (aoProgresso && v.duration) aoProgresso(Math.min(99, Math.round((v.currentTime / v.duration) * 100))); requestAnimationFrame(desenhar); };
+rec.start(250); await v.play(); desenhar();
+await new Promise((res) => { v.onended = res; });
+rec.stop(); await parou;
+if (audioCtx) audioCtx.close().catch(() => {});
+const blob = new Blob(partes, { type: tipo.split(';')[0] });
+if (!blob.size || blob.size >= file.size) return null;
+return new File([blob], `video.${tipo.includes('mp4') ? 'mp4' : 'webm'}`, { type: tipo.split(';')[0] });
+} catch (e) { console.warn('compressão de vídeo', e); return null; }
+finally { URL.revokeObjectURL(url); }
 }
-// Brasões: avalia com os dados reais e consolida com o que já estava desbloqueado.
-const avaliacao = avaliarBrasoes({ ...dados, uid, brasoesManuais: perfil.brasoesManuais || {}, brasoesAdmin: perfil.brasoesAdmin || {}, brasoes: (meuPub && meuPub.brasoes) || {} }, configBrasoes);
-const cons = consolidarBrasoes(avaliacao, (meuPub && meuPub.brasoes) || {});
-const tinhaMapa = !!(meuPub && meuPub.brasoes); // 1ª sincronização não faz festa de tudo de uma vez
-dados.brasoes = cons.mapa; dados.brasoesTotal = cons.total;
-try { await setDoc(doc(db, 'perfisPublicos', uid), dados, { merge: true }); meuPub = { ...(meuPub || {}), ...dados, id: uid }; pubCache.set(uid, meuPub); }
-catch (e) { console.warn('perfil público', e); }
-try { if ((perfil.brasoesTotal || 0) !== cons.total) { await atualizar('usuarios', uid, { brasoesTotal: cons.total }); perfil.brasoesTotal = cons.total; } } catch (e) { /* ok */ }
-if (cons.novos.length && tinhaMapa) setTimeout(() => celebrarBrasoes(cons.novos), 600);
+// Capa do vídeo (1º quadro) — o feed mostra a capa e só baixa o vídeo no play.
+async function capaDoVideo(file) {
+const url = URL.createObjectURL(file);
+try {
+const v = document.createElement('video'); v.src = url; v.muted = true; v.playsInline = true; v.preload = 'auto';
+await new Promise((res, rej) => { v.onloadeddata = res; v.onerror = rej; });
+v.currentTime = Math.min(0.5, (v.duration || 1) / 2);
+await new Promise((res) => { v.onseeked = res; setTimeout(res, 1500); });
+const escala = Math.min(1, 720 / Math.max(v.videoWidth, v.videoHeight));
+const c = document.createElement('canvas'); c.width = Math.round(v.videoWidth * escala); c.height = Math.round(v.videoHeight * escala);
+c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+return c.toDataURL('image/jpeg', 0.72);
+} catch (e) { return null; } finally { URL.revokeObjectURL(url); }
+}
+async function subirDataUrl(caminho, dataUrl) { const r = storageRef(storage, caminho); await uploadString(r, dataUrl, 'data_url', { cacheControl: 'public,max-age=31536000' }); return getDownloadURL(r); }
+
+/* ===================== CARTÃO PÚBLICO (calculado no servidor) ===================== */
+// O servidor (Cloud Functions) recalcula o cartão quando algo muda: cadastro,
+// presença, post, curtida, concessão de brasão. Aqui só:
+//  - pedimos um recálculo se o cartão não existe ou está velho (> 12h);
+//  - ouvimos o cartão ao vivo e festejamos brasão novo uma vez por aparelho.
+let configBrasoes = {};
+let pararCartao = null;
+const CHAVE_VISTOS = () => `rede.brasoesVistos.${uid}`;
+function verificarBrasoesNovos() {
+if (!meuPub || !meuPub.brasoes) return;
+const atuais = Object.keys(meuPub.brasoes);
+let vistos = null; try { vistos = JSON.parse(localStorage.getItem(CHAVE_VISTOS()) || 'null'); } catch (e) { vistos = null; }
+try { localStorage.setItem(CHAVE_VISTOS(), JSON.stringify(atuais)); } catch (e) { /* ok */ }
+if (!Array.isArray(vistos)) return; // 1ª vez neste aparelho: não festeja tudo de uma vez
+const novos = atuais.filter((id) => !vistos.includes(id));
+if (novos.length) setTimeout(() => celebrarBrasoes(novos), 600);
+}
+async function sincronizarPerfilPublico() {
+pubCache.delete(uid); meuPub = await pubDe(uid);
+const velho = !meuPub || !meuPub.sincronizadoEm || (Date.now() - new Date(meuPub.sincronizadoEm).getTime()) > 12 * 3600 * 1000;
+if (velho) { try { await atualizar('usuarios', uid, { sincronizarEm: new Date().toISOString() }); } catch (e) { /* sem permissão: segue com o que tem */ } }
+if (meuPub && (meuPub.seguindoCount || 0) !== seguindo.size) { try { await updateDoc(doc(db, 'perfisPublicos', uid), { seguindoCount: seguindo.size }); meuPub.seguindoCount = seguindo.size; } catch (e) { /* ok */ } }
+verificarBrasoesNovos();
+if (!pararCartao) {
+pararCartao = onSnapshot(doc(db, 'perfisPublicos', uid), (sn) => {
+if (!sn.exists()) return;
+const eraNovo = !meuPub;
+meuPub = { id: uid, ...sn.data() }; pubCache.set(uid, meuPub); verificarBrasoesNovos();
+// O servidor acabou de criar o cartão: se a pessoa estava esperando no próprio perfil, mostra.
+if (eraNovo && ['perfil', 'brasoes'].includes(rotaAtual) && !(location.hash.split('/')[1])) roteia();
+}, () => { /* sem leitura ao vivo */ });
+}
 }
 
 /* ===================== ROTEADOR ===================== */
-const ROTAS = { feed: renderFeed, explorar: renderExplorar, publicar: renderPublicar, mensagens: renderMensagens, perfil: renderPerfil, nucleo: renderNucleo, moderacao: renderModeracao, tag: renderTag, brasoes: renderBrasoes };
+const ROTAS = { feed: renderFeed, explorar: renderExplorar, publicar: renderPublicar, mensagens: renderMensagens, perfil: renderPerfil, nucleo: renderNucleo, moderacao: renderModeracao, tag: renderTag, brasoes: renderBrasoes, agenda: renderAgenda, album: renderAlbum, notificacoes: renderNotificacoes, ajustes: renderAjustes, post: renderPostUnico };
 function ir(rota) { location.hash = '#' + rota; }
 async function roteia() {
 const h = (location.hash || '#feed').slice(1); const [nome, param] = h.split('/');
@@ -339,13 +351,14 @@ function fecharStories() { clearTimeout(storyAtual.timer); el('storyViewer').cla
 async function publicarStory(file) {
 const comoNucleo = ehGestor() && confirm(`Publicar este story como o núcleo "${nomeCurtoNucleo((nucleoDe(meuNucleoGerenciado()) || {}).nome || 'meu núcleo')}"?\n(OK = como núcleo · Cancelar = no meu nome)`);
 const texto = prompt('Legenda do story (opcional):', '') || '';
+if (texto && barrarOfensa(texto)) return;
 toast('Comprimindo a foto…');
 try {
 const img = await comprimirAdaptativo(file, STORY_MAX_DIM, STORY_ALVO_KB);
 const url = await subirDataUrl(`rede/${uid}/story_${Date.now()}.jpg`, img.dataUrl);
 const agora = new Date();
 await addDoc(collection(db, 'stories'), {
-autorUid: uid, autorNome: perfil.nome || '', autorFoto: perfil.fotoUrl || '', autorCordao: perfil.cordaoAtual || '',
+autorUid: uid, autorNome: perfil.nome || '', autorFoto: /^https:/.test(perfil.fotoUrl || '') ? perfil.fotoUrl : '', autorCordao: perfil.cordaoAtual || '',
 nucleoId: comoNucleo ? meuNucleoGerenciado() : (perfil.academiaId || null), nucleoNome: comoNucleo ? (nucleoDe(meuNucleoGerenciado()) || {}).nome || '' : (perfil.academiaNome || ''),
 comoNucleo, midiaUrl: url, texto: texto.slice(0, 200), criadoEm: agora.toISOString(), expiraEm: new Date(agora.getTime() + 24 * 3600 * 1000).toISOString(),
 });
@@ -367,14 +380,19 @@ const local = p.nucleoNome ? `<span class="tag-local"><i class="fas fa-location-
 // centro para ampliar. Vídeo ou 1–2 fotos seguem no carrossel de sempre.
 if (m.length >= 3 && m.every((x) => x.tipo !== 'video')) {
 return `<div class="leque" data-leque data-k="0" data-n="${m.length}" aria-roledescription="galeria" aria-label="${m.length} fotos">
-${m.map((x, i) => `<button type="button" class="carta" data-carta="${i}" data-pos="${posCarta(i, 0, m.length)}" style="--o:${i}" aria-label="Foto ${i + 1} de ${m.length}"><img src="${escapeHTML(x.url)}" alt="" loading="lazy" draggable="false"></button>`).join('')}
+${m.map((x, i) => `<button type="button" class="carta" data-carta="${i}" data-pos="${posCarta(i, 0, m.length)}" style="--o:${i}" aria-label="Foto ${i + 1} de ${m.length}"><img src="${escapeHTML(x.url)}" alt="${escapeHTML(altDe(p, i))}" loading="lazy" draggable="false"></button>`).join('')}
 <span class="cont">1/${m.length}</span>${local}
 </div>`;
 }
 return `<div class="midias" data-midias>
-<div class="faixa">${m.map((x, i) => x.tipo === 'video' ? `<video src="${escapeHTML(x.url)}" controls playsinline preload="metadata"></video>` : `<img src="${escapeHTML(x.url)}" alt="" loading="lazy" data-ver="${i}">`).join('')}</div>
+<div class="faixa">${m.map((x, i) => x.tipo === 'video' ? `<video src="${escapeHTML(x.url)}" ${x.posterUrl ? `poster="${escapeHTML(x.posterUrl)}"` : ''} controls playsinline preload="${x.posterUrl ? 'none' : 'metadata'}"></video>` : `<img src="${escapeHTML(x.url)}" alt="${escapeHTML(altDe(p, i))}" loading="lazy" data-ver="${i}">`).join('')}</div>
 ${m.length > 1 ? `<span class="cont">1/${m.length}</span><div class="pontos">${m.map((x, i) => `<i class="${i ? '' : 'ativo'}"></i>`).join('')}</div>` : ''}${local}
 </div>`;
+}
+// Texto alternativo das fotos (leitor de tela): autor, legenda e quem está marcado.
+function altDe(p, i) {
+const marc = (p.marcados || []).map((x) => x.nome).filter(Boolean);
+return `Foto ${i + 1} de ${p.autorNome || 'um atleta'}${p.texto ? `: ${String(p.texto).slice(0, 80)}` : ''}${marc.length ? ` — com ${marc.slice(0, 3).join(', ')}` : ''}`;
 }
 function posCarta(i, k, n) { const r = (i - k + n) % n; return r === 0 ? 'c' : (r === 1 ? 'd' : (r === n - 1 ? 'e' : 'x')); }
 function girarLeque(leque, dir) {
@@ -437,7 +455,9 @@ ${p.comoNucleo && p.nucleoId ? `<div class="post-topo"><button type="button" cla
 <button type="button" class="post-menu" data-acao="menu" aria-label="Opções"><i class="fas fa-ellipsis"></i></button></div>
 ${revisao}
 ${p.oculto ? `<div class="revisao oculto-aviso"><i class="fas fa-eye-slash"></i> Post ocultado pelo Admin Master — ${p.autorUid === uid ? 'só você e o Admin veem.' : 'só o autor e você veem.'}</div>` : ''}
-${p.texto ? `<p class="post-texto">${formatarTexto(p.texto)}</p>` : ''}
+${p.revisao === 'pendente' && p.autorUid === uid && !(ehModerador() || gerencia(p.autorAcademiaId) || gerencia(p.nucleoId)) ? `<div class="revisao"><i class="fas fa-hourglass-half"></i> ${p.moderacaoAuto ? 'O filtro automático mandou este post para revisão.' : 'Aguardando a revisão do responsável do núcleo.'} Só você vê por enquanto.</div>` : ''}
+${p.texto ? `<p class="post-texto">${formatarTexto(p.texto, p.mencoes)}</p>` : ''}
+${p.eventoId ? `<button type="button" class="tag-evento" data-album="${escapeHTML(p.eventoId)}"><i class="fas fa-images"></i> Álbum: ${escapeHTML(p.eventoNome || 'evento')}</button>` : ''}
 ${midiasHTML(p)}
 ${marcados}
 <div class="post-acoes">
@@ -477,12 +497,25 @@ if (filtroFeed === 'salvos') return salvos.has(p.id);
 return true;
 });
 }
+// A rede só consegue ler posts com publico == true (as regras garantem). Na
+// primeira página entram também os meus 10 mais recentes (inclusive os que
+// estão em revisão ou ocultados, com o aviso).
 async function carregarPosts(mais = false) {
-let q = query(collection(db, 'posts'), orderBy('criadoEm', 'desc'), limit(PAGINA));
-if (mais && ultimoDoc) q = query(collection(db, 'posts'), orderBy('criadoEm', 'desc'), startAfter(ultimoDoc), limit(PAGINA));
+const filtro = [where('publico', '==', true), orderBy('criadoEm', 'desc')];
+let q = query(collection(db, 'posts'), ...filtro, limit(PAGINA));
+if (mais && ultimoDoc) q = query(collection(db, 'posts'), ...filtro, startAfter(ultimoDoc), limit(PAGINA));
 const snap = await getDocs(q);
-const novos = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-posts = mais ? posts.concat(novos) : novos;
+let novos = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+if (!mais) {
+try {
+const meus = await getDocs(query(collection(db, 'posts'), where('autorUid', '==', uid), orderBy('criadoEm', 'desc'), limit(10)));
+const ids = new Set(novos.map((p) => p.id));
+meus.docs.forEach((d) => { if (!ids.has(d.id)) novos.push({ id: d.id, ...d.data() }); });
+novos.sort((a, b) => String(b.criadoEm).localeCompare(String(a.criadoEm)));
+} catch (e) { /* índice ainda sendo criado: segue só com os públicos */ }
+}
+const ja = new Set(mais ? posts.map((p) => p.id) : []);
+posts = mais ? posts.concat(novos.filter((p) => !ja.has(p.id))) : novos;
 ultimoDoc = snap.docs.length === PAGINA ? snap.docs[snap.docs.length - 1] : null;
 await Promise.all(Array.from(new Set(novos.map((p) => p.autorUid))).map(pubDe));
 }
@@ -506,9 +539,15 @@ ${storiesHTML()}
 <div class="abas" id="abasFeed">${[['rede', 'Rede'], ['nucleo', 'Meu núcleo'], ['seguindo', 'Seguindo'], ['salvos', 'Salvos']].map(([k, t]) => `<button type="button" data-f="${k}" class="${filtroFeed === k ? 'ativa' : ''}">${t}</button>`).join('')}</div>
 ${filtroFeed === 'rede' ? avisos.map(avisoHTML).join('') : ''}
 <div id="listaPosts">${visiveis.length ? visiveis.map(postHTML).join('') : `<div class="vazio"><i class="fas fa-users"></i><b>${filtroFeed === 'salvos' ? 'Nada salvo ainda' : filtroFeed === 'seguindo' ? 'Ninguém que você segue publicou' : filtroFeed === 'nucleo' ? 'Seu núcleo ainda não publicou' : 'Ninguém publicou ainda'}</b>${filtroFeed === 'rede' ? 'Seja o primeiro a compartilhar um momento do treino.' : 'Toque em Explorar pra descobrir atletas e núcleos.'}</div>`}</div>
-${ultimoDoc ? '<button type="button" class="btn-mais" id="btnMaisPosts">Carregar mais</button>' : ''}`;
+${ultimoDoc ? '<button type="button" class="btn-mais" id="btnMaisPosts">Carregar mais</button>' : (visiveis.length ? '<p class="contador fim-feed">Você viu tudo por aqui.</p>' : '')}`;
 el('abasFeed').addEventListener('click', (ev) => { const b = ev.target.closest('button'); if (!b) return; filtroFeed = b.dataset.f; renderFeed(null, vista, true); });
-const btnMais = el('btnMaisPosts'); if (btnMais) btnMais.addEventListener('click', async () => { btnMais.disabled = true; try { await carregarPosts(true); renderFeed(null, vista, true); } catch (e) { toast('Não deu pra carregar mais.'); btnMais.disabled = false; } });
+const btnMais = el('btnMaisPosts');
+if (btnMais) {
+const carregarMais = async () => { if (btnMais.disabled) return; btnMais.disabled = true; btnMais.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando…'; const y = window.scrollY; try { await carregarPosts(true); await renderFeed(null, vista, true); window.scrollTo({ top: y }); } catch (e) { toast('Não deu pra carregar mais.'); btnMais.disabled = false; btnMais.textContent = 'Carregar mais'; } };
+btnMais.addEventListener('click', carregarMais);
+// Rolagem infinita: chegou perto do fim, carrega a próxima página sozinho.
+if ('IntersectionObserver' in window) { const ob = new IntersectionObserver((es) => { if (es.some((x) => x.isIntersecting)) { ob.disconnect(); carregarMais(); } }, { rootMargin: '600px 0px' }); ob.observe(btnMais); }
+}
 }
 
 /* ===================== AÇÕES EM POSTS ===================== */
@@ -546,7 +585,7 @@ ${podeApagar ? `<button type="button" class="btn-perigo" data-m="apagar"><i clas
 </div>`, async (m) => {
 if (m === 'perfil') ir(`perfil/${p.autorUid}`);
 if (m === 'momento') { try { await updateDoc(doc(db, 'posts', p.id), { melhorMomento: !p.melhorMomento }); p.melhorMomento = !p.melhorMomento; card.outerHTML = postHTML(p); toast(p.melhorMomento ? 'Agora é um melhor momento ⭐' : 'Removido dos melhores momentos.'); } catch (e) { toast('Não foi possível alterar.'); } }
-if (m === 'denunciar') { const motivo = prompt('Por que este post deve ser revisado?'); if (motivo) { try { await addDoc(collection(db, 'denuncias'), { postId: p.id, autorPostUid: p.autorUid, autorPostAcademiaId: p.autorAcademiaId || null, denuncianteUid: uid, denuncianteNome: perfil.nome || '', motivo: motivo.slice(0, 300), criadoEm: new Date().toISOString(), status: 'aberta' }); toast('Denúncia enviada aos responsáveis. Obrigado.'); } catch (e) { toast('Não foi possível enviar a denúncia.'); } } }
+if (m === 'denunciar') denunciar({ tipoAlvo: 'post', postId: p.id, autorPostUid: p.autorUid, autorPostAcademiaId: p.autorAcademiaId || null });
 if (m === 'ocultar') { await alternarOcultoPost(p, card); return; }
 if (m === 'apagar') { if (p.autorUid !== uid) return; if (!confirm('Apagar este post?')) return; try { await deleteDoc(doc(db, 'posts', p.id)); posts = posts.filter((x) => x.id !== p.id); card.remove(); toast('Post apagado.'); } catch (e) { toast('Sem permissão pra apagar este post.'); } }
 });
@@ -557,37 +596,132 @@ async function alternarOcultoPost(p, card) {
 if (!ehAdmin()) return;
 const ocultar = !p.oculto;
 if (ocultar && !confirm('Ocultar este post da rede? Ele some para todos; só o autor e você continuam vendo.')) return;
-const dados = ocultar ? { oculto: true, ocultadoPor: uid, ocultadoEm: new Date().toISOString() } : { oculto: false, ocultadoPor: uid, ocultadoEm: new Date().toISOString() };
+// "publico" acompanha: oculto nunca aparece; ao mostrar de novo, volta se a revisão estiver ok.
+const dados = { oculto: ocultar, ocultadoPor: uid, ocultadoEm: new Date().toISOString(), publico: !ocultar && (p.revisao || 'ok') === 'ok' };
 try { await updateDoc(doc(db, 'posts', p.id), dados); Object.assign(p, dados); if (card && card.isConnected) card.outerHTML = postHTML(p); toast(ocultar ? 'Post ocultado da rede.' : 'Post visível de novo.'); }
 catch (e) { console.error(e); toast(explicarErro(e, 'o post')); }
 }
-async function abrirComentarios(p, card) {
+// Denúncia com motivo (post ou comentário): vai para o Admin e o responsável do núcleo.
+function denunciar(alvo) {
+abrirFolha(`<h3>Denunciar ${alvo.tipoAlvo === 'comentario' ? 'comentário' : 'post'} <button type="button" class="btn-icone" data-m="fechar"><i class="fas fa-xmark"></i></button></h3>
+<p class="contador" style="margin-bottom:10px">Ninguém fica sabendo quem denunciou. O responsável do núcleo e o Admin Master analisam.</p>
+<div style="display:grid;gap:8px">${MOTIVOS_DENUNCIA.map((m) => `<button type="button" class="btn-claro" data-m="${m.id}" style="justify-content:flex-start"><i class="fas fa-flag" style="color:var(--red)"></i> ${escapeHTML(m.rotulo)}</button>`).join('')}</div>`, async (m) => {
+if (m === 'fechar') return;
+const rot = (MOTIVOS_DENUNCIA.find((x) => x.id === m) || {}).rotulo || 'Outro';
+const extra = m === 'outro' ? (prompt('Conte em poucas palavras o que aconteceu:') || '') : '';
+try {
+await addDoc(collection(db, 'denuncias'), { ...alvo, denuncianteUid: uid, denuncianteNome: perfil.nome || '', motivoId: m, motivo: `${rot}${extra ? `: ${extra}` : ''}`.slice(0, 300), criadoEm: new Date().toISOString(), status: 'aberta' });
+toast('Denúncia enviada. Obrigado por cuidar da rede.');
+} catch (e) { toast('Não foi possível enviar a denúncia.'); }
+});
+}
+
+// ---- @menções: sugestões enquanto digita (textarea do post ou campo de comentário) ----
+function ligarMencoes(campo, mapa) {
+let caixa = null; let timer = null;
+const fechar = () => { if (caixa) { caixa.remove(); caixa = null; } };
+campo.addEventListener('blur', () => setTimeout(fechar, 200));
+campo.addEventListener('input', () => {
+clearTimeout(timer);
+const antes = campo.value.slice(0, campo.selectionStart || campo.value.length);
+const m = antes.match(/(^|\s)@([\p{L}\p{N}_.]{1,30})$/u);
+if (!m) { fechar(); return; }
+const termo = m[2].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/_/g, ' ');
+timer = setTimeout(async () => {
+let pessoas = [];
+try { pessoas = (await getDocs(query(collection(db, 'perfisPublicos'), where('nomeBusca', '>=', termo), where('nomeBusca', '<=', termo + '\uf8ff'), limit(6)))).docs.map((d) => ({ id: d.id, ...d.data() })).filter((x) => x.id !== uid); } catch (e) { pessoas = []; }
+fechar(); if (!pessoas.length) return;
+caixa = document.createElement('div'); caixa.className = 'mencao-sugestoes'; caixa.setAttribute('role', 'listbox');
+caixa.innerHTML = pessoas.map((x) => `<button type="button" role="option" data-uid="${escapeHTML(x.id)}">${avatarHTML(x, 'mini')}<span><b>${escapeHTML(x.nome)}</b><small>${escapeHTML([x.cordaoAtual, nomeCurtoNucleo(x.academiaNome)].filter(Boolean).join(' · '))}</small></span></button>`).join('');
+campo.insertAdjacentElement('afterend', caixa);
+caixa.addEventListener('mousedown', (ev) => ev.preventDefault());
+caixa.addEventListener('click', (ev) => {
+const b = ev.target.closest('[data-uid]'); if (!b) return;
+const x = pessoas.find((y) => y.id === b.dataset.uid); if (!x) return;
+const token = String(x.nome || '').trim().split(/\s+/).slice(0, 2).join('_');
+const pos = campo.selectionStart || campo.value.length;
+const ini = antes.length - m[2].length - 1;
+campo.value = campo.value.slice(0, ini) + '@' + token + ' ' + campo.value.slice(pos);
+mapa.set(token.toLowerCase(), { uid: x.id, nome: x.nome, token });
+campo.focus(); const c = ini + token.length + 2; campo.setSelectionRange(c, c);
+campo.dispatchEvent(new Event('input')); fechar();
+});
+}, 250);
+});
+}
+// Só vale a menção cujo @token continua no texto final.
+const mencoesDoTexto = (texto, mapa) => Array.from(mapa.values()).filter((m) => new RegExp(`(^|\\s)@${m.token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$|[.,!?])`, 'iu').test(texto)).slice(0, 10);
+// Filtro de palavras antes de publicar (o servidor confere de novo).
+function barrarOfensa(texto) {
+const t = termosOfensivos(texto, configBrasoes.palavrasExtras || []);
+if (t.length) { toast(`Troque "${t[0]}" — a rede tem crianças. Publique com respeito.`); return true; }
+return false;
+}
+
+const mencoesComentario = new WeakMap(); // form → Map(token → {uid,nome,token})
+function comentarioHTML(c, p, filhos = []) {
+const podeApagar = c.autorUid === uid || p.autorUid === uid || ehModerador() || gerencia(p.autorAcademiaId);
+const escondido = c.oculto === true;
+if (escondido && !(c.autorUid === uid || ehModerador() || gerencia(p.autorAcademiaId))) return '';
+return `<div class="comentario ${c.respostaA ? 'resposta' : ''}" data-cid="${c.id}">${avatarHTML({ id: c.autorUid, nome: c.autorNome, fotoUrl: c.autorFoto }, 'mini')}<div class="bolha-wrap"><div class="bolha ${escondido ? 'escondido' : ''}"><strong>${escapeHTML(c.autorNome || 'Capoeirista')} <small>· ${tempoRelativo(c.criadoEm)}</small></strong>${escondido ? '<em class="aviso-mod"><i class="fas fa-eye-slash"></i> Escondido pelo filtro automático — só você e a moderação veem.</em>' : ''}${c.respostaANome ? `<span class="em-resposta">↪ ${escapeHTML(c.respostaANome)}</span>` : ''}${formatarTexto(c.texto, c.mencoes)}</div>
+<div class="coment-acoes">${c.respostaA ? '' : `<button type="button" data-acao="responder" data-nome="${escapeHTML(String(c.autorNome || '').split(' ')[0])}">Responder</button>`}${c.autorUid !== uid ? '<button type="button" data-acao="denunciar-comentario">Denunciar</button>' : ''}${podeApagar ? '<button type="button" data-acao="apagar-comentario">Apagar</button>' : ''}</div>
+${filhos.map((f) => comentarioHTML(f, p)).join('')}</div></div>`;
+}
+async function abrirComentarios(p, card, manterAberto = false) {
 const box = card.querySelector('[data-comentarios]');
-if (!box.classList.contains('oculto')) { box.classList.add('oculto'); return; }
+if (!manterAberto && !box.classList.contains('oculto')) { box.classList.add('oculto'); return; }
 box.classList.remove('oculto'); box.innerHTML = '<p class="contador">Carregando comentários…</p>';
 try {
-const snap = await getDocs(query(collection(db, 'posts', p.id, 'comentarios'), orderBy('criadoEm', 'asc'), limit(60)));
+const snap = await getDocs(query(collection(db, 'posts', p.id, 'comentarios'), orderBy('criadoEm', 'asc'), limit(100)));
 const lista = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-box.innerHTML = (lista.map((c) => `<div class="comentario" data-cid="${c.id}">${avatarHTML({ id: c.autorUid, nome: c.autorNome, fotoUrl: c.autorFoto }, 'mini')}<div class="bolha"><strong>${escapeHTML(c.autorNome || 'Capoeirista')} <small>· ${tempoRelativo(c.criadoEm)}</small></strong>${formatarTexto(c.texto)}</div>${(c.autorUid === uid || p.autorUid === uid || ehModerador() || gerencia(p.autorAcademiaId)) ? `<button type="button" class="post-menu" data-acao="apagar-comentario" aria-label="Apagar comentário" style="width:28px;height:28px"><i class="fas fa-xmark"></i></button>` : ''}</div>`).join('') || '<p class="contador">Nenhum comentário ainda.</p>')
-+ `<form class="novo-comentario" data-form-comentario><input type="text" maxlength="400" placeholder="Escreva um comentário…" required><button type="submit" aria-label="Enviar"><i class="fas fa-paper-plane"></i></button></form>`;
+const raiz = lista.filter((c) => !c.respostaA || !lista.some((x) => x.id === c.respostaA));
+const html = raiz.map((c) => comentarioHTML(c, p, lista.filter((x) => x.respostaA === c.id))).join('');
+box.innerHTML = (html || '<p class="contador">Nenhum comentário ainda. Comece a conversa!</p>')
++ `<form class="novo-comentario" data-form-comentario><div class="respondendo oculto" data-respondendo></div><div class="linha-comentar"><input type="text" maxlength="400" placeholder="Escreva um comentário… use @ para marcar" required aria-label="Comentário"><button type="submit" aria-label="Enviar"><i class="fas fa-paper-plane"></i></button></div></form>`;
+const form = box.querySelector('[data-form-comentario]'); const mapa = new Map(); mencoesComentario.set(form, mapa);
+ligarMencoes(form.querySelector('input'), mapa);
 } catch (e) { console.error(e); box.innerHTML = '<p class="contador">Não foi possível carregar os comentários.</p>'; }
+}
+function prepararResposta(card, cid, nome) {
+const form = card.querySelector('[data-form-comentario]'); if (!form) return;
+form.dataset.respostaA = cid; form.dataset.respostaNome = nome;
+const r = form.querySelector('[data-respondendo]'); r.classList.remove('oculto');
+r.innerHTML = `Respondendo <b>${escapeHTML(nome)}</b> <button type="button" data-acao="cancelar-resposta" aria-label="Cancelar resposta"><i class="fas fa-xmark"></i></button>`;
+const inp = form.querySelector('input'); inp.focus();
 }
 async function comentar(p, card, form) {
 const input = form.querySelector('input'); const texto = input.value.trim(); if (!texto) return;
-form.querySelector('button').disabled = true;
+if (barrarOfensa(texto)) return;
+const botao = form.querySelector('button[type="submit"]'); botao.disabled = true;
+const mapa = mencoesComentario.get(form) || new Map();
+const dados = { autorUid: uid, autorNome: perfil.nome || '', autorFoto: perfil.fotoUrl || '', texto, criadoEm: new Date().toISOString() };
+if (form.dataset.respostaA) { dados.respostaA = form.dataset.respostaA; dados.respostaANome = form.dataset.respostaNome || ''; }
+const mencoes = mencoesDoTexto(texto, mapa); if (mencoes.length) dados.mencoes = mencoes;
 try {
-await addDoc(collection(db, 'posts', p.id, 'comentarios'), { autorUid: uid, autorNome: perfil.nome || '', autorFoto: perfil.fotoUrl || '', texto, criadoEm: new Date().toISOString() });
+await addDoc(collection(db, 'posts', p.id, 'comentarios'), dados);
 try { await updateDoc(doc(db, 'posts', p.id), { comentariosCount: increment(1) }); p.comentariosCount = (p.comentariosCount || 0) + 1; } catch (e) { /* cosmético */ }
-card.querySelector('[data-comentarios]').classList.add('oculto'); await abrirComentarios(p, card);
+await abrirComentarios(p, card, true);
 const btn = card.querySelector('[data-acao="comentar"]'); if (btn) btn.innerHTML = `<i class="far fa-comment"></i> ${p.comentariosCount || ''}`;
-} catch (e) { console.error(e); toast('Não foi possível comentar.'); } finally { form.querySelector('button').disabled = false; }
+} catch (e) { console.error(e); toast('Não foi possível comentar.'); } finally { botao.disabled = false; }
 }
 async function apagarComentario(p, card, cid) {
+if (!confirm('Apagar este comentário?')) return;
 try {
 await deleteDoc(doc(db, 'posts', p.id, 'comentarios', cid));
 try { await updateDoc(doc(db, 'posts', p.id), { comentariosCount: increment(-1) }); p.comentariosCount = Math.max(0, (p.comentariosCount || 1) - 1); } catch (e) { /* cosmético */ }
-card.querySelector('[data-comentarios]').classList.add('oculto'); await abrirComentarios(p, card);
+await abrirComentarios(p, card, true);
 } catch (e) { toast('Sem permissão pra apagar esse comentário.'); }
+}
+// Ações dentro de um card de post (feed, perfil, núcleo, post aberto).
+function acaoNoPost(p, card, btn, ev) {
+const acao = btn.dataset.acao;
+if (acao === 'curtir') curtir(p, btn); else if (acao === 'salvar') salvar(p, btn); else if (acao === 'comentar') abrirComentarios(p, card);
+else if (acao === 'compartilhar') compartilhar(p); else if (acao === 'menu') menuPost(p, card);
+else if (acao === 'apagar-comentario') { const c = ev.target.closest('.comentario'); if (c) apagarComentario(p, card, c.dataset.cid); }
+else if (acao === 'responder') { const c = ev.target.closest('.comentario'); if (c) prepararResposta(card, c.dataset.cid, btn.dataset.nome || ''); }
+else if (acao === 'cancelar-resposta') { const f = card.querySelector('[data-form-comentario]'); if (f) { delete f.dataset.respostaA; delete f.dataset.respostaNome; f.querySelector('[data-respondendo]').classList.add('oculto'); } }
+else if (acao === 'denunciar-comentario') { const c = ev.target.closest('.comentario'); if (c) denunciar({ tipoAlvo: 'comentario', postId: p.id, comentarioId: c.dataset.cid, autorPostUid: p.autorUid, autorPostAcademiaId: p.autorAcademiaId || null }); }
+else if (acao === 'revisar-ok') { updateDoc(doc(db, 'posts', p.id), { revisao: 'ok', revisadoPor: uid, publico: !p.oculto }).then(() => { p.revisao = 'ok'; p.publico = !p.oculto; card.outerHTML = postHTML(p); toast('Post aprovado.'); }).catch(() => toast('Sem permissão pra aprovar.')); }
 }
 // Delegação: um listener só pra toda a vista (posts aparecem em várias telas).
 function ligarEventosVista() {
@@ -597,22 +731,20 @@ const hash = ev.target.closest('.hash'); if (hash) { ir(`tag/${hash.dataset.hash
 const perfilBtn = ev.target.closest('[data-perfil]'); if (perfilBtn) { ir(`perfil/${perfilBtn.dataset.perfil}`); return; }
 const nucBtn = ev.target.closest('[data-nucleo]'); if (nucBtn && nucBtn.dataset.nucleo) { ir(`nucleo/${nucBtn.dataset.nucleo}`); return; }
 const salaBtn = ev.target.closest('[data-brasoes]'); if (salaBtn) { ir(`brasoes/${salaBtn.dataset.brasoes}`); return; }
+const albumBtn = ev.target.closest('[data-album]'); if (albumBtn) { ir(`album/${albumBtn.dataset.album}`); return; }
+const agendaBtn = ev.target.closest('[data-agenda]'); if (agendaBtn) { ir(agendaBtn.dataset.agenda ? `agenda/${agendaBtn.dataset.agenda}` : 'agenda'); return; }
 const brBtn = ev.target.closest('[data-brasao]'); if (brBtn) { const alvo = vista.dataset.pubBrasoes || (location.hash.split('/')[1]) || uid; pubDe(alvo).then((pub) => abrirBrasao(brBtn.dataset.brasao, pub || meuPub || {})); return; }
 const st = ev.target.closest('[data-story]'); if (st) { abrirStories(st.dataset.story); return; }
 if (ev.target.closest('[data-story-novo]')) { el('inputStory').click(); return; }
 const ver = ev.target.closest('[data-ver]'); if (ver && ver.tagName === 'IMG') { abrirMidia(`<img src="${escapeHTML(ver.src)}" alt="">`); return; }
 const card = ev.target.closest('.post'); if (!card) return;
-const p = posts.find((x) => x.id === card.dataset.id) || (card.__post); if (!p) return;
+const p = postPorId(card.dataset.id) || card.__post; if (!p) return;
 const btn = ev.target.closest('[data-acao]'); if (!btn) return;
-const acao = btn.dataset.acao;
-if (acao === 'curtir') curtir(p, btn); else if (acao === 'salvar') salvar(p, btn); else if (acao === 'comentar') abrirComentarios(p, card);
-else if (acao === 'compartilhar') compartilhar(p); else if (acao === 'menu') menuPost(p, card);
-else if (acao === 'apagar-comentario') { const c = ev.target.closest('.comentario'); if (c) apagarComentario(p, card, c.dataset.cid); }
-else if (acao === 'revisar-ok') { updateDoc(doc(db, 'posts', p.id), { revisao: 'ok', revisadoPor: uid }).then(() => { p.revisao = 'ok'; card.outerHTML = postHTML(p); toast('Post aprovado.'); }).catch(() => toast('Sem permissão pra aprovar.')); }
+acaoNoPost(p, card, btn, ev);
 });
 vista.addEventListener('submit', (ev) => {
 const form = ev.target.closest('[data-form-comentario]'); if (!form) return; ev.preventDefault();
-const card = form.closest('.post'); const p = posts.find((x) => x.id === card.dataset.id) || card.__post; if (p) comentar(p, card, form);
+const card = form.closest('.post'); const p = postPorId(card.dataset.id) || card.__post; if (p) comentar(p, card, form);
 });
 // carrossel: atualiza contador/pontos ao rolar
 vista.addEventListener('scroll', (ev) => {
@@ -632,7 +764,9 @@ document.body.appendChild(f); return f;
 /* ===================== PERFIL DO ATLETA ===================== */
 let perfilAba = 'momentos';
 async function postsDoAutor(alvoUid) {
-const snap = await getDocs(query(collection(db, 'posts'), where('autorUid', '==', alvoUid), limit(90)));
+const filtros = [where('autorUid', '==', alvoUid)];
+if (alvoUid !== uid && !ehModerador()) filtros.push(where('publico', '==', true));
+const snap = await getDocs(query(collection(db, 'posts'), ...filtros, limit(90)));
 return snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm));
 }
 function gradeHTML(lista, vazio) {
@@ -707,7 +841,7 @@ btn3d.remove();
 function celebrarBrasoes(ids) {
 const lista = ids.map(brasaoPorId).filter(Boolean); if (!lista.length) return;
 const a = lista[0];
-const f = abrirFolha(`<div class="celebra"><span class="eyebrow">${lista.length > 1 ? `${lista.length} brasões novos` : 'Brasão novo'}</span><h2>${escapeHTML(a.nome)}</h2><div class="celebra-palco"><img src="${urlPng(a)}" alt=""></div><p>${escapeHTML(a.como || '')}</p>${lista.length > 1 ? `<div class="brasoes-grade" style="margin-top:8px">${lista.slice(1, 5).map((x) => `<span class="brasao ganho"><img src="${urlThumb(x)}" alt=""><b>${escapeHTML(x.nome)}</b></span>`).join('')}</div>` : ''}<button type="button" class="btn-verde" data-m="ok" style="width:100%;margin-top:14px">Shalom, capoeira!</button></div>`);
+const f = abrirFolha(`<div class="celebra"><span class="eyebrow">${lista.length > 1 ? `${lista.length} brasões novos` : 'Brasão novo'}</span><h2>${escapeHTML(a.nome)}</h2><div class="celebra-palco"><img src="${urlPng(a)}" alt=""></div><p>${escapeHTML(a.como || '')}</p>${lista.length > 1 ? `<div class="brasoes-grade" style="margin-top:8px">${lista.slice(1, 5).map((x) => `<span class="brasao ganho"><img src="${urlThumb(x)}" alt=""><b>${escapeHTML(x.nome)}</b></span>`).join('')}</div>` : ''}<button type="button" class="btn-verde" data-m="ok" style="width:100%;margin-top:14px">${escapeHTML(ESCOLA.fraseCelebracao)}</button></div>`);
 f.querySelector('.conteudo').classList.add('celebra-folha');
 }
 function trajetoriaHTML(pub) {
@@ -726,7 +860,7 @@ async function renderPerfil(param, vista) {
 const alvo = param || uid; const meu = alvo === uid;
 if (meu) await sincronizarPerfilPublico();
 pubCache.delete(alvo); const pub = await pubDe(alvo);
-if (!pub) { vista.innerHTML = '<div class="vazio"><i class="far fa-user"></i><b>Perfil não encontrado</b>Essa pessoa ainda não abriu a Rede Liberdade.</div>'; return; }
+if (!pub) { vista.innerHTML = meu ? '<div class="vazio"><div class="spinner" style="margin:0 auto 10px"></div><b>Preparando o seu cartão</b>O servidor está juntando presenças, graduações e brasões. Leva só alguns segundos.</div>' : '<div class="vazio"><i class="far fa-user"></i><b>Perfil não encontrado</b>Essa pessoa ainda não abriu a Rede Liberdade.</div>'; return; }
 el('tituloTopo').textContent = meu ? 'Meu perfil' : pub.nome;
 const podeVer = podeVerPerfil(pub);
 const sigo = seguindo.has(alvo); const pedi = (pub.pedidosSeguir || []).includes(uid);
@@ -738,7 +872,7 @@ const momentos = lista.filter((p) => p.melhorMomento && midiasDe(p).length);
 const comMidia = lista.filter((p) => midiasDe(p).length);
 const r = pub.resumoPresencas;
 vista.innerHTML = `
-<div class="perfil-capa">${pub.capaUrl ? `<img src="${escapeHTML(pub.capaUrl)}" alt="">` : ''}<div class="acoes-capa">${meu ? `<button type="button" class="btn-icone" id="btnCapa" title="Trocar capa"><i class="fas fa-image"></i></button><button type="button" class="btn-icone" id="btnEditarBio" title="Editar perfil"><i class="fas fa-pen"></i></button>` : `<button type="button" class="btn-icone" id="btnMsgPerfil" title="Mensagem"><i class="far fa-comment"></i></button>`}</div></div>
+<div class="perfil-capa">${pub.capaUrl ? `<img src="${escapeHTML(pub.capaUrl)}" alt="">` : ''}<div class="acoes-capa">${meu ? `<button type="button" class="btn-icone" id="btnCapa" title="Trocar capa" aria-label="Trocar capa"><i class="fas fa-image"></i></button><button type="button" class="btn-icone" id="btnEditarBio" title="Editar perfil" aria-label="Editar perfil"><i class="fas fa-pen"></i></button><button type="button" class="btn-icone" id="btnAjustes" title="Ajustes, notificações e privacidade" aria-label="Ajustes"><i class="fas fa-gear"></i></button>` : `<button type="button" class="btn-icone" id="btnMsgPerfil" title="Mensagem"><i class="far fa-comment"></i></button>`}</div></div>
 <div class="perfil-topo">${anelHTML(pub)}<div class="bt">${aprPerfil ? '<button type="button" class="btn-claro btn-apresentacao" id="btnAprPerfil" title="Ver a apresentação em vídeo"><i class="fas fa-play"></i> Apresentação</button>' : ''}${meu ? `<button type="button" class="btn-verde" id="btnFotoPerfil" style="padding:8px 14px;font-size:.76rem"><i class="fas fa-camera"></i> Foto</button>` : `<button type="button" class="${sigo ? 'btn-claro' : 'btn-navy'}" id="btnSeguir">${sigo ? '<i class="fas fa-user-check"></i> Seguindo' : pedi ? '<i class="fas fa-clock"></i> Pedido enviado' : `<i class="fas fa-user-plus"></i> ${pub.privado ? 'Pedir pra seguir' : 'Seguir'}`}</button>`}</div></div>
 <div class="perfil-nome"><h2>${escapeHTML(pub.nome)} ${pub.fundador ? '<i class="fas fa-crown verif" title="Fundador" style="color:var(--gold)"></i>' : (pub.mestre || pub.instrutor) ? '<i class="fas fa-circle-check verif" title="Responsável de núcleo"></i>' : ''}</h2>
 ${pub.apelido ? `<div class="apelido">"${escapeHTML(pub.apelido)}"</div>` : ''}
@@ -764,10 +898,26 @@ painel.querySelectorAll('[data-abrir-post]').forEach((b) => b.addEventListener('
 desenhar();
 const abas = el('abasPerfil'); if (abas) abas.addEventListener('click', (ev) => { const b = ev.target.closest('button'); if (!b) return; perfilAba = b.dataset.a; abas.querySelectorAll('button').forEach((x) => x.classList.toggle('ativa', x === b)); desenhar(); });
 if (meu) {
-el('swPriv').addEventListener('click', async (ev) => { const on = !ev.currentTarget.classList.contains('on'); try { await updateDoc(doc(db, 'perfisPublicos', uid), { privado: on }); meuPub.privado = on; ev.currentTarget.classList.toggle('on', on); el('privTxt').textContent = on ? 'Só quem você aceitar vê seus posts e momentos' : 'Toda a rede vê seus posts e momentos'; } catch (e) { toast('Não foi possível alterar.'); } });
+// Perfil privado. O botão é guardado ANTES do await: depois dele o
+// ev.currentTarget vira null e dava erro (era o "não funciona" do botão).
+const swPriv = el('swPriv');
+swPriv.setAttribute('role', 'switch'); swPriv.setAttribute('aria-checked', String(!!pub.privado));
+swPriv.addEventListener('click', async () => {
+const on = !swPriv.classList.contains('on');
+swPriv.classList.toggle('on', on); swPriv.disabled = true; // resposta na hora; desfaz se o banco recusar
+try {
+await updateDoc(doc(db, 'perfisPublicos', uid), { privado: on, atualizadoEm: new Date().toISOString() });
+if (meuPub) meuPub.privado = on; pubCache.delete(uid);
+swPriv.setAttribute('aria-checked', String(on));
+el('privTxt').textContent = on ? 'Só quem você aceitar vê seus posts e momentos' : 'Toda a rede vê seus posts e momentos';
+toast(on ? 'Perfil privado: só quem você aceitar vê seus momentos.' : 'Perfil aberto para a rede.');
+} catch (e) { console.error(e); swPriv.classList.toggle('on', !on); toast('Não foi possível alterar a privacidade agora.'); }
+finally { swPriv.disabled = false; }
+});
 el('btnFotoPerfil').addEventListener('click', () => el('inputFotoPerfil').click());
 el('btnCapa').addEventListener('click', () => el('inputCapa').click());
 el('btnEditarBio').addEventListener('click', () => editarBio(pub));
+el('btnAjustes').addEventListener('click', () => ir('ajustes'));
 if (el('listaPedidos')) renderPedidos(pub);
 } else {
 el('btnSeguir').addEventListener('click', () => alternarSeguir(pub).then(() => renderPerfil(param, vista)));
@@ -777,7 +927,7 @@ if (el('btnAprPerfil')) el('btnAprPerfil').addEventListener('click', () => apres
 }
 function formacaoHTML(pub) {
 const n = nucleoDe(pub.academiaId); const prof = n && n.professorUid && n.professorUid !== pub.id ? (pubCache.get(n.professorUid) || { id: n.professorUid, nome: n.professorNome || 'Responsável' }) : null;
-if (pub.fundador) return '<div class="formador"><span class="avatar" style="background:var(--gold);color:#241900"><i class="fas fa-crown"></i></span><div><b>Liberdade e Expressão</b><small>Fundador do grupo</small></div></div>';
+if (pub.fundador) return '<div class="formador"><span class="avatar" style="background:var(--gold);color:#241900"><i class="fas fa-crown"></i></span><div><b>${escapeHTML(ESCOLA.nomeCurto)}</b><small>Fundador do grupo</small></div></div>';
 if (!prof) return '<p class="contador" style="padding:4px">Formador ainda não identificado no cadastro.</p>';
 return `<button type="button" class="formador" data-perfil="${escapeHTML(prof.id)}">${avatarHTML(prof)}<div><b>${escapeHTML(prof.nome)}</b><small>Responsável ${n ? `pelo ${escapeHTML(nomeCurtoNucleo(n.nome))}` : ''}</small></div><i class="fas fa-chevron-right" style="margin-left:auto;color:var(--soft)"></i></button>`;
 }
@@ -789,9 +939,9 @@ card.addEventListener('click', (ev) => {
 const btn = ev.target.closest('[data-acao]'); const pf = ev.target.closest('[data-perfil]'); const ver = ev.target.closest('[data-ver]');
 if (pf) { f.remove(); ir(`perfil/${pf.dataset.perfil}`); return; }
 if (ver && ver.tagName === 'IMG') { abrirMidia(`<img src="${escapeHTML(ver.src)}" alt="">`); return; }
-if (!btn) return; const a = btn.dataset.acao;
-if (a === 'curtir') curtir(p, btn); else if (a === 'salvar') salvar(p, btn); else if (a === 'comentar') abrirComentarios(p, card); else if (a === 'compartilhar') compartilhar(p); else if (a === 'menu') { f.remove(); menuPost(p, card); }
-else if (a === 'apagar-comentario') { const c = ev.target.closest('.comentario'); if (c) apagarComentario(p, card, c.dataset.cid); }
+if (!btn) return;
+if (btn.dataset.acao === 'menu') { f.remove(); menuPost(p, card); return; }
+acaoNoPost(p, card, btn, ev);
 });
 card.addEventListener('submit', (ev) => { const form = ev.target.closest('[data-form-comentario]'); if (!form) return; ev.preventDefault(); comentar(p, card, form); });
 }
@@ -836,7 +986,8 @@ el('btnBioSenha').addEventListener('click', () => abrirTrocaSenha());
 if (el('btnBioApr')) el('btnBioApr').addEventListener('click', () => gerenciarApresentacao({ ...perfil, id: uid }, { extras: { direto: rotuloDiretoDe(pub), nucleoNome: (nucleoDe(perfil.academiaGerenciadaId) || {}).nome || '' }, aoMudar: () => renderPerfil(null, el('vista')) }));
 el('formBio').addEventListener('submit', async (ev) => {
 ev.preventDefault(); const fd = new FormData(ev.target);
-const dados = { apelido: String(fd.get('apelido') || '').trim(), bio: String(fd.get('bio') || '').trim(), funcoes: String(fd.get('funcoes') || '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 6), cidade: String(fd.get('cidade') || '').trim() };
+const dados = { apelido: String(fd.get('apelido') || '').trim().slice(0, 30), bio: String(fd.get('bio') || '').trim().slice(0, 600), funcoes: String(fd.get('funcoes') || '').split(',').map((s) => s.trim().slice(0, 40)).filter(Boolean).slice(0, 6), cidade: String(fd.get('cidade') || '').trim().slice(0, 60), atualizadoEm: new Date().toISOString() };
+if (barrarOfensa(`${dados.apelido} ${dados.bio} ${dados.funcoes.join(' ')}`)) return;
 try { await updateDoc(doc(db, 'perfisPublicos', uid), dados); Object.assign(meuPub, dados); pubCache.delete(uid); document.querySelector('.folha')?.remove(); toast('Perfil atualizado.'); renderPerfil(null, el('vista')); } catch (e) { toast('Não foi possível salvar.'); }
 });
 }
@@ -844,10 +995,9 @@ async function trocarFotoPerfil(file) {
 toast('Comprimindo a foto…');
 try {
 const img = await comprimirAdaptativo(file, 540, 120);
-const url = await subirDataUrl(`fotos_alunos/${Date.now()}_${uid}.jpg`, img.dataUrl);
-await atualizar('usuarios', uid, { fotoUrl: url }); perfil.fotoUrl = url;
-await updateDoc(doc(db, 'perfisPublicos', uid), { fotoUrl: url }); pubCache.delete(uid);
-toast('Foto atualizada em todo o app.'); renderPerfil(null, el('vista'));
+const url = await salvarFotoPerfil(uid, img.dataUrl);
+await atualizar('usuarios', uid, { fotoUrl: url }); perfil.fotoUrl = url; pubCache.delete(uid);
+toast('Foto atualizada. Em instantes aparece em todo o app.'); setTimeout(() => renderPerfil(null, el('vista')), 1500);
 } catch (e) { console.error(e); toast('Não foi possível trocar a foto.'); }
 }
 async function trocarCapa(file) {
@@ -867,13 +1017,13 @@ const n = nucleoDe(id) || await buscar('nucleos', id);
 if (!n) { vista.innerHTML = '<div class="vazio"><i class="fas fa-people-group"></i><b>Núcleo não encontrado</b></div>'; return; }
 el('tituloTopo').textContent = n.nome;
 const [snapPosts, atletas, prof] = await Promise.all([
-getDocs(query(collection(db, 'posts'), where('nucleoId', '==', id), limit(90))),
+getDocs(query(collection(db, 'posts'), where('nucleoId', '==', id), ...(gerencia(id) || ehModerador() ? [] : [where('publico', '==', true)]), limit(90))),
 pubsDeNucleo(id, 80), n.professorUid ? pubDe(n.professorUid) : Promise.resolve(null),
 ]);
 const aprNucleo = n.professorUid ? await apresentacaoDe(n.professorUid) : null;
 await Promise.all(Array.from(new Set(snapPosts.docs.map((d) => d.data().autorUid))).map(pubDe));
 const lista = snapPosts.docs.map((d) => ({ id: d.id, ...d.data() })).filter(visivelParaMim).sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm));
-lista.forEach((p) => { if (!posts.some((x) => x.id === p.id)) posts.push(p); });
+guardarAvulsos(lista);
 const momentos = lista.filter((p) => p.melhorMomento && midiasDe(p).length);
 const avisosNuc = lista.filter((p) => p.tipo === 'aviso');
 const ordemAtletas = atletas.slice().sort((a, b) => (ORDEM_CORDOES.indexOf(b.cordaoAtual) - ORDEM_CORDOES.indexOf(a.cordaoAtual)) || String(a.nome).localeCompare(String(b.nome)));
@@ -911,7 +1061,7 @@ vista.innerHTML = `
 <div class="busca"><i class="fas fa-magnifying-glass" style="color:var(--soft)"></i><input id="buscaPessoa" type="search" placeholder="Atletas, núcleos, #hashtags…" autocomplete="off"></div>
 <div id="resultadoBusca"></div>
 ${topTags.length ? `<div class="chips">${topTags.map(([t, n]) => `<button type="button" class="pill ${n > 1 ? 'teal' : 'neutra'} hash" data-hash="${escapeHTML(t)}">#${escapeHTML(t)} <span class="mono" style="opacity:.7">${n}</span></button>`).join('')}</div>` : ''}
-${ev ? `<div class="evento"><div class="data"><b>${ev.data.slice(8, 10)}</b><small>${new Date(ev.data + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase()}</small></div><b class="n">${escapeHTML(ev.nome || 'Evento')}</b><small>${ev.descricao ? escapeHTML(ev.descricao) + ' · ' : ''}${nucleoDe(ev.academiaId) ? escapeHTML(nomeCurtoNucleo(nucleoDe(ev.academiaId).nome)) : 'Grupo'}${confirmados ? ` · ${confirmados.size} confirmado${confirmados.size === 1 ? '' : 's'}` : ''}</small><div class="acoes-ev"><button type="button" class="btn-claro" id="btnEuVou">${euVou ? '<i class="fas fa-check"></i> Eu vou' : '<i class="far fa-calendar-check"></i> Eu vou'}</button>${eventos.length > 1 ? `<span class="pill" style="background:rgba(255,255,255,.18);color:#fff">+${eventos.length - 1} evento${eventos.length > 2 ? 's' : ''}</span>` : ''}</div></div>` : ''}
+${ev ? `<div class="evento"><div class="data"><b>${ev.data.slice(8, 10)}</b><small>${new Date(ev.data + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase()}</small></div><b class="n">${escapeHTML(ev.nome || 'Evento')}</b><small>${ev.descricao ? escapeHTML(ev.descricao) + ' · ' : ''}${nucleoDe(ev.academiaId) ? escapeHTML(nomeCurtoNucleo(nucleoDe(ev.academiaId).nome)) : 'Grupo'}${confirmados ? ` · ${confirmados.size} confirmado${confirmados.size === 1 ? '' : 's'}` : ''}</small><div class="acoes-ev"><button type="button" class="btn-claro" id="btnEuVou">${euVou ? '<i class="fas fa-check"></i> Eu vou' : '<i class="far fa-calendar-check"></i> Eu vou'}</button><button type="button" class="btn-claro" data-agenda="${escapeHTML(ev.id)}">Detalhes</button>${eventos.length > 1 ? `<button type="button" class="pill" data-agenda="" style="background:rgba(255,255,255,.18);color:#fff;border:0">+${eventos.length - 1} evento${eventos.length > 2 ? 's' : ''}</button>` : ''}</div></div>` : `<button type="button" class="btn-mais" data-agenda=""><i class="far fa-calendar"></i> Agenda de eventos e álbuns</button>`}
 <div class="titulo-sec">Núcleos da rede</div>
 <div class="nucleos">${nucleos.filter((n) => n.ativo !== false).map((n) => `<button type="button" class="nuc" data-nucleo="${escapeHTML(n.id)}"><span class="avatar" style="background:${corAvatar(n.id)}"><i class="fas fa-people-group"></i></span><b>${escapeHTML(n.nome)}</b><small>${n.professorNome ? escapeHTML(n.professorNome) : ''}</small>${n.id === perfil.academiaId ? '<span class="pill teal">seu núcleo</span>' : (n.professorUid && (pubCache.get(n.professorUid) || {}).fundador ? '<span class="pill gold">Fundador</span>' : '')}</button>`).join('')}</div>
 ${sugeridos.length ? `<div class="titulo-sec">Sugestões pra você <span class="contador">do seu núcleo</span></div><div class="card" id="sugestoes">${sugeridos.map((p) => `<div class="pessoa">${anelHTML(p)}<button type="button" class="q" data-perfil="${p.id}"><b>${escapeHTML(p.nome)}</b><small>${[p.cordaoAtual, nomeCurtoNucleo(p.academiaNome)].filter(Boolean).map(escapeHTML).join(' · ')}</small></button><button type="button" class="btn-navy" data-seguir="${p.id}">${p.privado ? 'Pedir' : 'Seguir'}</button></div>`).join('')}</div>` : ''}
@@ -919,7 +1069,7 @@ ${sugeridos.length ? `<div class="titulo-sec">Sugestões pra você <span class="
 ${comMidia.length ? `<div class="mosaico">${comMidia.map((p) => { const m = midiasDe(p)[0]; return `<button type="button" data-abrir-post="${p.id}">${m.tipo === 'video' ? `<video src="${escapeHTML(m.url)}" muted preload="metadata"></video>` : `<img src="${escapeHTML(m.url)}" alt="" loading="lazy">`}</button>`; }).join('')}</div>` : '<div class="vazio"><i class="fas fa-image"></i>Ainda não há fotos publicadas na rede.</div>'}`;
 vista.querySelectorAll('[data-abrir-post]').forEach((b) => b.addEventListener('click', () => abrirPost(posts.find((p) => p.id === b.dataset.abrirPost))));
 vista.querySelectorAll('[data-seguir]').forEach((b) => b.addEventListener('click', async () => { await alternarSeguir(sugeridos.find((x) => x.id === b.dataset.seguir)); b.textContent = seguindo.has(b.dataset.seguir) ? 'Seguindo' : 'Seguir'; }));
-if (ev && el('btnEuVou')) el('btnEuVou').addEventListener('click', async () => { try { if (euVou) await deleteDoc(doc(db, 'eventos', ev.id, 'confirmados', uid)); else await setDoc(doc(db, 'eventos', ev.id, 'confirmados', uid), { nome: perfil.nome || '', em: new Date().toISOString() }); renderExplorar(null, vista); } catch (e) { toast('Não foi possível confirmar (regras do Firestore).'); } });
+if (ev && el('btnEuVou')) el('btnEuVou').addEventListener('click', async () => { try { if (euVou) await deleteDoc(doc(db, 'eventos', ev.id, 'confirmados', uid)); else await setDoc(doc(db, 'eventos', ev.id, 'confirmados', uid), { nome: perfil.nome || '', em: new Date().toISOString(), academiaId: perfil.academiaId || null, cordaoAtual: (meuPub && meuPub.cordaoAtual) || perfil.cordaoAtual || '', fotoUrl: /^https:/.test(perfil.fotoUrl || '') ? perfil.fotoUrl : '' }); renderExplorar(null, vista); } catch (e) { toast('Não foi possível confirmar (regras do Firestore).'); } });
 let timer = null;
 el('buscaPessoa').addEventListener('input', (e) => { clearTimeout(timer); timer = setTimeout(() => buscar_(e.target.value), 300); });
 async function buscar_(termo) {
@@ -942,7 +1092,9 @@ vista.innerHTML = `<div class="titulo-sec"><span>#${escapeHTML(tag)}</span><span
 let composicao = { midias: [], melhorMomento: false, nucleoId: null, marcados: [], visibilidade: 'rede', aviso: false };
 async function renderPublicar(param, vista) {
 el('tituloTopo').textContent = 'Nova publicação';
-composicao = { midias: [], melhorMomento: false, nucleoId: perfil.academiaId || null, marcados: [], visibilidade: 'rede', aviso: false, hoje: null, comoNucleo: false };
+composicao = { midias: [], melhorMomento: false, nucleoId: perfil.academiaId || null, marcados: [], visibilidade: 'rede', aviso: false, hoje: null, comoNucleo: false, mencoes: new Map(), eventoId: null, eventoNome: '' };
+// Eventos de até 10 dias atrás (ou de hoje): o post pode entrar no álbum do evento.
+let eventosRecentes = []; try { const h = hoje0(); eventosRecentes = (await listar('eventos')).filter((e) => e.data && new Date(e.data + 'T12:00:00') <= new Date(h.getTime() + 86400000) && new Date(e.data + 'T12:00:00') >= new Date(h.getTime() - 10 * 86400000)).sort((a, b) => b.data.localeCompare(a.data)); } catch (e) { /* sem eventos */ }
 const podeComoNucleo = !!meuNucleoGerenciado() && (ehGestor() || ehModerador());
 if (param === 'nucleo' && podeComoNucleo) { composicao.comoNucleo = true; }
 // Núcleo/treino sugerido pela presença real de hoje (Face ID / painel)
@@ -961,6 +1113,7 @@ vista.innerHTML = `<div class="card compor">
 <div class="opc"><div class="ic n"><i class="fas fa-location-dot"></i></div><div class="t"><b>Núcleo do treino</b><small id="nucInfo">${composicao.hoje ? `Detectado pela sua presença de hoje às ${dataDe(composicao.hoje.entradaEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : 'Sem presença registrada hoje — escolha o núcleo'}</small></div><select id="selNucleo">${nucleos.filter((n) => n.ativo !== false).map((n) => `<option value="${escapeHTML(n.id)}" ${n.id === composicao.nucleoId ? 'selected' : ''}>${escapeHTML(nomeCurtoNucleo(n.nome))}</option>`).join('')}<option value="" ${!composicao.nucleoId ? 'selected' : ''}>Sem núcleo</option></select></div>
 <div class="opc" style="flex-wrap:wrap"><div class="ic"><i class="fas fa-user-tag"></i></div><div class="t"><b>Marcar atletas</b><small id="marcInfo">${colegas.length ? 'Toque pra marcar quem estava no treino' : 'Ninguém do núcleo abriu a rede ainda'}</small></div><span class="val mono" id="marcQtd">0</span><div class="marcar-lista" id="marcarLista" style="width:100%">${colegas.map((c) => `<button type="button" class="pill" data-marcar="${c.id}" data-img="${c.usoImagemOk ? '1' : '0'}">${escapeHTML(c.nome.split(' ').slice(0, 2).join(' '))}${c.usoImagemOk ? '' : ' <i class="fas fa-eye-slash" title="sem termo de imagem"></i>'}</button>`).join('')}</div></div>
 <div class="opc"><div class="ic"><i class="fas fa-shield-halved"></i></div><div class="t"><b>Proteger rostos</b><small id="rostosInfo">Detecta rostos nas fotos e deixa você desfocar quem não autorizou imagem</small></div><button type="button" class="val" id="btnRostos" disabled>Detectar</button></div>
+${eventosRecentes.length ? `<div class="opc"><div class="ic g"><i class="fas fa-images"></i></div><div class="t"><b>Álbum do evento</b><small>As fotos entram no álbum do evento, com quem você marcou</small></div><select id="selEvento" aria-label="Álbum do evento"><option value="">Nenhum</option>${eventosRecentes.map((e) => `<option value="${escapeHTML(e.id)}">${escapeHTML(e.nome || 'Evento')} · ${escapeHTML(e.data.slice(8, 10) + '/' + e.data.slice(5, 7))}</option>`).join('')}</select></div>` : ''}
 ${podeComoNucleo ? `<div class="opc"><div class="ic" style="background:var(--sky-soft);color:var(--sky-texto)"><i class="fas fa-people-group"></i></div><div class="t"><b>Publicar como o núcleo</b><small>Sai com o nome e o selo de ${escapeHTML(nucMeu ? nomeCurtoNucleo(nucMeu.nome) : 'seu núcleo')} (você aparece como quem publicou)</small></div><button type="button" class="switch cinza ${composicao.comoNucleo ? 'on' : ''}" id="swComoNucleo" aria-label="Publicar como o núcleo"></button></div>` : ''}
 ${ehGestor() || ehModerador() ? `<div class="opc"><div class="ic" style="background:var(--green-soft);color:#1E8449"><i class="fas fa-bullhorn"></i></div><div class="t"><b>Publicar como aviso do núcleo</b><small>Aparece destacado em verde pra todo mundo no feed</small></div><button type="button" class="switch cinza" id="swAviso" aria-label="Aviso"></button></div>` : ''}
 </div>
@@ -969,6 +1122,8 @@ ${ehGestor() || ehModerador() ? `<div class="opc"><div class="ic" style="backgro
 const texto = el('texto');
 const atualizar_ = () => { el('contador').textContent = `${texto.value.length}/${LIMITE_TEXTO}`; el('btnPublicar').disabled = !(texto.value.trim() || composicao.midias.length); el('btnRostos').disabled = !composicao.midias.some((m) => m.tipo === 'imagem'); };
 texto.addEventListener('input', atualizar_);
+ligarMencoes(texto, composicao.mencoes);
+const selEv = el('selEvento'); if (selEv) selEv.addEventListener('change', (e) => { const ev = eventosRecentes.find((x) => x.id === e.target.value); composicao.eventoId = ev ? ev.id : null; composicao.eventoNome = ev ? (ev.nome || 'Evento') : ''; });
 el('swMomento').addEventListener('click', (e) => { composicao.melhorMomento = !composicao.melhorMomento; e.currentTarget.classList.toggle('on', composicao.melhorMomento); });
 const swAviso = el('swAviso'); if (swAviso) swAviso.addEventListener('click', (e) => { composicao.aviso = !composicao.aviso; e.currentTarget.classList.toggle('on', composicao.aviso); if (composicao.aviso && !ehModerador() && meuNucleoGerenciado()) { composicao.nucleoId = meuNucleoGerenciado(); el('selNucleo').value = composicao.nucleoId; } if (composicao.aviso) toast(`Este post vai sair como aviso do núcleo ${nomeCurtoNucleo((nucleoDe(composicao.nucleoId) || {}).nome || '')}.`); });
 el('selNucleo').addEventListener('change', (e) => { composicao.nucleoId = e.target.value || null; });
@@ -1006,10 +1161,18 @@ for (const f of Array.from(files)) {
 if (composicao.midias.length >= MAX_MIDIAS) { toast(`Máximo de ${MAX_MIDIAS} mídias por post.`); break; }
 try {
 if (f.type.startsWith('video/')) {
-if (f.size > VIDEO_MAX_MB * 1024 * 1024) { toast(`Vídeo acima de ${VIDEO_MAX_MB} MB — grave um trecho mais curto.`); continue; }
+if (f.size > VIDEO_BRUTO_MAX_MB * 1024 * 1024) { toast(`Vídeo muito grande (${fmtKB(f.size)}) — grave um trecho mais curto.`); continue; }
 const info = await duracaoVideo(f);
 if (!(info.dur <= VIDEO_MAX_SEG)) { toast(`Vídeo com mais de ${VIDEO_MAX_SEG} s — corte um trecho curto.`); continue; }
-composicao.midias.push({ tipo: 'video', arquivo: f, previewUrl: URL.createObjectURL(f), original: f.size, final: f.size, dur: info.dur });
+let arquivo = f;
+if (f.size > 4 * 1024 * 1024 || Math.max(info.w || 0, info.h || 0) > 1280) {
+toast('Comprimindo o vídeo… (leva o tempo do vídeo)');
+const menor = await comprimirVideo(f, (pct) => { const pi = el('pesoInfo'); if (pi) pi.textContent = `Comprimindo vídeo… ${pct}%`; });
+if (menor) arquivo = menor;
+}
+if (arquivo.size > VIDEO_MAX_MB * 1024 * 1024) { toast(`Mesmo comprimido o vídeo passou de ${VIDEO_MAX_MB} MB — grave um trecho mais curto.`); continue; }
+const capa = await capaDoVideo(arquivo);
+composicao.midias.push({ tipo: 'video', arquivo, previewUrl: URL.createObjectURL(arquivo), original: f.size, final: arquivo.size, dur: info.dur, capa });
 } else if (f.type.startsWith('image/')) {
 toast('Comprimindo…');
 const img = await comprimirAdaptativo(f, IMG_MAX_DIM, IMG_ALVO_KB);
@@ -1070,11 +1233,21 @@ m.dataUrl = c.toDataURL('image/jpeg', 0.8); m.final = bytesDataUrl(m.dataUrl);
 }
 async function publicar(texto) {
 const btn = el('btnPublicar'); if (!texto && !composicao.midias.length) return;
+if (texto && barrarOfensa(texto)) return;
+// Foto/vídeo precisa do cartão público (o servidor confere se é menor e o cordão).
+if (composicao.midias.length && !meuPub) { toast('Seu cartão ainda está sendo preparado pelo servidor — tente de novo em alguns segundos.'); sincronizarPerfilPublico(); return; }
 btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publicando…';
 try {
 const midias = [];
 for (const m of composicao.midias) {
-if (m.tipo === 'video') { const r = storageRef(storage, `rede/${uid}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}.mp4`); await uploadBytes(r, m.arquivo, { contentType: m.arquivo.type || 'video/mp4' }); midias.push({ url: await getDownloadURL(r), tipo: 'video', dur: Math.round(m.dur || 0) }); }
+if (m.tipo === 'video') {
+const ext = /webm/.test(m.arquivo.type) ? 'webm' : 'mp4';
+const r = storageRef(storage, `rede/${uid}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}.${ext}`);
+await uploadBytes(r, m.arquivo, { contentType: m.arquivo.type || 'video/mp4', cacheControl: 'public,max-age=31536000' });
+const item = { url: await getDownloadURL(r), tipo: 'video', dur: Math.round(m.dur || 0) };
+if (m.capa) { try { item.posterUrl = await subirDataUrl(`rede/${uid}/capa_${Date.now()}.jpg`, m.capa); } catch (e) { /* sem capa */ } }
+midias.push(item);
+}
 else { midias.push({ url: await subirDataUrl(`rede/${uid}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}.jpg`, m.dataUrl), tipo: 'imagem', w: m.w, h: m.h }); }
 }
 const semTermo = composicao.marcados.some((x) => !x.usoImagemOk) && !composicao.midias.some((m) => m.rostos && m.rostos.some((r) => r.borrado));
@@ -1084,17 +1257,20 @@ if (comoNucleo) composicao.nucleoId = meuNucleoGerenciado();
 const ehAviso = composicao.aviso && (ehModerador() || gerencia(composicao.nucleoId));
 const nuc = nucleoDe(composicao.nucleoId);
 const docPost = {
-autorUid: uid, autorNome: perfil.nome || '', autorFoto: perfil.fotoUrl || '', autorAcademiaId: perfil.academiaId || null, autorAcademiaNome: perfil.academiaNome || '', autorCordao: perfil.cordaoAtual || '',
+autorUid: uid, autorNome: perfil.nome || '', autorFoto: /^https:/.test(perfil.fotoUrl || '') ? perfil.fotoUrl : '', autorAcademiaId: perfil.academiaId || null, autorAcademiaNome: perfil.academiaNome || '', autorCordao: (meuPub && meuPub.cordaoAtual) || '',
 autorMenor: !!souMenor(), texto, fotoUrl: midias.find((m) => m.tipo === 'imagem')?.url || null, midias,
 tipo: ehAviso ? 'aviso' : 'post', melhorMomento: !!composicao.melhorMomento && !ehAviso,
 nucleoId: nuc ? nuc.id : null, nucleoNome: nuc ? nuc.nome : '', marcados: composicao.marcados.map((m) => ({ uid: m.uid, nome: m.nome })),
 visibilidade: composicao.visibilidade, hashtags: extrairHashtags(texto), revisao: precisaRevisao ? 'pendente' : 'ok',
+oculto: false, publico: !precisaRevisao,
 criadoEm: new Date().toISOString(), curtidas: [], comentariosCount: 0,
+...(mencoesDoTexto(texto, composicao.mencoes).length ? { mencoes: mencoesDoTexto(texto, composicao.mencoes) } : {}),
+...(composicao.eventoId ? { eventoId: composicao.eventoId, eventoNome: composicao.eventoNome } : {}),
 ...(comoNucleo ? { comoNucleo: true } : {}),
 };
 await addDoc(collection(db, 'posts'), docPost);
 posts = []; ultimoDoc = null; filtroFeed = 'rede';
-toast(precisaRevisao ? 'Publicado! O responsável do núcleo vai revisar as fotos.' : 'Publicado! Axé.');
+toast(precisaRevisao ? 'Publicado! O responsável do núcleo vai revisar as fotos.' : ESCOLA.frasePublicado);
 ir('feed');
 } catch (e) {
 console.error(e);
@@ -1126,7 +1302,9 @@ async function minhasConversas() {
 const tentar = async (q) => { try { return (await getDocs(q)).docs; } catch (e) { console.warn('conversas', e && e.code, e && e.message); return []; } };
 const consultas = [tentar(query(collection(db, 'conversas'), where('participantes', 'array-contains', uid), limit(50)))];
 if (perfil.academiaId) consultas.push(tentar(query(collection(db, 'conversas'), where('tipo', '==', 'grupo'), where('nucleoId', '==', perfil.academiaId), limit(5))));
-if (ehGestor()) consultas.push(tentar(query(collection(db, 'conversas'), where('nucleosIds', 'array-contains', meuNucleoGerenciado()), limit(30))));
+if (ehGestor()) consultas.push(tentar(query(collection(db, 'conversas'), where('tipo', '==', 'grupo'), where('nucleoId', '==', meuNucleoGerenciado()), limit(5))));
+// Pai/mãe cadastrado como responsável legal acompanha as conversas do filho menor.
+consultas.push(tentar(query(collection(db, 'conversas'), where('responsaveisIds', 'array-contains', uid), limit(40))));
 const partes = await Promise.all(consultas);
 const mapa = new Map(); partes.flat().forEach((x) => mapa.set(x.id, { id: x.id, ...x.data() }));
 return Array.from(mapa.values()).sort((a, b) => new Date(b.atualizadoEm || 0) - new Date(a.atualizadoEm || 0));
@@ -1136,7 +1314,8 @@ if (!ehGestor()) return;
 const nid = meuNucleoGerenciado(); const id = `nucleo_${nid}`;
 try { const s = await getDoc(doc(db, 'conversas', id)); if (!s.exists()) await setDoc(doc(db, 'conversas', id), { tipo: 'grupo', nucleoId: nid, nome: (nucleoDe(nid) || {}).nome || 'Meu núcleo', participantes: [uid], nucleosIds: [nid], criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString(), ultimaMsg: 'Grupo do núcleo criado', ultimoAutor: uid }); } catch (e) { /* ok */ }
 }
-function nomeConversa(c) { if (c.tipo === 'grupo') return c.nome || 'Grupo'; const outro = (c.participantes || []).find((p) => p !== uid) || uid; return (c.nomes || {})[outro] || 'Conversa'; }
+const acompanho = (c) => c.tipo === 'direta' && !(c.participantes || []).includes(uid) && (c.responsaveisIds || []).includes(uid);
+function nomeConversa(c) { if (c.tipo === 'grupo') return c.nome || 'Grupo'; if (acompanho(c)) return (c.participantes || []).map((u) => String((c.nomes || {})[u] || '').split(' ')[0]).join(' e '); const outro = (c.participantes || []).find((p) => p !== uid) || uid; return (c.nomes || {})[outro] || 'Conversa'; }
 function fotoConversa(c) { if (c.tipo === 'grupo') return null; const outro = (c.participantes || []).find((p) => p !== uid); return { id: outro, nome: nomeConversa(c), fotoUrl: (c.fotos || {})[outro] || '' }; }
 async function renderMensagens(param, vista) {
 if (param) return renderChat(param, vista);
@@ -1145,8 +1324,9 @@ await garantirGrupoDoNucleo();
 const lista = await minhasConversas();
 const lidas = JSON.parse(localStorage.getItem('rede.lidas') || '{}');
 vista.innerHTML = `<div class="busca"><i class="fas fa-magnifying-glass" style="color:var(--soft)"></i><input id="buscaConv" type="search" placeholder="Buscar atleta pra conversar…" autocomplete="off"></div><div id="resConv"></div>
-<div class="card">${lista.map((c) => { const f = fotoConversa(c); const nova = c.atualizadoEm && (!lidas[c.id] || lidas[c.id] < c.atualizadoEm) && c.ultimoAutor && c.ultimoAutor !== uid; return `<button type="button" class="conv ${c.tipo === 'grupo' ? 'grupo' : ''}" data-conv="${c.id}">${c.tipo === 'grupo' ? `<span class="avatar" style="background:var(--navy)"><i class="fas fa-people-group"></i></span>` : avatarHTML(f)}<div class="q"><b>${escapeHTML(nomeConversa(c))}</b><small>${escapeHTML(c.ultimaMsg || 'Sem mensagens ainda')}</small></div><div class="meta">${c.atualizadoEm ? tempoRelativo(c.atualizadoEm) : ''}${nova ? '<br><span class="n">•</span>' : ''}</div></button>`; }).join('') || '<div class="vazio" style="border:0"><i class="far fa-comment"></i><b>Nenhuma conversa ainda</b>Abra o perfil de um atleta e toque no balão pra conversar.</div>'}</div>
-<p class="contador" style="text-align:center;padding:0 12px"><i class="fas fa-shield-halved"></i> Conversas com menores ficam visíveis ao responsável do núcleo. Menores só conversam com pessoas do próprio núcleo.</p>`;
+<div class="card">${lista.filter((c) => !acompanho(c)).map((c) => { const f = fotoConversa(c); const nova = c.atualizadoEm && (!lidas[c.id] || lidas[c.id] < c.atualizadoEm) && c.ultimoAutor && c.ultimoAutor !== uid; return `<button type="button" class="conv ${c.tipo === 'grupo' ? 'grupo' : ''}" data-conv="${c.id}">${c.tipo === 'grupo' ? `<span class="avatar" style="background:var(--navy)"><i class="fas fa-people-group"></i></span>` : avatarHTML(f)}<div class="q"><b>${escapeHTML(nomeConversa(c))}</b><small>${escapeHTML(c.ultimaMsg || 'Sem mensagens ainda')}</small></div><div class="meta">${c.atualizadoEm ? tempoRelativo(c.atualizadoEm) : ''}${nova ? '<br><span class="n">•</span>' : ''}</div></button>`; }).join('') || '<div class="vazio" style="border:0"><i class="far fa-comment"></i><b>Nenhuma conversa ainda</b>Abra o perfil de um atleta e toque no balão pra conversar.</div>'}</div>
+${lista.some(acompanho) ? `<div class="titulo-sec">Conversas que você acompanha <span class="contador">responsável legal</span></div><div class="card">${lista.filter(acompanho).map((c) => `<button type="button" class="conv" data-conv="${c.id}"><span class="avatar" style="background:var(--gold);color:#241900"><i class="fas fa-user-shield"></i></span><div class="q"><b>${escapeHTML(nomeConversa(c))}</b><small>${escapeHTML(c.ultimaMsg || 'Sem mensagens ainda')}</small></div><div class="meta">${c.atualizadoEm ? tempoRelativo(c.atualizadoEm) : ''}</div></button>`).join('')}</div>` : ''}
+<p class="contador" style="text-align:center;padding:0 12px"><i class="fas fa-shield-halved"></i> Menores conversam só com pessoas do próprio núcleo, e o responsável legal (pai, mãe ou quem estiver cadastrado) pode acompanhar as conversas do filho.</p>`;
 vista.querySelectorAll('[data-conv]').forEach((b) => b.addEventListener('click', () => ir(`mensagens/${b.dataset.conv}`)));
 let timer = null;
 el('buscaConv').addEventListener('input', (e) => { clearTimeout(timer); timer = setTimeout(async () => {
@@ -1163,9 +1343,9 @@ const c = { id: s.id, ...s.data() }; const f = fotoConversa(c);
 el('tituloTopo').textContent = nomeConversa(c);
 vista.innerHTML = `<div class="chat">
 <div style="display:flex;align-items:center;gap:10px;padding:2px 4px 8px"><button type="button" class="btn-icone" id="btnVoltarChat" aria-label="Voltar"><i class="fas fa-arrow-left"></i></button>${c.tipo === 'grupo' ? '<span class="avatar" style="background:var(--navy);border-radius:14px"><i class="fas fa-people-group"></i></span>' : `<button type="button" style="background:none;border:0;padding:0" data-perfil="${escapeHTML(f.id)}">${avatarHTML(f)}</button>`}<div style="flex:1;min-width:0"><b style="font-family:var(--display);font-size:.9rem;display:block">${escapeHTML(nomeConversa(c))}</b><small class="contador">${c.tipo === 'grupo' ? 'grupo do núcleo' : 'conversa direta'}</small></div></div>
-${c.envolveMenor || c.tipo === 'grupo' ? `<div class="aviso-chat"><i class="fas fa-shield-halved"></i> ${c.tipo === 'grupo' ? 'Grupo do núcleo — o responsável modera as mensagens.' : 'Conversa visível ao responsável do núcleo — o grupo tem crianças.'}</div>` : ''}
+${acompanho(c) ? '<div class="aviso-chat"><i class="fas fa-user-shield"></i> Você acompanha esta conversa como responsável legal. Só leitura.</div>' : (c.envolveMenor || c.tipo === 'grupo' ? `<div class="aviso-chat"><i class="fas fa-shield-halved"></i> ${c.tipo === 'grupo' ? 'Grupo do núcleo — o responsável modera as mensagens.' : 'Conversa com menor de idade: o responsável legal pode acompanhar.'}</div>` : '')}
 <div class="mensagens" id="msgs"><p class="contador" style="text-align:center">Carregando…</p></div>
-<div class="digitar"><button type="button" class="btn-icone" id="btnFotoChat" aria-label="Foto"><i class="fas fa-camera"></i></button><textarea id="msgTexto" rows="1" maxlength="1000" placeholder="Mensagem…"></textarea><button type="button" class="btn-icone enviar" id="btnEnviarMsg" aria-label="Enviar"><i class="fas fa-paper-plane"></i></button></div>
+${acompanho(c) ? '' : '<div class="digitar"><button type="button" class="btn-icone" id="btnFotoChat" aria-label="Foto"><i class="fas fa-camera"></i></button><textarea id="msgTexto" rows="1" maxlength="1000" placeholder="Mensagem…" aria-label="Mensagem"></textarea><button type="button" class="btn-icone enviar" id="btnEnviarMsg" aria-label="Enviar"><i class="fas fa-paper-plane"></i></button></div>'}
 </div>`;
 el('btnVoltarChat').addEventListener('click', () => ir('mensagens'));
 const box = el('msgs');
@@ -1175,8 +1355,10 @@ box.innerHTML = msgs.map((m) => `<div class="balao ${m.autorUid === uid ? 'meu' 
 box.scrollTop = box.scrollHeight; window.scrollTo({ top: document.body.scrollHeight });
 const lidas = JSON.parse(localStorage.getItem('rede.lidas') || '{}'); lidas[id] = new Date().toISOString(); localStorage.setItem('rede.lidas', JSON.stringify(lidas));
 }, (err) => { console.error(err); box.innerHTML = '<p class="contador" style="text-align:center">Sem permissão pra ler esta conversa.</p>'; });
+if (acompanho(c)) return; // responsável legal: só leitura
 const enviar = async (texto, midiaUrl) => {
 if (!texto && !midiaUrl) return;
+if (texto && barrarOfensa(texto)) return;
 try {
 await addDoc(collection(db, 'conversas', id, 'mensagens'), { autorUid: uid, autorNome: perfil.nome || '', texto: texto || '', midiaUrl: midiaUrl || null, criadoEm: new Date().toISOString() });
 await updateDoc(doc(db, 'conversas', id), { ultimaMsg: (texto || '📷 Foto').slice(0, 80), ultimoAutor: uid, atualizadoEm: new Date().toISOString(), ...(c.tipo === 'grupo' ? { participantes: arrayUnion(uid) } : {}) });
@@ -1189,25 +1371,177 @@ el('btnFotoChat').addEventListener('click', () => { const inp = document.createE
 }
 
 /* ===================== MODERAÇÃO ===================== */
+// Cada consulta traz o filtro que a regra do Firestore consegue provar.
 async function renderModeracao(param, vista) {
 if (!(ehModerador() || ehGestor())) { ir('feed'); return; }
 el('tituloTopo').textContent = 'Moderação';
-let denuncias = []; let pendentes = [];
-// gestor: a consulta já traz o filtro do núcleo (é o que a regra consegue provar)
-try { const qd = ehModerador() ? query(collection(db, 'denuncias'), where('status', '==', 'aberta'), limit(50)) : query(collection(db, 'denuncias'), where('status', '==', 'aberta'), where('autorPostAcademiaId', '==', meuNucleoGerenciado()), limit(50)); denuncias = (await getDocs(qd)).docs.map((d) => ({ id: d.id, ...d.data() })); } catch (e) { console.warn('denuncias', e); }
-try { pendentes = (await getDocs(query(collection(db, 'posts'), where('revisao', '==', 'pendente'), limit(50)))).docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => ehModerador() || gerencia(p.autorAcademiaId) || gerencia(p.nucleoId)); } catch (e) { /* ok */ }
-pendentes.forEach((p) => { if (!posts.some((x) => x.id === p.id)) posts.push(p); });
-vista.innerHTML = `<div class="titulo-sec">Posts aguardando revisão <span class="pill gold">${pendentes.length}</span></div>${pendentes.map(postHTML).join('') || '<div class="vazio"><i class="fas fa-check"></i>Nada pendente. Posts de menores e com atletas sem termo de imagem aparecem aqui.</div>'}
-<div class="titulo-sec">Denúncias abertas <span class="pill red">${denuncias.length}</span></div>${denuncias.map((d) => `<div class="card denuncia"><i class="fas fa-flag" style="color:var(--red)"></i><div class="q"><b>${escapeHTML(d.motivo)}</b><small>por ${escapeHTML(d.denuncianteNome || '')} · ${tempoRelativo(d.criadoEm)}</small></div><div style="display:grid;gap:6px"><button type="button" class="btn-claro" data-ver-post="${d.postId}">Ver post</button>${ehAdmin() ? `<button type="button" class="btn-perigo" data-ocultar-post="${d.postId}" data-den="${d.id}"><i class="fas fa-eye-slash"></i> Ocultar post</button>` : ''}<button type="button" class="btn-claro" data-fechar-den="${d.id}">Ignorar</button></div></div>`).join('') || '<div class="vazio"><i class="fas fa-flag"></i>Nenhuma denúncia aberta.</div>'}`;
-vista.querySelectorAll('[data-ver-post]').forEach((b) => b.addEventListener('click', async () => { const s = await getDoc(doc(db, 'posts', b.dataset.verPost)); if (s.exists()) abrirPost({ id: s.id, ...s.data() }); else toast('Esse post já foi apagado.'); }));
-vista.querySelectorAll('[data-fechar-den]').forEach((b) => b.addEventListener('click', async () => { try { await updateDoc(doc(db, 'denuncias', b.dataset.fecharDen), { status: 'fechada', fechadaPor: uid }); b.closest('.card').remove(); } catch (e) { toast('Sem permissão.'); } }));
-vista.querySelectorAll('[data-ocultar-post]').forEach((b) => b.addEventListener('click', async () => { if (!ehAdmin() || !confirm('Ocultar o post denunciado da rede?')) return; try { await updateDoc(doc(db, 'posts', b.dataset.ocultarPost), { oculto: true, ocultadoPor: uid, ocultadoEm: new Date().toISOString() }); await updateDoc(doc(db, 'denuncias', b.dataset.den), { status: 'fechada', fechadaPor: uid, acao: 'post ocultado' }); b.closest('.card').remove(); posts.forEach((x) => { if (x.id === b.dataset.ocultarPost) x.oculto = true; }); toast('Post ocultado da rede.'); } catch (e) { toast(explicarErro(e, 'o post')); } }));
+const pegar = async (q) => { try { return (await getDocs(q)).docs.map((d) => ({ id: d.id, ...d.data() })); } catch (e) { console.warn('moderação', e && e.message); return []; } };
+const col = collection(db, 'posts');
+let pendentes = []; let ocultos = []; let denuncias = [];
+if (ehModerador()) {
+pendentes = await pegar(query(col, where('revisao', '==', 'pendente'), limit(60)));
+if (ehAdmin()) ocultos = await pegar(query(col, where('oculto', '==', true), limit(40)));
+denuncias = await pegar(query(collection(db, 'denuncias'), where('status', '==', 'aberta'), limit(60)));
+} else {
+const mid = meuNucleoGerenciado();
+const [a, b] = await Promise.all([pegar(query(col, where('revisao', '==', 'pendente'), where('autorAcademiaId', '==', mid), limit(60))), pegar(query(col, where('revisao', '==', 'pendente'), where('nucleoId', '==', mid), limit(60)))]);
+const m = new Map(); a.concat(b).forEach((x) => m.set(x.id, x)); pendentes = Array.from(m.values());
+denuncias = await pegar(query(collection(db, 'denuncias'), where('status', '==', 'aberta'), where('autorPostAcademiaId', '==', mid), limit(60)));
+}
+pendentes.sort((x, y) => String(y.criadoEm).localeCompare(String(x.criadoEm)));
+guardarAvulsos(pendentes.concat(ocultos));
+const pontinho = el('pontoModeracao'); if (pontinho) pontinho.classList.toggle('oculto', !(pendentes.length + denuncias.length));
+const denunciaHTML = (d) => `<div class="card denuncia"><i class="fas ${d.tipoAlvo === 'comentario' ? 'fa-comment-slash' : 'fa-flag'}" style="color:var(--red)"></i><div class="q"><b>${escapeHTML(d.motivo || '')}</b><small>${d.tipoAlvo === 'comentario' ? 'comentário · ' : ''}${d.denuncianteUid === 'sistema' ? 'filtro automático' : `por ${escapeHTML(d.denuncianteNome || '')}`} · ${tempoRelativo(d.criadoEm)}</small></div><div style="display:grid;gap:6px">
+<button type="button" class="btn-claro" data-ver-post="${escapeHTML(d.postId || '')}">Ver post</button>
+${d.tipoAlvo === 'comentario' ? `<button type="button" class="btn-perigo" data-apagar-coment="${escapeHTML(d.comentarioId || '')}" data-post="${escapeHTML(d.postId || '')}" data-den="${d.id}"><i class="fas fa-trash-can"></i> Apagar comentário</button>` : (ehAdmin() ? `<button type="button" class="btn-perigo" data-ocultar-post="${escapeHTML(d.postId || '')}" data-den="${d.id}"><i class="fas fa-eye-slash"></i> Ocultar post</button>` : '')}
+<button type="button" class="btn-claro" data-fechar-den="${d.id}">Manter</button></div></div>`;
+vista.innerHTML = `<div class="titulo-sec">Posts aguardando revisão <span class="pill gold">${pendentes.length}</span></div>${pendentes.map((p) => `${p.moderacaoAuto ? `<p class="contador mod-auto"><i class="fas fa-robot"></i> Filtro automático: ${escapeHTML((p.moderacaoAuto.motivos || []).join(', '))}</p>` : ''}${postHTML(p)}`).join('') || '<div class="vazio"><i class="fas fa-check"></i>Nada pendente. Fotos de menores, fotos com atleta sem termo de imagem e o que o filtro automático segurar aparecem aqui.</div>'}
+<div class="titulo-sec">Denúncias abertas <span class="pill red">${denuncias.length}</span></div>${denuncias.map(denunciaHTML).join('') || '<div class="vazio"><i class="fas fa-flag"></i>Nenhuma denúncia aberta.</div>'}
+${ehAdmin() ? `<div class="titulo-sec">Posts ocultados <span class="pill neutra">${ocultos.length}</span></div>${ocultos.map(postHTML).join('') || '<div class="vazio"><i class="fas fa-eye"></i>Nenhum post ocultado.</div>'}` : ''}`;
+vista.querySelectorAll('[data-ver-post]').forEach((b) => b.addEventListener('click', async () => { try { const s2 = await getDoc(doc(db, 'posts', b.dataset.verPost)); if (s2.exists()) abrirPost({ id: s2.id, ...s2.data() }); else toast('Esse post já foi apagado.'); } catch (e) { toast('Sem permissão para abrir.'); } }));
+const fecharDen = async (id, acao) => updateDoc(doc(db, 'denuncias', id), { status: 'fechada', fechadaPor: uid, fechadaEm: new Date().toISOString(), ...(acao ? { acao } : {}) });
+vista.querySelectorAll('[data-fechar-den]').forEach((b) => b.addEventListener('click', async () => { try { await fecharDen(b.dataset.fecharDen, 'mantido'); b.closest('.card').remove(); toast('Denúncia encerrada.'); } catch (e) { toast('Sem permissão.'); } }));
+vista.querySelectorAll('[data-apagar-coment]').forEach((b) => b.addEventListener('click', async () => { if (!confirm('Apagar o comentário denunciado?')) return; try { await deleteDoc(doc(db, 'posts', b.dataset.post, 'comentarios', b.dataset.apagarComent)); try { await updateDoc(doc(db, 'posts', b.dataset.post), { comentariosCount: increment(-1) }); } catch (e) { /* ok */ } await fecharDen(b.dataset.den, 'comentário apagado'); b.closest('.card').remove(); toast('Comentário apagado.'); } catch (e) { toast('Sem permissão para apagar.'); } }));
+vista.querySelectorAll('[data-ocultar-post]').forEach((b) => b.addEventListener('click', async () => { if (!ehAdmin() || !confirm('Ocultar o post denunciado da rede?')) return; try { await updateDoc(doc(db, 'posts', b.dataset.ocultarPost), { oculto: true, ocultadoPor: uid, ocultadoEm: new Date().toISOString(), publico: false }); await fecharDen(b.dataset.den, 'post ocultado'); b.closest('.card').remove(); posts.forEach((x) => { if (x.id === b.dataset.ocultarPost) { x.oculto = true; x.publico = false; } }); toast('Post ocultado da rede.'); } catch (e) { toast(explicarErro(e, 'o post')); } }));
+}
+
+/* ===================== POST ABERTO (link compartilhado / notificação) ===================== */
+async function renderPostUnico(id, vista) {
+el('tituloTopo').textContent = 'Publicação';
+let p = postPorId(id);
+if (!p) { try { const sn = await getDoc(doc(db, 'posts', id)); if (sn.exists()) { p = { id: sn.id, ...sn.data() }; guardarAvulsos([p]); } } catch (e) { p = null; } }
+if (!p) { vista.innerHTML = '<div class="vazio"><i class="fas fa-lock"></i><b>Publicação indisponível</b>Ela foi apagada, está em revisão ou é de um perfil privado.</div>'; return; }
+await pubDe(p.autorUid);
+vista.innerHTML = `<button type="button" class="btn-claro" id="btnVoltarFeed" style="margin-bottom:10px"><i class="fas fa-arrow-left"></i> Voltar ao feed</button>${postHTML(p)}`;
+el('btnVoltarFeed').addEventListener('click', () => ir('feed'));
+const card = vista.querySelector('.post'); if (card) abrirComentarios(p, card, true);
+}
+
+/* ===================== AGENDA DE EVENTOS (inscrição "Eu vou") ===================== */
+const dataCurta = (d) => new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' });
+async function renderAgenda(id, vista) {
+el('tituloTopo').textContent = 'Agenda';
+let eventos = []; try { eventos = (await listar('eventos')).filter((e) => e.data); } catch (e) { eventos = []; }
+const h = hoje0();
+const proximos = eventos.filter((e) => new Date(e.data + 'T23:59:59') >= h).sort((a, b) => a.data.localeCompare(b.data));
+const passados = eventos.filter((e) => new Date(e.data + 'T23:59:59') < h && new Date(e.data + 'T12:00:00') > new Date(h.getTime() - 120 * 86400000)).sort((a, b) => b.data.localeCompare(a.data));
+if (id) {
+const ev = eventos.find((e) => e.id === id);
+if (!ev) { vista.innerHTML = '<div class="vazio"><i class="far fa-calendar"></i><b>Evento não encontrado</b></div>'; return; }
+let conf = []; try { conf = (await getDocs(collection(db, 'eventos', id, 'confirmados'))).docs.map((d) => ({ id: d.id, ...d.data() })); } catch (e) { conf = []; }
+const euVou = conf.some((c) => c.id === uid); const futuro = new Date(ev.data + 'T23:59:59') >= h;
+const nuc = nucleoDe(ev.academiaId);
+vista.innerHTML = `<div class="evento grande"><div class="data"><b>${ev.data.slice(8, 10)}</b><small>${new Date(ev.data + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase()}</small></div><b class="n">${escapeHTML(ev.nome || 'Evento')}</b><small>${escapeHTML(dataCurta(ev.data))}${ev.hora ? ` · ${escapeHTML(ev.hora)}` : ''}${nuc ? ` · ${escapeHTML(nomeCurtoNucleo(nuc.nome))}` : ' · Grupo todo'}</small>
+${ev.descricao ? `<p class="ev-desc">${escapeHTML(ev.descricao)}</p>` : ''}${ev.local ? `<a class="nucleo-endereco" href="${escapeHTML(linkMapa({ endereco: ev.local }))}" target="_blank" rel="noopener"><i class="fas fa-location-dot"></i> ${escapeHTML(ev.local)} <i class="fas fa-diamond-turn-right"></i></a>` : ''}
+${ev.taxa ? `<span class="pill" style="background:rgba(255,255,255,.18);color:#fff;margin-top:6px"><i class="fas fa-ticket"></i> Taxa: ${Number(ev.taxa).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>` : ''}
+<div class="acoes-ev">${futuro ? `<button type="button" class="${euVou ? 'btn-verde' : 'btn-claro'}" id="btnEuVou">${euVou ? '<i class="fas fa-check"></i> Inscrito — toque para sair' : '<i class="far fa-calendar-check"></i> Eu vou'}</button>` : ''}<button type="button" class="btn-claro" data-album="${escapeHTML(id)}"><i class="fas fa-images"></i> Álbum</button></div></div>
+<div class="titulo-sec">Confirmados <span class="pill teal">${conf.length}</span></div>
+<div class="card">${conf.length ? conf.sort((a, b) => String(a.nome).localeCompare(String(b.nome))).map((c) => `<div class="pessoa">${avatarHTML({ id: c.id, nome: c.nome, fotoUrl: c.fotoUrl })}<button type="button" class="q" data-perfil="${escapeHTML(c.id)}"><b>${escapeHTML(c.nome || '')}</b><small>${escapeHTML([c.cordaoAtual, nomeCurtoNucleo((nucleoDe(c.academiaId) || {}).nome)].filter(Boolean).join(' · '))}</small></button></div>`).join('') : '<p class="contador">Ninguém confirmou ainda. Seja o primeiro!</p>'}</div>`;
+const b = el('btnEuVou');
+if (b) b.addEventListener('click', async () => {
+b.disabled = true;
+try {
+if (euVou) await deleteDoc(doc(db, 'eventos', id, 'confirmados', uid));
+else await setDoc(doc(db, 'eventos', id, 'confirmados', uid), { nome: perfil.nome || '', em: new Date().toISOString(), academiaId: perfil.academiaId || null, cordaoAtual: (meuPub && meuPub.cordaoAtual) || perfil.cordaoAtual || '', fotoUrl: /^https:/.test(perfil.fotoUrl || '') ? perfil.fotoUrl : '' });
+toast(euVou ? 'Inscrição cancelada.' : 'Inscrição confirmada! Te vemos lá.');
+renderAgenda(id, vista);
+} catch (e) { toast('Não foi possível confirmar agora.'); b.disabled = false; }
+});
+return;
+}
+const cartao = (e) => `<button type="button" class="ev-linha" data-agenda="${escapeHTML(e.id)}"><span class="d"><b>${e.data.slice(8, 10)}</b><small>${new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</small></span><span class="t"><b>${escapeHTML(e.nome || 'Evento')}</b><small>${escapeHTML(dataCurta(e.data))}${e.hora ? ` · ${escapeHTML(e.hora)}` : ''}${nucleoDe(e.academiaId) ? ` · ${escapeHTML(nomeCurtoNucleo(nucleoDe(e.academiaId).nome))}` : ' · Grupo'}</small></span><i class="fas fa-chevron-right"></i></button>`;
+vista.innerHTML = `<div class="titulo-sec">Próximos eventos <span class="pill teal">${proximos.length}</span></div>
+<div class="card lista-ev">${proximos.map(cartao).join('') || '<p class="contador">Nenhum evento marcado. Quando o grupo marcar batizado, roda ou oficina, aparece aqui.</p>'}</div>
+${passados.length ? `<div class="titulo-sec">Aconteceram <span class="contador">álbuns</span></div><div class="card lista-ev">${passados.map(cartao).join('')}</div>` : ''}`;
+}
+
+/* ===================== ÁLBUM DO EVENTO ===================== */
+async function renderAlbum(id, vista) {
+let ev = null; try { ev = await buscar('eventos', id); } catch (e) { ev = null; }
+el('tituloTopo').textContent = ev ? `Álbum · ${ev.nome || 'evento'}` : 'Álbum';
+const pegar = async (q) => { try { return (await getDocs(q)).docs.map((d) => ({ id: d.id, ...d.data() })); } catch (e) { return []; } };
+const [pub, meus] = await Promise.all([pegar(query(collection(db, 'posts'), where('eventoId', '==', id), where('publico', '==', true), limit(120))), pegar(query(collection(db, 'posts'), where('eventoId', '==', id), where('autorUid', '==', uid), limit(40)))]);
+const m = new Map(); pub.concat(meus).forEach((p) => m.set(p.id, p));
+const lista = Array.from(m.values()).filter((p) => midiasDe(p).length).sort((a, b) => String(b.criadoEm).localeCompare(String(a.criadoEm)));
+guardarAvulsos(lista);
+const pessoas = new Map(); lista.forEach((p) => (p.marcados || []).forEach((x) => pessoas.set(x.uid, x.nome)));
+let filtro = null;
+const desenhar = () => {
+const itens = filtro ? lista.filter((p) => (p.marcados || []).some((x) => x.uid === filtro) || p.autorUid === filtro) : lista;
+vista.innerHTML = `${ev ? `<button type="button" class="btn-claro" data-agenda="${escapeHTML(id)}" style="margin-bottom:10px"><i class="far fa-calendar"></i> ${escapeHTML(ev.nome || 'Evento')} · ${escapeHTML(dataCurta(ev.data))}</button>` : ''}
+${pessoas.size ? `<div class="chips">${[['', 'Todos']].concat(Array.from(pessoas.entries())).map(([u, n]) => `<button type="button" class="pill ${(filtro || '') === u ? 'teal' : 'neutra'}" data-filtro="${escapeHTML(u)}">${escapeHTML(String(n).split(' ')[0])}</button>`).join('')}</div>` : ''}
+${gradeHTML(itens, 'Ainda sem fotos deste evento. Ao publicar, escolha o evento em "Álbum do evento".')}`;
+vista.querySelectorAll('[data-abrir-post]').forEach((b) => b.addEventListener('click', () => abrirPost(lista.find((p) => p.id === b.dataset.abrirPost))));
+vista.querySelectorAll('[data-filtro]').forEach((b) => b.addEventListener('click', () => { filtro = b.dataset.filtro || null; desenhar(); }));
+};
+desenhar();
+}
+
+/* ===================== NOTIFICAÇÕES ===================== */
+async function renderNotificacoes(param, vista) {
+el('tituloTopo').textContent = 'Notificações';
+const e = estadoPush();
+vista.innerHTML = `${e === 'default' ? '<div class="card push-convite"><i class="fas fa-bell"></i><div><b>Avisos no celular</b><small>Curtidas, comentários, mensagens, brasões e eventos — mesmo com o app fechado.</small></div><button type="button" class="btn-verde" id="btnAtivarPush">Ativar</button></div>' : ''}
+<div class="card"><div class="nt-lista" id="ntLista"><p class="contador">Carregando…</p></div></div>`;
+const b = el('btnAtivarPush');
+if (b) b.addEventListener('click', async () => { b.disabled = true; try { const ok = await ativarPush(uid); toast(ok ? 'Pronto! Você vai receber os avisos neste aparelho.' : 'Permissão não concedida.'); renderNotificacoes(null, vista); } catch (err) { toast(err.message); b.disabled = false; } });
+try {
+const lista = await listarNotificacoes(uid, 60);
+el('ntLista').innerHTML = lista.length ? lista.map(notificacaoHTML).join('') : '<div class="vazio" style="border:0"><i class="far fa-bell"></i><b>Nada por aqui ainda</b>Quando alguém curtir, comentar ou te marcar, aparece aqui.</div>';
+await marcarTodasLidas(uid, lista);
+} catch (err) { el('ntLista').innerHTML = '<p class="contador">Não foi possível carregar agora.</p>'; }
+}
+
+/* ===================== AJUSTES (privacidade, notificações, acessibilidade, LGPD) ===================== */
+async function renderAjustes(param, vista) {
+el('tituloTopo').textContent = 'Ajustes';
+const push = estadoPush(); const pushLigado = push === 'granted' && perfil.notificacoesPush !== false;
+vista.innerHTML = `<div class="card conf-lista">
+<div class="conf"><i class="fas fa-bell"></i><div><b>Notificações no celular</b><small>${push === 'denied' ? 'Bloqueadas no navegador — libere nas configurações do site.' : push === 'indisponivel' ? 'No iPhone, instale a Rede na tela inicial primeiro.' : 'Curtidas, comentários, mensagens, brasões e eventos.'}</small></div>${push === 'denied' || push === 'indisponivel' ? '' : `<button type="button" class="switch cinza ${pushLigado ? 'on' : ''}" id="swPush" role="switch" aria-checked="${pushLigado}" aria-label="Notificações no celular"></button>`}</div>
+<button type="button" class="conf" id="cfA11y"><i class="fas fa-universal-access"></i><div><b>Acessibilidade</b><small>Tamanho do texto e alto contraste</small></div><i class="fas fa-chevron-right"></i></button>
+<button type="button" class="conf" id="cfInstalar"><i class="fas fa-mobile-screen-button"></i><div><b>${estaInstalado() ? 'Rede instalada neste aparelho' : 'Instalar a Rede no celular'}</b><small>Ícone próprio na tela inicial, que abre direto na Rede</small></div><i class="fas fa-chevron-right"></i></button>
+<button type="button" class="conf" id="cfTutorial"><i class="fas fa-circle-question"></i><div><b>Ver o tutorial de novo</b><small>Como funciona a Rede em 4 passos</small></div><i class="fas fa-chevron-right"></i></button>
+</div>
+<div class="titulo-sec">Seus dados <span class="contador">LGPD</span></div>
+<div class="card conf-lista">
+<button type="button" class="conf" id="cfExportar"><i class="fas fa-file-arrow-down"></i><div><b>Baixar meus dados</b><small>Cadastro, presenças, pagamentos e publicações num arquivo</small></div><i class="fas fa-chevron-right"></i></button>
+<a class="conf" href="privacidade.html" target="_blank" rel="noopener"><i class="fas fa-shield-halved"></i><div><b>Política de privacidade</b><small>Como o grupo cuida dos seus dados</small></div><i class="fas fa-arrow-up-right-from-square"></i></a>
+<button type="button" class="conf perigo" id="cfExcluir"><i class="fas fa-user-xmark"></i><div><b>Pedir exclusão da conta</b><small>O Admin Master confirma e o sistema apaga seus dados</small></div><i class="fas fa-chevron-right"></i></button>
+</div>`;
+const sw = el('swPush');
+if (sw) sw.addEventListener('click', async () => {
+const ligar = !sw.classList.contains('on'); sw.disabled = true;
+try {
+if (ligar) { const ok = await ativarPush(uid); if (!ok) throw new Error('Permissão não concedida.'); await atualizar('usuarios', uid, { notificacoesPush: true }); perfil.notificacoesPush = true; }
+else { await desativarPush(uid); await atualizar('usuarios', uid, { notificacoesPush: false }); perfil.notificacoesPush = false; }
+sw.classList.toggle('on', ligar); sw.setAttribute('aria-checked', String(ligar)); toast(ligar ? 'Notificações ligadas neste aparelho.' : 'Notificações desligadas.');
+} catch (e) { toast(e.message || 'Não foi possível mudar agora.'); } finally { sw.disabled = false; }
+});
+el('cfA11y').addEventListener('click', abrirAcessibilidade);
+el('cfInstalar').addEventListener('click', () => instalar({ nome: ESCOLA.nomeRede, icone: 'assets/rede-icon-192.png' }));
+el('cfTutorial').addEventListener('click', () => tutorialRede(true));
+el('cfExportar').addEventListener('click', async () => { toast('Juntando seus dados…'); try { await exportarMeusDados(uid); toast('Arquivo baixado.'); } catch (e) { toast('Não foi possível gerar o arquivo agora.'); } });
+el('cfExcluir').addEventListener('click', async () => {
+if (!confirm('Pedir a exclusão da sua conta e dos seus dados? O Admin Master confirma e o sistema apaga cadastro, publicações, presenças e conversas. Pagamentos ficam anonimizados (obrigação fiscal).')) return;
+const motivo = prompt('Quer contar o motivo? (opcional)') || '';
+try { const r = await pedirExclusaoDaConta(uid, perfil.nome || '', perfil.academiaId || null, motivo); toast(r.jaExistia ? 'Seu pedido já está com o Admin Master.' : 'Pedido enviado ao Admin Master.'); } catch (e) { toast('Não foi possível enviar o pedido agora.'); }
+});
+}
+function tutorialRede(forcar = false) {
+tutorial('rede', [
+{ icone: 'fa-house', titulo: `Bem-vindo à ${ESCOLA.nomeRede}`, texto: 'A rede fechada do grupo: só entra quem tem cadastro. Aqui ficam os stories, os avisos do núcleo e os momentos do treino.' },
+{ icone: 'fa-plus', titulo: 'Publique o treino', texto: 'Toque no + para postar fotos e vídeos. Marque quem treinou com você, escolha o álbum do evento e use @ para mencionar alguém.' },
+{ icone: 'fa-medal', titulo: 'Brasões de verdade', texto: 'Presenças, graduações e publicações viram brasões automaticamente. O responsável do núcleo também concede destaques.' },
+{ icone: 'fa-shield-halved', titulo: 'Rede segura', texto: 'Fotos de crianças passam pela revisão do responsável do núcleo, e você pode denunciar qualquer post ou comentário no menu ⋯.' },
+], { forcar });
 }
 
 /* ===================== TEMA ===================== */
 function aplicarTema(t) { document.documentElement.setAttribute('data-theme', t); document.querySelector('meta[name="theme-color"]').setAttribute('content', t === 'dark' ? '#0E1715' : '#F5F9F8'); el('btnTema').innerHTML = `<i class="fas ${t === 'dark' ? 'fa-sun' : 'fa-moon'}"></i>`; try { localStorage.setItem('rede.tema', t); } catch (e) { /* ok */ } }
 
 /* ===================== BOOT ===================== */
+iniciarExperiencia();
+{ const st = document.createElement('style'); st.textContent = CSS_NOTIF; document.head.appendChild(st); }
 observarSessao(async (user) => {
 el('telaCarregando').classList.add('oculto');
 if (!user) { el('telaSemSessao').classList.remove('oculto'); return; }
@@ -1219,6 +1553,7 @@ seguindo = new Set(Array.isArray(perfil.seguindo) ? perfil.seguindo : []);
 salvos = new Set(Array.isArray(perfil.salvos) ? perfil.salvos : []);
 try { nucleos = await listar('nucleos'); } catch (e) { nucleos = []; }
 try { configBrasoes = (await buscar('config', 'brasoes')) || {}; } catch (e) { configBrasoes = {}; }
+try { const mod = await buscar('config', 'moderacao'); configBrasoes.palavrasExtras = (mod && Array.isArray(mod.palavras)) ? mod.palavras : []; } catch (e) { /* sem lista extra */ }
 if (!configBrasoes.nucleoFundadorId) { // padrão honesto: o núcleo cujo responsável tem Acesso Geral
 try { const pubs = await Promise.all(nucleos.filter((n) => n.professorUid).map((n) => pubDe(n.professorUid))); const i = pubs.findIndex((p) => p && p.fundador); if (i >= 0) configBrasoes.nucleoFundadorId = nucleos.filter((n) => n.professorUid)[i].id; } catch (e) { /* ok */ }
 }
@@ -1234,7 +1569,12 @@ el('app').classList.remove('oculto');
 const temPainel = ehAdmin() || souFundador(perfil) || (!!perfil.academiaGerenciadaId && (papeis().includes('mestre') || papeis().includes('instrutor')));
 let origem = null; try { origem = sessionStorage.getItem('rede.voltar'); } catch (e) { /* ok */ }
 const destino = origem && /^(admin\.html|app\.html(\?modo=aluno)?)$/.test(origem) ? origem : (temPainel ? 'admin.html' : 'app.html');
-const bv = el('btnVoltarApp'); if (bv) { bv.href = destino; bv.title = destino.startsWith('admin') ? 'Voltar ao painel do núcleo' : 'Voltar ao app'; bv.setAttribute('aria-label', bv.title); }
+const bv = el('btnVoltarApp');
+if (bv) {
+bv.href = destino; bv.title = destino.startsWith('admin') ? 'Ir para o painel de gestão' : 'Ir para o app do atleta'; bv.setAttribute('aria-label', bv.title);
+const rot = bv.querySelector('span'); if (rot) rot.textContent = destino.startsWith('admin') ? 'Painel' : 'App';
+const ic = bv.querySelector('i'); if (ic) ic.className = destino.startsWith('admin') ? 'fas fa-gauge-high' : 'fas fa-house-user';
+}
 }
 let tema = 'light'; try { tema = localStorage.getItem('rede.tema') || 'light'; } catch (e) { /* ok */ }
 aplicarTema(tema);
@@ -1242,6 +1582,12 @@ el('btnTema').addEventListener('click', () => aplicarTema(document.documentEleme
 if (ehModerador() || ehGestor()) el('btnModeracao').style.display = '';
 el('btnModeracao').addEventListener('click', () => ir('moderacao'));
 el('btnMensagensTopo').addEventListener('click', () => ir('mensagens'));
+const sino = el('btnNotificacoes');
+if (sino) {
+sino.addEventListener('click', () => ir('notificacoes'));
+ligarContador(uid, (n) => { const b = el('contNotif'); if (!b) return; b.textContent = n > 9 ? '9+' : String(n); b.classList.toggle('oculto', !n); sino.setAttribute('aria-label', n ? `Notificações: ${n} novas` : 'Notificações'); });
+}
+ouvirPushComAppAberto((n) => toast(`${n.title || 'Nova notificação'}${n.body ? ` — ${n.body}` : ''}`));
 document.querySelector('.nav-inferior').addEventListener('click', (ev) => { const b = ev.target.closest('button'); if (b) ir(b.dataset.rota); });
 el('btnFecharStory').addEventListener('click', fecharStories);
 el('storyAnt').addEventListener('click', () => proximoStory(-1)); el('storyProx').addEventListener('click', () => proximoStory(1));
@@ -1255,6 +1601,7 @@ el('inputCapa').addEventListener('change', (ev) => { const f = ev.target.files[0
 ligarEventosVista();
 sincronizarPerfilPublico(); // em paralelo: não trava a primeira tela
 window.addEventListener('hashchange', roteia);
-if (location.hash.startsWith('#post/')) { const id = location.hash.slice(6); try { const s = await getDoc(doc(db, 'posts', id)); if (s.exists()) { location.hash = '#feed'; setTimeout(() => abrirPost({ id: s.id, ...s.data() }), 400); } } catch (e) { /* ok */ } }
 roteia();
+if (location.hash === '#instalar') setTimeout(() => instalar({ nome: ESCOLA.nomeRede, icone: 'assets/rede-icon-192.png' }), 500);
+else { pedirAceiteSeNecessario(perfil, (d) => atualizar('usuarios', uid, d)); setTimeout(() => tutorialRede(false), 900); }
 });
