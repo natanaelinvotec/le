@@ -1,0 +1,108 @@
+# Publica no Firebase, sozinho, tudo o que fica no servidor:
+#   regras do Firestore e do Storage, índices e as Cloud Functions.
+# Roda quando você envia (upload) algo em firebase/, functions/ ou tests/regras/
+# pelo GitHub — ou pelo botão "Run workflow" na aba Actions.
+# Antes de publicar, roda os testes; se algum falhar, NADA é publicado.
+# Precisa de UM segredo no repositório: FIREBASE_SERVICE_ACCOUNT
+# (passo a passo em docs/SERVIDOR.md).
+name: Firebase (regras, índices e funções)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'firebase/**'
+      - 'functions/**'
+      - 'tests/regras/**'
+      - 'firebase.json'
+      - 'js/brasoes.js'
+      - 'js/escola.js'
+      - 'js/moderacao.js'
+      - '.github/workflows/firebase.yml'
+  workflow_dispatch:
+    inputs:
+      recalcular:
+        description: 'Recalcular de novo o cartão público e os brasões de todo mundo'
+        type: boolean
+        default: false
+
+concurrency:
+  group: firebase-publicar
+  cancel-in-progress: false
+
+env:
+  PROJETO: capoeira-liberdade
+
+jobs:
+  testar:
+    name: Testes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Copiar os módulos que o app e o servidor compartilham
+        run: cp js/brasoes.js js/escola.js js/moderacao.js functions/src/compartilhado/
+      - name: Testes da lógica das funções
+        working-directory: functions
+        run: node --test test/logica.test.mjs
+      - name: Instalar o Firebase CLI
+        run: npm install -g firebase-tools --no-audit --no-fund
+      - name: Testes das regras do Firestore (emulador)
+        run: |
+          (cd tests/regras && npm install --no-audit --no-fund)
+          firebase emulators:exec --only firestore --project demo-le-regras "cd tests/regras && npm test"
+
+  publicar:
+    name: Publicar no Firebase
+    needs: testar
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Copiar os módulos que o app e o servidor compartilham
+        run: cp js/brasoes.js js/escola.js js/moderacao.js functions/src/compartilhado/
+      - name: Entrar no Google Cloud com a conta de serviço
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Descobrir a região do banco (as funções ficam na mesma)
+        run: |
+          LOC=$(gcloud firestore databases describe --database='(default)' --project "$PROJETO" --format='value(locationId)')
+          case "$LOC" in
+            nam5) REG=us-central1 ;;
+            eur3) REG=europe-west1 ;;
+            *) REG="$LOC" ;;
+          esac
+          echo "Banco em $LOC → funções em $REG"
+          echo "REGIAO=$REG" > functions/.env
+      - name: Ligar as APIs necessárias (só faz algo na primeira vez)
+        run: |
+          gcloud services enable vision.googleapis.com cloudfunctions.googleapis.com run.googleapis.com \
+            eventarc.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com \
+            cloudscheduler.googleapis.com pubsub.googleapis.com firebaserules.googleapis.com \
+            firebasestorage.googleapis.com fcm.googleapis.com --project "$PROJETO"
+      - name: Instalar dependências
+        run: |
+          npm install -g firebase-tools --no-audit --no-fund
+          (cd functions && npm install --omit=dev --no-audit --no-fund)
+      - name: Publicar regras e índices
+        run: firebase deploy --only firestore:rules,firestore:indexes,storage --project "$PROJETO" --non-interactive
+      - name: Publicar as funções
+        # Na primeira vez o Google às vezes ainda está liberando permissões
+        # internas (Eventarc): espera 90 s e tenta de novo.
+        run: |
+          firebase deploy --only functions --project "$PROJETO" --non-interactive --force \
+          || (echo "Tentando de novo em 90 s…" && sleep 90 && firebase deploy --only functions --project "$PROJETO" --non-interactive --force)
+      - name: Migrações de dados (só as que faltam)
+        working-directory: functions
+        run: node scripts/migrar.mjs ${{ github.event.inputs.recalcular == 'true' && '--forcar' || '' }}
