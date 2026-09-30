@@ -51,6 +51,7 @@ export function criarDb(inicial = {}) {
               case '<': return val !== undefined && val < w.v;
               case '>': return val !== undefined && val > w.v;
               case '>=': return val !== undefined && val >= w.v;
+              case '<=': return val !== undefined && val <= w.v;
               case 'array-contains': return Array.isArray(val) && val.includes(w.v);
               default: throw new Error(`op ${w.op}`);
             }

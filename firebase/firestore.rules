@@ -97,7 +97,8 @@ request.resource.data.token is string && request.resource.data.token.size() < 40
 // lida e apaga.
 match /notificacoes/{uid}/itens/{id} {
 allow read, delete: if logado() && request.auth.uid == uid;
-allow update: if logado() && request.auth.uid == uid && mudou().hasOnly(['lida', 'lidaEm']);
+// celebradoEm: a festa (troca de cordão / brasão novo) já apareceu na tela principal.
+allow update: if logado() && request.auth.uid == uid && mudou().hasOnly(['lida', 'lidaEm', 'celebradoEm']);
 allow create: if false;
 }
 
@@ -540,6 +541,20 @@ allow create, update: if cuidaDosBeneficiarios() &&
 request.resource.data.keys().hasOnly(['lista', 'atualizadoEm', 'porUid']) &&
 request.resource.data.lista is list && request.resource.data.lista.size() <= 10 &&
 request.resource.data.porUid == request.auth.uid;
+}
+
+// ===== Certificado de graduação (emitido só pelo servidor na troca de cordão) =====
+// certificados/{codigo}: abre UM pelo código (certificado.html#CODIGO, o QR); ninguém lista.
+match /certificados/{codigo} {
+allow get: if true;
+allow list, write: if false;
+}
+// certificadosDe/{uid}: a lista da pessoa (app) — ela, o responsável legal e o núcleo.
+match /certificadosDe/{uid} {
+function atletaC() { return get(/databases/$(database)/documents/usuarios/$(uid)).data; }
+allow read: if logado() && (request.auth.uid == uid || atletaC().get('responsavelUid', null) == request.auth.uid ||
+ehAdmin() || souFundador() || (ehGestor() && minhaAcademiaGerenciada() != null && atletaC().get('academiaId', null) == minhaAcademiaGerenciada()));
+allow write: if false;
 }
 
 // Conteúdo do site público (index.html): todo mundo lê; só o Admin Master

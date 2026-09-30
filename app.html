@@ -1729,6 +1729,11 @@ class Component extends DCLogic {
           try { sessionStorage.setItem('rede.voltar', modoAluno ? 'app.html?modo=aluno' : 'app.html'); } catch (_) { /* ok */ }
           this._uid = user.uid;
           await this.montarPerfil(user.uid, perfil);
+          // Troca de cordão / brasão novo "salta" na tela principal (uma vez só).
+          setTimeout(() => {
+            import(new URL('js/celebrar.js?v=20260930', document.baseURI).href)
+              .then((m) => m.verificarCelebracoes(user.uid, perfil)).catch((e) => console.warn('festa', e));
+          }, 1800);
         } catch (e) {
           console.error(e);
           this.toast('Não foi possível carregar seus dados. Recarregue a página.');
@@ -2589,7 +2594,7 @@ class Component extends DCLogic {
       perfilSub: gestor && perfilAtual ? perfilAtual.sub : ('Cordão ' + atleta.cordao + ' · ' + atleta.academia),
 
       opcoesPerfil: [
-        { rotulo:'Minha carteirinha', ajuda:'Carteirinha de atleta com QR, foto de documento e descontos dos parceiros', icone:'fas fa-address-card', acao: () => { window.location.href = 'carteirinha.html'; } },
+        { rotulo:'Minha carteirinha', ajuda:'Carteirinha com QR, beneficiários, certificados de graduação e descontos dos parceiros', icone:'fas fa-address-card', acao: () => { window.location.href = 'carteirinha.html'; } },
         { rotulo:'Meus dados', ajuda:'Nome, foto do perfil (a da Rede, do seu jeito) e celular', icone:'fas fa-id-card', acao: () => this.abrirSheet('dados') },
         { rotulo:'Trocar senha', ajuda:'Com a senha atual; se esqueceu, enviamos um link', icone:'fas fa-key', acao: () => this.trocarSenhaAcao() },
       ].concat(podeTerApresentacaoApp(this._perfilBruto) ? [{ rotulo:'Minha apresentação', ajuda:'Vídeo que abre quando você entra na plataforma', icone:'fas fa-film', acao: () => this.minhaApresentacaoAcao() }] : []).concat([{ rotulo:'Troféus & Brasões', ajuda:'Sua escada de cordoada e conquistas', icone:'fas fa-trophy', acao: () => { window.location.href = 'rede.html#brasoes'; } }])

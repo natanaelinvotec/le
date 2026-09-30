@@ -832,7 +832,10 @@ ${a.descricao ? `<p class="bio" style="text-align:center;margin-top:10px">${esca
 <div class="opc" style="margin-top:12px"><div class="ic"><i class="fas fa-bullseye"></i></div><div class="t"><b>Como conquistar</b><small>${escapeHTML(a.como || textoMetrica(a))}</small></div></div>
 ${a.progresso && !a.ganho ? `<div class="progresso" style="margin-top:8px"><div class="l"><span>${escapeHTML(textoMetrica(a))}</span><span>${a.progresso.atual}/${a.progresso.meta}</span></div><div class="barra"><i style="width:${Math.round(a.progresso.atual * 100 / a.progresso.meta)}%;--c1:#0B5C52;--c2:#389E92;--c3:#00E676"></i></div></div>` : ''}
 ${glb ? `<button type="button" class="btn-claro" id="btnGirar" style="width:100%;justify-content:center;margin-top:10px"><i class="fas fa-cube"></i> Ver em 3D e girar</button>` : ''}
+${a.ganho && (pub.id || uid) === uid ? `<button type="button" class="btn-verde" id="btnCompartilharBrasao" style="width:100%;justify-content:center;margin-top:10px"><i class="fas fa-share-nodes"></i> Compartilhar este brasão</button>` : ''}
 </div>`);
+const btnComp = f.querySelector('#btnCompartilharBrasao');
+if (btnComp) btnComp.addEventListener('click', () => { f.remove(); abrirFestaBrasoes([a.id], true); });
 const btn3d = f.querySelector('#btnGirar');
 if (btn3d) btn3d.addEventListener('click', async () => {
 btn3d.disabled = true; btn3d.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando 3D…';
@@ -843,8 +846,14 @@ btn3d.remove();
 } catch (e) { btn3d.disabled = false; btn3d.innerHTML = '<i class="fas fa-cube"></i> Ver em 3D e girar'; toast('Não foi possível carregar o 3D agora.'); }
 });
 }
-// Festa de brasão novo (momento de pico): mostra a peça grande com brilho.
-function celebrarBrasoes(ids) {
+// Festa de brasão (e compartilhar: stories, WhatsApp, Rede) — a mesma do app (js/celebrar.js).
+function abrirFestaBrasoes(ids, soCompartilhar = false) {
+import('./celebrar.js?v=20260930').then((m) => m.abrirFesta({ tipo: 'brasao', nome: perfil.nome || (meuPub && meuPub.nome) || '', brasoes: ids, compartilhar: soCompartilhar }, { uid, perfil }))
+.catch(() => { if (!soCompartilhar) celebrarBrasoesSimples(ids); });
+}
+function celebrarBrasoes(ids) { abrirFestaBrasoes(ids, false); }
+// Festa de brasão novo (momento de pico): mostra a peça grande com brilho (reserva, se o módulo não carregar).
+function celebrarBrasoesSimples(ids) {
 const lista = ids.map(brasaoPorId).filter(Boolean); if (!lista.length) return;
 const a = lista[0];
 const f = abrirFolha(`<div class="celebra"><span class="eyebrow">${lista.length > 1 ? `${lista.length} brasões novos` : 'Brasão novo'}</span><h2>${escapeHTML(a.nome)}</h2><div class="celebra-palco"><img src="${urlPng(a)}" alt=""></div><p>${escapeHTML(a.como || '')}</p>${lista.length > 1 ? `<div class="brasoes-grade" style="margin-top:8px">${lista.slice(1, 5).map((x) => `<span class="brasao ganho"><img src="${urlThumb(x)}" alt=""><b>${escapeHTML(x.nome)}</b></span>`).join('')}</div>` : ''}<button type="button" class="btn-verde" data-m="ok" style="width:100%;margin-top:14px">${escapeHTML(ESCOLA.fraseCelebracao)}</button></div>`);

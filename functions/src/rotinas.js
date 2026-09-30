@@ -2,6 +2,7 @@
 import { randomUUID } from 'node:crypto';
 import { sincronizarPerfil } from './perfil.js';
 import { sincronizarCarteirinha, apagarCarteirinha, temCarteirinha } from './carteirinha.js';
+import { apagarCertificados, conferirCertificados } from './certificado.js';
 import { responsaveisDe, apagarSubcolecao, apagarArquivosDoStorage } from './gatilhos.js';
 
 const DIA = 86400000;
@@ -44,6 +45,7 @@ export async function rotinaDiaria(ctx) {
   r.perfis = await emPaginas(ctx.db.collection('usuarios').orderBy('__name__'), async (d) => {
     await sincronizarPerfil(ctx, d.id, { presencas: true }).catch(() => null);
     if (temCarteirinha(d.data())) { await sincronizarCarteirinha(ctx, d.id).then(() => { r.carteirinhas++; }).catch(() => null); }
+    r.certificados = (r.certificados || 0) + await conferirCertificados(ctx, d.id, d.data()).catch(() => 0);
   });
   // 5. Conversas de menores sem o responsável legal anotado.
   const conv = await ctx.db.collection('conversas').where('envolveMenor', '==', true).limit(300).get();
@@ -157,6 +159,7 @@ export async function excluirConta(ctx, uid, { porUid = null, porNome = '' } = {
   // (não depende do gatilho de usuarios, que roda depois).
   const sci = await ctx.db.doc(`carteirinhasIndice/${uid}`).get();
   await apagarCarteirinha(ctx, uid, sci.exists ? sci.data() : null);
+  await apagarCertificados(ctx, uid);
   await ctx.db.doc(`usuarios/${uid}`).delete().catch(() => {});
   if (ctx.auth) { try { await ctx.auth.deleteUser(uid); } catch (e) { if (!(e && e.code === 'auth/user-not-found')) throw e; } }
   const pend = await ctx.db.collection('solicitacoes').where('solicitanteUid', '==', uid).limit(50).get();

@@ -24,6 +24,7 @@ let dadosAlvo = null;
 let fotoDoc = null;
 let listaBenef = [];       // beneficiarios/{alvo}.lista (o que foi pedido)
 let formBenefAberto = false;
+let certificados = [];      // certificadosDe/{alvo}.itens (emitidos pelo servidor)
 let virado = false;
 let desligar = [];
 let parceiros = SITE_PADRAO.parceiros.lista;
@@ -76,7 +77,11 @@ function selecionar(uid) {
     if (uid === meuUid && !dadosAlvo.carteirinha) pedirEmissao();
     desenhar();
   }, (e) => { console.error(e); mensagem('Sem acesso a esta carteirinha', 'Peça ao núcleo para conferir o vínculo da conta família.'); }));
-  listaBenef = []; formBenefAberto = false;
+  listaBenef = []; formBenefAberto = false; certificados = [];
+  desligar.push(onSnapshot(doc(db, 'certificadosDe', uid), (s) => {
+    certificados = s.exists() && Array.isArray(s.data().itens) ? s.data().itens.slice().reverse() : [];
+    if (dadosAlvo) desenhar();
+  }, () => { certificados = []; }));
   desligar.push(onSnapshot(doc(db, 'beneficiarios', uid), (s) => {
     listaBenef = s.exists() && Array.isArray(s.data().lista) ? s.data().lista : [];
     if (dadosAlvo) desenhar();
@@ -188,6 +193,7 @@ function desenhar() {
     ${blocoFoto(d.c, ehEu)}
     <button type="button" class="bt bt-verde bt-grande" data-acao="qr" ${d.link ? '' : 'disabled'}>${IC.qr} Mostrar QR para conferir</button>
     ${blocoBeneficiarios(d)}
+    ${blocoCertificados()}
     ${d.c && d.c.fotoUrl && !(fotoDoc && ['pendente', 'recusada', 'solicitada'].includes(fotoDoc.status)) ? '<button type="button" class="link-sutil" data-acao="foto">Trocar a foto da carteirinha</button>' : ''}
     ${cartoes ? `<div class="sec-tit"><h2>Benefícios da carteirinha</h2><small>${sit === 'valida' ? 'Carteirinha válida' : 'Valem com a carteirinha válida'}</small></div>${cartoes}` : ''}
     <p class="nota">${IC.escudo.replace('width="18" height="18"', 'width="13" height="13" style="vertical-align:-2px"')} Quem lê o QR vê só nome, cordão, núcleo, matrícula e validade. Idade, telefone e endereço nunca aparecem.</p>`;
@@ -213,6 +219,20 @@ pagina.addEventListener('click', (e) => {
   else if (acao === 'cancelar-benef') { formBenefAberto = false; desenhar(); }
   else if (acao === 'foto' || acao === 'como') abrirFolhaFoto();
 });
+
+// ---------- certificados de graduação (um por troca de cordão) ----------
+function blocoCertificados() {
+  if (!certificados.length) return '';
+  const linhas = certificados.map((c) => {
+    const cores = coresDoCordao(c.cordao, dadosAlvo || {});
+    const data = /^\d{4}-\d{2}-\d{2}$/.test(c.data || '') ? c.data.split('-').reverse().join('/') : '';
+    const link = `certificado.html#${encodeURIComponent(c.codigo)}`;
+    return `<li class="benef"><span class="av-b" style="background:repeating-linear-gradient(45deg,${cores[0]} 0 5px,${cores[1]} 5px 10px,${cores[2]} 10px 15px)"></span>
+      <span class="txt"><b>Cordão ${esc(c.cordao)}</b><small>${esc([data, c.evento].filter(Boolean).join(' · '))}</small></span>
+      <span class="acoes-b"><a class="bt bt-claro" href="${esc(link)}" style="height:38px;padding:0 12px;font-size:12.5px">Ver</a><a class="bt bt-claro" href="certificado.html?imprimir=1#${esc(encodeURIComponent(c.codigo))}" style="height:38px;padding:0 12px;font-size:12.5px">PDF</a></span></li>`;
+  }).join('');
+  return `<section class="beneficiarios" aria-labelledby="titCert"><div class="sec-tit"><h2 id="titCert">Certificados de graduação</h2><small>${certificados.length}</small></div><ul class="lista-benef">${linhas}</ul></section>`;
+}
 
 // ---------- beneficiários (pai, mãe, irmãos e avós) ----------
 const espelhoBenef = () => ((dadosAlvo && dadosAlvo.carteirinha && dadosAlvo.carteirinha.beneficiarios) || []);

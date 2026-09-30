@@ -52,6 +52,9 @@ before(async () => {
     await setDoc(doc(d, 'siteConteudo', 'landing'), { titulo: 'site' });
     await setDoc(doc(d, 'carteirinhas', 'ABCDEFGH23'), { nome: 'Natanael', cordao: 'Quilombola', ativo: true, controle: 'livre', validaAte: null });
     await setDoc(doc(d, 'carteirinhasIndice', 'nat'), { codigo: 'ABCDEFGH23', matricula: 'LE-2026-0001' });
+    await setDoc(doc(d, 'certificados', 'CERT000001'), { numero: 'LE-CERT-2026-0001', nome: 'Natanael', cordao: 'Vagante', ativo: true });
+    await setDoc(doc(d, 'certificadosDe', 'nat'), { itens: [{ codigo: 'CERT000001', cordao: 'Vagante' }] });
+    await setDoc(doc(d, 'certificadosDe', 'kid'), { itens: [] });
   });
 });
 after(async () => { if (env) await env.cleanup(); });
@@ -243,4 +246,22 @@ test('carteirinha: beneficiários — atleta, responsável e núcleo gravam; est
   await assertFails(setDoc(doc(db('estranho'), 'beneficiarios', 'nat'), { lista, porUid: 'estranho' }));
   await assertFails(getDoc(doc(db('estranho'), 'beneficiarios', 'nat')));
   await assertSucceeds(getDoc(doc(db('nat'), 'beneficiarios', 'nat')));
+});
+
+test('certificado: abre pelo código; lista e escrita fechadas; lista da pessoa só para quem cuida', async () => {
+  await assertSucceeds(getDoc(doc(db(null), 'certificados', 'CERT000001')));
+  await assertFails(getDocs(collection(db(null), 'certificados')));
+  await assertFails(setDoc(doc(db('nat'), 'certificados', 'FALSO00001'), { nome: 'Natanael', cordao: 'Mestre' }));
+  await assertFails(setDoc(doc(db('admin'), 'certificados', 'FALSO00002'), { nome: 'x' }));
+  await assertSucceeds(getDoc(doc(db('nat'), 'certificadosDe', 'nat')));
+  await assertSucceeds(getDoc(doc(db('tay'), 'certificadosDe', 'nat')));
+  await assertSucceeds(getDoc(doc(db('mae'), 'certificadosDe', 'kid')));
+  await assertFails(getDoc(doc(db('estranho'), 'certificadosDe', 'nat')));
+  await assertFails(setDoc(doc(db('nat'), 'certificadosDe', 'nat'), { itens: [{ codigo: 'FALSO', cordao: 'Mestre' }] }));
+});
+
+test('notificações: a pessoa marca a festa como vista (celebradoEm), sem mexer no resto', async () => {
+  await assertSucceeds(updateDoc(doc(db('nat'), 'notificacoes/nat/itens/n1'), { celebradoEm: AGORA }));
+  await assertFails(updateDoc(doc(db('nat'), 'notificacoes/nat/itens/n1'), { titulo: 'outro' }));
+  await assertFails(updateDoc(doc(db('tay'), 'notificacoes/nat/itens/n1'), { celebradoEm: AGORA }));
 });

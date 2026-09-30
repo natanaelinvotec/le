@@ -7,6 +7,8 @@ import { notificar, gestoresDoNucleo, admins, membros } from './notificar.js';
 import { registrar } from './auditoria.js';
 import { checarTexto, checarImagens } from './moderacao.js';
 import { sincronizarCarteirinha } from './carteirinha.js';
+import { emitirCertificado, apagarCertificados } from './certificado.js';
+import { coresDoCordao } from './compartilhado/escola.js';
 
 // Campos de usuarios/{uid} que mudam a carteirinha (o próprio espelho entra:
 // se alguém mexer nele, o servidor regrava o valor certo).
@@ -26,7 +28,7 @@ async function auditar(ctx, colecao, ev) {
 export async function aoEscreverUsuario(ctx, ev) {
   const { uid } = ev.params; const { antes, depois } = ev;
   await auditar(ctx, 'usuarios', ev);
-  if (!depois) { await sincronizarPerfil(ctx, uid); await carteirinhaSegura(ctx, uid); return; }
+  if (!depois) { await sincronizarPerfil(ctx, uid); await carteirinhaSegura(ctx, uid); await apagarCertificados(ctx, uid).catch(() => {}); return; }
   const criado = !antes;
   if (criado || mudouAlgum(antes, depois, CAMPOS_DA_CARTEIRINHA)) await carteirinhaSegura(ctx, uid);
   if (criado || mudouAlgum(antes, depois, CAMPOS_DO_CARTAO)) {
@@ -48,7 +50,28 @@ export async function aoEscreverUsuario(ctx, ev) {
     for (const f of formadores) await sincronizarPerfil(ctx, f, { formacao: true });
   }
   if (!criado && antes.cordaoAtual !== depois.cordaoAtual && ORDEM.indexOf(depois.cordaoAtual) > ORDEM.indexOf(antes.cordaoAtual)) {
-    await notificar(ctx, [uid], { tipo: 'cordao', titulo: `Cordão ${depois.cordaoAtual}!`, texto: 'Parabéns pela nova graduação. Veja na sua trajetória.', link: `rede.html#perfil/${uid}` });
+    // Certificado de graduação (servidor) + aviso que vira a festa "Troquei de
+    // cordão!" na tela principal do atleta no próximo acesso.
+    const velhos = new Set((antes.historicoGraduacoes || []).map((h) => JSON.stringify(h)));
+    const troca = (depois.historicoGraduacoes || []).filter((h) => h && !velhos.has(JSON.stringify(h)) && h.cordao === depois.cordaoAtual).pop()
+      || { cordao: depois.cordaoAtual, anterior: antes.cordaoAtual || 'Iniciante', em: new Date().toISOString() };
+    let cert = null;
+    // Quem gravou de verdade (login do painel) assina; o "por" do app é só reserva.
+    const assinanteUid = ev.authType === 'app_user' && ev.authId && ev.authId !== uid ? ev.authId : null;
+    try { cert = await emitirCertificado(ctx, uid, depois, troca, { assinanteUid }); } catch (e) { (ctx.log || console).warn('certificado', uid, e && e.message); }
+    // Gatilho reentregue (o Firestore pode entregar 2x): mesmo documento de aviso, sem festa dupla.
+    const idAviso = `cordao_${String(troca.cordao || '').replace(/[^A-Za-z0-9]/g, '')}_${String(troca.em || '').replace(/[^0-9]/g, '').slice(0, 14)}`;
+    const dados = {
+      tipo: 'cordao', link: cert ? `certificado.html#${cert.codigo}` : `rede.html#perfil/${uid}`,
+      atletaUid: uid, atletaNome: String(depois.nome || '').slice(0, 80), cordao: depois.cordaoAtual, anterior: antes.cordaoAtual || 'Iniciante',
+      cores: coresDoCordao(depois.cordaoAtual, depois),
+      ...(cert ? { certificado: cert.codigo, certificadoNumero: cert.numero, evento: cert.evento || '' } : {}),
+    };
+    const txt = cert ? 'Parabéns pela nova graduação. O certificado já está no app.' : 'Parabéns pela nova graduação. Veja na sua trajetória.';
+    await notificar(ctx, [uid], { ...dados, titulo: `Cordão ${depois.cordaoAtual}!`, texto: txt }, { idFixo: `${idAviso}_${uid}` });
+    if (depois.responsavelUid && depois.responsavelUid !== uid) {
+      await notificar(ctx, [depois.responsavelUid], { ...dados, titulo: `${primeiroNome(depois.nome)} trocou de cordão!`, texto: `Agora é Cordão ${depois.cordaoAtual}. ${cert ? 'O certificado já está no app.' : ''}`.trim() }, { idFixo: `${idAviso}_${uid}` });
+    }
   }
   if (!criado && mudouAlgum(antes, depois, ['responsavelUid', 'idade'])) await atualizarResponsaveisDasConversas(ctx, uid);
 }
