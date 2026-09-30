@@ -148,15 +148,15 @@ export const SITE_PADRAO = {
     selo: 'PARCEIROS DO GRUPO',
     titulo: 'Quem treina com a gente',
     destaque: 'ganha mais',
-    texto: 'Benefícios de verdade para os atletas do grupo. Para usar, é só mostrar a carteirinha virtual do app.',
+    texto: 'Benefícios de verdade para os atletas do grupo e a família deles. Para usar, é só mostrar a carteirinha virtual do app.',
     lista: [
       {
         nome: 'Laboratório Célula MS',
         logo: 'assets/parceiros/celula-20anos.png',
         frase: 'Sua saúde começa no movimento!',
         destaque: 'até 50%',
-        beneficio: 'de desconto em exames para atletas do grupo',
-        como: 'No atendimento, peça o perfil Atleta e mostre sua carteirinha do app.',
+        beneficio: 'de desconto em exames para atletas do grupo e família',
+        como: 'No atendimento, peça o perfil Atleta e mostre a carteirinha do app. Pai, mãe, irmãos e avós cadastrados como beneficiários também têm o desconto.',
         whatsapp: '',
         link: '',
       },

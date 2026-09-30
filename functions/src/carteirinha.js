@@ -8,6 +8,8 @@
 //                             → o mínimo para conferir o atleta pelo QR (v.html).
 //   usuarios/{uid}.carteirinha → espelho para o app (código, matrícula, validade,
 //                             foto). A pessoa não consegue gravar (regras).
+//   beneficiarios/{uid}       → pai, mãe, irmãos e avós que o atleta cadastra;
+//                             cada um vira carteirinhas/{codigo} tipo 'beneficiario'.
 //   fotosCarteirinha/{uid}    → pedido de foto: solicitada → pendente →
 //                             aprovada/recusada. A foto da carteirinha é
 //                             SEPARADA da foto de perfil (a da Rede é livre).
@@ -27,7 +29,32 @@ export function novoCodigo(n = 10) {
 // Dias de tolerância depois do fim do mês pago (mensalidade vence no início do mês).
 export const CARENCIA_DIAS = 10;
 
-export const temCarteirinha = (u) => !!u && Array.isArray(u.papeis) && u.papeis.includes('aluno');
+// Toda pessoa que treina tem carteirinha de ATLETA: aluno, instrutor, professor
+// e mestre (conta só de Admin ou só de responsável não tem).
+export const PAPEIS_ATLETA = ['aluno', 'instrutor', 'mestre'];
+export const temCarteirinha = (u) => !!u && Array.isArray(u.papeis) && u.papeis.some((p) => PAPEIS_ATLETA.includes(p));
+
+// Beneficiários: só pai, mãe, irmãos e avós do atleta. Outros graus ficam de fora.
+export const PARENTESCOS = { pai: 'Pai', mae: 'Mãe', irmao: 'Irmão', irma: 'Irmã', avo: 'Avô', avoa: 'Avó' };
+const LIMITE_POR_PARENTESCO = { pai: 1, mae: 1, avo: 2, avoa: 2, irmao: 6, irma: 6 };
+export const MAX_BENEFICIARIOS = 10;
+
+// Lista gravada pelo app (beneficiarios/{uid}.lista) → só o que vale.
+export function limparBeneficiarios(lista) {
+  const out = []; const conta = {}; const ids = new Set();
+  for (const b of Array.isArray(lista) ? lista : []) {
+    if (!b || typeof b !== 'object') continue;
+    const id = String(b.id || '');
+    const parentesco = String(b.parentesco || '');
+    const nome = String(b.nome || '').replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80);
+    if (!/^[a-z0-9]{6,20}$/i.test(id) || ids.has(id) || !Object.prototype.hasOwnProperty.call(PARENTESCOS, parentesco) || nome.split(' ').length < 2) continue;
+    if ((conta[parentesco] || 0) >= LIMITE_POR_PARENTESCO[parentesco]) continue;
+    conta[parentesco] = (conta[parentesco] || 0) + 1; ids.add(id);
+    out.push({ id, nome, parentesco });
+    if (out.length >= MAX_BENEFICIARIOS) break;
+  }
+  return out;
+}
 
 const pad = (n) => String(n).padStart(2, '0');
 const isoLocal = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -122,6 +149,8 @@ export async function sincronizarCarteirinha(ctx, uid) {
     // Deixou de ser atleta: a verificação pública sai do ar; a matrícula fica guardada.
     if (si.exists && si.data().codigo) {
       await ctx.db.doc(`carteirinhas/${si.data().codigo}`).delete().catch(() => {});
+      for (const c of Object.values(si.data().benef || {})) await ctx.db.doc(`carteirinhas/${c}`).delete().catch(() => {});
+      if (Object.keys(si.data().benef || {}).length) await ctx.db.doc(`carteirinhasIndice/${uid}`).update({ benef: {} });
       await apagarArquivo(ctx, si.data().fotoPublicaCaminho);
       await ctx.db.doc(`carteirinhasIndice/${uid}`).set({ fotoPublicaCaminho: null, fotoPublicaDe: null }, { merge: true });
     }
@@ -167,7 +196,27 @@ export async function sincronizarCarteirinha(ctx, uid) {
   const atual = sp.exists ? { ...sp.data() } : null; if (atual) delete atual.atualizadoEm;
   if (!atual || estavel(atual) !== estavel(pub)) await refPub.set({ ...pub, atualizadoEm: new Date().toISOString() });
 
-  const espelho = { codigo: ind.codigo, matricula: ind.matricula, validaAte, controle, ativo, fotoAprovada: !!ind.fotoAprovadaCaminho, fotoUrl: ind.fotoAprovadaUrl || '' };
+  // Beneficiários: cada um ganha o próprio código (a validade é a do atleta).
+  const sb = await ctx.db.doc(`beneficiarios/${uid}`).get();
+  const lista = limparBeneficiarios(sb.exists ? sb.data().lista : []);
+  const antigos = ind.benef || {};
+  const benef = {};
+  lista.forEach((b) => { benef[b.id] = antigos[b.id] || novoCodigo(); });
+  for (const [id, c] of Object.entries(antigos)) if (!benef[id]) await ctx.db.doc(`carteirinhas/${c}`).delete().catch(() => {});
+  if (estavel(antigos) !== estavel(benef)) { await refIdx.update({ benef }); ind = { ...ind, benef }; }
+  const titular = { atletaNome: pub.nome, atletaCordao: cordao, nucleo, matricula: ind.matricula, validaAte, controle, ativo, fotoAprovada: pub.fotoAprovada };
+  for (const b of lista) {
+    const pb = { tipo: 'beneficiario', nome: nomePublico(b.nome, false), parentesco: PARENTESCOS[b.parentesco], ...titular };
+    const rb = ctx.db.doc(`carteirinhas/${benef[b.id]}`);
+    const sa = await rb.get();
+    const at = sa.exists ? { ...sa.data() } : null; if (at) delete at.atualizadoEm;
+    if (!at || estavel(at) !== estavel(pb)) await rb.set({ ...pb, atualizadoEm: new Date().toISOString() });
+  }
+
+  const espelho = {
+    codigo: ind.codigo, matricula: ind.matricula, validaAte, controle, ativo, fotoAprovada: !!ind.fotoAprovadaCaminho, fotoUrl: ind.fotoAprovadaUrl || '',
+    beneficiarios: lista.map((b) => ({ id: b.id, nome: b.nome, parentesco: b.parentesco, codigo: benef[b.id] })),
+  };
   if (estavel(u.carteirinha || null) !== estavel(espelho)) await ctx.db.doc(`usuarios/${uid}`).update({ carteirinha: espelho });
   return { ...pub, codigo: ind.codigo };
 }
@@ -175,7 +224,9 @@ export async function sincronizarCarteirinha(ctx, uid) {
 // Conta apagada: some a verificação pública, a foto e o pedido de foto.
 export async function apagarCarteirinha(ctx, uid, ind) {
   if (ind && ind.codigo) await ctx.db.doc(`carteirinhas/${ind.codigo}`).delete().catch(() => {});
+  for (const c of Object.values((ind && ind.benef) || {})) await ctx.db.doc(`carteirinhas/${c}`).delete().catch(() => {});
   if (ind) await apagarArquivo(ctx, ind.fotoPublicaCaminho);
+  await ctx.db.doc(`beneficiarios/${uid}`).delete().catch(() => {});
   await ctx.db.doc(`fotosCarteirinha/${uid}`).delete().catch(() => {});
   await ctx.db.doc(`carteirinhasIndice/${uid}`).delete().catch(() => {});
   if (ctx.bucket) { try { await ctx.bucket.deleteFiles({ prefix: `carteirinha/${uid}/` }); } catch (e) { /* ok */ } }

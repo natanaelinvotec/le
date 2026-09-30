@@ -231,3 +231,16 @@ test('carteirinha: foto de documento — atleta/responsável enviam pendente; n�
   await assertFails(setDoc(doc(db('tay'), 'fotosCarteirinha', 'nat'), fotoDe('nat', 'tay', { status: 'aprovada', avaliadoPorUid: 'outro' })));
   await assertFails(deleteDoc(doc(db('tay'), 'fotosCarteirinha', 'nat')));
 });
+
+test('carteirinha: beneficiários — atleta, responsável e núcleo gravam; estranho não', async () => {
+  const lista = [{ id: 'mae00001', nome: 'Maria Silva', parentesco: 'mae' }];
+  await assertSucceeds(setDoc(doc(db('nat'), 'beneficiarios', 'nat'), { lista, atualizadoEm: AGORA, porUid: 'nat' }));
+  await assertFails(setDoc(doc(db('nat'), 'beneficiarios', 'nat'), { lista, porUid: 'tay' }));
+  await assertFails(setDoc(doc(db('nat'), 'beneficiarios', 'nat'), { lista, porUid: 'nat', codigo: 'X' }));
+  await assertFails(setDoc(doc(db('nat'), 'beneficiarios', 'nat'), { lista: Array.from({ length: 11 }, (_, i) => ({ id: `id${i}xxxx`, nome: 'A B', parentesco: 'irmao' })), porUid: 'nat' }));
+  await assertSucceeds(setDoc(doc(db('mae'), 'beneficiarios', 'kid'), { lista: [], porUid: 'mae' }));
+  await assertSucceeds(setDoc(doc(db('tay'), 'beneficiarios', 'nat'), { lista, porUid: 'tay' }));
+  await assertFails(setDoc(doc(db('estranho'), 'beneficiarios', 'nat'), { lista, porUid: 'estranho' }));
+  await assertFails(getDoc(doc(db('estranho'), 'beneficiarios', 'nat')));
+  await assertSucceeds(getDoc(doc(db('nat'), 'beneficiarios', 'nat')));
+});

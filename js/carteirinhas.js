@@ -11,7 +11,7 @@ import {
   observarSessao, db, storage, storageRef, getDownloadURL, doc, getDoc, getDocs, setDoc, updateDoc, collection, query, where, limit, enviarFoto,
 } from './firebase.js';
 import { coresDoCordao } from './escola.js';
-import { esc, situacao, textoValidade, iniciais, faixas, linkVerificacao, prepararFoto } from './carteirinha-comum.js';
+import { esc, situacao, textoValidade, iniciais, faixas, linkVerificacao, prepararFoto, ehAtleta } from './carteirinha-comum.js';
 
 const pagina = document.getElementById('pagina');
 const arquivo = document.getElementById('arqPeloAtleta');
@@ -64,18 +64,27 @@ observarSessao(async (user) => {
 
 async function carregar() {
   pagina.innerHTML = '<div class="carregando"><span class="giro" aria-hidden="true"></span><p>Carregando os atletas…</p></div>';
-  const [su, sf] = await Promise.all([
+  const [su, sf, sg] = await Promise.all([
     getDocs(query(collection(db, 'usuarios'), where('academiaId', '==', nucleoId), limit(600))),
     getDocs(query(collection(db, 'fotosCarteirinha'), where('academiaId', '==', nucleoId), limit(600))),
+    // Admin/Fundador: o mestre/professor que ADMINISTRA este núcleo também aparece
+    // (ele treina em outro núcleo, mas a carteirinha dele é gerida daqui também).
+    podeEscolherNucleo ? getDocs(query(collection(db, 'usuarios'), where('academiaGerenciadaId', '==', nucleoId), limit(20))) : Promise.resolve({ docs: [] }),
   ]);
-  atletas = su.docs.map((d) => ({ uid: d.id, ...d.data() }))
-    .filter((u) => (u.papeis || []).includes('aluno') && u.statusAtual !== 'Inativo' && u.ativo !== false)
+  const vistos = new Set();
+  // Todo mundo que treina tem carteirinha: aluno, instrutor, professor e mestre.
+  atletas = su.docs.concat(sg.docs).map((d) => ({ uid: d.id, ...d.data() }))
+    .filter((u) => { if (vistos.has(u.uid)) return false; vistos.add(u.uid); return true; })
+    .filter((u) => ehAtleta(u) && u.statusAtual !== 'Inativo' && u.ativo !== false)
     .sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
   fotos = {}; sf.docs.forEach((d) => { fotos[d.id] = d.data(); });
+  await Promise.all(atletas.filter((a) => a.academiaId !== nucleoId).map((a) => getDoc(doc(db, 'fotosCarteirinha', a.uid))
+    .then((x) => { if (x.exists()) fotos[a.uid] = x.data(); }).catch(() => {})));
   if (aba === 'aprovar' && !atletas.some((a) => (fotos[a.uid] || {}).status === 'pendente')) aba = atletas.some((a) => !temFoto(a)) ? 'semfoto' : 'todos';
   desenhar();
 }
 
+const funcao = (a) => (a.academiaGerenciadaId ? 'Responsável de núcleo' : (a.papeis || []).includes('instrutor') ? 'Instrutor' : 'Atleta');
 const temFoto = (a) => !!(a.carteirinha && a.carteirinha.fotoUrl);
 const pendentes = () => atletas.filter((a) => (fotos[a.uid] || {}).status === 'pendente');
 const semFoto = () => atletas.filter((a) => !temFoto(a) && (fotos[a.uid] || {}).status !== 'pendente');
@@ -124,7 +133,7 @@ function desenhar() {
       const st = (fotos[a.uid] || {}).status;
       const c = a.carteirinha;
       return `<div class="linha-atleta" data-uid="${esc(a.uid)}">${avatar(a)}
-        <div class="info"><b>${esc(a.nome)}</b><small>Cordão ${esc(a.cordaoAtual || 'Iniciante')}${c ? ` · <span class="mono">${esc(c.matricula)}</span>` : ''}</small><div class="tags">${pillFoto(a)}${aba === 'todos' ? pillSituacao(a) : ''}</div></div>
+        <div class="info"><b>${esc(a.nome)}</b><small>${esc(funcao(a))} · Cordão ${esc(a.cordaoAtual || 'Iniciante')}${c ? ` · <span class="mono">${esc(c.matricula)}</span>` : ''}${c && Array.isArray(c.beneficiarios) && c.beneficiarios.length ? ` · ${c.beneficiarios.length} beneficiário${c.beneficiarios.length === 1 ? '' : 's'}` : ''}</small><div class="tags">${pillFoto(a)}${aba === 'todos' ? pillSituacao(a) : ''}</div></div>
         <div class="acoes">
           ${st !== 'pendente' && st !== 'solicitada' ? '<button type="button" class="bt bt-claro" data-acao="pedir">Pedir foto</button>' : ''}
           <button type="button" class="bt bt-claro" data-acao="enviar">Enviar foto</button>
@@ -165,7 +174,7 @@ async function aprovar(uid, ok, motivo = '') {
 }
 async function pedirFoto(a) {
   await setDoc(doc(db, 'fotosCarteirinha', a.uid), {
-    status: 'solicitada', academiaId: nucleoId, alunoNome: String(a.nome || '').slice(0, 120),
+    status: 'solicitada', academiaId: a.academiaId || null, alunoNome: String(a.nome || '').slice(0, 120),
     solicitadoPorUid: meuUid, solicitadoPorNome: quemSou().nome, solicitadoEm: new Date().toISOString(),
   });
   fotos[a.uid] = { status: 'solicitada' };
@@ -222,7 +231,7 @@ arquivo.addEventListener('change', async () => {
     const url = await enviarFoto(caminho, dataUrl);
     const agora = new Date().toISOString();
     await setDoc(doc(db, 'fotosCarteirinha', a.uid), {
-      url, caminho, status: 'aprovada', academiaId: nucleoId, alunoNome: String(a.nome || '').slice(0, 120),
+      url, caminho, status: 'aprovada', academiaId: a.academiaId || null, alunoNome: String(a.nome || '').slice(0, 120),
       enviadoPorUid: meuUid, enviadoPorNome: quemSou().nome, enviadoEm: agora,
       avaliadoPorUid: meuUid, avaliadoPorNome: quemSou().nome, avaliadoEm: agora,
     });

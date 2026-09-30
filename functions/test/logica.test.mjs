@@ -352,3 +352,51 @@ test('carteirinha: foto aprovada vira pública só para adulto; menor nunca; con
   assert.equal(f.ler('carteirinhasIndice/nat'), undefined);
   assert.ok(bucket.apagados.includes('carteirinha/nat/*') || bucket.apagados.some((a) => a.startsWith('carteirinha/nat/')));
 });
+
+test('carteirinha: mestre, professor e instrutor também têm; só admin/responsável não', async () => {
+  const { f, ctx } = ctxDe(base({ usuarios: { ...base().usuarios, soMestre: { nome: 'Mestre Sem Aluno', papeis: ['mestre'], academiaGerenciadaId: 'x', cordaoAtual: 'Mestre', idade: 50 }, instr: { nome: 'Instrutor Solo', papeis: ['instrutor'], academiaId: 'taynara', cordaoAtual: 'Instrutor', idade: 24 }, pai: { nome: 'Só Responsável', papeis: ['responsavel'] } } }));
+  assert.ok((await sincronizarCarteirinha(ctx, 'soMestre')).codigo);
+  assert.ok((await sincronizarCarteirinha(ctx, 'instr')).codigo);
+  assert.ok((await sincronizarCarteirinha(ctx, 'tay')).codigo);
+  assert.equal(await sincronizarCarteirinha(ctx, 'pai'), null);
+  assert.equal(f.ler('carteirinhasIndice/pai'), undefined);
+});
+
+test('carteirinha: beneficiários — só pai, mãe, irmãos e avós; cada um com código; remover tira do ar', async () => {
+  const { limparBeneficiarios } = await import('../src/carteirinha.js');
+  const l = limparBeneficiarios([
+    { id: 'aaaaaa01', nome: 'José da Silva', parentesco: 'pai' },
+    { id: 'aaaaaa02', nome: 'Outro Pai', parentesco: 'pai' },            // segundo pai: fora
+    { id: 'aaaaaa03', nome: 'Maria  <b>Silva</b>', parentesco: 'mae' },
+    { id: 'aaaaaa04', nome: 'Tio Joaquim', parentesco: 'tio' },           // grau fora da regra
+    { id: 'aaaaaa05', nome: 'Ana Silva', parentesco: 'toString' },        // truque de protótipo
+    { id: 'aaaaaa06', nome: 'Pedro', parentesco: 'irmao' },               // sem sobrenome
+    { id: 'aaaaaa07', nome: 'Rosa Silva', parentesco: 'avoa' },
+    { id: 'aaaaaa01', nome: 'Duplicado Silva', parentesco: 'irma' },     // id repetido
+  ]);
+  assert.deepEqual(l.map((b) => b.id), ['aaaaaa01', 'aaaaaa03', 'aaaaaa07']);
+  assert.equal(l[1].nome, 'Maria bSilva/b');
+  const { f, ctx } = ctxDe(base({ beneficiarios: { nat: { lista: [{ id: 'mae00001', nome: 'Maria Aparecida Silva', parentesco: 'mae' }, { id: 'avo00001', nome: 'João Silva', parentesco: 'avo' }] } } }));
+  const r = await sincronizarCarteirinha(ctx, 'nat');
+  const esp = f.ler('usuarios/nat').carteirinha;
+  assert.equal(esp.beneficiarios.length, 2);
+  const cm = esp.beneficiarios[0].codigo;
+  assert.notEqual(cm, r.codigo);
+  const pm = f.ler(`carteirinhas/${cm}`);
+  assert.equal(pm.tipo, 'beneficiario'); assert.equal(pm.parentesco, 'Mãe'); assert.equal(pm.nome, 'Maria A. Silva');
+  assert.equal(pm.atletaNome, 'Natanael Silva'); assert.equal(pm.matricula, r.matricula); assert.equal(pm.fotoAprovada, false);
+  // Mesma lista: códigos não mudam.
+  await sincronizarCarteirinha(ctx, 'nat');
+  assert.equal(f.ler('usuarios/nat').carteirinha.beneficiarios[0].codigo, cm);
+  // Removeu a mãe: o código dela sai do ar.
+  await f.db.doc('beneficiarios/nat').set({ lista: [{ id: 'avo00001', nome: 'João Silva', parentesco: 'avo' }] });
+  await sincronizarCarteirinha(ctx, 'nat');
+  assert.equal(f.ler(`carteirinhas/${cm}`), undefined);
+  assert.equal(f.ler('usuarios/nat').carteirinha.beneficiarios.length, 1);
+  // Conta apagada: some o titular e os beneficiários.
+  const cAvo = f.ler('usuarios/nat').carteirinha.beneficiarios[0].codigo;
+  await f.db.doc('usuarios/nat').delete();
+  await sincronizarCarteirinha(ctx, 'nat');
+  assert.equal(f.ler(`carteirinhas/${cAvo}`), undefined);
+  assert.equal(f.ler('beneficiarios/nat'), undefined);
+});

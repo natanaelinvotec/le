@@ -54,6 +54,8 @@ export const IC = {
   voltar: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>',
   fechar: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   sol: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  enviar: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>',
+  lixo: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13"/><path d="M9 7V4h6v3"/></svg>',
   escudo: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/></svg>',
 };
 
@@ -120,3 +122,14 @@ export function prepararFoto(arquivo) {
   });
 }
 
+
+// Quem treina tem carteirinha de atleta: aluno, instrutor, professor e mestre.
+export const PAPEIS_ATLETA = ['aluno', 'instrutor', 'mestre'];
+export const ehAtleta = (u) => !!u && Array.isArray(u.papeis) && u.papeis.some((p) => PAPEIS_ATLETA.includes(p));
+
+// Beneficiários: só pai, mãe, irmãos e avós (o servidor confere de novo).
+export const PARENTESCOS = { pai: 'Pai', mae: 'Mãe', irmao: 'Irmão', irma: 'Irmã', avo: 'Avô', avoa: 'Avó' };
+export const LIMITE_POR_PARENTESCO = { pai: 1, mae: 1, avo: 2, avoa: 2, irmao: 6, irma: 6 };
+export const MAX_BENEFICIARIOS = 10;
+// "Mãe de Natanael", "Avô de Natanael"…
+export const deAtleta = (parentesco, nomeAtleta) => `${PARENTESCOS[parentesco] || parentesco} de ${String(nomeAtleta || 'atleta').split(' ')[0]}`;

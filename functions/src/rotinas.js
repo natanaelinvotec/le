@@ -1,7 +1,7 @@
 // Rotinas: limpeza diária, migrações (uma vez só) e exclusão de conta (LGPD).
 import { randomUUID } from 'node:crypto';
 import { sincronizarPerfil } from './perfil.js';
-import { sincronizarCarteirinha, apagarCarteirinha } from './carteirinha.js';
+import { sincronizarCarteirinha, apagarCarteirinha, temCarteirinha } from './carteirinha.js';
 import { responsaveisDe, apagarSubcolecao, apagarArquivosDoStorage } from './gatilhos.js';
 
 const DIA = 86400000;
@@ -43,7 +43,7 @@ export async function rotinaDiaria(ctx) {
   r.carteirinhas = 0;
   r.perfis = await emPaginas(ctx.db.collection('usuarios').orderBy('__name__'), async (d) => {
     await sincronizarPerfil(ctx, d.id, { presencas: true }).catch(() => null);
-    if ((d.data().papeis || []).includes('aluno')) { await sincronizarCarteirinha(ctx, d.id).then(() => { r.carteirinhas++; }).catch(() => null); }
+    if (temCarteirinha(d.data())) { await sincronizarCarteirinha(ctx, d.id).then(() => { r.carteirinhas++; }).catch(() => null); }
   });
   // 5. Conversas de menores sem o responsável legal anotado.
   const conv = await ctx.db.collection('conversas').where('envolveMenor', '==', true).limit(300).get();

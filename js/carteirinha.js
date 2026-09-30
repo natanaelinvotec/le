@@ -8,7 +8,7 @@ foto de cada dependente (regras: responsavelUid). */
 import { observarSessao, db, doc, getDoc, setDoc, updateDoc, onSnapshot, enviarFoto } from './firebase.js';
 import { ESCOLA, coresDoCordao } from './escola.js';
 import { qrSvg } from './qr.js';
-import { esc, situacao, textoValidade, dataBR, iniciais, linkVerificacao, cartaoHtml, prepararFoto, IC } from './carteirinha-comum.js';
+import { esc, situacao, textoValidade, dataBR, iniciais, linkVerificacao, cartaoHtml, prepararFoto, IC, ehAtleta, PARENTESCOS, LIMITE_POR_PARENTESCO, MAX_BENEFICIARIOS, deAtleta } from './carteirinha-comum.js';
 import { mesclar, cartaoParceiro } from './site-render.js';
 import { SITE_PADRAO } from './site-padrao.js';
 
@@ -22,6 +22,8 @@ let alvos = [];            // [{ uid, nome, foto }]
 let alvoUid = null;
 let dadosAlvo = null;
 let fotoDoc = null;
+let listaBenef = [];       // beneficiarios/{alvo}.lista (o que foi pedido)
+let formBenefAberto = false;
 let virado = false;
 let desligar = [];
 let parceiros = SITE_PADRAO.parceiros.lista;
@@ -49,7 +51,7 @@ observarSessao(async (user) => {
 
 async function montarAlvos() {
   alvos = [];
-  if ((eu.papeis || []).includes('aluno')) alvos.push({ uid: meuUid, nome: eu.nome || 'Eu', foto: eu.fotoUrl || '' , eu: true });
+  if (ehAtleta(eu)) alvos.push({ uid: meuUid, nome: eu.nome || 'Eu', foto: eu.fotoUrl || '' , eu: true });
   const filhos = Array.isArray(eu.responsavelDe) ? eu.responsavelDe.filter((u) => typeof u === 'string' && u !== meuUid).slice(0, 12) : [];
   const docs = await Promise.all(filhos.map((u) => getDoc(doc(db, 'usuarios', u)).then((s) => (s.exists() ? { uid: u, ...s.data() } : null)).catch(() => null)));
   docs.filter(Boolean).forEach((d) => alvos.push({ uid: d.uid, nome: d.nome || 'Atleta', foto: d.fotoUrl || '' }));
@@ -74,6 +76,11 @@ function selecionar(uid) {
     if (uid === meuUid && !dadosAlvo.carteirinha) pedirEmissao();
     desenhar();
   }, (e) => { console.error(e); mensagem('Sem acesso a esta carteirinha', 'Peça ao núcleo para conferir o vínculo da conta família.'); }));
+  listaBenef = []; formBenefAberto = false;
+  desligar.push(onSnapshot(doc(db, 'beneficiarios', uid), (s) => {
+    listaBenef = s.exists() && Array.isArray(s.data().lista) ? s.data().lista : [];
+    if (dadosAlvo) desenhar();
+  }, () => { listaBenef = []; }));
   desligar.push(onSnapshot(doc(db, 'fotosCarteirinha', uid), (s) => {
     fotoDoc = s.exists() ? s.data() : null;
     if (dadosAlvo) desenhar();
@@ -180,6 +187,7 @@ function desenhar() {
     <div class="grade-2">${tiles(d.c)}</div>
     ${blocoFoto(d.c, ehEu)}
     <button type="button" class="bt bt-verde bt-grande" data-acao="qr" ${d.link ? '' : 'disabled'}>${IC.qr} Mostrar QR para conferir</button>
+    ${blocoBeneficiarios(d)}
     ${d.c && d.c.fotoUrl && !(fotoDoc && ['pendente', 'recusada', 'solicitada'].includes(fotoDoc.status)) ? '<button type="button" class="link-sutil" data-acao="foto">Trocar a foto da carteirinha</button>' : ''}
     ${cartoes ? `<div class="sec-tit"><h2>Benefícios da carteirinha</h2><small>${sit === 'valida' ? 'Carteirinha válida' : 'Valem com a carteirinha válida'}</small></div>${cartoes}` : ''}
     <p class="nota">${IC.escudo.replace('width="18" height="18"', 'width="13" height="13" style="vertical-align:-2px"')} Quem lê o QR vê só nome, cordão, núcleo, matrícula e validade. Idade, telefone e endereço nunca aparecem.</p>`;
@@ -198,26 +206,115 @@ pagina.addEventListener('click', (e) => {
     a.setAttribute('aria-label', `Virar a carteirinha (mostra ${virado ? 'a frente' : 'o verso com o QR'})`);
     const dica = pagina.querySelector('.dica-virar'); if (dica) dica.innerHTML = `${IC.virar} Toque no cartão para ver o ${virado ? 'frente' : 'verso'}`;
   } else if (acao === 'qr') abrirQR();
+  else if (acao === 'qr-benef') abrirQR(benefDoEspelho(a.dataset.id));
+  else if (acao === 'enviar-benef') compartilharBenef(benefDoEspelho(a.dataset.id));
+  else if (acao === 'remover-benef') removerBenef(a.dataset.id);
+  else if (acao === 'novo-benef') { formBenefAberto = true; desenhar(); const i = document.getElementById('benefNome'); if (i) i.focus(); }
+  else if (acao === 'cancelar-benef') { formBenefAberto = false; desenhar(); }
   else if (acao === 'foto' || acao === 'como') abrirFolhaFoto();
 });
 
+// ---------- beneficiários (pai, mãe, irmãos e avós) ----------
+const espelhoBenef = () => ((dadosAlvo && dadosAlvo.carteirinha && dadosAlvo.carteirinha.beneficiarios) || []);
+const benefDoEspelho = (id) => espelhoBenef().find((b) => b.id === id) || null;
+
+function blocoBeneficiarios(d) {
+  const nomeAtleta = (dadosAlvo && dadosAlvo.nome) || 'Atleta';
+  const prontos = espelhoBenef();
+  // Pedidos que o servidor ainda não processou (ou que ele recusou por não serem da regra).
+  const emEspera = listaBenef.filter((b) => b && !prontos.some((p) => p.id === b.id));
+  const cheia = listaBenef.length >= MAX_BENEFICIARIOS;
+  const linhas = prontos.map((b) => `<li class="benef" data-id="${esc(b.id)}">
+      <span class="av-b">${esc(iniciais(b.nome))}</span>
+      <span class="txt"><b>${esc(b.nome)}</b><small>${esc(deAtleta(b.parentesco, nomeAtleta))}</small></span>
+      <span class="acoes-b">
+        <button type="button" class="bt-ic" data-acao="qr-benef" data-id="${esc(b.id)}" aria-label="Mostrar QR de ${esc(b.nome)}" ${d.link ? '' : 'disabled'}>${IC.qr}</button>
+        <button type="button" class="bt-ic" data-acao="enviar-benef" data-id="${esc(b.id)}" aria-label="Enviar a carteirinha para ${esc(b.nome)}">${IC.enviar}</button>
+        <button type="button" class="bt-ic" data-acao="remover-benef" data-id="${esc(b.id)}" aria-label="Remover ${esc(b.nome)}">${IC.lixo}</button>
+      </span></li>`).concat(emEspera.map((b) => `<li class="benef espera"><span class="av-b">${esc(iniciais(b.nome))}</span>
+      <span class="txt"><b>${esc(b.nome)}</b><small>${esc(PARENTESCOS[b.parentesco] || '')} · gerando o QR…</small></span>
+      <span class="acoes-b"><button type="button" class="bt-ic" data-acao="remover-benef" data-id="${esc(b.id)}" aria-label="Remover ${esc(b.nome)}">${IC.lixo}</button></span></li>`)).join('');
+  const form = formBenefAberto ? `<form class="form-benef" id="formBenef" novalidate>
+      <label for="benefNome">Nome completo<input id="benefNome" name="nome" type="text" maxlength="80" autocomplete="off" placeholder="Ex.: Maria Aparecida Silva" required></label>
+      <label for="benefParentesco">Parentesco<select id="benefParentesco" name="parentesco">${Object.entries(PARENTESCOS).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('')}</select></label>
+      <p class="estado-envio" id="benefEstado" aria-live="polite"></p>
+      <div class="grade-2"><button type="button" class="bt bt-linha" data-acao="cancelar-benef">Cancelar</button><button type="submit" class="bt bt-marinho">Adicionar</button></div>
+    </form>` : '';
+  return `<section class="beneficiarios" aria-labelledby="titBenef">
+    <div class="sec-tit"><h2 id="titBenef">Beneficiários</h2><small>${listaBenef.length}/${MAX_BENEFICIARIOS}</small></div>
+    <p class="ajuda-benef">Pai, mãe, irmãos e avós também usam os benefícios dos parceiros, com o QR próprio. Outros graus de parentesco não entram.</p>
+    ${linhas ? `<ul class="lista-benef">${linhas}</ul>` : ''}
+    ${form || (cheia ? '' : '<button type="button" class="bt bt-branco" data-acao="novo-benef" style="width:100%">+ Adicionar beneficiário</button>')}
+  </section>`;
+}
+
+async function gravarBeneficiarios(lista) {
+  await setDoc(doc(db, 'beneficiarios', alvoUid), { lista, atualizadoEm: new Date().toISOString(), porUid: meuUid });
+}
+
+pagina.addEventListener('submit', async (e) => {
+  if (e.target.id !== 'formBenef') return;
+  e.preventDefault();
+  const f = e.target; const estado = document.getElementById('benefEstado');
+  const aviso = (t, erro = true) => { estado.textContent = t; estado.classList.toggle('erro', erro); };
+  const nome = String(f.nome.value || '').replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  const parentesco = f.parentesco.value;
+  if (nome.split(' ').length < 2) { aviso('Escreva nome e sobrenome, como no documento.'); f.nome.focus(); return; }
+  if (!Object.prototype.hasOwnProperty.call(PARENTESCOS, parentesco)) { aviso('Escolha o parentesco.'); return; }
+  const mesmos = listaBenef.filter((b) => b.parentesco === parentesco).length;
+  if (mesmos >= LIMITE_POR_PARENTESCO[parentesco]) { aviso(`Já tem ${PARENTESCOS[parentesco].toLowerCase()} cadastrado${parentesco === 'mae' || parentesco === 'avoa' || parentesco === 'irma' ? 'a' : ''} no limite.`); return; }
+  if (listaBenef.length >= MAX_BENEFICIARIOS) { aviso(`O limite é ${MAX_BENEFICIARIOS} beneficiários.`); return; }
+  const id = Array.from(crypto.getRandomValues(new Uint8Array(8)), (x) => 'abcdefghijkmnpqrstuvwxyz23456789'[x % 32]).join('');
+  f.querySelector('[type=submit]').disabled = true; aviso('Salvando…', false);
+  try {
+    await gravarBeneficiarios(listaBenef.concat([{ id, nome, parentesco }]));
+    formBenefAberto = false;
+  } catch (er) { console.error(er); f.querySelector('[type=submit]').disabled = false; aviso('Não foi possível salvar. Confira a internet e tente de novo.'); }
+});
+
+async function removerBenef(id) {
+  const b = listaBenef.find((x) => x.id === id);
+  if (!b || !confirm(`Remover ${b.nome} dos beneficiários? O QR dele deixa de valer na hora.`)) return;
+  try { await gravarBeneficiarios(listaBenef.filter((x) => x.id !== id)); }
+  catch (e) { console.error(e); alert('Não foi possível remover agora. Tente de novo.'); }
+}
+
+// Manda o link da carteirinha do beneficiário (ele abre no celular dele e mostra no parceiro).
+async function compartilharBenef(b) {
+  if (!b || !b.codigo) return;
+  const link = linkVerificacao(b.codigo);
+  const nomeAtleta = String((dadosAlvo && dadosAlvo.nome) || '').split(' ')[0];
+  const texto = `${String(b.nome).split(' ')[0]}, esta é a sua carteirinha de beneficiário (${deAtleta(b.parentesco, nomeAtleta).toLowerCase()}) do grupo ${ESCOLA.nomeCurto}. Mostre no atendimento dos parceiros junto com um documento com foto:`;
+  try {
+    if (navigator.share) { await navigator.share({ title: 'Carteirinha de beneficiário', text: texto, url: link }); return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  window.open(`https://wa.me/?text=${encodeURIComponent(`${texto} ${link}`)}`, '_blank', 'noopener');
+}
+
 // ---------- QR em tela cheia ----------
-function abrirQR() {
+// benef = null → QR do atleta; benef = { nome, parentesco, codigo } → QR do beneficiário.
+function abrirQR(benef = null) {
   const d = dadosDoCartao();
   if (!d.link) return;
-  const qr = qrSvg(d.link, { nivel: 'Q', margem: 1, cor: '#061A3A', rotulo: 'QR de verificação da carteirinha' }).replace('<svg ', '<svg class="qr" ');
+  if (benef && !benef.codigo) return;
+  const link = benef ? linkVerificacao(benef.codigo) : d.link;
+  const qr = qrSvg(link, { nivel: 'Q', margem: 1, cor: '#061A3A', rotulo: 'QR de verificação da carteirinha' }).replace('<svg ', '<svg class="qr" ');
   camadas.innerHTML = `<div class="qr-tela" role="dialog" aria-modal="true" aria-label="QR da carteirinha">
     <span class="onda" aria-hidden="true"></span><span class="onda d2" aria-hidden="true"></span><span class="onda d3" aria-hidden="true"></span>
     <div class="qr-topo"><button type="button" class="bt-ic" data-fechar aria-label="Fechar">${IC.fechar}</button><span>${IC.sol} Brilho no máximo</span><span style="width:44px"></span></div>
-    <div class="qr-cab"><b>CARTEIRINHA DE ATLETA</b><strong>Mostre para conferir</strong></div>
+    <div class="qr-cab"><b>${benef ? 'BENEFICIÁRIO' : 'CARTEIRINHA DE ATLETA'}</b><strong>Mostre para conferir</strong></div>
     <div class="qr-caixa">
       <svg class="anel" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="48.6" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="1.6"/><circle cx="50" cy="50" r="48.6" fill="none" stroke="#00E676" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="60 246"/></svg>
       <div class="branco">${qr}<img class="selo-logo" src="${esc(LOGO)}" alt=""></div>
     </div>
     <div class="relogio" aria-live="off"><b id="relogio" class="mono">--:--:--</b><small id="relogioData"></small></div>
-    <div class="qr-quem"><span class="av"><div>${d.foto ? `<img src="${esc(d.foto)}" alt="">` : esc(iniciais(d.nome))}</div></span>
+    ${benef
+    ? `<div class="qr-quem"><span class="av"><div>${esc(iniciais(benef.nome))}</div></span>
+      <span><strong>${esc(benef.nome)}</strong><small>${esc(deAtleta(benef.parentesco, d.nome))} · titular ${esc(d.matricula || '')}</small></span></div>
+    <p class="qr-nota">Beneficiário: no atendimento, apresente também um documento com foto. O relógio anda ao vivo — print da tela não vale.</p>`
+    : `<div class="qr-quem"><span class="av"><div>${d.foto ? `<img src="${esc(d.foto)}" alt="">` : esc(iniciais(d.nome))}</div></span>
       <span><strong>${esc(d.nome)}</strong><small>Cordão ${esc(d.cordao)}${d.nucleo ? ` · ${esc(d.nucleo)}` : ''}</small></span></div>
-    <p class="qr-nota">O relógio anda ao vivo: print ou foto da tela não vale. Quem conferir aponta a câmera do celular e abre a página oficial de verificação do grupo.</p>
+    <p class="qr-nota">O relógio anda ao vivo: print ou foto da tela não vale. Quem conferir aponta a câmera do celular e abre a página oficial de verificação do grupo.</p>`}
   </div>`;
   // faixas() usa "linear-gradient(dir, …)": para o anel do avatar, cone de 3 cores.
   const av = camadas.querySelector('.qr-quem .av');

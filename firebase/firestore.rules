@@ -526,6 +526,22 @@ request.resource.data.solicitadoPorUid == request.auth.uid &&
 allow delete: if ehAdmin();
 }
 
+// beneficiarios/{uid}: pai, mãe, irmãos e avós do atleta (benefícios dos
+// parceiros). Grava o próprio atleta, o responsável legal dele ou o núcleo.
+// O servidor filtra o grau de parentesco e gera o código de cada um.
+match /beneficiarios/{uid} {
+function atletaB() { return get(/databases/$(database)/documents/usuarios/$(uid)).data; }
+function cuidaDosBeneficiarios() {
+return logado() && (request.auth.uid == uid || atletaB().get('responsavelUid', null) == request.auth.uid ||
+ehAdmin() || souFundador() || (ehGestor() && atletaB().get('academiaId', null) == minhaAcademiaGerenciada()));
+}
+allow read, delete: if cuidaDosBeneficiarios();
+allow create, update: if cuidaDosBeneficiarios() &&
+request.resource.data.keys().hasOnly(['lista', 'atualizadoEm', 'porUid']) &&
+request.resource.data.lista is list && request.resource.data.lista.size() <= 10 &&
+request.resource.data.porUid == request.auth.uid;
+}
+
 // Conteúdo do site público (index.html): todo mundo lê; só o Admin Master
 // grava (gerenciar.html), e só nos documentos que o site usa
 // (site = no ar, site-anterior = cópia para desfazer, landing = site antigo).
