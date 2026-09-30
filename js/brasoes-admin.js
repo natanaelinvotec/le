@@ -12,7 +12,7 @@ Fontes: perfisPublicos (contagem real de quem já tem cada brasão e ranking),
 usuarios (concessões manuais — campo brasoesManuais), config/brasoes. */
 import { db, observarSessao, buscar, listar, listarPorAcademia, atualizar, souFundador, collection, doc, getDocs, setDoc, updateDoc, deleteField, query, where, limit } from './firebase.js';
 import { escapeHTML, sanitizeInput } from './shared.js';
-import { BRASOES, SERIES, avaliar, textoMetrica, urlThumb, urlPng, ehManual, porId, podeConceder, ehPresidente } from './brasoes.js?v=20260927b';
+import { BRASOES, SERIES, avaliar, textoMetrica, urlThumb, urlPng, ehManual, porId, podeConceder, ehPresidente } from './brasoes.js?v=20261001';
 
 const el = (id) => document.getElementById(id);
 let uid = null, perfil = null, config = {}, nucleos = [], pubs = [], usuarios = [];
@@ -120,14 +120,43 @@ function renderTudo() { renderKpis(); renderCatalogo(); renderConcessoes(); rend
 function verBrasao(id) {
 const b = porId(id); const t = texto(b); const c = contagens()[id];
 const donos = pubs.filter((p) => p.brasoes && p.brasoes[id]).sort((a, z) => new Date((a.brasoes[id] || {}).em || 0) - new Date((z.brasoes[id] || {}).em || 0));
-abrirFolha(`<h3>${escapeHTML(t.nome)} <button type="button" class="btn-mini" data-fechar><i class="fas fa-xmark"></i></button></h3>
+const f = abrirFolha(`<h3>${escapeHTML(t.nome)} <button type="button" class="btn-mini" data-fechar><i class="fas fa-xmark"></i></button></h3>
 <div style="text-align:center"><img src="${urlPng(b)}" alt="" style="width:200px;height:200px;object-fit:contain;filter:drop-shadow(0 16px 24px rgba(0,45,114,.3))"></div>
 <p style="font-size:.86rem;margin-top:8px"><strong>Como conquistar:</strong> ${escapeHTML(t.como || '')}</p>
 <p style="font-size:.82rem;color:var(--text-muted);margin-top:4px"><strong>Métrica:</strong> ${escapeHTML(textoMetrica(b))}${b.nivel ? ` · nível ${b.nivel}` : ''} · ${SERIES[b.serie].nome}</p>
 ${b.descricao ? `<p style="font-size:.82rem;color:var(--text-muted);margin-top:4px">${escapeHTML(b.descricao)}</p>` : ''}
 <div class="secao-titulo" style="margin:16px 0 8px"><h3 style="font-size:.9rem">Quem já tem <span class="pill pill-teal">${c}</span></h3></div>
-<div class="lista-atletas">${donos.map((p) => `<button type="button" style="cursor:default">${avatar(p)} ${escapeHTML(p.nome)}<small>${p.brasoes[id].em ? new Date(p.brasoes[id].em).toLocaleDateString('pt-BR') : ''}${p.brasoes[id].manual ? ' · manual' : ''}</small></button>`).join('') || '<p class="cascata-vazio" style="padding:10px">Ninguém ainda.</p>'}</div>`);
+<div class="lista-atletas">${donos.map((p) => `<div class="dono-brasao">${avatar(p)} <span class="dono-nome">${escapeHTML(p.nome)}<small>${p.brasoes[id].em ? new Date(p.brasoes[id].em).toLocaleDateString('pt-BR') : ''}${p.brasoes[id].manual ? ' · manual' : ''}</small></span>${ehAdmin() ? `<button type="button" class="btn-mini btn-mini-rejeitar" data-remover-brasao="${escapeHTML(p.id)}"><i class="fas fa-trash-can"></i> Remover</button>` : ''}</div>`).join('') || '<p class="cascata-vazio" style="padding:10px">Ninguém ainda.</p>'}</div>
+${ehAdmin() && bloqueadosDo(id).length ? `<div class="secao-titulo" style="margin:16px 0 8px"><h3 style="font-size:.9rem">Removidos pelo Admin Master <span class="pill pill-navy">${bloqueadosDo(id).length}</span></h3></div>
+<p style="font-size:.76rem;color:var(--text-muted);margin:-2px 0 8px">Ficam sem este brasão até você devolver. Devolvendo, o sistema confere de novo: se a pessoa ainda cumpre a regra, ganha na hora (com a festa na tela principal).</p>
+<div class="lista-atletas">${bloqueadosDo(id).map((u) => `<div class="dono-brasao">${avatar(u)} <span class="dono-nome">${escapeHTML(u.nome || '')}<small>removido em ${new Date(u.brasoesBloqueados[id].em).toLocaleDateString('pt-BR')}</small></span><button type="button" class="btn-mini btn-mini-aprovar" data-devolver-brasao="${escapeHTML(u.id)}"><i class="fas fa-rotate-left"></i> Devolver</button></div>`).join('')}</div>` : ''}`);
+if (ehAdmin()) {
+f.addEventListener('click', async (ev) => {
+const rem = ev.target.closest('[data-remover-brasao]'); const dev = ev.target.closest('[data-devolver-brasao]');
+if (!rem && !dev) return;
+const alvo = (rem || dev).dataset[rem ? 'removerBrasao' : 'devolverBrasao'];
+const nome = ((usuarios.find((u) => u.id === alvo) || pubs.find((p) => p.id === alvo) || {}).nome || 'o atleta');
+if (rem && !confirm(`Remover o brasão "${t.nome}" de ${nome}?\n\nFica sem o brasão até você devolver (vale também para brasão automático e concessão manual).`)) return;
+const b2 = rem || dev; b2.disabled = true;
+try {
+const dados = rem
+? { [`brasoesBloqueados.${id}`]: { em: new Date().toISOString(), por: uid, porNome: perfil.nome || '' }, [`brasoesManuais.${id}`]: deleteField(), [`brasoesAdmin.${id}`]: deleteField() }
+: { [`brasoesBloqueados.${id}`]: deleteField() };
+await updateDoc(doc(db, 'usuarios', alvo), dados);
+const u = usuarios.find((x) => x.id === alvo);
+if (u) {
+if (rem) { u.brasoesBloqueados = { ...(u.brasoesBloqueados || {}), [id]: dados[`brasoesBloqueados.${id}`] }; if (u.brasoesManuais) delete u.brasoesManuais[id]; if (u.brasoesAdmin) delete u.brasoesAdmin[id]; } else if (u.brasoesBloqueados) delete u.brasoesBloqueados[id];
 }
+const p = pubs.find((x) => x.id === alvo);
+if (p && rem && p.brasoes) { delete p.brasoes[id]; p.brasoesTotal = Math.max(0, (p.brasoesTotal || 1) - 1); }
+toast(rem ? `Brasão removido de ${nome.split(' ')[0]}. O perfil atualiza em instantes.` : `Devolvido: o servidor confere a regra de ${nome.split(' ')[0]} agora.`);
+f.remove(); renderTudo(); verBrasao(id);
+} catch (e) { console.error(e); toast('Sem permissão: só o Admin Master remove brasões.'); b2.disabled = false; }
+});
+}
+}
+// Quem teve este brasão removido pelo Admin Master (usuarios.brasoesBloqueados).
+const bloqueadosDo = (id) => usuarios.filter((u) => u.brasoesBloqueados && u.brasoesBloqueados[id]);
 function editarTexto(id) {
 const b = porId(id); const t = texto(b);
 const f = abrirFolha(`<h3>Editar ${escapeHTML(b.nome)} <button type="button" class="btn-mini" data-fechar><i class="fas fa-xmark"></i></button></h3>

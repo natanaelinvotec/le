@@ -16,7 +16,7 @@ import { notificar } from './notificar.js';
 // campos (seguindo, salvos, faceDescriptor, brasoesTotal…) não recalcula nada.
 export const CAMPOS_DO_CARTAO = [
   'nome', 'fotoUrl', 'cordaoAtual', 'idade', 'academiaId', 'academiaNome', 'academiaGerenciadaId', 'papeis',
-  'acessoGeral', 'usoImagem', 'historicoGraduacoes', 'notas', 'criadoEm', 'brasoesManuais', 'brasoesAdmin', 'ativo',
+  'acessoGeral', 'usoImagem', 'historicoGraduacoes', 'notas', 'criadoEm', 'brasoesManuais', 'brasoesAdmin', 'brasoesBloqueados', 'ativo',
   'sincronizarEm', // o app pede um recálculo completo quando o cartão está velho
 ];
 
@@ -118,7 +118,7 @@ export async function sincronizarPerfil(ctx, uid, refazer = {}) {
   if (!pub || pub.privado === undefined) dados.privado = menor; // menor nasce privado
   if (!pub) { dados.seguidores = []; dados.pedidosSeguir = []; }
 
-  const avaliacao = avaliar({ ...dados, uid, brasoesManuais: u.brasoesManuais || {}, brasoesAdmin: u.brasoesAdmin || {}, brasoes: (pub && pub.brasoes) || {} }, cfg);
+  const avaliacao = avaliar({ ...dados, uid, brasoesManuais: u.brasoesManuais || {}, brasoesAdmin: u.brasoesAdmin || {}, brasoesBloqueados: u.brasoesBloqueados || {}, brasoes: (pub && pub.brasoes) || {} }, cfg);
   const cons = consolidar(avaliacao, (pub && pub.brasoes) || {});
   dados.brasoes = cons.mapa;
   dados.brasoesTotal = cons.total;

@@ -55,6 +55,13 @@ acompanhar o ranking. Nada aqui é estimado: as contagens vêm de perfisPublicos
 .escolha-brasao button { border: 2px solid var(--border-color); background: var(--card-bg); border-radius: var(--radius-md); padding: 8px 4px; cursor: pointer; font-family: inherit; font-size: .64rem; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .escolha-brasao button img { width: 48px; height: 48px; object-fit: contain; }
 .escolha-brasao button.sel { border-color: var(--green); background: var(--green-soft); }
+.dono-brasao { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--border-color); }
+.dono-brasao .dono-nome { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; font-size: .86rem; }
+.dono-brasao .dono-nome small { color: var(--text-muted); font-size: .72rem; margin-left: auto; white-space: nowrap; }
+.lista-atletas .dono-brasao button { width: auto; flex: none; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 0; border-radius: 10px; font-size: .74rem; font-weight: 800; cursor: pointer; }
+.lista-atletas .dono-brasao button[data-remover-brasao] { background: #FDECEA; color: #B3261E; }
+.lista-atletas .dono-brasao button[data-devolver-brasao] { background: #E3F1EE; color: #1F6F66; }
+.lista-atletas .dono-brasao button:disabled { opacity: .5; cursor: wait; }
 .lista-atletas .av { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex: none; background: var(--primary-blue); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: .72rem; font-family: var(--font-display); }
 .conc-dica { font-size: .74rem; color: var(--text-muted); margin: 2px 0 6px; }
 .escolha-brasao small.auto { font-size: .56rem; color: var(--primary-blue); }
@@ -134,6 +141,6 @@ acompanhar o ranking. Nada aqui é estimado: as contagens vêm de perfisPublicos
 </div>
 
 <div id="toast" class="toast-simples" role="status" aria-live="polite"></div>
-<script type="module" src="js/brasoes-admin.js?v=20260926e"></script>
+<script type="module" src="js/brasoes-admin.js?v=20261001"></script>
 </body>
 </html>

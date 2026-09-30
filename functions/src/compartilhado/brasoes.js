@@ -149,6 +149,7 @@ const rr = dados.resumoRede || null;
 const rf = dados.resumoFormacao || null;
 const manuais = dados.brasoesManuais || {};
 const doAdmin = dados.brasoesAdmin || {};
+const bloqueados = dados.brasoesBloqueados || {}; // removidos pelo Admin Master (teste): não vale nem por concessão
 const presidenteUid = config.presidenteUid || null;
 const idxCordao = ORDEM_CORDOES.indexOf(dados.cordaoAtual || 'Iniciante');
 const anos = dados.criadoEm ? Math.floor((Date.now() - new Date(dados.criadoEm).getTime()) / (365.25 * 86400000)) : 0;
@@ -181,6 +182,7 @@ if (r.tipo === 'manual' && manuais[br.id]) manual = manuais[br.id];
 else if (doAdmin[br.id]) manual = { ...doAdmin[br.id], admin: true };
 }
 if (manual) ganho = true;
+if (bloqueados[br.id]) { ganho = false; manual = null; }
 // data real da conquista quando ela existe no cadastro (troca de cordão registrada pelo mestre)
 let emReal = null;
 if (r.tipo === 'cordao') { const h = (dados.historicoGraduacoes || []).find((x) => x.cordao === r.meta); if (h && h.em) emReal = h.em; }

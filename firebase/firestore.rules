@@ -24,7 +24,9 @@ function acessoGeralInalterado() { return request.resource.data.get('acessoGeral
 function souInstrutorDoAluno() { return ehInstrutor() && resource.data.get('instrutorUid', null) == request.auth.uid; }
 // Brasões: 'brasoesAdmin' (qualquer brasão, até automático) só o Admin Master
 // grava; 'brasoesManuais' só Admin, Fundador e o responsável do núcleo do aluno.
-function brasoesAdminInalterados() { return request.resource.data.get('brasoesAdmin', null) == resource.data.get('brasoesAdmin', null); }
+// 'brasoesBloqueados' (brasão removido pelo Admin Master — ferramenta de teste) também só o Admin.
+function brasoesAdminInalterados() { return request.resource.data.get('brasoesAdmin', null) == resource.data.get('brasoesAdmin', null) &&
+request.resource.data.get('brasoesBloqueados', null) == resource.data.get('brasoesBloqueados', null); }
 function brasoesManuaisInalterados() { return request.resource.data.get('brasoesManuais', null) == resource.data.get('brasoesManuais', null); }
 // Campos que a própria pessoa NÃO pode mudar no próprio cadastro: graduação,
 // histórico, quem avalia, quem é o responsável legal, idade (define se é
@@ -50,7 +52,7 @@ resource.data.responsavelUid == request.auth.uid
 allow create: if ehAdmin() || (
 request.auth.uid == uid &&
 request.resource.data.papeis == ['aluno'] &&
-!request.resource.data.keys().hasAny(['acessoGeral', 'brasoesAdmin', 'brasoesManuais', 'instrutorUid',
+!request.resource.data.keys().hasAny(['acessoGeral', 'brasoesAdmin', 'brasoesManuais', 'brasoesBloqueados', 'instrutorUid',
 'historicoGraduacoes', 'brasoesTotal', 'origemTransferenciaDireta', 'academiaAnteriorId', 'carteirinha', 'isentoMensalidade']) &&
 request.resource.data.get('academiaGerenciadaId', null) == null &&
 request.resource.data.get('cordaoAtual', 'Iniciante') == 'Iniciante' &&

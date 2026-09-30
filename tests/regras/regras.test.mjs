@@ -200,6 +200,11 @@ test('carteirinha: a pessoa não grava o espelho nem se declara isenta; o núcle
   await assertFails(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { isentoMensalidade: true }));
   await assertSucceeds(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { sincronizarEm: AGORA }));
   await assertSucceeds(updateDoc(doc(db('tay'), 'usuarios', 'nat'), { isentoMensalidade: true }));
+  // Remover brasão (brasoesBloqueados): só o Admin Master — nem o núcleo nem o próprio atleta.
+  await assertFails(updateDoc(doc(db('tay'), 'usuarios', 'nat'), { 'brasoesBloqueados.formou-primeiro': { em: AGORA } }));
+  await assertFails(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { 'brasoesBloqueados.formou-primeiro': { em: AGORA } }));
+  await assertSucceeds(updateDoc(doc(db('admin'), 'usuarios', 'nat'), { 'brasoesBloqueados.formou-primeiro': { em: AGORA } }));
+  await assertFails(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { brasoesBloqueados: {} }));
   await assertFails(updateDoc(doc(db('estranho'), 'usuarios', 'nat'), { isentoMensalidade: false }));
 });
 

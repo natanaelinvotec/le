@@ -513,3 +513,19 @@ test('migração m5: completa os certificados de todos os cordões (sem data) pa
   await migrarCertificados(ctx);
   assert.equal(certsDe(f, 'nat').length, 4);
 });
+
+test('brasão removido pelo Admin Master (brasoesBloqueados) some do perfil e volta ao devolver', async () => {
+  const { f, ctx } = ctxDe(base());
+  await sincronizarPerfil(ctx, 'nat', { presencas: true, rede: true });
+  const antes = f.ler('perfisPublicos/nat').brasoes;
+  const id = Object.keys(antes)[0];
+  assert.ok(id, 'tinha algum brasão');
+  const u = f.ler('usuarios/nat');
+  await f.db.doc('usuarios/nat').set({ ...u, brasoesBloqueados: { [id]: { em: new Date().toISOString(), por: 'admin' } }, brasoesAdmin: { [id]: { em: new Date().toISOString() } } });
+  await sincronizarPerfil(ctx, 'nat', { presencas: true, rede: true });
+  assert.equal(f.ler('perfisPublicos/nat').brasoes[id], undefined);
+  await f.db.doc('usuarios/nat').set({ ...u, brasoesBloqueados: {} });
+  await sincronizarPerfil(ctx, 'nat', { presencas: true, rede: true });
+  assert.ok(f.ler('perfisPublicos/nat').brasoes[id], 'voltou');
+  assert.ok(notifs(f, 'nat').some((n) => n.tipo === 'brasao' && (n.brasoes || []).includes(id)), 'festa de novo');
+});
