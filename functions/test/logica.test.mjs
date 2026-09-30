@@ -496,3 +496,20 @@ test('certificado: nome em maiúsculas vira nome próprio; menor usa primeiro e 
   assert.equal(nomeNoCertificado('JOÃO PEDRO DE ÁVILA', true), 'João Ávila');
   assert.equal(nomeNoCertificado('Ana McArthur', false), 'Ana McArthur');
 });
+
+import { migrarCertificados } from '../src/rotinas.js';
+test('migração m5: completa os certificados de todos os cordões (sem data) para quem já estava graduado', async () => {
+  const { f, ctx } = ctxDe(base());
+  // Natanael tem só o certificado do cordão atual (emitido antes desta versão).
+  const u = f.ler('usuarios/nat');
+  await f.db.doc('usuarios/nat').set({ ...u, cordaoAtual: 'Vagante', historicoGraduacoes: [{ cordao: 'Vagante', anterior: 'Quilombola', em: '2026-09-30T15:00:00.000Z', por: 'tay' }] });
+  await f.db.doc('certificadosDe/nat').set({ itens: [{ codigo: 'VELHO00001', cordao: 'Vagante', data: '2026-09-30', legado: false, chave: 'Vagante|2026-09-30T15:00:00.000Z' }] });
+  const n = await migrarCertificados(ctx);
+  assert.ok(n >= 3);
+  const l = certsDe(f, 'nat');
+  assert.deepEqual(l.map((i) => i.cordao).sort(), ['Escravo', 'Fugitivo', 'Quilombola', 'Vagante']);
+  assert.ok(l.filter((i) => i.cordao !== 'Vagante').every((i) => i.legado === true && i.data === null));
+  // Rodar de novo não duplica.
+  await migrarCertificados(ctx);
+  assert.equal(certsDe(f, 'nat').length, 4);
+});

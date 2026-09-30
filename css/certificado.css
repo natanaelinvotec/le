@@ -7,6 +7,8 @@ body{margin:0;font-family:'Manrope',system-ui,sans-serif;background:#E3ECEA;colo
 :focus-visible{outline:3px solid var(--verde);outline-offset:3px;border-radius:10px}
 
 .barra{position:sticky;top:0;z-index:5;min-height:64px;padding:env(safe-area-inset-top) 16px 0;display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--noite);color:#fff}
+.voltar{width:44px;height:44px;flex:none;border-radius:14px;background:rgba(255,255,255,.1);color:#fff;display:flex;align-items:center;justify-content:center;text-decoration:none;transition:transform .35s var(--ease),background .3s}
+.voltar:hover{background:rgba(255,255,255,.18)}.voltar:active{transform:scale(.94)}
 .marca{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none}
 .marca img{border-radius:50%;background:#fff}
 .marca span{display:flex;flex-direction:column;line-height:1.15}

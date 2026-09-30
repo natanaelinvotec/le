@@ -93,5 +93,25 @@ async function conferir() {
     aviso('Sem conexão', 'Não foi possível conferir agora. Verifique a internet e tente de novo.');
   }
 }
+// Voltar: para a tela de onde veio (app, Meus certificados, Rede, painel).
+// Quem chegou pelo QR impresso (sem página anterior do site) vai para o início.
+function voltar() {
+  let veioDoSite = false;
+  try { veioDoSite = !!document.referrer && new URL(document.referrer).origin === location.origin && history.length > 1; } catch (e) { veioDoSite = false; }
+  if (veioDoSite) history.back();
+  else if (window.opener && history.length <= 1) window.close(); // aberto pelo painel (PDF em lote)
+  else location.href = 'index.html';
+}
+const btVoltar = document.getElementById('btVoltar');
+if (btVoltar) btVoltar.addEventListener('click', (e) => { e.preventDefault(); voltar(); });
+// No celular: deslizar o dedo da borda esquerda para a direita também volta.
+let toque = null;
+document.addEventListener('touchstart', (e) => { const t = e.touches[0]; toque = t && t.clientX < 40 ? { x: t.clientX, y: t.clientY } : null; }, { passive: true });
+document.addEventListener('touchend', (e) => {
+  if (!toque) return; const t = e.changedTouches[0];
+  if (t && t.clientX - toque.x > 80 && Math.abs(t.clientY - toque.y) < 60) voltar();
+  toque = null;
+}, { passive: true });
+
 conferir();
 window.addEventListener('hashchange', () => location.reload());

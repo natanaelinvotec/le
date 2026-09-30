@@ -99,11 +99,22 @@ export async function migrarConversas(ctx) {
   return n;
 }
 
+// Certificados de todos os cordões até o atual (os de antes do app saem sem
+// data). Roda uma vez no deploy; a rotina da madrugada mantém em dia.
+export async function migrarCertificados(ctx) {
+  let n = 0;
+  await emPaginas(ctx.db.collection('usuarios').orderBy('__name__'), async (d) => {
+    n += await conferirCertificados(ctx, d.id, d.data()).catch((e) => { (ctx.log || console).warn('certificados', d.id, e && e.message); return 0; });
+  });
+  return n;
+}
+
 export const MIGRACOES = [
   ['m1_posts_publico', migrarPosts],
   ['m2_fotos_storage', migrarFotos],
   ['m3_perfis_servidor', migrarPerfis],
   ['m4_conversas_responsaveis', migrarConversas],
+  ['m5_certificados_completos', migrarCertificados],
 ];
 
 // forcar: roda de novo mesmo as já marcadas (ex.: "Recalcular tudo" no painel).
