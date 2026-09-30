@@ -6,6 +6,11 @@ import { sincronizarPerfil, somarCurtidas, CAMPOS_DO_CARTAO, ehMenor } from './p
 import { notificar, gestoresDoNucleo, admins, membros } from './notificar.js';
 import { registrar } from './auditoria.js';
 import { checarTexto, checarImagens } from './moderacao.js';
+import { sincronizarCarteirinha } from './carteirinha.js';
+
+// Campos de usuarios/{uid} que mudam a carteirinha (o próprio espelho entra:
+// se alguém mexer nele, o servidor regrava o valor certo).
+const CAMPOS_DA_CARTEIRINHA = ['nome', 'cordaoAtual', 'idade', 'academiaId', 'academiaNome', 'papeis', 'ativo', 'statusAtual', 'isentoMensalidade', 'carteirinha', 'sincronizarEm'];
 
 const mudouAlgum = (antes, depois, campos) => campos.some((k) => JSON.stringify((antes || {})[k] ?? null) !== JSON.stringify((depois || {})[k] ?? null));
 const primeiroNome = (n) => String(n || 'Alguém').split(' ')[0];
@@ -21,8 +26,9 @@ async function auditar(ctx, colecao, ev) {
 export async function aoEscreverUsuario(ctx, ev) {
   const { uid } = ev.params; const { antes, depois } = ev;
   await auditar(ctx, 'usuarios', ev);
-  if (!depois) { await sincronizarPerfil(ctx, uid); return; }
+  if (!depois) { await sincronizarPerfil(ctx, uid); await carteirinhaSegura(ctx, uid); return; }
   const criado = !antes;
+  if (criado || mudouAlgum(antes, depois, CAMPOS_DA_CARTEIRINHA)) await carteirinhaSegura(ctx, uid);
   if (criado || mudouAlgum(antes, depois, CAMPOS_DO_CARTAO)) {
     const gerenciadoMudou = mudouAlgum(antes, depois, ['academiaGerenciadaId']);
     const pedidoDoApp = mudouAlgum(antes, depois, ['sincronizarEm']);
@@ -211,7 +217,16 @@ export async function aoEscreverSolicitacao(ctx, ev) {
     await notificar(ctx, [depois.solicitanteUid], { tipo: 'solicitacao', titulo: depois.status === 'rejeitado' ? 'Solicitação recusada' : 'Solicitação atendida', texto: String(depois.tipo || '').replace(/_/g, ' '), link: 'admin.html' }, { push: true });
   }
 }
-export const aoEscreverPagamento = (ctx, ev) => auditar(ctx, 'pagamentos', ev);
+export async function aoEscreverPagamento(ctx, ev) {
+  await auditar(ctx, 'pagamentos', ev);
+  // Mensalidade paga/estornada muda a validade da carteirinha.
+  const alunos = new Set([ev.antes && ev.antes.alunoId, ev.depois && ev.depois.alunoId].filter((a) => a && !String(a).startsWith('excluido_')));
+  for (const a of alunos) await carteirinhaSegura(ctx, a);
+}
+// Falha na carteirinha nunca derruba o resto do gatilho.
+async function carteirinhaSegura(ctx, uid) {
+  try { await sincronizarCarteirinha(ctx, uid); } catch (e) { (ctx.log || console).warn('carteirinha', uid, e && e.message); }
+}
 export const aoEscreverNucleo = (ctx, ev) => auditar(ctx, 'nucleos', ev);
 export const aoEscreverConfig = (ctx, ev) => auditar(ctx, 'config', ev);
 

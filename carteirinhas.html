@@ -1,0 +1,74 @@
+<!-- carteirinhas.html — Painel do núcleo: fotos e carteirinhas dos atletas.
+Aprovar/recusar a foto de documento, PEDIR a foto (o atleta e o responsável
+recebem notificação), enviar a foto pelo atleta, marcar bolsista e emitir as
+carteirinhas que faltam. Admin Master e Fundador escolhem o núcleo. -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="robots" content="noindex">
+<title>Carteirinhas — Painel do núcleo</title>
+<link rel="icon" type="image/png" href="assets/app-icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="css/carteirinha.css?v=20260930">
+<style>
+.pagina.larga{max-width:1080px}
+.barra-nucleo{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.barra-nucleo h2{margin:0;font:800 22px 'Sora',sans-serif;color:var(--marinho);letter-spacing:-.02em}
+.barra-nucleo p{margin:4px 0 0;font-size:13px;color:var(--suave)}
+.barra-nucleo select{height:44px;min-width:0;max-width:100%;border:1px solid var(--linha);border-radius:12px;padding:0 12px;font:700 14px 'Manrope',sans-serif;color:var(--tinta);background:#fff}
+.abas{display:flex;gap:6px;background:#fff;padding:5px;border-radius:16px;overflow-x:auto}
+.abas button{flex:1 0 auto;height:40px;padding:0 14px;border:0;border-radius:12px;background:transparent;color:var(--suave);font:800 13.5px 'Manrope',sans-serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background .3s var(--ease),color .3s}
+.abas button[aria-selected="true"]{background:var(--marinho);color:#fff}
+.abas .n{min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:rgba(0,0,0,.08);font-size:11.5px;display:inline-flex;align-items:center;justify-content:center}
+.abas button[aria-selected="true"] .n{background:var(--verde);color:var(--marinho)}
+.acoes-lote{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.acoes-lote small{font-size:12.5px;color:var(--suave)}
+.grade-fotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:14px}
+.cartao-foto{background:#fff;border-radius:22px;overflow:hidden;display:flex;flex-direction:column}
+.cartao-foto .img{aspect-ratio:3/4;background:var(--fundo);position:relative}
+.cartao-foto .img img{width:100%;height:100%;object-fit:cover}
+.cartao-foto .img .guia{position:absolute;left:18%;right:18%;top:12%;bottom:26%;border:2px dashed rgba(255,255,255,.8);border-radius:50%;pointer-events:none}
+.cartao-foto .corpo{padding:14px;display:flex;flex-direction:column;gap:10px}
+.cartao-foto strong{font:800 15px 'Sora',sans-serif;color:var(--marinho)}
+.cartao-foto small{font-size:12px;color:var(--suave)}
+.cartao-foto .bts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.cartao-foto select{width:100%;height:40px;border:1px solid var(--linha);border-radius:12px;padding:0 10px;font:600 13px 'Manrope',sans-serif}
+.lista{background:#fff;border-radius:22px;overflow:hidden}
+.linha-atleta{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid #EEF3F2}
+.linha-atleta:last-child{border-bottom:0}
+.linha-atleta .av{width:48px;height:60px;border-radius:10px;padding:2px}
+.linha-atleta .av>div{width:100%;height:100%;border-radius:8px;overflow:hidden;background:linear-gradient(160deg,var(--teal),#0B2E70);color:#fff;display:flex;align-items:center;justify-content:center;font:800 14px 'Sora',sans-serif}
+.linha-atleta .av img{width:100%;height:100%;object-fit:cover}
+.linha-atleta .info{display:flex;flex-direction:column;gap:4px;min-width:0}
+.linha-atleta .info b{font-size:14.5px;font-weight:800;color:var(--tinta);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.linha-atleta .info small{font-size:12px;color:var(--suave)}
+.linha-atleta .tags{display:flex;gap:6px;flex-wrap:wrap}
+.linha-atleta .tags .pill{height:22px;font-size:10.5px}
+.linha-atleta .acoes{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.linha-atleta .acoes .bt{height:36px;padding:0 12px;font-size:12.5px;border-radius:11px}
+.interruptor{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--suave);cursor:pointer}
+.interruptor input{width:18px;height:18px;accent-color:var(--teal)}
+.vazio{padding:36px 18px;text-align:center;color:var(--suave);background:#fff;border-radius:22px;font-size:14px;line-height:1.55}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:70;background:var(--noite);color:#fff;padding:12px 18px;border-radius:14px;font-weight:700;font-size:13.5px;box-shadow:0 18px 40px -18px rgba(0,0,0,.6);animation:sobe2 .45s var(--ease)}
+@keyframes sobe2{from{opacity:0;transform:translate(-50%,12px)}}
+@media (max-width:620px){.abas button{padding:0 10px;font-size:12.5px}.linha-atleta{grid-template-columns:44px minmax(0,1fr)}.linha-atleta .acoes{grid-column:1/-1;justify-content:flex-start}}
+</style>
+</head>
+<body>
+<header class="topo">
+  <a class="bt-ic" href="admin.html" aria-label="Voltar para o painel"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></a>
+  <h1>Carteirinhas</h1>
+  <span class="bt-ic" aria-hidden="true" style="visibility:hidden"></span>
+</header>
+<main class="pagina larga" id="pagina">
+  <div class="carregando"><span class="giro" aria-hidden="true"></span><p>Carregando os atletas…</p></div>
+</main>
+<input id="arqPeloAtleta" class="oculto-arquivo" type="file" accept="image/*" aria-label="Escolher foto do atleta">
+<script type="module" src="js/carteirinhas.js?v=20260930"></script>
+</body>
+</html>

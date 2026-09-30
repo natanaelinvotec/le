@@ -16,6 +16,7 @@ import { getStorage } from 'firebase-admin/storage';
 import * as G from './src/gatilhos.js';
 import { rotinaDiaria, executarComando } from './src/rotinas.js';
 import { criarVision } from './src/moderacao.js';
+import { aoEscreverFotoCarteirinha } from './src/carteirinha.js';
 
 // Região: a mesma do banco (o GitHub Actions descobre e grava em .env como REGIAO).
 setGlobalOptions({ region: process.env.REGIAO || 'southamerica-east1', maxInstances: 5, memory: '256MiB' });
@@ -56,6 +57,7 @@ export const denunciaCriada = onDocumentCreated('denuncias/{id}', seguro('denunc
 export const solicitacaoEscrita = onDocumentWrittenWithAuthContext('solicitacoes/{id}', seguro('solicitacao', (e) => G.aoEscreverSolicitacao(ctxBase(), ev(e))));
 export const pagamentoEscrito = onDocumentWrittenWithAuthContext('pagamentos/{id}', seguro('pagamento', (e) => G.aoEscreverPagamento(ctxBase(), ev(e))));
 export const nucleoEscrito = onDocumentWrittenWithAuthContext('nucleos/{id}', seguro('nucleo', (e) => G.aoEscreverNucleo(ctxBase(), ev(e))));
+export const fotoCarteirinhaEscrita = onDocumentWrittenWithAuthContext('fotosCarteirinha/{uid}', seguro('fotoCarteirinha', (e) => aoEscreverFotoCarteirinha(ctxBase(), ev(e))));
 export const configEscrita = onDocumentWrittenWithAuthContext('config/{id}', seguro('config', (e) => G.aoEscreverConfig(ctxBase(), ev(e))));
 
 // Todo dia às 3h (horário de Campo Grande): limpeza + brasões que dependem do tempo.

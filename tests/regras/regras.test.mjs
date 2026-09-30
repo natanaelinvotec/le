@@ -50,6 +50,8 @@ before(async () => {
     await setDoc(doc(d, 'auditoria', 'a1'), { resumo: 'x' });
     await setDoc(doc(d, 'admins', 'antigo'), { senhaHash: 'abc' });
     await setDoc(doc(d, 'siteConteudo', 'landing'), { titulo: 'site' });
+    await setDoc(doc(d, 'carteirinhas', 'ABCDEFGH23'), { nome: 'Natanael', cordao: 'Quilombola', ativo: true, controle: 'livre', validaAte: null });
+    await setDoc(doc(d, 'carteirinhasIndice', 'nat'), { codigo: 'ABCDEFGH23', matricula: 'LE-2026-0001' });
   });
 });
 after(async () => { if (env) await env.cleanup(); });
@@ -168,4 +170,64 @@ test('LGPD e coleções antigas', async () => {
   await assertSucceeds(addDoc(collection(db('admin'), 'comandos'), { tipo: 'excluirConta', uid: 'nat', porUid: 'admin', status: 'pendente' }));
   await assertFails(addDoc(collection(db('tay'), 'comandos'), { tipo: 'excluirConta', uid: 'nat', porUid: 'tay', status: 'pendente' }));
   await assertFails(addDoc(collection(db('admin'), 'comandos'), { tipo: 'excluirConta', uid: 'nat', porUid: 'outro', status: 'pendente' }));
+});
+
+// ---------- Carteirinha virtual ----------
+const urlFoto = (uid, arq = '1.jpg') => `https://firebasestorage.googleapis.com/v0/b/x/o/carteirinha%2F${uid}%2F${arq}?alt=media&token=t`;
+const fotoDe = (uid, porUid, extra = {}) => ({
+  url: urlFoto(uid), caminho: `carteirinha/${uid}/1.jpg`, status: 'pendente', academiaId: 'taynara', alunoNome: 'Atleta',
+  enviadoPorUid: porUid, enviadoPorNome: 'Quem enviou', enviadoEm: AGORA, ...extra,
+});
+
+test('carteirinha: verificação pública abre pelo código, mas não lista nem grava', async () => {
+  await assertSucceeds(getDoc(doc(db(null), 'carteirinhas', 'ABCDEFGH23')));
+  await assertFails(getDocs(collection(db(null), 'carteirinhas')));
+  await assertFails(getDocs(collection(db('admin'), 'carteirinhas')));
+  await assertFails(setDoc(doc(db('nat'), 'carteirinhas', 'ABCDEFGH23'), { nome: 'Natanael', ativo: true, controle: 'isento' }));
+  await assertFails(setDoc(doc(db('admin'), 'carteirinhas', 'NOVO'), { nome: 'x' }));
+  await assertFails(getDoc(doc(db('nat'), 'carteirinhasIndice', 'nat')));
+  await assertFails(setDoc(doc(db('admin'), 'sistema', 'contadores'), { matricula: 0 }));
+});
+
+test('carteirinha: a pessoa não grava o espelho nem se declara isenta; o núcleo marca bolsista', async () => {
+  await assertFails(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { carteirinha: { codigo: 'X', validaAte: '2099-12-31' } }));
+  await assertFails(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { isentoMensalidade: true }));
+  await assertSucceeds(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { sincronizarEm: AGORA }));
+  await assertSucceeds(updateDoc(doc(db('tay'), 'usuarios', 'nat'), { isentoMensalidade: true }));
+  await assertFails(updateDoc(doc(db('estranho'), 'usuarios', 'nat'), { isentoMensalidade: false }));
+});
+
+test('carteirinha: foto de documento — atleta/responsável enviam pendente; núcleo avalia', async () => {
+  // Atleta envia a própria foto (só "pendente", só na própria pasta, só link do Storage).
+  await assertFails(setDoc(doc(db('nat'), 'fotosCarteirinha', 'nat'), fotoDe('nat', 'nat', { status: 'aprovada' })));
+  await assertFails(setDoc(doc(db('nat'), 'fotosCarteirinha', 'nat'), fotoDe('nat', 'nat', { caminho: 'carteirinha/tay/1.jpg' })));
+  await assertFails(setDoc(doc(db('nat'), 'fotosCarteirinha', 'nat'), fotoDe('nat', 'nat', { url: 'https://site-estranho.com/f.jpg' })));
+  // Link de OUTRO arquivo (o núcleo veria uma foto e aprovaria outra): negado.
+  await assertFails(setDoc(doc(db('nat'), 'fotosCarteirinha', 'nat'), fotoDe('nat', 'nat', { url: urlFoto('nat', 'outra.jpg') })));
+  await assertFails(setDoc(doc(db('nat'), 'fotosCarteirinha', 'nat'), fotoDe('nat', 'nat', { url: urlFoto('tay') })));
+  await assertFails(setDoc(doc(db('nat'), 'fotosCarteirinha', 'nat'), fotoDe('nat', 'nat', { academiaId: 'profeta' })));
+  await assertFails(setDoc(doc(db('nat'), 'fotosCarteirinha', 'nat'), fotoDe('nat', 'tay')));
+  await assertSucceeds(setDoc(doc(db('nat'), 'fotosCarteirinha', 'nat'), fotoDe('nat', 'nat')));
+  // Responsável legal envia a do filho; estranho não envia de ninguém.
+  await assertSucceeds(setDoc(doc(db('mae'), 'fotosCarteirinha', 'kid'), fotoDe('kid', 'mae')));
+  await assertFails(setDoc(doc(db('estranho'), 'fotosCarteirinha', 'nat'), fotoDe('nat', 'estranho')));
+  // Leitura: dono, responsável e núcleo; estranho não.
+  await assertSucceeds(getDoc(doc(db('mae'), 'fotosCarteirinha', 'kid')));
+  await assertSucceeds(getDoc(doc(db('tay'), 'fotosCarteirinha', 'nat')));
+  await assertFails(getDoc(doc(db('estranho'), 'fotosCarteirinha', 'nat')));
+  // Lista do núcleo (aprovação): só o responsável do núcleo filtrando pelo próprio núcleo.
+  await assertSucceeds(getDocs(query(collection(db('tay'), 'fotosCarteirinha'), where('academiaId', '==', 'taynara'), where('status', '==', 'pendente'))));
+  await assertFails(getDocs(query(collection(db('nat'), 'fotosCarteirinha'), where('academiaId', '==', 'taynara'))));
+  await assertSucceeds(getDocs(query(collection(db('profeta'), 'fotosCarteirinha'), where('academiaId', '==', 'taynara'))));
+  // O atleta não aprova a própria foto; o núcleo aprova.
+  await assertFails(updateDoc(doc(db('nat'), 'fotosCarteirinha', 'nat'), { status: 'aprovada', avaliadoPorUid: 'nat', avaliadoEm: AGORA }));
+  await assertFails(updateDoc(doc(db('tay'), 'fotosCarteirinha', 'nat'), { status: 'aprovada', avaliadoPorUid: 'tay', caminho: 'carteirinha/nat/2.jpg' }));
+  await assertSucceeds(updateDoc(doc(db('tay'), 'fotosCarteirinha', 'nat'), { status: 'aprovada', avaliadoPorUid: 'tay', avaliadoPorNome: 'Taynara', avaliadoEm: AGORA }));
+  await assertSucceeds(updateDoc(doc(db('tay'), 'fotosCarteirinha', 'kid'), { status: 'recusada', motivo: 'Foto escura', avaliadoPorUid: 'tay', avaliadoEm: AGORA }));
+  // Núcleo pede foto nova (não por cima de uma pendente) e também envia pelo atleta.
+  await assertSucceeds(setDoc(doc(db('tay'), 'fotosCarteirinha', 'nat'), { status: 'solicitada', academiaId: 'taynara', alunoNome: 'Natanael', solicitadoPorUid: 'tay', solicitadoPorNome: 'Taynara', solicitadoEm: AGORA }));
+  await assertFails(setDoc(doc(db('estranho'), 'fotosCarteirinha', 'nat'), { status: 'solicitada', academiaId: 'taynara', alunoNome: 'Natanael', solicitadoPorUid: 'estranho', solicitadoEm: AGORA }));
+  await assertSucceeds(setDoc(doc(db('tay'), 'fotosCarteirinha', 'nat'), fotoDe('nat', 'tay', { status: 'aprovada', avaliadoPorUid: 'tay', avaliadoEm: AGORA })));
+  await assertFails(setDoc(doc(db('tay'), 'fotosCarteirinha', 'nat'), fotoDe('nat', 'tay', { status: 'aprovada', avaliadoPorUid: 'outro' })));
+  await assertFails(deleteDoc(doc(db('tay'), 'fotosCarteirinha', 'nat')));
 });

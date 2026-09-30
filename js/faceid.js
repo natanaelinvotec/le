@@ -87,15 +87,17 @@ const { alunos, salvarDescritor } = contexto;
 const comRosto = [];
 const semRosto = [];
 for (const a of alunos) {
-if (!a.fotoUrl || /placeholder/i.test(a.fotoUrl)) { semRosto.push({ aluno: a, motivo: 'sem foto de perfil' }); continue; }
-const hash = hashFoto(a.fotoUrl);
+// Foto da carteirinha (de documento, aprovada) reconhece melhor que a de perfil da Rede.
+const foto = (a.carteirinha && a.carteirinha.fotoUrl) || a.fotoUrl;
+if (!foto || /placeholder/i.test(foto)) { semRosto.push({ aluno: a, motivo: 'sem foto de perfil nem de carteirinha' }); continue; }
+const hash = hashFoto(foto);
 if (Array.isArray(a.faceDescriptor) && a.faceDescriptor.length === 128 && a.faceDescriptorFotoHash === hash) {
 comRosto.push({ aluno: a, descritor: new Float32Array(a.faceDescriptor) });
 continue;
 }
 try {
 status(`Lendo a foto de ${a.nome || 'aluno'}...`);
-const img = await carregarImagem(a.fotoUrl);
+const img = await carregarImagem(foto);
 const det = await faceapi.detectSingleFace(img, opcoesDetector()).withFaceLandmarks(true).withFaceDescriptor();
 if (!det) { semRosto.push({ aluno: a, motivo: 'rosto não encontrado na foto' }); continue; }
 comRosto.push({ aluno: a, descritor: det.descriptor });

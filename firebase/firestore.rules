@@ -31,7 +31,8 @@ function brasoesManuaisInalterados() { return request.resource.data.get('brasoes
 // menor) e o total de brasões (calculado no servidor).
 function camposTravadosDoProprio() {
 return ['cordaoAtual', 'historicoGraduacoes', 'instrutorUid', 'responsavelUid', 'idade', 'dataNasc',
-'statusAtual', 'brasoesTotal', 'origemTransferenciaDireta', 'academiaAnteriorId'];
+'statusAtual', 'brasoesTotal', 'origemTransferenciaDireta', 'academiaAnteriorId',
+'carteirinha', 'isentoMensalidade'];
 }
 
 match /usuarios/{uid} {
@@ -50,7 +51,7 @@ allow create: if ehAdmin() || (
 request.auth.uid == uid &&
 request.resource.data.papeis == ['aluno'] &&
 !request.resource.data.keys().hasAny(['acessoGeral', 'brasoesAdmin', 'brasoesManuais', 'instrutorUid',
-'historicoGraduacoes', 'brasoesTotal', 'origemTransferenciaDireta', 'academiaAnteriorId']) &&
+'historicoGraduacoes', 'brasoesTotal', 'origemTransferenciaDireta', 'academiaAnteriorId', 'carteirinha', 'isentoMensalidade']) &&
 request.resource.data.get('academiaGerenciadaId', null) == null &&
 request.resource.data.get('cordaoAtual', 'Iniciante') == 'Iniciante' &&
 request.resource.data.get('notas', {}) == {} &&
@@ -64,7 +65,8 @@ request.resource.data.get('statusAtual', 'Ativo') == 'Ativo'
 allow update: if ehAdmin() || (souFundador() && brasoesAdminInalterados()) ||
 (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada() && academiaInalterada() && papeisInalterados() && acessoGeralInalterado() && brasoesAdminInalterados()) ||
 (ehGestor() && request.resource.data.academiaId == minhaAcademiaGerenciada() && papeisInalterados() && academiaGerenciadaInalterada() && notasInalteradas() && acessoGeralInalterado() && brasoesAdminInalterados() && brasoesManuaisInalterados()) ||
-(souInstrutorDoAluno() && academiaInalterada() && papeisInalterados() && academiaGerenciadaInalterada() && acessoGeralInalterado() && brasoesAdminInalterados() && brasoesManuaisInalterados()) ||
+(souInstrutorDoAluno() && academiaInalterada() && papeisInalterados() && academiaGerenciadaInalterada() && acessoGeralInalterado() && brasoesAdminInalterados() && brasoesManuaisInalterados()
+&& !mudou().hasAny(['isentoMensalidade', 'carteirinha'])) ||
 (request.auth.uid == uid && papeisInalterados() && academiaInalterada() && academiaGerenciadaInalterada() && notasInalteradas() && acessoGeralInalterado() && brasoesAdminInalterados() && brasoesManuaisInalterados()
 && !mudou().hasAny(camposTravadosDoProprio()));
 
@@ -469,6 +471,58 @@ request.resource.data.get('motivo', '').size() <= 300 &&
 request.resource.data.status == 'aberta';
 allow read, update: if ehAdmin() || souFundador() ||
 (ehGestor() && resource.data.autorPostAcademiaId == minhaAcademiaGerenciada());
+allow delete: if ehAdmin();
+}
+
+// ===== Carteirinha virtual do atleta =====
+// carteirinhas/{codigo}: o mínimo para conferir o atleta pelo QR (v.html).
+// Qualquer pessoa abre UMA pelo código; ninguém lista (não dá para varrer).
+// Só o servidor grava. carteirinhasIndice e sistema: só o servidor (sem regra = fechado).
+match /carteirinhas/{codigo} {
+allow get: if true;
+allow list, write: if false;
+}
+
+// fotosCarteirinha/{uid}: a foto de DOCUMENTO (separada da foto de perfil da Rede).
+//   solicitada → o núcleo pediu a foto;  pendente → atleta/responsável enviou;
+//   aprovada / recusada → o núcleo avaliou (o servidor monta a carteirinha).
+match /fotosCarteirinha/{uid} {
+function atleta() { return get(/databases/$(database)/documents/usuarios/$(uid)).data; }
+function souDonoOuResponsavel() { return logado() && (request.auth.uid == uid || atleta().get('responsavelUid', null) == request.auth.uid); }
+// Quem confere a foto é o NÚCLEO (responsável do núcleo, Admin ou Fundador).
+function cuidoDoAtleta() {
+return ehAdmin() || souFundador() ||
+(ehGestor() && atleta().get('academiaId', null) == minhaAcademiaGerenciada());
+}
+function nucleoCerto() { return request.resource.data.academiaId == atleta().get('academiaId', null); }
+function fotoValida() {
+return request.resource.data.keys().hasOnly(['url', 'caminho', 'status', 'academiaId', 'alunoNome', 'enviadoPorUid', 'enviadoPorNome', 'enviadoEm',
+'motivo', 'avaliadoPorUid', 'avaliadoPorNome', 'avaliadoEm']) &&
+request.resource.data.caminho is string && request.resource.data.caminho.matches('carteirinha/' + uid + '/[A-Za-z0-9_.-]+') &&
+request.resource.data.url is string && request.resource.data.url.size() < 1500 &&
+// o link tem que ser do MESMO arquivo de "caminho" (o núcleo aprova o que vê)
+request.resource.data.url.matches('https://firebasestorage[.]googleapis[.]com/v0/b/[^/]+/o/carteirinha%2F' + uid + '%2F' + request.resource.data.caminho.split('/')[2] + '[?].*') &&
+request.resource.data.enviadoPorUid == request.auth.uid && nucleoCerto() &&
+request.resource.data.get('alunoNome', '').size() <= 120;
+}
+allow get: if souDonoOuResponsavel() || cuidoDoAtleta();
+allow list: if ehAdmin() || souFundador() || (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada());
+allow create, update: if
+// atleta ou responsável legal envia: sempre "pendente"
+(souDonoOuResponsavel() && fotoValida() && request.resource.data.status == 'pendente') ||
+// núcleo envia a foto pelo atleta (pode já aprovar)
+(cuidoDoAtleta() && fotoValida() && request.resource.data.status in ['pendente', 'aprovada'] &&
+(request.resource.data.status == 'pendente' || request.resource.data.get('avaliadoPorUid', '') == request.auth.uid)) ||
+// núcleo avalia a foto enviada
+(cuidoDoAtleta() && resource != null && resource.data.status == 'pendente' &&
+mudou().hasOnly(['status', 'motivo', 'avaliadoPorUid', 'avaliadoPorNome', 'avaliadoEm']) &&
+request.resource.data.status in ['aprovada', 'recusada'] && request.resource.data.avaliadoPorUid == request.auth.uid &&
+request.resource.data.get('motivo', '').size() <= 200) ||
+// núcleo pede a foto (notificação para o atleta e o responsável)
+(cuidoDoAtleta() && request.resource.data.status == 'solicitada' && nucleoCerto() &&
+request.resource.data.keys().hasOnly(['status', 'academiaId', 'alunoNome', 'solicitadoPorUid', 'solicitadoPorNome', 'solicitadoEm']) &&
+request.resource.data.solicitadoPorUid == request.auth.uid &&
+(resource == null || resource.data.status != 'pendente'));
 allow delete: if ehAdmin();
 }
 

@@ -76,6 +76,10 @@ export function criarDb(inicial = {}) {
   const db = {
     doc: (c) => docRef(c),
     collection: (c) => colRef(c),
+    // Transação simplificada (sequencial): mesmo formato do firebase-admin.
+    async runTransaction(fn) {
+      return fn({ get: (ref) => ref.get(), set: (ref, d, o) => ref.set(d, o), update: (ref, d) => ref.update(d), delete: (ref) => ref.delete() });
+    },
     collectionGroup: (nome) => consulta((c) => { const p = c.split('/'); return p.length % 2 === 0 && p[p.length - 2] === nome; }),
   };
   const lerCol = (col) => Object.fromEntries(Array.from(docs.entries()).filter(([c]) => c.startsWith(`${col}/`) && c.split('/').length === col.split('/').length + 1).map(([c, d]) => [c.split('/').pop(), d]));
@@ -97,7 +101,12 @@ export function criarBucket() {
   const arquivos = new Map(); const apagados = [];
   return {
     name: 'teste.firebasestorage.app', arquivos, apagados,
-    file: (p) => ({ async delete() { apagados.push(p); arquivos.delete(p); }, async save(buf, opts) { arquivos.set(p, { tam: buf.length, opts }); } }),
+    file: (p) => ({
+      nome: p,
+      async delete() { apagados.push(p); if (!arquivos.has(p)) { const e = new Error('No such object'); e.code = 404; throw e; } arquivos.delete(p); },
+      async save(buf, opts) { arquivos.set(p, { tam: buf.length, opts }); },
+      async copy(destino) { if (!arquivos.has(p)) throw new Error(`No such object: ${p}`); arquivos.set(destino.nome || destino, { ...arquivos.get(p), copiaDe: p }); },
+    }),
     async deleteFiles({ prefix }) { apagados.push(`${prefix}*`); },
   };
 }

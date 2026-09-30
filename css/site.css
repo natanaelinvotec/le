@@ -234,6 +234,33 @@ p{margin:0}
 .form-aula input:focus,.form-aula select:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 4px rgba(56,158,146,.18)}
 .ajuda{font-size:12.5px;color:var(--suave);text-align:center}
 
+/* ---------- parceiros ---------- */
+.parceiros{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr));gap:26px}
+.parceiro{position:relative;overflow:hidden;background:#fff;border-radius:var(--raio);display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);align-items:stretch;box-shadow:0 30px 60px -40px rgba(0,45,114,.45)}
+.so-um .parceiro{grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr)}
+.parc-logo{position:relative;display:flex;align-items:center;justify-content:center;padding:40px 32px;background:radial-gradient(120% 90% at 50% 45%,#fff 40%,#EEF4F8 100%);isolation:isolate}
+.parc-aura{position:absolute;width:74%;aspect-ratio:1;border-radius:50%;z-index:-1;background:conic-gradient(from 0deg,rgba(214,31,38,.16),rgba(21,101,192,.18),rgba(214,31,38,.16));filter:blur(28px);animation:parc-gira 14s linear infinite}
+@keyframes parc-gira{to{transform:rotate(360deg)}}
+.parc-img{width:min(280px,100%);height:auto;transition:transform .9s var(--ease);filter:drop-shadow(0 18px 24px rgba(0,30,80,.18))}
+.parceiro:hover .parc-img{transform:scale(1.05) rotate(-2deg)}
+.parc-txt{padding:40px 44px;display:flex;flex-direction:column;gap:16px;justify-content:center;border-left:1px solid var(--linha)}
+.parc-selo{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--marinho);background:var(--fundo);padding:7px 12px;border-radius:999px}
+.parc-selo svg{color:var(--teal)}
+.parc-frase{font-size:clamp(28px,3vw,42px);font-weight:800;line-height:1.05;color:var(--marinho);text-wrap:balance}
+.parc-frase em{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;color:var(--teal);font-size:1.12em}
+.parc-oferta{display:flex;align-items:center;gap:16px}
+.parc-oferta b{font-family:'Sora',sans-serif;font-size:clamp(34px,3.4vw,48px);font-weight:800;letter-spacing:-.04em;line-height:1;background:linear-gradient(100deg,#D61F26,#1565C0);-webkit-background-clip:text;background-clip:text;color:transparent;white-space:nowrap}
+.parc-oferta span{font-size:15px;font-weight:700;line-height:1.4;color:var(--tinta);max-width:220px}
+.parc-como{font-size:15px;line-height:1.6;color:var(--suave);padding:14px 16px;border-radius:16px;background:var(--fundo)}
+.parc-bts{display:flex;gap:10px;flex-wrap:wrap}
+@media (prefers-reduced-motion:reduce){.parc-aura{animation:none}}
+@media (max-width:860px){
+  .parceiro,.so-um .parceiro{grid-template-columns:1fr}
+  .parc-logo{padding:30px 24px 18px}.parc-img{width:min(210px,70%)}
+  .parc-txt{padding:24px 20px 28px;border-left:0;border-top:1px solid var(--linha)}
+  .parc-oferta{flex-wrap:wrap;gap:8px 14px}
+}
+
 /* ---------- rodapé ---------- */
 .rodape{padding:88px var(--gutter) 40px;max-width:1440px;margin:0 auto;display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:40px;font-size:14px;color:var(--texto)}
 .rodape>div{display:flex;flex-direction:column;gap:10px}

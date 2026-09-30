@@ -1,0 +1,56 @@
+<!-- v.html — Verificação pública da carteirinha (abre pelo QR: v.html#CODIGO).
+Mostra só o mínimo para identificar o atleta (LGPD). O código fica depois do
+"#": não vai para o servidor do site nem aparece em registros de acesso. -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#061A3A">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Verificação da carteirinha — Capoeira Liberdade e Expressão</title>
+<link rel="icon" type="image/png" href="assets/app-icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="css/carteirinha.css?v=20260930">
+<style>
+.v-topo{height:calc(64px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 16px 0;background:var(--noite);color:#fff;display:flex;align-items:center;gap:10px}
+.v-topo img{width:36px;height:36px;border-radius:50%;background:#fff}
+.v-topo span{display:flex;flex-direction:column;line-height:1.15}
+.v-topo b{font:800 15px 'Sora',sans-serif}.v-topo small{font-size:11px;color:var(--teal-claro);font-weight:700}
+.selo-v{border-radius:26px;padding:26px 20px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;color:#fff}
+.selo-v.valida{background:linear-gradient(160deg,#00873A,#0B5C52)}
+.selo-v.vencida{background:linear-gradient(160deg,#B3261E,#7A1414)}
+.selo-v.inativa,.selo-v.nada{background:linear-gradient(160deg,#4A5D66,#2F3E45)}
+.selo-v .circ{width:78px;height:78px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 10px rgba(255,255,255,.08);animation:entra .9s var(--ease) both}
+.selo-v .circ svg{width:38px;height:38px}
+@keyframes entra{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+.selo-v strong{font:800 26px 'Sora',sans-serif;letter-spacing:-.02em}
+.selo-v p{margin:0;font-size:14px;line-height:1.5;color:rgba(255,255,255,.88);max-width:320px}
+.ficha{background:#fff;border-radius:24px;padding:20px;display:flex;flex-direction:column;gap:16px}
+.ficha-topo{display:flex;align-items:center;gap:14px}
+.ficha-av{width:84px;height:104px;flex:none;border-radius:16px;padding:3px}
+.ficha-av>div{width:100%;height:100%;border-radius:13px;border:3px solid #fff;overflow:hidden;background:linear-gradient(160deg,var(--teal),#0B2E70);display:flex;align-items:center;justify-content:center;font:800 24px 'Sora',sans-serif;color:#fff}
+.ficha-av img{width:100%;height:100%;object-fit:cover}
+.ficha-topo span.t{display:flex;flex-direction:column;gap:6px;min-width:0}
+.ficha-topo strong{font:800 20px 'Sora',sans-serif;color:var(--marinho);overflow-wrap:anywhere}
+.ficha-cordao{display:inline-flex;align-self:flex-start;align-items:center;gap:7px;font-size:12.5px;font-weight:800}
+.ficha-cordao i{width:30px;height:9px;border-radius:5px}
+.ficha-campos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px;padding-top:14px;border-top:1px solid #E2ECEA}
+.ficha-campos span{display:flex;flex-direction:column;gap:3px;min-width:0}
+.ficha-campos b{font-size:10px;font-weight:800;letter-spacing:.18em;color:var(--teal)}
+.ficha-campos em{font-style:normal;font-weight:700;font-size:14px;color:var(--tinta);overflow-wrap:anywhere}
+.lgpd{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:18px;background:#DDEBE8;font-size:12.5px;line-height:1.55;color:#2F4550}
+.lgpd svg{flex:none;color:var(--marinho);margin-top:1px}
+</style>
+</head>
+<body>
+<header class="v-topo"><img src="assets/logo-liberdade150.png" alt="Brasão do grupo" width="36" height="36"><span><b>Verificação oficial</b><small>Capoeira Liberdade e Expressão</small></span></header>
+<main class="pagina" id="v">
+  <div class="carregando"><span class="giro" aria-hidden="true"></span><p>Conferindo a carteirinha…</p></div>
+</main>
+<script type="module" src="js/verificar.js?v=20260930"></script>
+</body>
+</html>

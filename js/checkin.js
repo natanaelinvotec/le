@@ -88,14 +88,20 @@ faceapi.nets.faceRecognitionNet.loadFromUri(MODELOS_URL),
 }
 const opcoes = () => new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 });
 
+// Referência do rosto: a foto da CARTEIRINHA (de documento, aprovada pelo
+// núcleo) quando existe; senão a de perfil. A de perfil da Rede pode ser
+// descontraída (óculos, boné, grupo) e reconhece pior.
+const fotoDoRosto = (p) => (p && p.carteirinha && p.carteirinha.fotoUrl) || (p && p.fotoUrl) || '';
+
 async function prepararMeuRosto() {
-if (!perfil.fotoUrl || /placeholder/i.test(perfil.fotoUrl)) throw new Error('SEM_FOTO');
-const hash = hashFoto(perfil.fotoUrl);
+const foto = fotoDoRosto(perfil);
+if (!foto || /placeholder/i.test(foto)) throw new Error('SEM_FOTO');
+const hash = hashFoto(foto);
 if (Array.isArray(perfil.faceDescriptor) && perfil.faceDescriptor.length === 128 && perfil.faceDescriptorFotoHash === hash) {
 meuDescritor = new Float32Array(perfil.faceDescriptor); return;
 }
 status('Lendo a sua foto de perfil...');
-const img = await new Promise((res, rej) => { const i = new Image(); if (!perfil.fotoUrl.startsWith('data:')) i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = () => rej(new Error('FOTO_ILEGIVEL')); i.src = perfil.fotoUrl; });
+const img = await new Promise((res, rej) => { const i = new Image(); if (!foto.startsWith('data:')) i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = () => rej(new Error('FOTO_ILEGIVEL')); i.src = foto; });
 const det = await faceapi.detectSingleFace(img, opcoes()).withFaceLandmarks(true).withFaceDescriptor();
 if (!det) throw new Error('SEM_ROSTO_NA_FOTO');
 meuDescritor = det.descriptor;

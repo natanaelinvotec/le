@@ -1,6 +1,7 @@
 // Rotinas: limpeza diária, migrações (uma vez só) e exclusão de conta (LGPD).
 import { randomUUID } from 'node:crypto';
 import { sincronizarPerfil } from './perfil.js';
+import { sincronizarCarteirinha, apagarCarteirinha } from './carteirinha.js';
 import { responsaveisDe, apagarSubcolecao, apagarArquivosDoStorage } from './gatilhos.js';
 
 const DIA = 86400000;
@@ -37,7 +38,13 @@ export async function rotinaDiaria(ctx) {
   await Promise.all(aud.docs.map((d) => d.ref.delete())); r.auditoriaApagada = aud.size;
   // 4. Brasões que dependem do tempo (aniversário de capoeira, sequência de semanas).
   //    As presenças são relidas para "no mês" e "semanas seguidas" virarem o dia certo.
-  r.perfis = await emPaginas(ctx.db.collection('usuarios').orderBy('__name__'), (d) => sincronizarPerfil(ctx, d.id, { presencas: true }).catch(() => null));
+  //    Junto: a carteirinha (emite as que faltam e acerta a validade — uma
+  //    mensalidade lançada hoje no núcleo muda a regra de todos os alunos dele).
+  r.carteirinhas = 0;
+  r.perfis = await emPaginas(ctx.db.collection('usuarios').orderBy('__name__'), async (d) => {
+    await sincronizarPerfil(ctx, d.id, { presencas: true }).catch(() => null);
+    if ((d.data().papeis || []).includes('aluno')) { await sincronizarCarteirinha(ctx, d.id).then(() => { r.carteirinhas++; }).catch(() => null); }
+  });
   // 5. Conversas de menores sem o responsável legal anotado.
   const conv = await ctx.db.collection('conversas').where('envolveMenor', '==', true).limit(300).get();
   for (const d of conv.docs) {
@@ -142,10 +149,14 @@ export async function excluirConta(ctx, uid, { porUid = null, porNome = '' } = {
   await ctx.db.doc(`perfisPublicos/${uid}`).delete().catch(() => {});
   await ctx.db.doc(`apresentacoes/${uid}`).delete().catch(() => {});
   if (ctx.bucket) {
-    for (const prefixo of [`rede/${uid}/`, `fotos/${uid}/`, `apresentacoes/${uid}/`]) {
+    for (const prefixo of [`rede/${uid}/`, `fotos/${uid}/`, `apresentacoes/${uid}/`, `carteirinha/${uid}/`]) {
       try { await ctx.bucket.deleteFiles({ prefix: prefixo }); } catch (e) { /* ok */ }
     }
   }
+  // Carteirinha: verificação pública, foto pública e pedido de foto saem já
+  // (não depende do gatilho de usuarios, que roda depois).
+  const sci = await ctx.db.doc(`carteirinhasIndice/${uid}`).get();
+  await apagarCarteirinha(ctx, uid, sci.exists ? sci.data() : null);
   await ctx.db.doc(`usuarios/${uid}`).delete().catch(() => {});
   if (ctx.auth) { try { await ctx.auth.deleteUser(uid); } catch (e) { if (!(e && e.code === 'auth/user-not-found')) throw e; } }
   const pend = await ctx.db.collection('solicitacoes').where('solicitanteUid', '==', uid).limit(50).get();

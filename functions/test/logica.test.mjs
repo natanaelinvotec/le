@@ -244,3 +244,111 @@ test('pedidos do painel: só o Admin executa', async () => {
   await executarComando(ctx, { params: { id: 'c3' }, depois: f.ler('comandos/c3'), authId: 'admin' });
   assert.equal(f.ler('comandos/c3').status, 'erro'); assert.ok(f.ler('usuarios/admin'));
 });
+
+// ---------- Carteirinha virtual ----------
+import { sincronizarCarteirinha, aoEscreverFotoCarteirinha, validadeDePagamentos, nomePublico, situacao, estavel } from '../src/carteirinha.js';
+
+test('carteirinha: validade pela última mensalidade paga + carência; adicional não conta', () => {
+  assert.equal(validadeDePagamentos([]), null);
+  assert.equal(validadeDePagamentos([{ pago: true, competencia: '2026-09' }, { pago: true, competencia: '2026-07' }]), '2026-10-10');
+  assert.equal(validadeDePagamentos([{ pago: false, competencia: '2026-12' }, { pago: true, competencia: '2026-02' }]), '2026-03-10');
+  assert.equal(validadeDePagamentos([{ pago: true, tipo: 'adicional', competencia: '2026-12' }]), null);
+  assert.equal(situacao({ ativo: true, controle: 'mensalidade', validaAte: '2026-10-10' }, '2026-10-10'), 'valida');
+  assert.equal(situacao({ ativo: true, controle: 'mensalidade', validaAte: '2026-10-10' }, '2026-10-11'), 'vencida');
+  assert.equal(situacao({ ativo: true, controle: 'mensalidade', validaAte: null }, '2026-10-11'), 'vencida');
+  assert.equal(situacao({ ativo: true, controle: 'livre', validaAte: null }, '2030-01-01'), 'valida');
+  assert.equal(situacao({ ativo: false, controle: 'isento' }, '2026-01-01'), 'inativa');
+  assert.equal(situacao({ ativo: true, controle: 'livre', fotoAprovada: false }, '2026-01-01'), 'semfoto');
+});
+
+test('carteirinha: nome público mínimo (adulto com iniciais, menor só primeiro nome + inicial)', () => {
+  assert.equal(nomePublico('Natanael Alves da Silva', false), 'Natanael A. Silva');
+  assert.equal(nomePublico('João Pedro Souza', true), 'João S.');
+  assert.equal(nomePublico('Madonna', false), 'Madonna');
+  assert.equal(nomePublico('', false), 'Atleta');
+  assert.equal(estavel({ b: 1, a: [1, { d: 2, c: 3 }] }), estavel({ a: [1, { c: 3, d: 2 }], b: 1 }));
+});
+
+test('carteirinha: emite código e matrícula uma vez só, espelha no cadastro e é idempotente', async () => {
+  const { f, ctx } = ctxDe(base());
+  const r1 = await sincronizarCarteirinha(ctx, 'nat');
+  assert.match(r1.codigo, /^[A-HJ-NP-Z2-9]{10}$/);
+  assert.match(r1.matricula, /^LE-\d{4}-0001$/);
+  const r2 = await sincronizarCarteirinha(ctx, 'kid');
+  assert.match(r2.matricula, /^LE-\d{4}-0002$/);
+  const pub = f.ler(`carteirinhas/${r1.codigo}`);
+  assert.equal(pub.nome, 'Natanael Silva'); assert.equal(pub.cordao, 'Quilombola'); assert.equal(pub.controle, 'livre'); assert.equal(pub.foto, '');
+  assert.equal(pub.nucleo, 'Academia Professora Taynara');
+  assert.equal(pub.fotoAprovada, false); // autocadastro sem foto conferida pelo núcleo não vale
+  // Link de outro arquivo não vira a foto da carteirinha.
+  const { urlDoArquivo } = await import('../src/carteirinha.js');
+  assert.equal(await urlDoArquivo({ bucket: null }, 'carteirinha/nat/1.jpg', 'https://firebasestorage.googleapis.com/v0/b/b/o/carteirinha%2Fnat%2Foutra.jpg?alt=media'), '');
+  assert.equal(f.ler('usuarios/nat').carteirinha.codigo, r1.codigo);
+  // Menor: nome reduzido.
+  assert.equal(f.ler(`carteirinhas/${r2.codigo}`).nome, 'Teste K.');
+  // Rodar de novo não troca código nem regrava nada.
+  const antes = f.ops.length;
+  const r3 = await sincronizarCarteirinha(ctx, 'nat');
+  assert.equal(r3.codigo, r1.codigo);
+  assert.equal(f.ops.filter((o, i) => i >= antes && o[0] !== 'get').length, 0);
+  // Quem não é atleta (só admin) não tem carteirinha.
+  assert.equal(await sincronizarCarteirinha(ctx, 'admin'), null);
+});
+
+test('carteirinha: núcleo que lança mensalidade → sem pagamento fica vencida; pagamento acerta a validade', async () => {
+  const { f, ctx } = ctxDe(base({ pagamentos: { p1: { alunoId: 'mae', academiaId: 'taynara', pago: true, competencia: '2026-09', valor: 80 } } }));
+  const r = await sincronizarCarteirinha(ctx, 'nat');
+  assert.equal(f.ler(`carteirinhas/${r.codigo}`).controle, 'mensalidade');
+  assert.equal(f.ler(`carteirinhas/${r.codigo}`).validaAte, null);
+  await f.db.doc('pagamentos/p2').set({ alunoId: 'nat', academiaId: 'taynara', pago: true, competencia: '2026-10', valor: 80 });
+  await G.aoEscreverPagamento(ctx, { params: { id: 'p2' }, antes: null, depois: f.ler('pagamentos/p2') });
+  assert.equal(f.ler(`carteirinhas/${r.codigo}`).validaAte, '2026-11-10');
+  assert.equal(f.ler('usuarios/nat').carteirinha.validaAte, '2026-11-10');
+  // Bolsista (isento) vale enquanto ativo.
+  await f.db.doc('usuarios/kid').update({ isentoMensalidade: true });
+  const rk = await sincronizarCarteirinha(ctx, 'kid');
+  assert.equal(f.ler(`carteirinhas/${rk.codigo}`).controle, 'isento');
+});
+
+test('carteirinha: foto aprovada vira pública só para adulto; menor nunca; conta apagada limpa tudo', async () => {
+  const { f, ctx, bucket } = ctxDe(base());
+  bucket.arquivos.set('carteirinha/nat/1.jpg', { tam: 10 });
+  bucket.arquivos.set('carteirinha/kid/1.jpg', { tam: 10 });
+  bucket.arquivos.set('fotos/tay/x.jpg', { tam: 10 });
+  // Tentativa de aprovar arquivo de OUTRA pessoa é ignorada.
+  await aoEscreverFotoCarteirinha(ctx, { params: { uid: 'nat' }, antes: null, depois: { status: 'aprovada', caminho: 'fotos/tay/x.jpg', url: 'https://x' } });
+  assert.equal(f.ler('carteirinhasIndice/nat'), undefined);
+  await aoEscreverFotoCarteirinha(ctx, { params: { uid: 'nat' }, antes: { status: 'pendente', caminho: 'carteirinha/nat/1.jpg' }, depois: { status: 'aprovada', caminho: 'carteirinha/nat/1.jpg', url: 'https://firebasestorage.googleapis.com/v0/b/b/o/carteirinha%2Fnat%2F1.jpg?alt=media&token=t' } });
+  const ind = f.ler('carteirinhasIndice/nat');
+  assert.equal(ind.fotoAprovadaCaminho, 'carteirinha/nat/1.jpg');
+  assert.ok(ind.fotoPublicaCaminho.startsWith(`carteirinha-publica/${ind.codigo}-`));
+  assert.ok(bucket.arquivos.has(ind.fotoPublicaCaminho));
+  assert.match(f.ler(`carteirinhas/${ind.codigo}`).foto, /carteirinha-publica%2F/);
+  assert.equal(f.ler('usuarios/nat').carteirinha.fotoUrl, 'https://firebasestorage.googleapis.com/v0/b/b/o/carteirinha%2Fnat%2F1.jpg?alt=media&token=t');
+  assert.equal(f.ler(`carteirinhas/${ind.codigo}`).fotoAprovada, true);
+  assert.ok(notifs(f, 'nat').some((n) => n.titulo === 'Carteirinha pronta!'));
+  // Adulto que NÃO autorizou uso de imagem: aprovada, mas sem foto pública.
+  bucket.arquivos.set('carteirinha/mae/1.jpg', { tam: 10 });
+  await f.db.doc('usuarios/mae').update({ usoImagem: 'NÃO AUTORIZO' });
+  await aoEscreverFotoCarteirinha(ctx, { params: { uid: 'mae' }, antes: null, depois: { status: 'aprovada', caminho: 'carteirinha/mae/1.jpg', url: '' } });
+  assert.equal(f.ler(`carteirinhas/${f.ler('carteirinhasIndice/mae').codigo}`).foto, '');
+  // Menor: aprovada, mas sem foto pública; o responsável é avisado.
+  await aoEscreverFotoCarteirinha(ctx, { params: { uid: 'kid' }, antes: null, depois: { status: 'aprovada', caminho: 'carteirinha/kid/1.jpg', url: 'https://k' } });
+  const ik = f.ler('carteirinhasIndice/kid');
+  assert.equal(ik.fotoPublicaCaminho || null, null);
+  assert.equal(f.ler(`carteirinhas/${ik.codigo}`).foto, '');
+  assert.ok(notifs(f, 'mae').length > 0);
+  // Pedido de foto avisa atleta; foto enviada avisa o responsável do núcleo.
+  await aoEscreverFotoCarteirinha(ctx, { params: { uid: 'nat' }, antes: { status: 'aprovada' }, depois: { status: 'solicitada' } });
+  assert.ok(notifs(f, 'nat').some((n) => n.titulo === 'Envie a foto da carteirinha'));
+  await aoEscreverFotoCarteirinha(ctx, { params: { uid: 'nat' }, antes: { status: 'solicitada' }, depois: { status: 'pendente', caminho: 'carteirinha/nat/2.jpg' } });
+  assert.ok(notifs(f, 'tay').some((n) => n.titulo === 'Foto de carteirinha para aprovar'));
+  // A aprovada continua valendo enquanto a nova está pendente.
+  assert.equal(f.ler('carteirinhasIndice/nat').fotoAprovadaCaminho, 'carteirinha/nat/1.jpg');
+  // Conta apagada: some a verificação pública.
+  await f.db.doc('usuarios/nat').delete();
+  await G.aoEscreverUsuario(ctx, { params: { uid: 'nat' }, antes: { nome: 'Natanael Silva' }, depois: null });
+  assert.equal(f.ler(`carteirinhas/${ind.codigo}`), undefined);
+  assert.equal(f.ler('carteirinhasIndice/nat'), undefined);
+  assert.ok(bucket.apagados.includes('carteirinha/nat/*') || bucket.apagados.some((a) => a.startsWith('carteirinha/nat/')));
+});

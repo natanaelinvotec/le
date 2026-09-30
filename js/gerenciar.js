@@ -63,6 +63,11 @@ const SECOES = [
   { id: 'chamada', r: 'Aula grátis (final)', ajuda: 'O formulário abre o WhatsApp do núcleo escolhido com a mensagem pronta (lista de núcleos com WhatsApp).', campos: [
     { c: 'titulo', r: 'Título' }, { c: 'destaque', r: 'Final do título (em itálico)' }, { c: 'texto', r: 'Texto', t: 'area' }, { c: 'foto', r: 'Foto de fundo', t: 'foto', larga: true },
     { c: 'formTitulo', r: 'Título do formulário' }, { c: 'formAjuda', r: 'Texto embaixo do botão' }] },
+  { id: 'parceiros', r: 'Parceiros', ajuda: 'Aparecem no fim do site e também na carteirinha do atleta, dentro do app. A última palavra da frase fica em destaque.', campos: [...cab, { c: 'texto', r: 'Texto', t: 'area' },
+    { c: 'lista', r: 'Parceiros', t: 'lista', max: 12, nomeItem: 'Parceiro', resumo: 'nome', item: [
+      { c: 'nome', r: 'Nome do parceiro' }, { c: 'logo', r: 'Logo (fundo transparente fica melhor)', t: 'foto', png: true },
+      { c: 'frase', r: 'Frase de impacto' }, { c: 'destaque', r: 'Benefício em destaque (ex.: até 50%)' }, { c: 'beneficio', r: 'Complemento (ex.: de desconto em exames)' },
+      { c: 'como', r: 'Como usar', t: 'area' }, { c: 'whatsapp', r: 'WhatsApp do parceiro (opcional)', t: 'telefone' }, { c: 'link', r: 'Site ou Instagram (opcional)', t: 'link' }] }] },
   { id: 'rodape', r: 'Rodapé e contato', campos: [{ c: 'texto', r: 'Texto', t: 'area' }, { c: 'telefone', r: 'Telefone' }, { c: 'endereco', r: 'Endereço' },
     { c: 'instagram', r: 'Instagram (como aparece)' }, { c: 'instagramUrl', r: 'Link do Instagram', t: 'link' }, { c: 'facebook', r: 'Facebook (como aparece)' }, { c: 'facebookUrl', r: 'Link do Facebook', t: 'link' }] },
 ];

@@ -73,6 +73,26 @@ service firebase.storage {
       allow delete: if request.auth != null && podeMexerNaApresentacao(uid);
     }
 
+    // Foto de DOCUMENTO da carteirinha (separada da foto de perfil, que é livre
+    // na Rede): carteirinha/<uid>/. Envia a pessoa, o responsável legal dela
+    // ou o núcleo. Só quem cuida do atleta vê.
+    function souResponsavelDe(uid) { return perfilDe(uid).get('responsavelUid', '') == request.auth.uid; }
+    match /carteirinha/{uid}/{arquivo} {
+      allow read: if request.auth != null
+                  && (request.auth.uid == uid || souResponsavelDe(uid) || souAdminOuFundador() || gerenciaNucleoDe(uid) || souInstrutorDe(uid));
+      // Atleta/responsável só CRIAM arquivo novo (não trocam um já enviado ou aprovado).
+      allow create: if request.auth != null && imagem(2)
+                    && (request.auth.uid == uid || souResponsavelDe(uid) || souAdminOuFundador() || gerenciaNucleoDe(uid));
+      allow update: if request.auth != null && imagem(2) && (souAdminOuFundador() || gerenciaNucleoDe(uid));
+      allow delete: if request.auth != null && (souAdminOuFundador() || gerenciaNucleoDe(uid));
+    }
+    // Cópia pública da foto aprovada (só adulto), feita pelo servidor. O nome
+    // leva o código secreto da carteirinha: abre por link, mas não dá para listar.
+    match /carteirinha-publica/{arquivo} {
+      allow get: if true;
+      allow list, write: if false;
+    }
+
     // Fotos do site público (painel "Gerenciar o site"): qualquer um vê,
     // só o Admin Master grava/apaga. Até 3 MB (o painel já comprime).
     match /site/{arquivo} {

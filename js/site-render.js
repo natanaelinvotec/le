@@ -289,6 +289,35 @@ function chamada(c, n) {
 </section>`;
 }
 
+// Parceiros: um cartão por parceiro. Sozinho ele ocupa a largura toda.
+export function cartaoParceiro(p, extraClasse = '') {
+  const w = linkWhats(p.whatsapp, `Olá! Sou atleta do grupo ${ESCOLA.nomeCurto} e quero usar o desconto do perfil Atleta.`);
+  const l = urlLink(p.link);
+  const frase = String(p.frase || '');
+  // A última palavra da frase ganha o destaque em itálico ("…começa no *movimento!*").
+  const corte = frase.trim().lastIndexOf(' ');
+  const fraseHtml = corte > 0 ? `${esc(frase.slice(0, corte))} <em>${esc(frase.slice(corte + 1))}</em>` : esc(frase);
+  return `<article class="parceiro ${extraClasse}">
+    <div class="parc-logo"><span class="parc-aura" aria-hidden="true"></span>${img(p.logo, `Logo ${p.nome || 'do parceiro'}`, ' class="parc-img"')}</div>
+    <div class="parc-txt">
+      <span class="parc-selo">${I.certo} Parceiro oficial · ${esc(p.nome)}</span>
+      ${frase ? `<h3 class="parc-frase">${fraseHtml}</h3>` : ''}
+      ${p.destaque ? `<p class="parc-oferta"><b>${esc(p.destaque)}</b><span>${esc(p.beneficio)}</span></p>` : ''}
+      ${p.como ? `<p class="parc-como">${esc(p.como)}</p>` : ''}
+      ${w || l ? `<div class="parc-bts">${w ? `<a class="bt bt-verde" href="${esc(w)}" target="_blank" rel="noopener">${I.conversa} Chamar no WhatsApp</a>` : ''}${l ? `<a class="bt bt-claro" href="${esc(l)}" target="_blank" rel="noopener">Conhecer ${I.mais}</a>` : ''}</div>` : ''}
+    </div>
+  </article>`;
+}
+
+function parceiros(p) {
+  const itens = lista(p.lista);
+  if (!itens.length) return '';
+  return `<section class="sec" id="parceiros">
+  <div class="cab linha"><div>${selo(p.selo)}${titulo(p)}</div><p class="lead">${esc(p.texto)}</p></div>
+  <div class="parceiros${itens.length === 1 ? ' so-um' : ''}">${itens.map((x) => cartaoParceiro(x, 'revela')).join('')}</div>
+</section>`;
+}
+
 function rodape(r) {
   const ig = urlLink(r.instagramUrl); const fb = urlLink(r.facebookUrl);
   return `<footer class="rodape">
@@ -308,6 +337,7 @@ export function renderizarSite(conteudo, hoje = hojeLocal()) {
     '<main id="conteudo">',
     hero(d.topo, d.numeros), faixa(d.faixa), arte(d.arte), graduacao(d.graduacao), nucleos(d.nucleos),
     mestres(d.mestres), agenda(d.agenda, hoje), appSec(d.app), loja(d.loja), chamada(d.chamada, d.nucleos),
+    parceiros(d.parceiros),
     '</main>',
     rodape(d.rodape),
   ].join('\n');

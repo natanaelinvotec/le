@@ -143,6 +143,26 @@ export const SITE_PADRAO = {
     formAjuda: 'O professor do núcleo responde pelo WhatsApp.',
   },
 
+  // Parceiros (aparecem no fim do site e na carteirinha do atleta, no app).
+  parceiros: {
+    selo: 'PARCEIROS DO GRUPO',
+    titulo: 'Quem treina com a gente',
+    destaque: 'ganha mais',
+    texto: 'Benefícios de verdade para os atletas do grupo. Para usar, é só mostrar a carteirinha virtual do app.',
+    lista: [
+      {
+        nome: 'Laboratório Célula MS',
+        logo: 'assets/parceiros/celula-20anos.png',
+        frase: 'Sua saúde começa no movimento!',
+        destaque: 'até 50%',
+        beneficio: 'de desconto em exames para atletas do grupo',
+        como: 'No atendimento, peça o perfil Atleta e mostre sua carteirinha do app.',
+        whatsapp: '',
+        link: '',
+      },
+    ],
+  },
+
   rodape: {
     texto: 'Grupo Mestre Profeta · Campo Grande e Rochedo / MS. Capoeira é cultura, disciplina e transformação.',
     telefone: '(67) 99129-3269',
