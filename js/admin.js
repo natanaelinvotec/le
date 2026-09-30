@@ -26,7 +26,7 @@ lancarPagamento, listarPagamentosDoNucleo, marcarPagamento,
 lancarDespesaComRateio, todosRateios, marcarRateioPago,
   presencasDoNucleo, presencasVisitantesDoNucleo, salvarFotoPerfil,
 } from './firebase.js';
-import { iniciarGestao, abrirTela as abrirTelaGestao } from './gestao.js?v=20260926e';
+import { iniciarGestao, abrirTela as abrirTelaGestao, renderRelatoriosGerais } from './gestao.js?v=20260930';
 import { iniciarExperiencia, abrirAcessibilidade, tutorial, pedirAceiteSeNecessario } from './experiencia.js';
 import { ligarContador, abrirCentral, ouvirPushComAppAberto } from './notificacoes.js?v=20260926e';
 import { apresentacaoDe, migrarApresentacao, tocarApresentacao, tocarAoEntrar, gerenciarApresentacao, abrirMinhaConta, abrirTrocaSenha, definirAutor, podeTerApresentacao, formatarCelular, celularValido, celularDe } from './conta.js?v=20260927a';
@@ -458,6 +458,7 @@ iniciarGestao({
 sessao: () => sessaoAtual, usuarios: () => todosUsuarios, nucleos: () => todosNucleos, toast,
 ehAdmin, ehGestor, fundador: () => souFundador(sessaoAtual), instrutor: ehInstrutorLogado, recarregarUsuarios: carregarUsuarios,
 });
+try { renderRelatoriosGerais(ehAdmin() && selectFiltroAcademia ? (selectFiltroAcademia.value || null) : null); } catch (e) { /* ok */ }
 iniciarExperiencia();
 { const eu = todosUsuarios.find((u) => u.id === sessaoAtual.uid) || sessaoAtual; pedirAceiteSeNecessario({ ...sessaoAtual, ...eu }, (d) => atualizar('usuarios', sessaoAtual.uid, d)); }
 ligarContador(sessaoAtual.uid, (n) => { const b = document.getElementById('sinoContPainel'); if (!b) return; b.textContent = n > 9 ? '9+' : String(n); b.classList.toggle('oculto', !n); });
@@ -2415,6 +2416,8 @@ return alunos.filter((a) => ac === '' || a.academiaId === ac);
 }
 
 function desenharGraficos(alunosAtuais) {
+// Relatórios gerais (atletas, carteirinhas, graduações) no mesmo escopo do filtro.
+try { renderRelatoriosGerais(ehAdmin() && selectFiltroAcademia ? (selectFiltroAcademia.value || null) : null); } catch (e) { console.warn('relatórios gerais', e); }
 const escopo = escopoRelatorio();
 const rotuloEscopo = document.getElementById('relatoriosEscopo');
 if (rotuloEscopo) rotuloEscopo.textContent = escopo.rotulo;

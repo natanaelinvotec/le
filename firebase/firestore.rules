@@ -108,7 +108,7 @@ match /comandos/{id} {
 allow read: if ehAdmin();
 allow create: if ehAdmin() && request.resource.data.porUid == request.auth.uid &&
 request.resource.data.status == 'pendente' &&
-request.resource.data.tipo in ['excluirConta', 'recalcularAtleta', 'recalcularTodos', 'migrar'];
+request.resource.data.tipo in ['excluirConta', 'recalcularAtleta', 'recalcularTodos', 'migrar', 'desfazerGraduacao'];
 allow update, delete: if false;
 }
 

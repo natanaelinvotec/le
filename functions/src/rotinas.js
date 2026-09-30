@@ -2,7 +2,8 @@
 import { randomUUID } from 'node:crypto';
 import { sincronizarPerfil } from './perfil.js';
 import { sincronizarCarteirinha, apagarCarteirinha, temCarteirinha } from './carteirinha.js';
-import { apagarCertificados, conferirCertificados } from './certificado.js';
+import { apagarCertificados, conferirCertificados, cancelarCertificado, idAvisoCordao } from './certificado.js';
+import { notificar, gestoresDoNucleo } from './notificar.js';
 import { responsaveisDe, apagarSubcolecao, apagarArquivosDoStorage } from './gatilhos.js';
 
 const DIA = 86400000;
@@ -195,6 +196,8 @@ export async function executarComando(ctx, ev) {
       resultado = { brasoes: r.dados ? r.dados.brasoesTotal : 0 };
     } else if (c.tipo === 'recalcularTodos') {
       resultado = await executarMigracoes(ctx, { forcar: true, somente: ['m3_perfis_servidor'] });
+    } else if (c.tipo === 'desfazerGraduacao') {
+      resultado = await desfazerGraduacao(ctx, c, { porUid: quemUid, porNome: quem.nome || '' });
     } else if (c.tipo === 'migrar') {
       resultado = await executarMigracoes(ctx);
     } else throw new Error(`Pedido desconhecido: ${c.tipo}`);
@@ -204,4 +207,41 @@ export async function executarComando(ctx, ev) {
     await ref.update({ status: 'erro', erro: String((e && e.message) || e), terminadoEm: new Date().toISOString() });
     return null;
   }
+}
+
+// ---------- Desfazer uma graduação (só Admin Master, pelo painel) ----------
+// Volta o cordão ao anterior, tira a troca da trajetória, cancela o
+// certificado, apaga a festa que ainda não apareceu e avisa o responsável do
+// núcleo para registrar de novo. Só a ÚLTIMA troca do atleta pode ser desfeita.
+export async function desfazerGraduacao(ctx, c, { porUid = null, porNome = '' } = {}) {
+  const uid = String(c.uid || ''); const cordao = String(c.cordao || ''); const em = String(c.em || '');
+  if (!uid || !cordao || !em) throw new Error('Pedido incompleto (atleta, cordão e data da troca).');
+  const ref = ctx.db.doc(`usuarios/${uid}`);
+  const su = await ref.get();
+  if (!su.exists) throw new Error('Atleta não encontrado.');
+  const u = su.data();
+  const hist = Array.isArray(u.historicoGraduacoes) ? u.historicoGraduacoes : [];
+  const i = hist.findIndex((h) => h && h.cordao === cordao && String(h.em || '') === em);
+  if (i === -1) throw new Error('Essa graduação não está mais na trajetória do atleta.');
+  if (i !== hist.length - 1 || (u.cordaoAtual || 'Iniciante') !== cordao) throw new Error('Só a última graduação do atleta pode ser desfeita (desfaça as mais novas antes).');
+  const troca = hist[i];
+  const anterior = troca.anterior || 'Iniciante';
+  const motivo = String(c.motivo || '').slice(0, 200);
+  await ref.update({ cordaoAtual: anterior, historicoGraduacoes: hist.slice(0, i) });
+  const codigo = await cancelarCertificado(ctx, uid, `${cordao}|${em}`, motivo || 'Graduação desfeita pelo Admin Master');
+  // A festa "Troquei de cordão" que ainda não apareceu não aparece mais.
+  const idAviso = idAvisoCordao(troca, uid);
+  for (const dono of [uid, u.responsavelUid].filter(Boolean)) await ctx.db.doc(`notificacoes/${dono}/itens/${idAviso}`).delete().catch(() => {});
+  await notificar(ctx, await gestoresDoNucleo(ctx, u.academiaId), {
+    tipo: 'graduacao', titulo: 'Graduação desfeita — registre de novo',
+    texto: `${String(u.nome || 'Atleta').split(' ')[0]} voltou para o cordão ${anterior}${motivo ? ` (${motivo})` : ''}. Registre a troca de novo em Graduação.`,
+    link: 'admin.html',
+  });
+  await ctx.db.collection('auditoria').add({
+    quando: new Date().toISOString(), quemUid: porUid, quemNome: porNome, colecao: 'usuarios', docId: uid, alvoNome: u.nome || '',
+    acao: 'desfez a graduação', campos: ['cordaoAtual', 'historicoGraduacoes'],
+    resumo: `${porNome || 'Admin'} desfez a graduação de ${u.nome || uid}: ${cordao} → volta para ${anterior}${motivo ? ` (${motivo})` : ''}`,
+    antes: { cordaoAtual: cordao }, depois: { cordaoAtual: anterior, certificadoCancelado: codigo || null },
+  });
+  return { cordao: anterior, certificadoCancelado: codigo || null };
 }

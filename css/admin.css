@@ -770,3 +770,35 @@ select.input-padrao { appearance: none; -webkit-appearance: none; background-ima
   .gs-barras { gap: 4px; } .gs-col small { font-size: .55rem; }
   .user-area { gap: 8px; }
 }
+
+/* ---------- Relatórios gerais (atletas, carteirinhas, graduações) ---------- */
+.rg-abas { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
+.rg-abas [data-rg-aba] { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--card-bg); color: var(--text-dark); font-weight: 800; font-size: .86rem; cursor: pointer; transition: background .25s, color .25s, border-color .25s; }
+.rg-abas [data-rg-aba].on { background: #002D72; border-color: #002D72; color: #fff; }
+.rg-exp { margin-left: auto; display: inline-flex; gap: 6px; }
+.rg-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.rg-tile { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 2px; }
+.rg-tile b { font: 800 1.6rem 'JetBrains Mono', monospace; color: #002D72; font-variant-numeric: tabular-nums; }
+.rg-tile small { font-size: .78rem; color: var(--text-muted); font-weight: 700; }
+.rg-tile.ok b { color: #00873A; } .rg-tile.ruim b { color: #B3261E; } .rg-tile.alerta b { color: #8a6a10; }
+.rg-filtros { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.rg-filtros .btn-mini.on { background: #002D72; color: #fff; border-color: #002D72; }
+.rg-tabela { overflow-x: auto; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; }
+.rg-tabela table { width: 100%; border-collapse: collapse; font-size: .85rem; min-width: 720px; }
+.rg-tabela th { text-align: left; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); padding: 10px 12px; border-bottom: 1px solid var(--border-strong); background: var(--bg-app); }
+.rg-tabela td { padding: 10px 12px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+.rg-tabela tr:last-child td { border-bottom: 0; }
+.rg-tabela td b { display: block; }
+.rg-troca { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.rg-troca i { color: var(--text-soft); font-size: .7rem; }
+.rg-sutil { color: var(--text-soft); font-size: .75rem; display: block; }
+.rg-mono { font-family: 'JetBrains Mono', monospace; font-size: .8rem; }
+.rg-duas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.rg-barras { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.rg-barra { display: grid; grid-template-columns: 34px 96px minmax(0, 1fr) 34px; gap: 8px; align-items: center; font-size: .8rem; }
+.rg-barra i { height: 10px; border-radius: 5px; background: linear-gradient(90deg, #389E92, #00E676); min-width: 4px; }
+.rg-barra b { font-family: 'JetBrains Mono', monospace; text-align: right; }
+.rg-lista { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; margin-top: 8px; }
+.rg-lista span { display: flex; flex-direction: column; padding: 8px 10px; border-radius: 12px; background: var(--bg-app); }
+.rg-lista small { color: var(--text-muted); font-size: .76rem; }
+@media (max-width: 760px) { .rg-duas { grid-template-columns: 1fr; } .rg-exp { margin-left: 0; width: 100%; } .rg-abas [data-rg-aba] { flex: 1 1 auto; justify-content: center; } }

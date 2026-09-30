@@ -15,7 +15,7 @@ por Firebase Authentication (usuarios/{uid}.papeis). -->
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js">
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js">
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js">
-<link rel="stylesheet" href="css/admin.css?v=20260926e">
+<link rel="stylesheet" href="css/admin.css?v=20260930">
 </head>
 <body>
 <noscript>Este painel exige JavaScript habilitado para funcionar.</noscript>
@@ -205,6 +205,19 @@ e expande a ramificação, que fica aberta até ser recolhida. -->
 <div class="canvas-container"><canvas id="chartStatus"></canvas></div>
 </div>
 </div>
+</div>
+
+<!-- Relatórios gerais: atletas ativos/inativos, carteirinhas e graduações
+(desfazer graduação: só Admin Master). Montado por js/gestao.js. -->
+<div id="secao-relatorios-gerais" class="chart-section" data-papel="gestor" style="margin-top: 40px;">
+<div class="section-header">
+<div>
+<span class="eyebrow">Relatórios gerais</span>
+<h2><i class="fas fa-table-list"></i> Atletas, carteirinhas e graduações</h2>
+</div>
+<span class="pill pill-neutra" id="rgEscopo">—</span>
+</div>
+<div id="gsRelatorios"></div>
 </div>
 </section>
 
@@ -644,6 +657,6 @@ pra não recalcular a cada aula. -->
 </div>
 </div>
 
-<script type="module" src="js/admin.js?v=20260928a"></script>
+<script type="module" src="js/admin.js?v=20260930"></script>
 </body>
 </html>

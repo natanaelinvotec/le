@@ -172,6 +172,9 @@ test('LGPD e coleções antigas', async () => {
   await assertFails(setDoc(doc(db('admin'), 'config', 'migracoes'), { m1: 'x' }));
   await assertSucceeds(addDoc(collection(db('admin'), 'comandos'), { tipo: 'excluirConta', uid: 'nat', porUid: 'admin', status: 'pendente' }));
   await assertFails(addDoc(collection(db('tay'), 'comandos'), { tipo: 'excluirConta', uid: 'nat', porUid: 'tay', status: 'pendente' }));
+  // Desfazer graduação: só o Admin Master pede (o responsável do núcleo registra de novo).
+  await assertSucceeds(addDoc(collection(db('admin'), 'comandos'), { tipo: 'desfazerGraduacao', uid: 'nat', cordao: 'Vagante', em: AGORA, porUid: 'admin', status: 'pendente' }));
+  await assertFails(addDoc(collection(db('tay'), 'comandos'), { tipo: 'desfazerGraduacao', uid: 'nat', cordao: 'Vagante', em: AGORA, porUid: 'tay', status: 'pendente' }));
   await assertFails(addDoc(collection(db('admin'), 'comandos'), { tipo: 'excluirConta', uid: 'nat', porUid: 'outro', status: 'pendente' }));
 });
 

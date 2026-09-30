@@ -460,3 +460,30 @@ test('certificado: graduado pelo Fundador tem uma assinatura; menor tem nome cur
   assert.equal(cert.evento, null);
   assert.ok(notifs(f, 'mae').some((x) => x.tipo === 'cordao' && x.atletaUid === 'kid'));
 });
+
+test('desfazer graduação (Admin): volta o cordão, cancela o certificado, some a festa e avisa o núcleo', async () => {
+  const { desfazerGraduacao, executarComando } = await import('../src/rotinas.js');
+  const { f, ctx } = ctxDe(base());
+  const antes = f.ler('usuarios/nat');
+  const troca = { cordao: 'Vagante', anterior: 'Quilombola', em: '2026-09-20T12:00:00.000Z', por: 'tay' };
+  const depois = { ...antes, cordaoAtual: 'Vagante', historicoGraduacoes: [troca] };
+  await f.db.doc('usuarios/nat').set(depois);
+  await G.aoEscreverUsuario(ctx, { params: { uid: 'nat' }, antes, depois });
+  const cod = f.ler('certificadosDe/nat').itens[0].codigo;
+  assert.equal(notifs(f, 'nat').filter((x) => x.tipo === 'cordao').length, 1);
+  // Só a última troca; dados errados são recusados.
+  await assert.rejects(desfazerGraduacao(ctx, { uid: 'nat', cordao: 'Liberto', em: troca.em }), /não está mais/);
+  const r = await desfazerGraduacao(ctx, { uid: 'nat', cordao: 'Vagante', em: troca.em, motivo: 'Aluno errado' }, { porUid: 'admin', porNome: 'Admin Master' });
+  assert.equal(r.cordao, 'Quilombola');
+  assert.equal(f.ler('usuarios/nat').cordaoAtual, 'Quilombola');
+  assert.deepEqual(f.ler('usuarios/nat').historicoGraduacoes, []);
+  assert.equal(f.ler(`certificados/${cod}`).ativo, false);
+  assert.equal(f.ler('certificadosDe/nat').itens.length, 0);
+  assert.equal(notifs(f, 'nat').filter((x) => x.tipo === 'cordao').length, 0);
+  assert.ok(notifs(f, 'tay').some((x) => x.tipo === 'graduacao'));
+  assert.ok(Object.values(f.lerCol('auditoria')).some((a) => a.acao === 'desfez a graduação'));
+  // Pelo comando: quem não é Admin é negado.
+  await f.db.doc('comandos/c1').set({ tipo: 'desfazerGraduacao', uid: 'nat', cordao: 'Quilombola', em: 'x', porUid: 'tay', status: 'pendente' });
+  await executarComando(ctx, { params: { id: 'c1' }, depois: f.ler('comandos/c1'), authId: 'tay' });
+  assert.equal(f.ler('comandos/c1').status, 'negado');
+});

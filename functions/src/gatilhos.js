@@ -7,7 +7,7 @@ import { notificar, gestoresDoNucleo, admins, membros } from './notificar.js';
 import { registrar } from './auditoria.js';
 import { checarTexto, checarImagens } from './moderacao.js';
 import { sincronizarCarteirinha } from './carteirinha.js';
-import { emitirCertificado, apagarCertificados } from './certificado.js';
+import { emitirCertificado, apagarCertificados, idAvisoCordao } from './certificado.js';
 import { coresDoCordao } from './compartilhado/escola.js';
 
 // Campos de usuarios/{uid} que mudam a carteirinha (o próprio espelho entra:
@@ -60,7 +60,7 @@ export async function aoEscreverUsuario(ctx, ev) {
     const assinanteUid = ev.authType === 'app_user' && ev.authId && ev.authId !== uid ? ev.authId : null;
     try { cert = await emitirCertificado(ctx, uid, depois, troca, { assinanteUid }); } catch (e) { (ctx.log || console).warn('certificado', uid, e && e.message); }
     // Gatilho reentregue (o Firestore pode entregar 2x): mesmo documento de aviso, sem festa dupla.
-    const idAviso = `cordao_${String(troca.cordao || '').replace(/[^A-Za-z0-9]/g, '')}_${String(troca.em || '').replace(/[^0-9]/g, '').slice(0, 14)}`;
+    const idAviso = idAvisoCordao(troca, uid);
     const dados = {
       tipo: 'cordao', link: cert ? `certificado.html#${cert.codigo}` : `rede.html#perfil/${uid}`,
       atletaUid: uid, atletaNome: String(depois.nome || '').slice(0, 80), cordao: depois.cordaoAtual, anterior: antes.cordaoAtual || 'Iniciante',
@@ -68,9 +68,9 @@ export async function aoEscreverUsuario(ctx, ev) {
       ...(cert ? { certificado: cert.codigo, certificadoNumero: cert.numero, evento: cert.evento || '' } : {}),
     };
     const txt = cert ? 'Parabéns pela nova graduação. O certificado já está no app.' : 'Parabéns pela nova graduação. Veja na sua trajetória.';
-    await notificar(ctx, [uid], { ...dados, titulo: `Cordão ${depois.cordaoAtual}!`, texto: txt }, { idFixo: `${idAviso}_${uid}` });
+    await notificar(ctx, [uid], { ...dados, titulo: `Cordão ${depois.cordaoAtual}!`, texto: txt }, { idFixo: idAviso });
     if (depois.responsavelUid && depois.responsavelUid !== uid) {
-      await notificar(ctx, [depois.responsavelUid], { ...dados, titulo: `${primeiroNome(depois.nome)} trocou de cordão!`, texto: `Agora é Cordão ${depois.cordaoAtual}. ${cert ? 'O certificado já está no app.' : ''}`.trim() }, { idFixo: `${idAviso}_${uid}` });
+      await notificar(ctx, [depois.responsavelUid], { ...dados, titulo: `${primeiroNome(depois.nome)} trocou de cordão!`, texto: `Agora é Cordão ${depois.cordaoAtual}. ${cert ? 'O certificado já está no app.' : ''}`.trim() }, { idFixo: idAviso });
     }
   }
   if (!criado && mudouAlgum(antes, depois, ['responsavelUid', 'idade'])) await atualizarResponsaveisDasConversas(ctx, uid);

@@ -134,3 +134,19 @@ export async function conferirCertificados(ctx, uid, u) {
   }
   return n;
 }
+
+// Id fixo do aviso "Troquei de cordão" de uma troca (o mesmo para gatilho reentregue e para desfazer).
+export const idAvisoCordao = (troca, uid) => `cordao_${String((troca && troca.cordao) || '').replace(/[^A-Za-z0-9]/g, '')}_${String((troca && troca.em) || '').replace(/[^0-9]/g, '').slice(0, 14)}_${uid}`;
+
+// Graduação desfeita pelo Admin: o certificado fica CANCELADO (quem ler o QR de
+// uma impressão antiga vê "cancelado") e sai da lista do atleta.
+export async function cancelarCertificado(ctx, uid, chave, motivo = '') {
+  const refDe = ctx.db.doc(`certificadosDe/${uid}`);
+  const sd = await refDe.get();
+  const itens = sd.exists && Array.isArray(sd.data().itens) ? sd.data().itens : [];
+  const alvo = itens.find((i) => i.chave === chave);
+  if (!alvo) return null;
+  await ctx.db.doc(`certificados/${alvo.codigo}`).set({ ativo: false, canceladoEm: new Date().toISOString(), motivoCancelamento: String(motivo || '').slice(0, 200) }, { merge: true });
+  await refDe.set({ itens: itens.filter((i) => i.chave !== chave), atualizadoEm: new Date().toISOString() }, { merge: true });
+  return alvo.codigo;
+}

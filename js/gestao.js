@@ -10,6 +10,7 @@ import {
   listar, listarPagamentosDoNucleo, lancarPagamento, pedirAoServidor,
 } from './firebase.js';
 import { ESCOLA, CORDOES_ADULTO, prontidao, proximoCordao, coresDoCordao, META_PRONTIDAO, escadaDe } from './escola.js';
+import { situacao as situacaoCarteirinha, textoValidade } from './carteirinha-comum.js';
 
 let C = null; // contexto vindo do admin.js
 const el = (id) => document.getElementById(id);
@@ -214,12 +215,133 @@ async function renderGraduacao() {
       <button type="button" class="btn-detalhes" id="gsGradSalvar" ${gradSel.size ? '' : 'disabled'}><i class="fas fa-award"></i> Registrar graduação (${gradSel.size})</button>
     </div>
   </div>
+  ${C.ehAdmin() ? `<div class="card-padrao"><h3><i class="fas fa-rotate-left"></i> Graduações registradas (últimos 60 dias)</h3><p class="gs-ajuda">Registrou errado? O Admin Master desfaz: o cordão volta ao anterior, o certificado é cancelado e o responsável do núcleo é avisado para registrar de novo. Só a última troca de cada atleta pode ser desfeita.</p>${tabelaGraduacoes(graduacoesDe(nid || null, 60), true)}</div>` : ''}
   ${gradFeitos.length ? `<div class="card-padrao gs-feitos"><h3><i class="fas fa-certificate"></i> Graduados agora <span class="pill pill-aprovado">${gradFeitos.length}</span></h3><p class="gs-ajuda">${gradFeitos.map((g) => `${esc(g.nome)} → ${esc(g.cordao)}`).join(' · ')}</p><button type="button" class="btn-detalhes" id="gsCertificados"><i class="fas fa-file-pdf"></i> Baixar certificados (PDF)</button></div>` : ''}`;
   const sel = el('gsNucGrad'); if (sel) sel.addEventListener('change', () => { gradSel.clear(); renderGraduacao(); });
   el('gsGradTodos').addEventListener('change', (e) => { gradMostrarTodos = e.target.checked; renderGraduacao(); });
   box.querySelectorAll('[data-grad]').forEach((c) => c.addEventListener('change', () => { if (c.checked) gradSel.add(c.dataset.grad); else gradSel.delete(c.dataset.grad); const b = el('gsGradSalvar'); b.disabled = !gradSel.size; b.innerHTML = `<i class="fas fa-award"></i> Registrar graduação (${gradSel.size})`; }));
   el('gsGradSalvar').addEventListener('click', () => registrarGraduacoes(lista, eventos));
   const bc = el('gsCertificados'); if (bc) bc.addEventListener('click', () => gerarCertificados(gradFeitos));
+  ligarDesfazer(box, renderGraduacao);
+}
+
+// ---------- graduações registradas (relatório + desfazer) ----------
+const ORDEM_GRAD = ['Iniciante', 'Escravo', 'Fugitivo', 'Quilombola', 'Vagante', 'Liberto', 'Instrutor', 'Professor', 'Mestre', 'Mestre/Presidente'];
+// Todas as trocas de cordão para cima registradas (historicoGraduacoes), das mais novas para as mais velhas.
+function graduacoesDe(nid, dias = null) {
+  const desde = dias ? Date.now() - dias * DIA : 0;
+  const out = [];
+  C.usuarios().filter((u) => !nid || u.academiaId === nid).forEach((u) => {
+    const hist = Array.isArray(u.historicoGraduacoes) ? u.historicoGraduacoes : [];
+    hist.forEach((h, i) => {
+      if (!h || !h.cordao) return;
+      const t = new Date(h.em || 0).getTime();
+      if (dias && !(t >= desde)) return;
+      out.push({ u, h, ultima: i === hist.length - 1 && (u.cordaoAtual || 'Iniciante') === h.cordao, subiu: ORDEM_GRAD.indexOf(h.cordao) > ORDEM_GRAD.indexOf(h.anterior || 'Iniciante'), t });
+    });
+  });
+  return out.sort((a, b) => b.t - a.t);
+}
+function tabelaGraduacoes(lista, comDesfazer) {
+  if (!lista.length) return '<div class="empty-state"><i class="fas fa-ribbon"></i>Nenhuma troca de cordão registrada neste período.</div>';
+  const faixa = (nome, u) => { const c = coresDoCordao(nome, u); return `<span class="gs-cordao" style="--c1:${c[0]};--c2:${c[1]};--c3:${c[2]}"></span>`; };
+  return `<div class="rg-tabela"><table><thead><tr><th>Data</th><th>Atleta</th><th>Núcleo</th><th>Troca</th><th>Graduado por</th><th>Evento</th>${comDesfazer ? '<th></th>' : ''}</tr></thead><tbody>${lista.slice(0, 300).map(({ u, h, ultima }) => `<tr>
+    <td>${esc(new Date(h.em).toLocaleDateString('pt-BR'))}</td><td><b>${esc(u.nome || '')}</b></td><td>${esc(nomeNucleo(u.academiaId))}</td>
+    <td class="rg-troca">${faixa(h.anterior || 'Iniciante', u)}<small>${esc(h.anterior || 'Iniciante')}</small><i class="fas fa-arrow-right"></i>${faixa(h.cordao, u)}<small><b>${esc(h.cordao)}</b></small></td>
+    <td>${esc(h.porNome || '—')}</td><td>${esc(h.eventoNome || '—')}</td>
+    ${comDesfazer ? `<td>${ultima ? `<button type="button" class="btn-mini" data-desfazer="${esc(u.id)}" data-cordao="${esc(h.cordao)}" data-em="${esc(h.em)}"><i class="fas fa-rotate-left"></i> Desfazer</button>` : '<small class="rg-sutil">—</small>'}</td>` : ''}</tr>`).join('')}</tbody></table></div>`;
+}
+function ligarDesfazer(raiz, depois) {
+  raiz.querySelectorAll('[data-desfazer]').forEach((b) => b.addEventListener('click', async () => {
+    if (!C.ehAdmin()) return;
+    const u = C.usuarios().find((x) => x.id === b.dataset.desfazer);
+    const nome = (u && u.nome) || 'o atleta';
+    const motivo = window.prompt(`Desfazer a graduação de ${nome} (${b.dataset.cordao})?\n\nO cordão volta ao anterior, o certificado é cancelado e o responsável do núcleo é avisado para registrar de novo.\n\nMotivo (aparece para o responsável do núcleo):`, 'Registro com erro');
+    if (motivo === null) return;
+    b.disabled = true; b.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Desfazendo…';
+    try {
+      const r = await pedirAoServidor('desfazerGraduacao', { uid: b.dataset.desfazer, cordao: b.dataset.cordao, em: b.dataset.em, motivo: String(motivo).slice(0, 200) });
+      C.toast(`Graduação desfeita: ${nome} voltou para ${r.cordao || 'o cordão anterior'}.`, 'success');
+      if (C.recarregarUsuarios) await C.recarregarUsuarios();
+      depois();
+    } catch (e) { console.error(e); C.toast(e.message || 'Não foi possível desfazer agora.', 'error'); b.disabled = false; b.innerHTML = '<i class="fas fa-rotate-left"></i> Desfazer'; }
+  }));
+}
+
+// ---------- RELATÓRIOS GERAIS (atletas, carteirinhas, graduações) ----------
+// Tudo sai dos cadastros já carregados no painel (usuarios/*, com o espelho
+// .carteirinha que o servidor grava): nenhuma leitura extra do banco.
+let rgAba = 'atletas'; let rgFiltroCart = 'todas'; let rgDias = 90;
+const PAPEIS_ATLETA = ['aluno', 'instrutor', 'mestre'];
+const ehAtletaU = (u) => (u.papeis || []).some((p) => PAPEIS_ATLETA.includes(p));
+const inativo = (u) => u.statusAtual === 'Inativo' || u.ativo === false;
+function funcaoDe(u) {
+  const c = u.cordaoAtual || '';
+  if (u.academiaGerenciadaId || (u.papeis || []).includes('mestre')) return ['Mestre', 'Mestre/Presidente'].includes(c) ? 'Mestre' : 'Professor(a)';
+  if ((u.papeis || []).includes('instrutor') || c === 'Instrutor') return 'Instrutor(a)';
+  return 'Aluno(a)';
+}
+function sitCart(u) {
+  const c = u.carteirinha;
+  if (!c || !c.codigo) return 'naoemitida';
+  return situacaoCarteirinha(c);
+}
+const ROT_CART = { valida: ['Válidas', 'pill-aprovado'], vencida: ['Vencidas', 'pill-rejeitado'], semfoto: ['Sem foto aprovada', 'pill-pendente'], inativa: ['Inativas', 'pill-neutra'], naoemitida: ['Não emitidas', 'pill-neutra'] };
+const tile = (n, rotulo, cor = '') => `<div class="rg-tile ${cor}"><b>${n}</b><small>${esc(rotulo)}</small></div>`;
+
+export function renderRelatoriosGerais(nid) {
+  const box = el('gsRelatorios'); if (!box || !C) return;
+  if (!C.ehAdmin() && !C.ehGestor() && !C.fundador()) { box.innerHTML = ''; return; }
+  const escopo = C.ehAdmin() || C.fundador() ? (nid || null) : (C.sessao().academiaGerenciadaId || null);
+  const pessoas = C.usuarios().filter((u) => ehAtletaU(u) && (!escopo || u.academiaId === escopo || u.academiaGerenciadaId === escopo));
+  const rotEscopo = escopo ? nomeNucleo(escopo) : 'Grupo todo';
+  el('rgEscopo') && (el('rgEscopo').textContent = rotEscopo);
+  let corpo = ''; let exportar = null;
+  if (rgAba === 'atletas') {
+    const ativos = pessoas.filter((u) => !inativo(u)); const inat = pessoas.filter(inativo);
+    const porFuncao = {}; ativos.forEach((u) => { const f = funcaoDe(u); porFuncao[f] = (porFuncao[f] || 0) + 1; });
+    const porCordao = {}; ativos.forEach((u) => { const c = u.cordaoAtual || 'Iniciante'; porCordao[c] = (porCordao[c] || 0) + 1; });
+    const maxC = Math.max(1, ...Object.values(porCordao));
+    corpo = `<div class="rg-tiles">${tile(pessoas.length, 'atletas cadastrados')}${tile(ativos.length, 'ativos', 'ok')}${tile(inat.length, 'inativos', inat.length ? 'ruim' : '')}${['Aluno(a)', 'Instrutor(a)', 'Professor(a)', 'Mestre'].map((f) => tile(porFuncao[f] || 0, f.replace('(a)', 's').replace('Mestre', 'mestres').toLowerCase())).join('')}</div>
+      <div class="rg-duas"><div class="card-padrao"><h3><i class="fas fa-ribbon"></i> Ativos por cordão</h3><div class="rg-barras">${ORDEM_GRAD.filter((c) => porCordao[c]).map((c) => { const cor = coresDoCordao(c); return `<div class="rg-barra"><span class="gs-cordao" style="--c1:${cor[0]};--c2:${cor[1]};--c3:${cor[2]}"></span><small>${esc(c)}</small><i style="width:${Math.round((porCordao[c] / maxC) * 100)}%"></i><b>${porCordao[c]}</b></div>`; }).join('') || '<p class="gs-ajuda">Sem atletas ativos.</p>'}</div></div>
+      <div class="card-padrao"><h3><i class="fas fa-user-slash"></i> Inativos <span class="pill pill-neutra">${inat.length}</span></h3>${inat.length ? `<div class="rg-lista">${inat.slice(0, 60).map((u) => `<span><b>${esc(u.nome || '')}</b><small>${esc(nomeNucleo(u.academiaId))} · ${esc(u.cordaoAtual || 'Iniciante')}</small></span>`).join('')}</div>` : '<p class="gs-ajuda">Nenhum atleta inativo.</p>'}</div></div>`;
+    exportar = () => ({ titulo: 'Atletas', sub: rotEscopo, colunas: [{ chave: 'nome', titulo: 'Nome' }, { chave: 'funcao', titulo: 'Função' }, { chave: 'cordao', titulo: 'Cordão' }, { chave: 'nucleo', titulo: 'Núcleo' }, { chave: 'situacao', titulo: 'Situação' }, { chave: 'desde', titulo: 'No grupo desde' }],
+      linhas: pessoas.slice().sort((a, b) => String(a.nome).localeCompare(String(b.nome))).map((u) => ({ nome: u.nome || '', funcao: funcaoDe(u), cordao: u.cordaoAtual || 'Iniciante', nucleo: nomeNucleo(u.academiaId), situacao: inativo(u) ? 'Inativo' : 'Ativo', desde: u.criadoEm ? new Date(u.criadoEm).toLocaleDateString('pt-BR') : '' })) });
+  } else if (rgAba === 'carteirinhas') {
+    const conta = {}; pessoas.forEach((u) => { const s = sitCart(u); conta[s] = (conta[s] || 0) + 1; });
+    const benef = pessoas.reduce((n, u) => n + ((u.carteirinha && Array.isArray(u.carteirinha.beneficiarios)) ? u.carteirinha.beneficiarios.length : 0), 0);
+    const bolsistas = pessoas.filter((u) => u.isentoMensalidade === true).length;
+    const lista = pessoas.filter((u) => rgFiltroCart === 'todas' || sitCart(u) === rgFiltroCart).sort((a, b) => String(a.nome).localeCompare(String(b.nome)));
+    corpo = `<div class="rg-tiles">${Object.entries(ROT_CART).map(([k, [r]]) => tile(conta[k] || 0, r.toLowerCase(), k === 'valida' ? 'ok' : k === 'vencida' ? 'ruim' : k === 'semfoto' ? 'alerta' : '')).join('')}${tile(benef, 'beneficiários')}${tile(bolsistas, 'bolsistas')}</div>
+      <div class="rg-filtros" role="group" aria-label="Filtrar carteirinhas">${[['todas', 'Todas']].concat(Object.entries(ROT_CART).map(([k, [r]]) => [k, r])).map(([k, r]) => `<button type="button" class="btn-mini${rgFiltroCart === k ? ' on' : ''}" data-rg-filtro="${k}" aria-pressed="${rgFiltroCart === k}">${esc(r)}</button>`).join('')}<a class="btn-mini" href="carteirinhas.html"><i class="fas fa-id-card"></i> Aprovar fotos</a></div>
+      ${lista.length ? `<div class="rg-tabela"><table><thead><tr><th>Atleta</th><th>Núcleo</th><th>Matrícula</th><th>Situação</th><th>Validade</th><th>Beneficiários</th><th></th></tr></thead><tbody>${lista.slice(0, 400).map((u) => { const s = sitCart(u); const c = u.carteirinha || {}; return `<tr><td><b>${esc(u.nome || '')}</b><small class="rg-sutil">${esc(funcaoDe(u))}</small></td><td>${esc(nomeNucleo(u.academiaId))}</td><td class="rg-mono">${esc(c.matricula || '—')}</td><td><span class="pill ${ROT_CART[s][1]}">${esc(ROT_CART[s][0].replace(/s$/, '').replace('Sem foto aprovada', 'Sem foto').replace('Não emitida', 'Não emitida'))}</span></td><td>${esc(c.codigo ? textoValidade(c) : '—')}</td><td>${Array.isArray(c.beneficiarios) ? c.beneficiarios.length : 0}</td><td>${c.codigo ? `<a class="btn-mini" href="v.html#${esc(encodeURIComponent(c.codigo))}" target="_blank" rel="noopener">Conferir</a>` : ''}</td></tr>`; }).join('')}</tbody></table></div>` : '<div class="empty-state"><i class="fas fa-id-card"></i>Nenhuma carteirinha nesta situação.</div>'}`;
+    exportar = () => ({ titulo: 'Carteirinhas', sub: rotEscopo, colunas: [{ chave: 'nome', titulo: 'Atleta' }, { chave: 'nucleo', titulo: 'Núcleo' }, { chave: 'matricula', titulo: 'Matrícula' }, { chave: 'situacao', titulo: 'Situação' }, { chave: 'validade', titulo: 'Validade' }, { chave: 'benef', titulo: 'Beneficiários' }, { chave: 'bolsista', titulo: 'Bolsista' }],
+      linhas: lista.map((u) => { const c = u.carteirinha || {}; const s = sitCart(u); return { nome: u.nome || '', nucleo: nomeNucleo(u.academiaId), matricula: c.matricula || '', situacao: ROT_CART[s][0], validade: c.codigo ? textoValidade(c) : '', benef: Array.isArray(c.beneficiarios) ? c.beneficiarios.length : 0, bolsista: u.isentoMensalidade === true ? 'Sim' : '' }; }) });
+  } else {
+    const lista = graduacoesDe(escopo, rgDias || null).filter((g) => g.subiu);
+    const porCordao = {}; lista.forEach((g) => { porCordao[g.h.cordao] = (porCordao[g.h.cordao] || 0) + 1; });
+    const eventos = new Set(lista.map((g) => g.h.eventoNome).filter(Boolean));
+    corpo = `<div class="rg-filtros" role="group" aria-label="Período">${[[30, '30 dias'], [90, '90 dias'], [365, '12 meses'], [0, 'Tudo']].map(([d, r]) => `<button type="button" class="btn-mini${rgDias === d ? ' on' : ''}" data-rg-dias="${d}" aria-pressed="${rgDias === d}">${r}</button>`).join('')}</div>
+      <div class="rg-tiles">${tile(lista.length, 'trocas de cordão', 'ok')}${tile(new Set(lista.map((g) => g.u.id)).size, 'atletas graduados')}${tile(eventos.size, 'batizados/eventos')}${ORDEM_GRAD.filter((c) => porCordao[c]).slice(-4).map((c) => tile(porCordao[c], `para ${c}`)).join('')}</div>
+      ${tabelaGraduacoes(lista, C.ehAdmin())}`;
+    exportar = () => ({ titulo: 'Graduações', sub: `${rotEscopo} · ${rgDias ? `últimos ${rgDias} dias` : 'todo o período'}`, colunas: [{ chave: 'data', titulo: 'Data' }, { chave: 'nome', titulo: 'Atleta' }, { chave: 'nucleo', titulo: 'Núcleo' }, { chave: 'de', titulo: 'Cordão anterior' }, { chave: 'para', titulo: 'Novo cordão' }, { chave: 'por', titulo: 'Graduado por' }, { chave: 'evento', titulo: 'Evento' }],
+      linhas: lista.map(({ u, h }) => ({ data: new Date(h.em).toLocaleDateString('pt-BR'), nome: u.nome || '', nucleo: nomeNucleo(u.academiaId), de: h.anterior || 'Iniciante', para: h.cordao, por: h.porNome || '', evento: h.eventoNome || '' })) });
+  }
+  box.innerHTML = `<div class="rg-abas" role="tablist" aria-label="Relatórios gerais">${[['atletas', 'fa-users', 'Atletas ativos e inativos'], ['carteirinhas', 'fa-id-card', 'Carteirinhas'], ['graduacoes', 'fa-ribbon', 'Graduações']].map(([k, ic, r]) => `<button type="button" role="tab" aria-selected="${rgAba === k}" class="${rgAba === k ? 'on' : ''}" data-rg-aba="${k}"><i class="fas ${ic}"></i> ${r}</button>`).join('')}
+    <span class="rg-exp"><button type="button" class="btn-mini exp-btn" data-rg-exp="xlsx"><i class="fas fa-file-excel"></i> Excel</button><button type="button" class="btn-mini exp-btn" data-rg-exp="pdf"><i class="fas fa-file-pdf"></i> PDF</button></span></div>
+    <div class="rg-corpo">${corpo}</div>`;
+  box.querySelectorAll('[data-rg-aba]').forEach((b) => b.addEventListener('click', () => { rgAba = b.dataset.rgAba; renderRelatoriosGerais(nid); }));
+  box.querySelectorAll('[data-rg-filtro]').forEach((b) => b.addEventListener('click', () => { rgFiltroCart = b.dataset.rgFiltro; renderRelatoriosGerais(nid); }));
+  box.querySelectorAll('[data-rg-dias]').forEach((b) => b.addEventListener('click', () => { rgDias = Number(b.dataset.rgDias); renderRelatoriosGerais(nid); }));
+  box.querySelectorAll('[data-rg-exp]').forEach((b) => b.addEventListener('click', () => { const d = exportar(); exportarRel(b.dataset.rgExp, d); }));
+  ligarDesfazer(box, () => renderRelatoriosGerais(nid));
+}
+async function exportarRel(formato, d) {
+  try {
+    if (!d.linhas.length) { C.toast('Nada para exportar ainda.', 'error'); return; }
+    C.toast('Preparando o arquivo…');
+    if (formato === 'xlsx') await exportarExcel(d.titulo, d.colunas, d.linhas); else await exportarPDF(d.titulo, d.colunas, d.linhas, d.sub);
+  } catch (e) { console.error(e); C.toast(e.message || 'Não foi possível exportar agora.', 'error'); }
 }
 async function registrarGraduacoes(lista, eventos) {
   const alvos = lista.filter((x) => gradSel.has(x.a.id));
