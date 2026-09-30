@@ -29,7 +29,7 @@ lancarDespesaComRateio, todosRateios, marcarRateioPago,
 import { iniciarGestao, abrirTela as abrirTelaGestao, renderRelatoriosGerais } from './gestao.js?v=20260930b';
 import { iniciarExperiencia, abrirAcessibilidade, tutorial, pedirAceiteSeNecessario } from './experiencia.js';
 import { ligarContador, abrirCentral, ouvirPushComAppAberto } from './notificacoes.js?v=20260926e';
-import { apresentacaoDe, migrarApresentacao, tocarApresentacao, tocarAoEntrar, gerenciarApresentacao, abrirMinhaConta, abrirTrocaSenha, definirAutor, podeTerApresentacao, formatarCelular, celularValido, celularDe } from './conta.js?v=20260927a';
+import { apresentacaoDe, migrarApresentacao, tocarApresentacao, tocarAoEntrar, gerenciarApresentacao, abrirMinhaConta, abrirTrocaSenha, definirAutor, podeTerApresentacao, formatarCelular, celularValido, celularDe } from './conta.js?v=20261001';
 import { escapeHTML, sanitizeInput, debounce, gerarSlug } from './shared.js';
 import { BRASOES, porId as brasaoPorId, urlThumb as brasaoThumb, ehManual as brasaoManual } from './brasoes.js?v=20260927b';
 import { configurarFaceId, atualizarContextoFaceId, pararFaceId } from './faceid.js';

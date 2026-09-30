@@ -36,7 +36,7 @@ import { termosOfensivos, MOTIVOS_DENUNCIA } from './moderacao.js';
 import { iniciarExperiencia, abrirAcessibilidade, instalar, estaInstalado, tutorial, pedirAceiteSeNecessario } from './experiencia.js';
 import { ligarContador, listar as listarNotificacoes, marcarTodasLidas, itemHTML as notificacaoHTML, CSS_NOTIF, ativarPush, desativarPush, estadoPush, ouvirPushComAppAberto } from './notificacoes.js';
 import { pedirExclusaoDaConta } from './lgpd.js';
-import { apresentacaoDe, tocarApresentacao, gerenciarApresentacao, abrirTrocaSenha, definirAutor, podeTerApresentacao } from './conta.js?v=20260927a';
+import { apresentacaoDe, tocarApresentacao, gerenciarApresentacao, abrirTrocaSenha, definirAutor, podeTerApresentacao } from './conta.js?v=20261001';
 import { BRASOES, SERIES, avaliar as avaliarBrasoes, consolidar as consolidarBrasoes, resumirPresencas, urlThumb, urlPng, urlGlb, textoMetrica, porId as brasaoPorId } from './brasoes.js?v=20260927b';
 
 /* ===================== CONSTANTES ===================== */

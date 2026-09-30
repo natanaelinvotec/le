@@ -79,9 +79,14 @@ if (Array.isArray(p.papeis) && (p.papeis.includes('mestre') || p.papeis.includes
 return p.acessoGeral === true || p.fundador === true;
 }
 
-// Movimento reduzido ou economia de dados: não abre sozinho (o botão continua).
+// A apresentação abre sozinha ao entrar em TODA conta que tem vídeo.
+// Antes ela não abria quando o aparelho pedia "menos animação" — e o Windows
+// vem assim em muitos computadores (Configurações → Acessibilidade → Efeitos
+// visuais → Efeitos de animação desligado), então quase ninguém via. Agora
+// abre sempre; com "menos animação" as transições viram só esmaecimento
+// (CSS acima) e o botão "Pular" continua lá. Só não abre sozinha no modo
+// economia de dados do celular (o vídeo pesa alguns MB).
 export function podeAbrirSozinho() {
-try { if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false; } catch (e) { /* ok */ }
 try { if (navigator.connection && navigator.connection.saveData) return false; } catch (e) { /* ok */ }
 return true;
 }

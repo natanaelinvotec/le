@@ -16,7 +16,7 @@ import {
   storageRef, uploadBytes, getDownloadURL, deleteObject,
   trocarSenha, recuperarSenha, emailDaSessao, SENHA_PADRAO,
 } from './firebase.js';
-import { abrirApresentacao, temApresentacao, podeTerApresentacao, podeAbrirSozinho, textoCargo } from './apresentacao.js';
+import { abrirApresentacao, temApresentacao, podeTerApresentacao, podeAbrirSozinho, textoCargo } from './apresentacao.js?v=20261001';
 
 export { podeTerApresentacao, temApresentacao };
 

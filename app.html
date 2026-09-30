@@ -1824,7 +1824,7 @@ class Component extends DCLogic {
   }
 
   // conta.js (senha, celular, apresentação) — carregado sob demanda, uma vez.
-  conta() { if (!this._contaP) this._contaP = import(new URL('js/conta.js?v=20260927a', document.baseURI).href); return this._contaP; }
+  conta() { if (!this._contaP) this._contaP = import(new URL('js/conta.js?v=20261001', document.baseURI).href); return this._contaP; }
   // Módulos compartilhados com a Rede e o painel (acessibilidade, notificações, LGPD).
   xp() { if (!this._xpP) this._xpP = import(new URL('js/experiencia.js', document.baseURI).href); return this._xpP; }
   notif() { if (!this._notifP) this._notifP = import(new URL('js/notificacoes.js?v=20260926e', document.baseURI).href); return this._notifP; }
