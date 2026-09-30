@@ -2,7 +2,7 @@
 import { randomUUID } from 'node:crypto';
 import { sincronizarPerfil } from './perfil.js';
 import { sincronizarCarteirinha, apagarCarteirinha, temCarteirinha } from './carteirinha.js';
-import { apagarCertificados, conferirCertificados, cancelarCertificado, idAvisoCordao } from './certificado.js';
+import { apagarCertificados, conferirCertificados, cancelarCertificado, cancelarAcimaDe, idAvisoCordao } from './certificado.js';
 import { notificar, gestoresDoNucleo } from './notificar.js';
 import { responsaveisDe, apagarSubcolecao, apagarArquivosDoStorage } from './gatilhos.js';
 
@@ -232,6 +232,9 @@ export async function desfazerGraduacao(ctx, c, { porUid = null, porNome = '' } 
   // A festa "Troquei de cordão" que ainda não apareceu não aparece mais.
   const idAviso = idAvisoCordao(troca, uid);
   for (const dono of [uid, u.responsavelUid].filter(Boolean)) await ctx.db.doc(`notificacoes/${dono}/itens/${idAviso}`).delete().catch(() => {});
+  await ctx.db.doc(`lembretes/${idAviso}`).delete().catch(() => {});
+  // Certificados sem data de cordões acima do que ficou também saem.
+  await cancelarAcimaDe(ctx, uid, u, anterior, motivo || 'Graduação desfeita pelo Admin Master');
   await notificar(ctx, await gestoresDoNucleo(ctx, u.academiaId), {
     tipo: 'graduacao', titulo: 'Graduação desfeita — registre de novo',
     texto: `${String(u.nome || 'Atleta').split(' ')[0]} voltou para o cordão ${anterior}${motivo ? ` (${motivo})` : ''}. Registre a troca de novo em Graduação.`,

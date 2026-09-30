@@ -9,8 +9,16 @@
 // O painel só troca o cordão (historicoGraduacoes); ninguém consegue "se dar"
 // um certificado pelo app, e um certificado nunca é emitido duas vezes para a
 // mesma troca (chave = cordão + data da troca).
-import { coresDoCordao, ESCOLA } from './compartilhado/escola.js';
-import { ehMenor } from './perfil.js';
+//
+// Assinaturas: SEMPRE o Mestre Profeta (Fundador) e o professor(a) responsável
+// pelo núcleo onde o atleta treina. A imagem da assinatura real de cada um fica
+// em assinaturas/{uid} (enviada no painel) e é buscada na hora de mostrar.
+//
+// Cordões que o atleta já tinha antes do app (a professora coloca o aluno direto
+// no cordão atual) ganham certificado SEM data e sem evento ("legado"), sem festa.
+import { coresDoCordao, ESCOLA, escadaDe, nomeBonito } from './compartilhado/escola.js';
+import { ehMenor, carregarConfigBrasoes } from './perfil.js';
+import { notificar } from './notificar.js';
 import { novoCodigo } from './carteirinha.js';
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -21,7 +29,7 @@ const sem = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-�
 // Nome no certificado: adulto por extenso; menor só primeiro e último nome
 // (o link pode circular fora do grupo).
 export function nomeNoCertificado(nome, menor) {
-  const p = String(nome || '').trim().split(/\s+/).filter(Boolean);
+  const p = nomeBonito(nome).split(/\s+/).filter(Boolean);
   if (!p.length) return 'Atleta';
   return menor && p.length > 2 ? `${p[0]} ${p[p.length - 1]}` : p.join(' ');
 }
@@ -38,44 +46,51 @@ export async function eventoDaTroca(ctx, dataYmd, academiaId) {
   return e ? { nome: String(e.nome).slice(0, 120), local: String(e.local || '').slice(0, 120), data: e.data || dataYmd } : null;
 }
 
+// Título curto do responsável a partir do nome do núcleo: "Academia Professora Taynara" → "Professora Taynara".
+export const tituloDoNucleo = (nome) => String(nome || '').replace(/^\s*(academia|núcleo|nucleo)\s+(d[oa]s?\s+)?/i, '').trim();
+
+// As duas assinaturas do certificado: Fundador + responsável do núcleo do atleta
+// (se o núcleo é do próprio Fundador, ele assina as duas).
+export async function assinaturasDoCertificado(ctx, u) {
+  const cfg = await carregarConfigBrasoes(ctx);
+  const nomeDe = async (uid) => { if (!uid) return ''; const s = await ctx.db.doc(`usuarios/${uid}`).get(); return s.exists ? String(s.data().nome || '').slice(0, 80) : ''; };
+  const fundUid = cfg.presidenteUid || null;
+  const lista = [{ uid: fundUid, nome: (await nomeDe(fundUid)) || ESCOLA.mestre, titulo: ESCOLA.mestre, papel: 'Fundador do grupo' }];
+  if (u.academiaId) {
+    const sn = await ctx.db.doc(`nucleos/${u.academiaId}`).get();
+    const n = sn.exists ? sn.data() : null;
+    if (n && n.professorUid) lista.push({ uid: n.professorUid, nome: (await nomeDe(n.professorUid)) || tituloDoNucleo(n.nome), titulo: tituloDoNucleo(n.nome) || 'Responsável do núcleo', papel: 'Responsável do núcleo' });
+  }
+  return lista;
+}
+
+const chaveDe = (troca) => (troca.legado ? `${troca.cordao}|legado` : `${troca.cordao}|${troca.em || ''}`);
+
 // Emite (uma vez) o certificado de uma troca de cordão. `troca` = item do
-// historicoGraduacoes: { cordao, anterior, em, por, porNome }.
-// opcoes.assinanteUid: quem gravou a troca de verdade (authId do gatilho) —
-// vale mais que o "por" que o app mandou.
-export async function emitirCertificado(ctx, uid, u, troca, opcoes = {}) {
+// historicoGraduacoes: { cordao, anterior, em, por, porNome, eventoId?, legado? }.
+export async function emitirCertificado(ctx, uid, u, troca) {
   if (!troca || !troca.cordao) return null;
-  const chave = `${troca.cordao}|${troca.em || ''}`;
+  const chave = chaveDe(troca);
   const refDe = ctx.db.doc(`certificadosDe/${uid}`);
   const sd = await refDe.get();
   const itens = sd.exists && Array.isArray(sd.data().itens) ? sd.data().itens : [];
-  const ja = itens.find((i) => i.chave === chave);
+  const ja = itens.find((i) => i.chave === chave || (troca.legado && i.cordao === troca.cordao));
   if (ja) return { ...ja, repetido: true };
 
-  const data = dataLocal(troca.em || new Date().toISOString()) || dataLocal(new Date().toISOString());
+  const legado = !!troca.legado;
+  const data = legado ? null : (dataLocal(troca.em || new Date().toISOString()) || dataLocal(new Date().toISOString()));
   let nucleo = '';
   if (u.academiaId) { const sn = await ctx.db.doc(`nucleos/${u.academiaId}`).get(); nucleo = sn.exists ? String(sn.data().nome || '') : ''; }
   // O evento escolhido no painel (graduação em lote) vale mais que a busca pela data.
   let evento = null;
-  if (troca.eventoId) {
+  if (!legado && troca.eventoId) {
     const se = await ctx.db.doc(`eventos/${troca.eventoId}`).get();
     if (se.exists && se.data().nome) evento = { nome: String(se.data().nome).slice(0, 120), local: String(se.data().local || '').slice(0, 120), data: se.data().data || data };
   }
-  if (!evento) evento = await eventoDaTroca(ctx, data, u.academiaId || null);
-
-  // Assinaturas: quem graduou (nome do cadastro dele, não o que o app mandou) e o Fundador.
-  const assinaturas = [];
-  let porEhFundador = false;
-  const assinante = opcoes.assinanteUid || troca.por;
-  if (assinante) {
-    const sp = await ctx.db.doc(`usuarios/${assinante}`).get();
-    if (sp.exists) {
-      const p = sp.data();
-      porEhFundador = p.acessoGeral === true;
-      assinaturas.push({ nome: String(p.nome || troca.porNome || '').slice(0, 80), papel: porEhFundador ? `${ESCOLA.mestre} · Fundador` : (p.academiaGerenciadaId ? 'Responsável do núcleo' : 'Graduado por') });
-    }
-  }
-  if (!porEhFundador) assinaturas.push({ nome: ESCOLA.mestre, papel: 'Fundador do grupo' });
-
+  if (!legado && !evento) evento = await eventoDaTroca(ctx, data, u.academiaId || null);
+  const assinaturas = await assinaturasDoCertificado(ctx, u);
+  const si = await ctx.db.doc(`carteirinhasIndice/${uid}`).get();
+  const matricula = si.exists ? String(si.data().matricula || '') : '';
   const agora = new Date();
   const refCont = ctx.db.doc('sistema/contadores');
   const codigo = novoCodigo();
@@ -98,12 +113,13 @@ export async function emitirCertificado(ctx, uid, u, troca, opcoes = {}) {
   const menor = ehMenor(u);
   const pub = {
     numero, nome: nomeNoCertificado(u.nome, menor), cordao: troca.cordao, anterior: troca.anterior || null,
-    cores: coresDoCordao(troca.cordao, u), nucleo, data, evento, assinaturas, menor,
+    cores: coresDoCordao(troca.cordao, u), nucleo, data, evento, assinaturas, menor, legado, matricula,
     grupo: ESCOLA.nome, ativo: true, emitidoEm: agora.toISOString(),
   };
   await ctx.db.doc(`certificados/${codigo}`).set(pub);
-  const item = { codigo, numero, cordao: troca.cordao, anterior: troca.anterior || null, data, evento: evento ? evento.nome : '', chave };
+  const item = { codigo, numero, cordao: troca.cordao, anterior: troca.anterior || null, data, evento: evento ? evento.nome : '', chave, legado };
   await refDe.set({ itens: itens.concat([item]).slice(-40), atualizadoEm: agora.toISOString() }, { merge: true });
+  await publicarNoPerfil(ctx, uid);
   return item;
 }
 
@@ -118,21 +134,72 @@ export async function apagarCertificados(ctx, uid) {
   return itens.length;
 }
 
-// Rotina da madrugada: troca de cordão (para cima) sem certificado — por falha
-// no dia ou graduação anterior a esta função — ganha o certificado, sem aviso.
-const ORDEM = ['Iniciante', 'Escravo', 'Fugitivo', 'Quilombola', 'Vagante', 'Liberto', 'Instrutor', 'Professor', 'Mestre', 'Mestre/Presidente'];
-export async function conferirCertificados(ctx, uid, u) {
-  const hist = Array.isArray(u && u.historicoGraduacoes) ? u.historicoGraduacoes : [];
-  const subidas = hist.filter((h) => h && h.cordao && ORDEM.indexOf(h.cordao) > ORDEM.indexOf(h.anterior || 'Iniciante'));
-  if (!subidas.length) return 0;
+// Garante um certificado para CADA cordão da escada até o atual. Troca registrada
+// no app (com data) → certificado com data e evento; cordão que o atleta já tinha
+// antes do app → certificado sem data ("legado"). Não avisa ninguém.
+// Chamado na troca de cordão, no cadastro e pela rotina da madrugada.
+export async function garantirCertificados(ctx, uid, u) {
+  const escada = escadaDe(u).map((c) => c.nome);
+  const idx = escada.indexOf(u.cordaoAtual || 'Iniciante');
+  if (idx <= 0) return 0;
   const sd = await ctx.db.doc(`certificadosDe/${uid}`).get();
-  const chaves = new Set((sd.exists && Array.isArray(sd.data().itens) ? sd.data().itens : []).map((i) => i.chave));
+  const tem = new Set((sd.exists && Array.isArray(sd.data().itens) ? sd.data().itens : []).map((i) => i.cordao));
+  const hist = Array.isArray(u.historicoGraduacoes) ? u.historicoGraduacoes : [];
   let n = 0;
-  for (const h of subidas) {
-    if (chaves.has(`${h.cordao}|${h.em || ''}`)) continue;
-    await emitirCertificado(ctx, uid, u, h); n++;
+  for (let i = 1; i <= idx; i++) {
+    const cordao = escada[i];
+    if (tem.has(cordao)) continue;
+    const h = hist.filter((x) => x && x.cordao === cordao && !x.legado && x.em).pop();
+    await emitirCertificado(ctx, uid, u, h || { cordao, anterior: escada[i - 1], legado: true });
+    n++;
   }
+  if (n) await publicarNoPerfil(ctx, uid);
   return n;
+}
+export const conferirCertificados = garantirCertificados; // nome antigo (rotina)
+
+// Galeria/trajetória da Rede: a lista (sem dados pessoais) vai para o cartão público.
+export async function publicarNoPerfil(ctx, uid) {
+  const [sd, sp] = await Promise.all([ctx.db.doc(`certificadosDe/${uid}`).get(), ctx.db.doc(`perfisPublicos/${uid}`).get()]);
+  if (!sp.exists) return;
+  const itens = sd.exists && Array.isArray(sd.data().itens) ? sd.data().itens : [];
+  const lista = itens.map((i) => ({ codigo: i.codigo, cordao: i.cordao, data: i.data || null, legado: !!i.legado, evento: i.evento || '' }));
+  await ctx.db.doc(`perfisPublicos/${uid}`).set({ certificados: lista }, { mergeFields: ['certificados'] });
+}
+
+// Graduação desfeita: cordões ACIMA do atual perdem o certificado (inclusive os sem data).
+export async function cancelarAcimaDe(ctx, uid, u, cordaoAtual, motivo = '') {
+  const escada = escadaDe(u).map((c) => c.nome);
+  const idx = escada.indexOf(cordaoAtual || 'Iniciante');
+  const sd = await ctx.db.doc(`certificadosDe/${uid}`).get();
+  const itens = sd.exists && Array.isArray(sd.data().itens) ? sd.data().itens : [];
+  const cancelados = [];
+  for (const i of itens.filter((x) => escada.indexOf(x.cordao) > idx)) { cancelados.push(await cancelarCertificado(ctx, uid, i.chave, motivo)); }
+  return cancelados.filter(Boolean);
+}
+
+// ---------- lembrete "compartilhe o seu card" (dia seguinte ao batizado) ----------
+export async function agendarLembrete(ctx, uid, idAviso, dados) {
+  await ctx.db.doc(`lembretes/${idAviso}`).set({ uid, notifId: idAviso, quando: new Date(Date.now() + 6 * 3600000).toISOString(), ...dados });
+}
+// Todo dia de manhã: quem ainda não compartilhou a troca de cordão recebe um lembrete (uma vez).
+export async function processarLembretes(ctx) {
+  const s = await ctx.db.collection('lembretes').where('quando', '<=', new Date().toISOString()).limit(300).get();
+  let enviados = 0;
+  for (const d of s.docs) {
+    const l = d.data();
+    const sn = await ctx.db.doc(`notificacoes/${l.uid}/itens/${l.notifId}`).get();
+    if (sn.exists && !sn.data().compartilhadoEm) {
+      await notificar(ctx, [l.uid], {
+        tipo: 'cordao_lembrete', titulo: 'Mostre o seu novo cordão!', texto: `Compartilhe o card "Troquei de cordão!" do Cordão ${l.cordao || ''} com a família e os amigos.`,
+        link: l.certificado ? `certificado.html#${l.certificado}` : 'app.html',
+        cordao: l.cordao || '', cores: l.cores || null, certificado: l.certificado || '', atletaUid: l.uid, atletaNome: l.atletaNome || '', evento: l.evento || '',
+      }, { idFixo: `lembrete_${l.notifId}` });
+      enviados++;
+    }
+    await d.ref.delete();
+  }
+  return enviados;
 }
 
 // Id fixo do aviso "Troquei de cordão" de uma troca (o mesmo para gatilho reentregue e para desfazer).
@@ -148,5 +215,6 @@ export async function cancelarCertificado(ctx, uid, chave, motivo = '') {
   if (!alvo) return null;
   await ctx.db.doc(`certificados/${alvo.codigo}`).set({ ativo: false, canceladoEm: new Date().toISOString(), motivoCancelamento: String(motivo || '').slice(0, 200) }, { merge: true });
   await refDe.set({ itens: itens.filter((i) => i.chave !== chave), atualizadoEm: new Date().toISOString() }, { merge: true });
+  await publicarNoPerfil(ctx, uid);
   return alvo.codigo;
 }

@@ -7,7 +7,7 @@
    Regra de ouro: todo número vem de leitura real do Firestore; sem dado, "—". */
 import {
   db, collection, doc, query, where, orderBy, limit, getDocs, updateDoc, addDoc, deleteDoc, setDoc, arrayUnion,
-  listar, listarPagamentosDoNucleo, lancarPagamento, pedirAoServidor,
+  listar, listarPagamentosDoNucleo, lancarPagamento, pedirAoServidor, getDoc,
 } from './firebase.js';
 import { ESCOLA, CORDOES_ADULTO, prontidao, proximoCordao, coresDoCordao, META_PRONTIDAO, escadaDe } from './escola.js';
 import { situacao as situacaoCarteirinha, textoValidade } from './carteirinha-comum.js';
@@ -215,14 +215,56 @@ async function renderGraduacao() {
       <button type="button" class="btn-detalhes" id="gsGradSalvar" ${gradSel.size ? '' : 'disabled'}><i class="fas fa-award"></i> Registrar graduação (${gradSel.size})</button>
     </div>
   </div>
+  <div class="card-padrao" id="gsAssinaturas"><h3><i class="fas fa-signature"></i> Assinaturas dos certificados</h3><p class="gs-ajuda">Carregando…</p></div>
   ${C.ehAdmin() ? `<div class="card-padrao"><h3><i class="fas fa-rotate-left"></i> Graduações registradas (últimos 60 dias)</h3><p class="gs-ajuda">Registrou errado? O Admin Master desfaz: o cordão volta ao anterior, o certificado é cancelado e o responsável do núcleo é avisado para registrar de novo. Só a última troca de cada atleta pode ser desfeita.</p>${tabelaGraduacoes(graduacoesDe(nid || null, 60), true)}</div>` : ''}
-  ${gradFeitos.length ? `<div class="card-padrao gs-feitos"><h3><i class="fas fa-certificate"></i> Graduados agora <span class="pill pill-aprovado">${gradFeitos.length}</span></h3><p class="gs-ajuda">${gradFeitos.map((g) => `${esc(g.nome)} → ${esc(g.cordao)}`).join(' · ')}</p><button type="button" class="btn-detalhes" id="gsCertificados"><i class="fas fa-file-pdf"></i> Baixar certificados (PDF)</button></div>` : ''}`;
+  ${gradFeitos.length ? `<div class="card-padrao gs-feitos"><h3><i class="fas fa-certificate"></i> Graduados agora <span class="pill pill-aprovado">${gradFeitos.length}</span></h3><p class="gs-ajuda">${gradFeitos.map((g) => `${esc(g.nome)} → ${esc(g.cordao)}`).join(' · ')}</p><button type="button" class="btn-detalhes" id="gsCertificados"><i class="fas fa-file-pdf"></i> Certificados oficiais (PDF)</button></div>` : ''}`;
   const sel = el('gsNucGrad'); if (sel) sel.addEventListener('change', () => { gradSel.clear(); renderGraduacao(); });
   el('gsGradTodos').addEventListener('change', (e) => { gradMostrarTodos = e.target.checked; renderGraduacao(); });
   box.querySelectorAll('[data-grad]').forEach((c) => c.addEventListener('change', () => { if (c.checked) gradSel.add(c.dataset.grad); else gradSel.delete(c.dataset.grad); const b = el('gsGradSalvar'); b.disabled = !gradSel.size; b.innerHTML = `<i class="fas fa-award"></i> Registrar graduação (${gradSel.size})`; }));
   el('gsGradSalvar').addEventListener('click', () => registrarGraduacoes(lista, eventos));
+  renderAssinaturas(nid || null);
   const bc = el('gsCertificados'); if (bc) bc.addEventListener('click', () => gerarCertificados(gradFeitos));
   ligarDesfazer(box, renderGraduacao);
+}
+
+// ---------- assinaturas reais dos certificados ----------
+// Todo certificado leva DUAS assinaturas: o Fundador (Mestre Profeta) e o
+// responsável do núcleo do aluno. Cada um cadastra a sua (desenho ou foto);
+// o Admin Master pode cadastrar por eles.
+function fundadorUid() {
+  const us = C.usuarios();
+  const f = us.find((u) => u.acessoGeral === true && u.academiaGerenciadaId) || us.find((u) => u.acessoGeral === true);
+  if (!f) return null;
+  const n = C.nucleos().find((x) => x.id === f.academiaGerenciadaId);
+  return (n && n.professorUid) || f.id;
+}
+async function renderAssinaturas(nid) {
+  const box = el('gsAssinaturas'); if (!box) return;
+  const eu = C.sessao().uid;
+  const fund = fundadorUid();
+  const nuc = nid ? C.nucleos().find((x) => x.id === nid) : null;
+  const pessoas = [];
+  if (fund) pessoas.push({ uid: fund, papel: 'Fundador do grupo', titulo: ESCOLA.mestre });
+  const tituloNuc = (n) => String(n.nome || '').replace(/^\s*(academia|núcleo|nucleo)\s+(d[oa]s?\s+)?/i, '').trim();
+  // Um núcleo escolhido: o responsável dele. "Grupo todo" (Admin): todos os responsáveis.
+  (nuc ? [nuc] : (C.ehAdmin() ? C.nucleos().filter((n) => n.ativo !== false) : [])).forEach((n) => { if (n.professorUid) pessoas.push({ uid: n.professorUid, papel: 'Responsável do núcleo', titulo: tituloNuc(n) }); });
+  const vistas = new Set(); const lista = pessoas.filter((p) => (vistas.has(p.uid + p.papel) ? false : vistas.add(p.uid + p.papel)));
+  const urls = {};
+  await Promise.all(Array.from(new Set(lista.map((p) => p.uid))).map((u) => getDoc(doc(db, 'assinaturas', u)).then((x) => { if (x.exists() && /^https:\/\/firebasestorage\.googleapis\.com\//.test(x.data().url || '')) urls[u] = x.data().url; }).catch(() => null)));
+  if (!el('gsAssinaturas')) return;
+  const nomeDe = (u) => ((C.usuarios().find((x) => x.id === u) || {}).nome || (u === eu ? C.sessao().nome : '') || 'Responsável');
+  box.innerHTML = `<h3><i class="fas fa-signature"></i> Assinaturas dos certificados</h3>
+    <p class="gs-ajuda">Todo certificado sai com duas assinaturas: ${esc(ESCOLA.mestre)} (Fundador) e o responsável do núcleo do aluno${nuc && nuc.professorUid === fund ? ' — neste núcleo, o próprio Fundador assina as duas' : ''}. Quem ainda não cadastrou aparece com o nome em cursiva. A troca vale também para os certificados já emitidos.</p>
+    <div class="gs-ass-lista">${lista.map((p) => { const pode = p.uid === eu || C.ehAdmin(); const u = urls[p.uid]; return `<div class="gs-ass">
+      <div class="gs-ass-risco">${u ? `<img src="${esc(u)}" alt="Assinatura de ${esc(nomeDe(p.uid))}">` : `<span>${esc(nomeDe(p.uid))}</span>`}</div><hr>
+      <b>${esc(p.titulo || nomeDe(p.uid))}</b><small>${esc(p.papel)} · ${u ? '<span class="gs-ass-ok">assinatura cadastrada</span>' : 'nome em cursiva'}</small>
+      ${pode ? `<button type="button" class="btn-mini" data-assinar="${esc(p.uid)}" data-nome="${esc(nomeDe(p.uid))}" data-titulo="${esc(p.titulo || '')}" data-atual="${esc(u || '')}"><i class="fas fa-pen-nib"></i> ${u ? 'Trocar' : (p.uid === eu ? 'Cadastrar a minha' : 'Cadastrar')}</button>` : ''}
+    </div>`; }).join('') || '<div class="empty-state"><i class="fas fa-signature"></i>Escolha um núcleo para ver quem assina.</div>'}</div>`;
+  box.querySelectorAll('[data-assinar]').forEach((b) => b.addEventListener('click', async () => {
+    const { abrirAssinatura } = await import('./assinatura.js?v=20260930b');
+    const r = await abrirAssinatura({ uid: b.dataset.assinar, nome: b.dataset.nome, titulo: b.dataset.titulo, atual: b.dataset.atual, toast: C.toast });
+    if (r) renderAssinaturas(nid);
+  }));
 }
 
 // ---------- graduações registradas (relatório + desfazer) ----------
@@ -245,13 +287,15 @@ function graduacoesDe(nid, dias = null) {
 function tabelaGraduacoes(lista, comDesfazer) {
   if (!lista.length) return '<div class="empty-state"><i class="fas fa-ribbon"></i>Nenhuma troca de cordão registrada neste período.</div>';
   const faixa = (nome, u) => { const c = coresDoCordao(nome, u); return `<span class="gs-cordao" style="--c1:${c[0]};--c2:${c[1]};--c3:${c[2]}"></span>`; };
-  return `<div class="rg-tabela"><table><thead><tr><th>Data</th><th>Atleta</th><th>Núcleo</th><th>Troca</th><th>Graduado por</th><th>Evento</th>${comDesfazer ? '<th></th>' : ''}</tr></thead><tbody>${lista.slice(0, 300).map(({ u, h, ultima }) => `<tr>
+  return `<div class="rg-tabela"><table><thead><tr><th>Data</th><th>Atleta</th><th>Núcleo</th><th>Troca</th><th>Graduado por</th><th>Evento</th><th>Certificado</th>${comDesfazer ? '<th></th>' : ''}</tr></thead><tbody>${lista.slice(0, 300).map(({ u, h, ultima }) => `<tr>
     <td>${esc(new Date(h.em).toLocaleDateString('pt-BR'))}</td><td><b>${esc(u.nome || '')}</b></td><td>${esc(nomeNucleo(u.academiaId))}</td>
     <td class="rg-troca">${faixa(h.anterior || 'Iniciante', u)}<small>${esc(h.anterior || 'Iniciante')}</small><i class="fas fa-arrow-right"></i>${faixa(h.cordao, u)}<small><b>${esc(h.cordao)}</b></small></td>
-    <td>${esc(h.porNome || '—')}</td><td>${esc(h.eventoNome || '—')}</td>
+    <td>${esc(h.porNome || '—')}</td><td>${h.legado ? '<small class="rg-sutil">Já tinha (antes do app)</small>' : esc(h.eventoNome || '—')}</td>
+    <td><button type="button" class="btn-mini" data-cert-uid="${esc(u.id)}" data-cert-cordao="${esc(h.cordao)}" data-cert-em="${esc(h.em)}"><i class="fas fa-award"></i> PDF</button></td>
     ${comDesfazer ? `<td>${ultima ? `<button type="button" class="btn-mini" data-desfazer="${esc(u.id)}" data-cordao="${esc(h.cordao)}" data-em="${esc(h.em)}"><i class="fas fa-rotate-left"></i> Desfazer</button>` : '<small class="rg-sutil">—</small>'}</td>` : ''}</tr>`).join('')}</tbody></table></div>`;
 }
 function ligarDesfazer(raiz, depois) {
+  raiz.querySelectorAll('[data-cert-uid]').forEach((x) => x.addEventListener('click', () => gerarCertificados([{ id: x.dataset.certUid, cordao: x.dataset.certCordao, em: x.dataset.certEm }], 6000)));
   raiz.querySelectorAll('[data-desfazer]').forEach((b) => b.addEventListener('click', async () => {
     if (!C.ehAdmin()) return;
     const u = C.usuarios().find((x) => x.id === b.dataset.desfazer);
@@ -318,7 +362,7 @@ export function renderRelatoriosGerais(nid) {
     exportar = () => ({ titulo: 'Carteirinhas', sub: rotEscopo, colunas: [{ chave: 'nome', titulo: 'Atleta' }, { chave: 'nucleo', titulo: 'Núcleo' }, { chave: 'matricula', titulo: 'Matrícula' }, { chave: 'situacao', titulo: 'Situação' }, { chave: 'validade', titulo: 'Validade' }, { chave: 'benef', titulo: 'Beneficiários' }, { chave: 'bolsista', titulo: 'Bolsista' }],
       linhas: lista.map((u) => { const c = u.carteirinha || {}; const s = sitCart(u); return { nome: u.nome || '', nucleo: nomeNucleo(u.academiaId), matricula: c.matricula || '', situacao: ROT_CART[s][0], validade: c.codigo ? textoValidade(c) : '', benef: Array.isArray(c.beneficiarios) ? c.beneficiarios.length : 0, bolsista: u.isentoMensalidade === true ? 'Sim' : '' }; }) });
   } else {
-    const lista = graduacoesDe(escopo, rgDias || null).filter((g) => g.subiu);
+    const lista = graduacoesDe(escopo, rgDias || null).filter((g) => g.subiu && !g.h.legado);
     const porCordao = {}; lista.forEach((g) => { porCordao[g.h.cordao] = (porCordao[g.h.cordao] || 0) + 1; });
     const eventos = new Set(lista.map((g) => g.h.eventoNome).filter(Boolean));
     corpo = `<div class="rg-filtros" role="group" aria-label="Período">${[[30, '30 dias'], [90, '90 dias'], [365, '12 meses'], [0, 'Tudo']].map(([d, r]) => `<button type="button" class="btn-mini${rgDias === d ? ' on' : ''}" data-rg-dias="${d}" aria-pressed="${rgDias === d}">${r}</button>`).join('')}</div>
@@ -365,44 +409,44 @@ async function registrarGraduacoes(lista, eventos) {
   try { await C.recarregarUsuarios(); } catch (e) { /* ok */ }
   renderGraduacao();
 }
-// Certificado A4 deitado, um por página, com as cores do cordão novo.
-export async function gerarCertificados(lista) {
+// Certificados OFICIAIS (os mesmos do QR, certificado.html): o servidor emite um
+// por troca de cordão logo depois do registro; aqui só esperamos ele aparecer em
+// certificadosDe/{uid} e abrimos todos juntos, prontos para imprimir/salvar em PDF.
+// lista = [{ id, cordao, em? }]
+async function codigosDosCertificados(lista, esperarMs) {
+  const fim = Date.now() + esperarMs;
+  const achados = new Map();
+  while (true) {
+    await Promise.all(lista.filter((g) => !achados.has(`${g.id}|${g.cordao}`)).map(async (g) => {
+      try {
+        const s = await getDoc(doc(db, 'certificadosDe', g.id));
+        const itens = s.exists() && Array.isArray(s.data().itens) ? s.data().itens : [];
+        const doCordao = itens.filter((i) => i.cordao === g.cordao);
+        const dia = g.em ? String(g.em).slice(0, 10) : '';
+        const it = doCordao.find((i) => dia && i.data === dia) || doCordao.find((i) => !i.legado) || doCordao[doCordao.length - 1];
+        if (it && it.codigo) achados.set(`${g.id}|${g.cordao}`, it.codigo);
+      } catch (e) { /* sem permissão ou offline: tenta de novo */ }
+    }));
+    if (achados.size >= lista.length || Date.now() > fim) break;
+    await new Promise((r) => setTimeout(r, 2500));
+  }
+  return lista.map((g) => achados.get(`${g.id}|${g.cordao}`)).filter(Boolean);
+}
+export async function gerarCertificados(lista, esperarMs = 45000) {
   if (!lista || !lista.length) return;
-  try {
-    C && C.toast('Gerando certificados…');
-    const JsPDF = await jsPDFPronto(false);
-    const pdf = new JsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    let logo = null; try { logo = await imagemComoDataUrl(ESCOLA.logo); } catch (e) { /* sem logo */ }
-    const hex = (h) => { const x = String(h).replace('#', ''); const f = x.length === 3 ? x.split('').map((c) => c + c).join('') : x; return [parseInt(f.slice(0, 2), 16), parseInt(f.slice(2, 4), 16), parseInt(f.slice(4, 6), 16)]; };
-    lista.forEach((g, i) => {
-      if (i) pdf.addPage();
-      const W = 297; const H = 210;
-      const cor = coresDoCordao(g.cordao, { idade: g.idade });
-      pdf.setFillColor(234, 242, 241); pdf.rect(0, 0, W, H, 'F');
-      // moldura nas três cores do cordão
-      [0, 1, 2].forEach((k) => { pdf.setFillColor(...hex(cor[k])); pdf.rect(10 + k * 3, 10 + k * 3, W - 20 - k * 6, H - 20 - k * 6, 'F'); });
-      pdf.setFillColor(255, 255, 255); pdf.rect(20, 20, W - 40, H - 40, 'F');
-      pdf.setDrawColor(0, 45, 114); pdf.setLineWidth(0.4); pdf.rect(24, 24, W - 48, H - 48);
-      if (logo) pdf.addImage(logo, 'PNG', W / 2 - 17, 30, 34, 34);
-      pdf.setTextColor(56, 158, 146); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(11); pdf.text(ESCOLA.nome.toUpperCase(), W / 2, 72, { align: 'center', charSpace: 1.2 });
-      pdf.setTextColor(0, 45, 114); pdf.setFontSize(30); pdf.text('Certificado de Graduação', W / 2, 88, { align: 'center' });
-      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(13); pdf.setTextColor(60, 70, 80);
-      pdf.text('Certificamos que', W / 2, 102, { align: 'center' });
-      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(24); pdf.setTextColor(13, 33, 29); pdf.text(String(g.nome || ''), W / 2, 116, { align: 'center' });
-      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(13); pdf.setTextColor(60, 70, 80);
-      const quando = new Date(g.em).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
-      pdf.text(`recebeu o cordão ${g.cordao}${g.anterior ? ` (antes: ${g.anterior})` : ''} em ${quando}${g.evento ? `, no ${g.evento}` : ''},`, W / 2, 128, { align: 'center' });
-      pdf.text(`pelo seu empenho na ${ESCOLA.modalidade} — ${g.nucleo}.`, W / 2, 136, { align: 'center' });
-      // faixa do cordão
-      [0, 1, 2].forEach((k) => { pdf.setFillColor(...hex(cor[k])); pdf.rect(W / 2 - 45 + k * 30, 144, 30, 5, 'F'); });
-      pdf.setDrawColor(200, 206, 210); pdf.rect(W / 2 - 45, 144, 90, 5);
-      pdf.setDrawColor(0, 45, 114); pdf.line(50, 176, 125, 176); pdf.line(W - 125, 176, W - 50, 176);
-      pdf.setFontSize(10); pdf.setTextColor(60, 70, 80);
-      pdf.text('Responsável do núcleo', 87.5, 182, { align: 'center' }); pdf.text(`${ESCOLA.mestre} — Presidente`, W - 87.5, 182, { align: 'center' });
-      pdf.setFontSize(8); pdf.setTextColor(140, 150, 160); pdf.text(`${ESCOLA.cidade} - ${ESCOLA.uf} · registro ${String(g.id || '').slice(0, 8)}-${new Date(g.em).getFullYear()}`, W / 2, 196, { align: 'center' });
-    });
-    pdf.save(`${nomeArquivo('certificados-graduacao')}.pdf`);
-  } catch (e) { console.error(e); C && C.toast(e.message || 'Não foi possível gerar os certificados.', 'error'); }
+  // A janela abre já no clique (senão o navegador bloqueia) e recebe o endereço depois.
+  const janela = window.open('', '_blank');
+  if (janela) { try { janela.document.write('<p style="font:600 16px system-ui;padding:24px;color:#002D72">Preparando os certificados oficiais…</p>'); } catch (e) { /* ok */ } }
+  C && C.toast('Preparando os certificados oficiais…');
+  const codigos = await codigosDosCertificados(lista, esperarMs);
+  if (!codigos.length) {
+    if (janela) janela.close();
+    C && C.toast('Os certificados ainda estão sendo emitidos. Tente de novo em alguns segundos.', 'error');
+    return;
+  }
+  const url = new URL(`certificado.html?imprimir=1#${codigos.map(encodeURIComponent).join(',')}`, location.href).href;
+  if (janela && !janela.closed) janela.location.href = url; else window.location.href = url;
+  if (codigos.length < lista.length) C && C.toast(`${codigos.length} de ${lista.length} certificados prontos; os outros saem em instantes.`, 'error');
 }
 
 // ================= EVENTOS (agenda + inscrições) =================

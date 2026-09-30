@@ -231,7 +231,7 @@ function blocoCertificados() {
       <span class="txt"><b>Cordão ${esc(c.cordao)}</b><small>${esc([data, c.evento].filter(Boolean).join(' · '))}</small></span>
       <span class="acoes-b"><a class="bt bt-claro" href="${esc(link)}" style="height:38px;padding:0 12px;font-size:12.5px">Ver</a><a class="bt bt-claro" href="certificado.html?imprimir=1#${esc(encodeURIComponent(c.codigo))}" style="height:38px;padding:0 12px;font-size:12.5px">PDF</a></span></li>`;
   }).join('');
-  return `<section class="beneficiarios" aria-labelledby="titCert"><div class="sec-tit"><h2 id="titCert">Certificados de graduação</h2><small>${certificados.length}</small></div><ul class="lista-benef">${linhas}</ul></section>`;
+  return `<section class="beneficiarios" aria-labelledby="titCert"><div class="sec-tit"><h2 id="titCert">Certificados de graduação</h2><small>${certificados.length}</small></div><ul class="lista-benef">${linhas}</ul><a class="bt bt-claro" href="certificados.html#${esc(encodeURIComponent(alvoUid || ''))}" style="margin-top:10px;width:100%">Ver todos os certificados</a></section>`;
 }
 
 // ---------- beneficiários (pai, mãe, irmãos e avós) ----------

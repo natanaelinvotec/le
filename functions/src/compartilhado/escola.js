@@ -47,7 +47,7 @@ export const FIREBASE_CONFIG = {
 
 // App Check (reCAPTCHA v3). Vazio = desligado. Cole aqui a CHAVE DO SITE (a
 // pública) depois de registrar o app em Console → App Check (docs/SEGURANCA.md).
-export const APP_CHECK_SITE_KEY = '';
+export const APP_CHECK_SITE_KEY = '6LccBdQtAAAAANJl-I6rIh-fMLOrl-RHaikSEjfY';
 
 // Notificações push (Console → Cloud Messaging → Certificados push da Web).
 // Vazio = usa a chave padrão do Firebase, que já funciona.
@@ -119,4 +119,11 @@ export function linkMapa(n) {
   const e = (n && n.endereco) || '';
   const temCidade = new RegExp(ESCOLA.cidade, 'i').test(e);
   return e ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e + (temCidade ? '' : `, ${ESCOLA.cidadeParaMapa}`))}` : '';
+}
+// Nome digitado TODO EM MAIÚSCULAS vira "Nome Próprio" (certificado, festa, card);
+// quem escreveu normal fica como escreveu.
+export function nomeBonito(nome) {
+  const t = String(nome || '').trim().replace(/\s+/g, ' ');
+  if (!t || t !== t.toUpperCase() || !/\p{Lu}/u.test(t)) return t;
+  return t.toLowerCase().split(' ').map((p, i) => (i > 0 && /^(da|de|do|das|dos|e|d')$/.test(p) ? p : p.charAt(0).toUpperCase() + p.slice(1))).join(' ');
 }

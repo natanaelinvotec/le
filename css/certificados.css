@@ -1,0 +1,52 @@
+/* certificados.css — "Meus certificados" (usa a folha de css/certificado.css).
+   Mesma identidade: marinho, verde-azulado, verde; movimento cubic-bezier(.16,1,.3,1). */
+body.lista-cert{background:#EAF2F1}
+.lista-cert .pagina{max-width:1040px}
+.voltar{width:44px;height:44px;flex:none;border-radius:14px;background:rgba(255,255,255,.1);color:#fff;display:flex;align-items:center;justify-content:center;text-decoration:none;transition:transform .35s var(--ease)}
+.voltar:active{transform:scale(.94)}
+.lista-cert .barra .marca{margin-right:auto}
+.familia{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 4px;scrollbar-width:none}
+.familia::-webkit-scrollbar{display:none}
+.chip-pessoa{flex:none;display:flex;align-items:center;gap:8px;height:42px;padding:0 14px 0 5px;border-radius:999px;border:1px solid var(--linha);background:#fff;color:var(--tinta);font:700 13px 'Manrope',sans-serif;cursor:pointer;transition:all .35s var(--ease)}
+.chip-pessoa .av{width:32px;height:32px;border-radius:50%;background:linear-gradient(160deg,var(--teal),#0B2E70);color:#fff;display:flex;align-items:center;justify-content:center;font:800 12px 'Sora',sans-serif;overflow:hidden}
+.chip-pessoa .av img{width:100%;height:100%;object-fit:cover}
+.chip-pessoa[aria-pressed="true"]{background:var(--marinho);color:#fff;border-color:var(--marinho)}
+
+/* resumo: a trajetória de cordões */
+.resumo{position:relative;overflow:hidden;border-radius:24px;padding:22px 20px;color:#fff;background:radial-gradient(120% 90% at 85% 0%,#0E3172 0%,#061A3A 60%,#04122B 100%);display:flex;flex-direction:column;gap:14px}
+.resumo::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;background:url(../assets/marca/brasao-1024.png) center/contain no-repeat;opacity:.07;pointer-events:none}
+.resumo small{font-size:11.5px;font-weight:800;letter-spacing:.22em;color:var(--teal-claro)}
+.resumo h1{margin:0;font:800 clamp(22px,4.4vw,30px)/1.1 'Sora',sans-serif;letter-spacing:-.02em;text-wrap:balance}
+.resumo h1 em{font:italic 400 1.1em 'Instrument Serif',Georgia,serif;letter-spacing:0}
+.trilha{display:flex;align-items:center;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.degrau{flex:none;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:66px;font-size:11px;font-weight:700;color:rgba(255,255,255,.72)}
+.degrau i{display:block;width:54px;height:12px;border-radius:6px;box-shadow:0 4px 10px -4px rgba(0,0,0,.6)}
+.degrau.falta{opacity:.35}
+.degrau.atual{color:#fff}
+.degrau.atual i{box-shadow:0 0 0 2px #00E676,0 0 16px rgba(0,230,118,.6)}
+.seta{flex:none;color:rgba(255,255,255,.35);font-size:12px}
+.acoes-topo{display:flex;flex-wrap:wrap;gap:8px}
+.acoes-topo .bt{height:44px;font-size:13.5px}
+
+/* grade de certificados */
+.grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.cartao{background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 1px 0 var(--linha),0 18px 36px -26px rgba(6,26,58,.45);display:flex;flex-direction:column;transition:transform .45s var(--ease),box-shadow .45s var(--ease)}
+.cartao:hover{transform:translateY(-3px);box-shadow:0 1px 0 var(--linha),0 26px 44px -26px rgba(6,26,58,.55)}
+.miniatura{display:block;position:relative;overflow:hidden;background:#F7FAF9;border-bottom:1px solid var(--linha);text-decoration:none}
+.miniatura .cert{position:absolute;left:0;top:0;pointer-events:none}
+.cartao-corpo{flex:1;padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px}
+.lista-cert .status:empty{display:none}
+.cartao-tit{display:flex;align-items:center;gap:10px}
+.cartao-tit i{flex:none;width:40px;height:12px;border-radius:6px}
+.cartao-tit b{font:800 17px 'Sora',sans-serif;color:var(--marinho);letter-spacing:-.01em}
+.cartao-info{margin:0;font-size:13px;line-height:1.45;color:var(--texto)}
+.etiqueta{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.06em;background:#E3F1EE;color:#1F6F66}
+.etiqueta.legado{background:#EEF1F6;color:#44546A}
+.cartao-bts{margin-top:auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.cartao-bts .bt{height:42px;padding:0 8px;font-size:13px;border-radius:12px}
+.bt-claro{background:#EAF2F1;color:var(--marinho)}
+.vazio{padding:34px 22px;border-radius:24px;background:#fff;text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center}
+.vazio b{font:800 20px 'Sora',sans-serif;color:var(--marinho)}
+.vazio p{margin:0;max-width:44ch;line-height:1.55;color:var(--texto)}
+@media (max-width:560px){.grade{grid-template-columns:1fr}.acoes-topo .bt{flex:1 1 100%}}
+@media (prefers-reduced-motion:reduce){.cartao{transition:none}.cartao:hover{transform:none}}

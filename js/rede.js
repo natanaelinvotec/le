@@ -848,7 +848,7 @@ btn3d.remove();
 }
 // Festa de brasão (e compartilhar: stories, WhatsApp, Rede) — a mesma do app (js/celebrar.js).
 function abrirFestaBrasoes(ids, soCompartilhar = false) {
-import('./celebrar.js?v=20260930').then((m) => m.abrirFesta({ tipo: 'brasao', nome: perfil.nome || (meuPub && meuPub.nome) || '', brasoes: ids, compartilhar: soCompartilhar }, { uid, perfil }))
+import('./celebrar.js?v=20260930b').then((m) => m.abrirFesta({ tipo: 'brasao', nome: perfil.nome || (meuPub && meuPub.nome) || '', brasoes: ids, compartilhar: soCompartilhar }, { uid, perfil }))
 .catch(() => { if (!soCompartilhar) celebrarBrasoesSimples(ids); });
 }
 function celebrarBrasoes(ids) { abrirFestaBrasoes(ids, false); }
@@ -859,17 +859,40 @@ const a = lista[0];
 const f = abrirFolha(`<div class="celebra"><span class="eyebrow">${lista.length > 1 ? `${lista.length} brasões novos` : 'Brasão novo'}</span><h2>${escapeHTML(a.nome)}</h2><div class="celebra-palco"><img src="${urlPng(a)}" alt=""></div><p>${escapeHTML(a.como || '')}</p>${lista.length > 1 ? `<div class="brasoes-grade" style="margin-top:8px">${lista.slice(1, 5).map((x) => `<span class="brasao ganho"><img src="${urlThumb(x)}" alt=""><b>${escapeHTML(x.nome)}</b></span>`).join('')}</div>` : ''}<button type="button" class="btn-verde" data-m="ok" style="width:100%;margin-top:14px">${escapeHTML(ESCOLA.fraseCelebracao)}</button></div>`);
 f.querySelector('.conteudo').classList.add('celebra-folha');
 }
+// Certificados publicados no perfil (servidor: perfisPublicos.certificados).
+const certsDe = (pub) => (Array.isArray(pub.certificados) ? pub.certificados : []).filter((c) => c && /^[A-Z0-9]{6,20}$/.test(String(c.codigo || '')));
+const escadaPub = (pub) => (pub.menor && (pub.idade || 0) < 12 ? CORDOES_KIDS : CORDOES_ADULTO);
+const corDoCordaoPub = (nome, pub) => (escadaPub(pub).find((c) => c.nome === nome) || CORDOES_ADULTO.find((c) => c.nome === nome) || CORDOES_KIDS.find((c) => c.nome === nome) || { cor: coresCordao(pub) }).cor;
+const linkCertificado = (codigo) => `certificado.html#${encodeURIComponent(codigo)}`;
 function trajetoriaHTML(pub) {
-const hist = (pub.historicoGraduacoes || []).slice().sort((a, b) => new Date(b.em) - new Date(a.em));
-const prox = proximoCordao(pub); const cProx = (pub.menor && (pub.idade || 0) < 12 ? CORDOES_KIDS : CORDOES_ADULTO).find((c) => c.nome === prox.nome) || prox;
+const escada = escadaPub(pub).map((c) => c.nome);
+const certs = certsDe(pub);
+const hist = (pub.historicoGraduacoes || []).filter((h) => h && h.cordao);
+// Um marco por troca registrada + os cordões que só têm certificado (anteriores ao app).
+const marcos = hist.map((h) => ({ cordao: h.cordao, em: h.em, porNome: h.porNome, legado: h.legado === true, evento: h.eventoNome || '' }));
+certs.forEach((c) => { if (!marcos.some((m) => m.cordao === c.cordao)) marcos.push({ cordao: c.cordao, em: c.data ? `${c.data}T12:00:00` : null, legado: c.legado === true || !c.data, evento: c.evento || '' }); });
+marcos.sort((a, b) => (escada.indexOf(b.cordao) - escada.indexOf(a.cordao)) || (new Date(b.em || 0) - new Date(a.em || 0)));
+const certDo = (m) => { const doCordao = certs.filter((c) => c.cordao === m.cordao); const dia = m.em && !m.legado ? String(m.em).slice(0, 10) : ''; return doCordao.find((c) => dia && c.data === dia) || doCordao.find((c) => (m.legado ? c.legado : !c.legado)) || doCordao[0] || null; };
+const prox = proximoCordao(pub); const cProx = escadaPub(pub).find((c) => c.nome === prox.nome) || prox;
 const cAtual = coresCordao(pub);
 const eventos = [
 `<div class="ev futuro"><b>${escapeHTML(prox.nome)}</b><small>Próxima meta${pub.prontidao != null ? ` · prontidão ${pub.prontidao}%` : ' · sem avaliação lançada'}</small><div class="cord" style="--c1:${cProx.cor[0]};--c2:${cProx.cor[1]};--c3:${cProx.cor[2]}"></div></div>`,
-...(hist.length ? hist.map((h, i) => { const cor = (CORDOES_ADULTO.find((c) => c.nome === h.cordao) || CORDOES_KIDS.find((c) => c.nome === h.cordao) || { cor: cAtual }).cor; return `<div class="ev ${i === 0 ? '' : ''}"><b>${escapeHTML(h.cordao)}</b><small>${new Date(h.em).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}${h.porNome ? ` · por ${escapeHTML(h.porNome)}` : ''}</small><div class="cord" style="--c1:${cor[0]};--c2:${cor[1]};--c3:${cor[2]}"></div></div>`; })
+...(marcos.length ? marcos.map((m) => { const cor = corDoCordaoPub(m.cordao, pub); const c = certDo(m); const quando = m.legado ? 'Graduação anterior ao app' : new Date(m.em).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }); return `<div class="ev"><b>${escapeHTML(m.cordao)}</b><small>${escapeHTML(quando)}${m.evento && !m.legado ? ` · ${escapeHTML(m.evento)}` : ''}${m.porNome && !m.legado ? ` · por ${escapeHTML(m.porNome)}` : ''}</small><div class="cord" style="--c1:${cor[0]};--c2:${cor[1]};--c3:${cor[2]}"></div>${c ? `<a class="ver-cert" href="${linkCertificado(c.codigo)}"><i class="fas fa-award"></i> Ver certificado</a>` : ''}</div>`; })
 : [`<div class="ev"><b>${escapeHTML(pub.cordaoAtual || 'Iniciante')}</b><small>Cordão atual (as próximas trocas de cordão feitas pelo mestre entram aqui automaticamente)</small><div class="cord" style="--c1:${cAtual[0]};--c2:${cAtual[1]};--c3:${cAtual[2]}"></div></div>`]),
 pub.criadoEm ? `<div class="ev ouro"><b>Entrou no grupo</b><small>${new Date(pub.criadoEm).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}${pub.academiaNome ? ` · ${escapeHTML(nomeCurtoNucleo(pub.academiaNome))}` : ''}</small></div>` : '',
 ];
 return `<div class="tl">${eventos.join('')}</div>`;
+}
+// Galeria de certificados/cordões do perfil: um "mini certificado" por cordão.
+function galeriaCertificadosHTML(pub, meu) {
+const escada = escadaPub(pub).map((c) => c.nome);
+const certs = certsDe(pub).slice().sort((a, b) => (escada.indexOf(b.cordao) - escada.indexOf(a.cordao)) || String(b.data || '').localeCompare(String(a.data || '')));
+if (!certs.length) return '';
+return `<div class="titulo-sec">Certificados <span class="contador">${certs.length} ${certs.length === 1 ? 'cordão' : 'cordões'}</span>${meu ? '<a class="contador" href="certificados.html" style="margin-left:auto;color:var(--teal);font-weight:800;text-decoration:none">ver todos</a>' : ''}</div>
+<div class="galeria-cert">${certs.map((c) => { const cor = corDoCordaoPub(c.cordao, pub); const leg = c.legado || !c.data; return `<a class="mini-cert" href="${linkCertificado(c.codigo)}" aria-label="Certificado do Cordão ${escapeHTML(c.cordao)}">
+<span class="faixa" style="--c1:${cor[0]};--c2:${cor[1]};--c3:${cor[2]}"><i></i></span>
+<span class="corpo"><small>CERTIFICADO</small><b>Cordão ${escapeHTML(c.cordao)}</b><em>${leg ? 'anterior ao app' : escapeHTML(c.data.split('-').reverse().join('/'))}${c.evento && !leg ? ` · ${escapeHTML(String(c.evento).slice(0, 26))}` : ''}</em></span>
+<span class="selo" aria-hidden="true"><i class="fas fa-award"></i></span></a>`; }).join('')}</div>`;
 }
 async function renderPerfil(param, vista) {
 const alvo = param || uid; const meu = alvo === uid;
@@ -904,6 +927,7 @@ const desenhar = () => {
 if (!painel) return;
 if (perfilAba === 'momentos') painel.innerHTML = `${momentos.length ? `<div class="titulo-sec">Melhores momentos <span class="pill gold">${momentos.length}</span></div><div class="destaques">${momentos.slice(0, 12).map((p) => { const m = midiasDe(p)[0]; return `<button type="button" class="dest" data-abrir-post="${p.id}">${m.tipo === 'video' ? `<video class="foto" src="${escapeHTML(m.url)}" muted preload="metadata"></video>` : `<img class="foto" src="${escapeHTML(m.url)}" alt="">`}${escapeHTML((p.nucleoNome ? nomeCurtoNucleo(p.nucleoNome) : (p.texto || 'Momento')).slice(0, 14))}</button>`; }).join('')}</div>` : ''}<div class="titulo-sec">Galeria <span class="contador">${comMidia.length} com foto/vídeo · ${lista.length} posts</span></div>${gradeHTML(comMidia, meu ? 'Suas fotos e vídeos de treino aparecem aqui. Toque em + pra publicar.' : 'Ainda sem fotos ou vídeos.')}${lista.filter((p) => !midiasDe(p).length).length ? `<div class="titulo-sec" style="margin-top:6px">Só texto</div>${lista.filter((p) => !midiasDe(p).length).slice(0, 10).map((p) => { const c = postHTML(p); return c; }).join('')}` : ''}`;
 else if (perfilAba === 'trajetoria') painel.innerHTML = `<div class="card"><div class="titulo-sec" style="padding:0 0 6px">Sobre</div>${pub.bio ? `<p class="bio">${formatarTexto(pub.bio)}</p>` : `<p class="bio" style="color:var(--muted)">${meu ? 'Conte sua história na capoeira — toque no lápis lá em cima.' : 'Ainda sem biografia.'}</p>`}${pub.cidade ? `<div class="bio-linha"><i class="fas fa-location-dot"></i> ${escapeHTML(pub.cidade)}</div>` : ''}${pub.criadoEm ? `<div class="bio-linha"><i class="far fa-calendar"></i> No grupo desde ${new Date(pub.criadoEm).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}</div>` : ''}${(pub.funcoes || []).length ? `<div class="bio-linha"><i class="fas fa-briefcase"></i> ${pub.funcoes.map(escapeHTML).join(' · ')}</div>` : ''}${r && r.ultima ? `<div class="bio-linha"><i class="fas fa-check"></i> Último treino registrado ${tempoRelativo(r.ultima)}</div>` : ''}</div>
+${galeriaCertificadosHTML(pub, meu)}
 <div class="titulo-sec">Graduações <span class="contador">linha do tempo</span></div><div class="card">${trajetoriaHTML(pub)}</div>
 <div class="titulo-sec">Formação <span class="contador">direto de</span></div>${formacaoHTML(pub)}`;
 else painel.innerHTML = `${brasoesResumoHTML(pub)}<div class="progresso" style="margin-top:10px"><div class="l"><span>Prontidão para ${escapeHTML(proximoCordao(pub).nome)}</span><span>${pub.prontidao != null ? pub.prontidao + '%' : '—'}</span></div><div class="barra"><i style="width:${pub.prontidao || 0}%;--c1:${coresCordao(pub)[0]};--c2:${coresCordao(pub)[1]};--c3:${coresCordao(pub)[2]}"></i></div><small>${pub.prontidao == null ? 'Sem notas lançadas pelo responsável ainda.' : pub.prontidao >= 70 ? 'Meta de 70% atingida nos critérios avaliados.' : 'Meta: 70% nos critérios avaliados pelo responsável do núcleo.'}</small></div>

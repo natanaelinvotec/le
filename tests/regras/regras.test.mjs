@@ -268,3 +268,16 @@ test('notificações: a pessoa marca a festa como vista (celebradoEm), sem mexer
   await assertFails(updateDoc(doc(db('nat'), 'notificacoes/nat/itens/n1'), { titulo: 'outro' }));
   await assertFails(updateDoc(doc(db('tay'), 'notificacoes/nat/itens/n1'), { celebradoEm: AGORA }));
 });
+
+test('assinaturas: quem assina (Fundador, responsável de núcleo) grava a própria; Admin grava de todos; aluno não', async () => {
+  const url = (uid) => `https://firebasestorage.googleapis.com/v0/b/x/o/assinaturas%2F${uid}%2Fa.png?alt=media&token=t`;
+  await assertSucceeds(setDoc(doc(db('tay'), 'assinaturas', 'tay'), { url: url('tay'), nome: 'Taynara', atualizadoEm: AGORA, porUid: 'tay' }));
+  await assertSucceeds(setDoc(doc(db('profeta'), 'assinaturas', 'profeta'), { url: url('profeta'), nome: 'Isaias', atualizadoEm: AGORA, porUid: 'profeta' }));
+  await assertSucceeds(setDoc(doc(db('admin'), 'assinaturas', 'profeta'), { url: url('profeta'), nome: 'Isaias', atualizadoEm: AGORA, porUid: 'admin' }));
+  await assertFails(setDoc(doc(db('nat'), 'assinaturas', 'nat'), { url: url('nat'), nome: 'Natanael', atualizadoEm: AGORA, porUid: 'nat' }));
+  await assertFails(setDoc(doc(db('tay'), 'assinaturas', 'profeta'), { url: url('profeta'), nome: 'Falsa', atualizadoEm: AGORA, porUid: 'tay' }));
+  await assertFails(setDoc(doc(db('tay'), 'assinaturas', 'tay'), { url: url('profeta'), nome: 'Taynara', atualizadoEm: AGORA, porUid: 'tay' }));
+  await assertSucceeds(getDoc(doc(db(null), 'assinaturas', 'tay')));
+  await assertFails(getDocs(collection(db(null), 'assinaturas')));
+  await assertSucceeds(updateDoc(doc(db('nat'), 'notificacoes/nat/itens/n1'), { compartilhadoEm: AGORA }));
+});

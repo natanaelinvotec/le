@@ -98,7 +98,7 @@ request.resource.data.token is string && request.resource.data.token.size() < 40
 match /notificacoes/{uid}/itens/{id} {
 allow read, delete: if logado() && request.auth.uid == uid;
 // celebradoEm: a festa (troca de cordão / brasão novo) já apareceu na tela principal.
-allow update: if logado() && request.auth.uid == uid && mudou().hasOnly(['lida', 'lidaEm', 'celebradoEm']);
+allow update: if logado() && request.auth.uid == uid && mudou().hasOnly(['lida', 'lidaEm', 'celebradoEm', 'compartilhadoEm']);
 allow create: if false;
 }
 
@@ -548,6 +548,19 @@ request.resource.data.porUid == request.auth.uid;
 match /certificados/{codigo} {
 allow get: if true;
 allow list, write: if false;
+}
+// assinaturas/{uid}: assinatura real (imagem) de quem assina certificados —
+// o Fundador e os responsáveis de núcleo. Qualquer pessoa lê UMA (a página do
+// certificado é pública); grava a própria pessoa (se assina) ou o Admin Master.
+match /assinaturas/{uid} {
+allow get: if true;
+allow list: if ehAdmin();
+allow create, update: if logado() && (ehAdmin() || (request.auth.uid == uid && (souFundador() || (ehGestor() && minhaAcademiaGerenciada() != null)))) &&
+request.resource.data.keys().hasOnly(['url', 'nome', 'atualizadoEm', 'porUid']) &&
+request.resource.data.porUid == request.auth.uid &&
+request.resource.data.url is string && request.resource.data.url.size() < 1500 &&
+request.resource.data.url.matches('https://firebasestorage[.]googleapis[.]com/v0/b/[^/]+/o/assinaturas%2F' + uid + '%2F.*');
+allow delete: if logado() && (ehAdmin() || request.auth.uid == uid);
 }
 // certificadosDe/{uid}: a lista da pessoa (app) — ela, o responsável legal e o núcleo.
 match /certificadosDe/{uid} {

@@ -6,7 +6,7 @@
   const blob = await gerarCardStory({ tipo: 'brasao', nome, brasaoNome, brasaoImg, nivel })
   await compartilharImagem(blob, { texto, link, arquivo })  → 'compartilhado' | 'cancelado' | 'sem-suporte'
   linkWhatsApp(texto, link) · baixarImagem(blob, nome) */
-import { ESCOLA } from './escola.js';
+import { ESCOLA, nomeBonito } from './escola.js';
 
 const W = 1080; const H = 1920;
 const BRASAO_GRUPO = 'assets/marca/brasao-1024.png';
@@ -116,7 +116,7 @@ export async function gerarCardStory(d) {
 
   // nome + selo
   const yNome = ehBrasao ? 1478 : 1320;
-  textoCentral(cx, String(d.nome || 'Atleta'), yNome, { fonte: 'italic {t}px "Instrument Serif", Georgia, serif', tamanho: 104, max: 940 });
+  textoCentral(cx, nomeBonito(d.nome) || 'Atleta', yNome, { fonte: 'italic {t}px "Instrument Serif", Georgia, serif', tamanho: 104, max: 940 });
   const rotulo = ehBrasao ? String(d.brasaoNome || 'Brasão') + (d.nivel ? ` · ${d.nivel}` : '') : `Cordão ${d.cordao || ''}`;
   cx.font = '800 44px Sora, sans-serif';
   const larg = Math.min(940, cx.measureText(rotulo).width + (ehBrasao ? 80 : 190));

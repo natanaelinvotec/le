@@ -402,63 +402,68 @@ test('carteirinha: beneficiários — só pai, mãe, irmãos e avós; cada um co
 });
 
 // ---------- Certificado de graduação + festa "Troquei de cordão" ----------
-test('certificado: troca de cordão para cima emite UM certificado, com evento e assinaturas', async () => {
+const certsDe = (f, uid) => (f.ler(`certificadosDe/${uid}`) || { itens: [] }).itens;
+test('certificado: troca no batizado = certificado com data/evento; cordões anteriores sem data; assinaturas Fundador + núcleo', async () => {
   const { f, ctx } = ctxDe(base({ eventos: {
     e1: { nome: 'Batizado do Mestre Profeta', data: '2026-08-22', local: 'Núcleo Hab. Buriti', academiaId: null },
     e2: { nome: 'Roda de sábado', data: '2026-08-21', local: 'Praça', academiaId: 'taynara' },
-    e3: { nome: 'Batizado antigo', data: '2026-01-10' },
   } }));
-  const antes = f.ler('usuarios/nat');
-  const troca = { cordao: 'Vagante', anterior: 'Quilombola', em: '2026-08-22T22:10:00.000Z', por: 'tay', porNome: 'Tay' };
+  await f.db.doc('perfisPublicos/nat').set({ nome: 'Natanael Silva' });
+  const antes = f.ler('usuarios/nat'); // Quilombola, sem histórico (já era graduado antes do app)
+  const troca = { cordao: 'Vagante', anterior: 'Quilombola', em: '2026-08-22T22:10:00.000Z', por: 'nat', porNome: 'Qualquer' };
   const depois = { ...antes, cordaoAtual: 'Vagante', historicoGraduacoes: [troca] };
   await f.db.doc('usuarios/nat').set(depois);
   await G.aoEscreverUsuario(ctx, { params: { uid: 'nat' }, antes, depois });
-  const lista = f.ler('certificadosDe/nat').itens;
-  assert.equal(lista.length, 1);
-  const cert = f.ler(`certificados/${lista[0].codigo}`);
-  assert.match(cert.numero, /^LE-CERT-\d{4}-0001$/);
-  assert.equal(cert.nome, 'Natanael Silva'); assert.equal(cert.cordao, 'Vagante'); assert.equal(cert.anterior, 'Quilombola');
-  assert.equal(cert.evento.nome, 'Batizado do Mestre Profeta');
-  assert.deepEqual(cert.assinaturas.map((a) => a.nome), ['Taynara Jacques', 'Mestre Profeta']);
-  assert.equal(cert.nucleo, 'Academia Professora Taynara');
-  const n = notifs(f, 'nat').find((x) => x.tipo === 'cordao');
-  assert.equal(n.certificado, lista[0].codigo); assert.equal(n.cordao, 'Vagante'); assert.equal(n.link, `certificado.html#${lista[0].codigo}`);
-  // O mesmo gatilho de novo (reentrega) não emite outro.
+  const lista = certsDe(f, 'nat');
+  assert.deepEqual(lista.map((i) => i.cordao).sort(), ['Escravo', 'Fugitivo', 'Quilombola', 'Vagante']);
+  const vag = lista.find((i) => i.cordao === 'Vagante');
+  const cert = f.ler(`certificados/${vag.codigo}`);
+  assert.equal(cert.evento.nome, 'Batizado do Mestre Profeta'); assert.equal(cert.data, '2026-08-22'); assert.equal(cert.legado, false);
+  assert.deepEqual(cert.assinaturas.map((a) => [a.nome, a.titulo, a.papel]), [['Isaias Ramos', 'Mestre Profeta', 'Fundador do grupo'], ['Taynara Jacques', 'Professora Taynara', 'Responsável do núcleo']]);
+  const esc = f.ler(`certificados/${lista.find((i) => i.cordao === 'Escravo').codigo}`);
+  assert.equal(esc.legado, true); assert.equal(esc.data, null); assert.equal(esc.evento, null);
+  // Galeria da Rede recebe a lista.
+  assert.equal(f.ler('perfisPublicos/nat').certificados.length, 4);
+  // Uma festa só (a do batizado) e um lembrete agendado.
+  assert.equal(notifs(f, 'nat').filter((x) => x.tipo === 'cordao').length, 1);
+  assert.equal(Object.keys(f.lerCol('lembretes')).length, 1);
+  // Reentrega do gatilho: nada novo.
   await G.aoEscreverUsuario(ctx, { params: { uid: 'nat' }, antes, depois });
-  assert.equal(f.ler('certificadosDe/nat').itens.length, 1);
-  assert.equal(notifs(f, 'nat').filter((x) => x.tipo === 'cordao').length, 1); // sem festa dupla
-  // Rotina da madrugada: nada a emitir de novo; troca antiga sem certificado ganha o seu.
-  const { conferirCertificados } = await import('../src/certificado.js');
-  assert.equal(await conferirCertificados(ctx, 'nat', depois), 0);
-  assert.equal(await conferirCertificados(ctx, 'nat', { ...depois, historicoGraduacoes: [{ cordao: 'Quilombola', anterior: 'Fugitivo', em: '2025-11-15T12:00:00.000Z' }, troca] }), 1);
-  assert.equal(f.ler('certificadosDe/nat').itens.length, 2);
-  // Assinatura: quem gravou de verdade (login), não o "por" mandado pelo app.
-  const antes2 = f.ler('usuarios/nat'); const troca2 = { cordao: 'Liberto', anterior: 'Vagante', em: '2026-09-01T12:00:00.000Z', por: 'nat' };
-  await G.aoEscreverUsuario(ctx, { params: { uid: 'nat' }, antes: { ...antes2, cordaoAtual: 'Vagante' }, depois: { ...antes2, cordaoAtual: 'Liberto', historicoGraduacoes: [troca, troca2] }, authId: 'tay', authType: 'app_user' });
-  const c2 = f.ler('certificadosDe/nat').itens.find((i) => i.cordao === 'Liberto');
-  assert.equal(f.ler(`certificados/${c2.codigo}`).assinaturas[0].nome, 'Taynara Jacques');
-  // Descer de cordão não emite.
-  const volta = { ...depois, cordaoAtual: 'Quilombola' };
-  await G.aoEscreverUsuario(ctx, { params: { uid: 'nat' }, antes: depois, depois: volta });
-  assert.equal(f.ler('certificadosDe/nat').itens.length, 3);
-  // Conta apagada: o certificado sai do ar.
+  assert.equal(certsDe(f, 'nat').length, 4);
+  assert.equal(notifs(f, 'nat').filter((x) => x.tipo === 'cordao').length, 1);
+  // Lembrete: ainda não compartilhou → avisa uma vez; compartilhou → não avisa.
+  const { processarLembretes } = await import('../src/certificado.js');
+  const idL = Object.keys(f.lerCol('lembretes'))[0];
+  await f.db.doc(`lembretes/${idL}`).update({ quando: '2000-01-01T00:00:00.000Z' });
+  assert.equal(await processarLembretes(ctx), 1);
+  assert.ok(notifs(f, 'nat').some((x) => x.tipo === 'cordao_lembrete'));
+  assert.equal(Object.keys(f.lerCol('lembretes')).length, 0);
+  // Conta apagada: todos os certificados saem do ar.
   await f.db.doc('usuarios/nat').delete();
-  await G.aoEscreverUsuario(ctx, { params: { uid: 'nat' }, antes: volta, depois: null });
-  assert.equal(f.ler(`certificados/${lista[0].codigo}`), undefined);
+  await G.aoEscreverUsuario(ctx, { params: { uid: 'nat' }, antes: depois, depois: null });
+  assert.equal(f.ler(`certificados/${vag.codigo}`), undefined);
 });
 
-test('certificado: graduado pelo Fundador tem uma assinatura; menor tem nome curto; responsável é avisado', async () => {
+test('certificado: "já tinha o cordão" e cadastro direto no cordão = só certificados sem data, sem festa', async () => {
   const { f, ctx } = ctxDe(base());
-  const antes = { ...f.ler('usuarios/kid'), nome: 'Pedro Henrique Souza Lima' };
-  const depois = { ...antes, cordaoAtual: 'Escravo', historicoGraduacoes: [{ cordao: 'Escravo', anterior: 'Iniciante', em: '2026-09-01T12:00:00.000Z', por: 'profeta' }] };
-  await f.db.doc('usuarios/kid').set(depois);
-  await G.aoEscreverUsuario(ctx, { params: { uid: 'kid' }, antes, depois });
-  const it = f.ler('certificadosDe/kid').itens[0];
-  const cert = f.ler(`certificados/${it.codigo}`);
-  assert.equal(cert.nome, 'Pedro Lima');
-  assert.equal(cert.assinaturas.length, 1);
-  assert.equal(cert.evento, null);
-  assert.ok(notifs(f, 'mae').some((x) => x.tipo === 'cordao' && x.atletaUid === 'kid'));
+  const antes = f.ler('usuarios/nat');
+  const depois = { ...antes, cordaoAtual: 'Liberto', historicoGraduacoes: [{ cordao: 'Liberto', anterior: 'Quilombola', em: '2026-10-01T12:00:00.000Z', legado: true }] };
+  await G.aoEscreverUsuario(ctx, { params: { uid: 'nat' }, antes, depois });
+  const l = certsDe(f, 'nat');
+  assert.deepEqual(l.map((i) => i.cordao).sort(), ['Escravo', 'Fugitivo', 'Liberto', 'Quilombola', 'Vagante']);
+  assert.ok(l.every((i) => i.legado === true && i.data === null));
+  assert.equal(notifs(f, 'nat').filter((x) => x.tipo === 'cordao').length, 0);
+  // Cadastro criado já graduado (criança: escada infantil).
+  const kid = { nome: 'Pedro Henrique Souza Lima', papeis: ['aluno'], academiaId: 'profeta', cordaoAtual: 'Fugitivo', idade: 9, responsavelUid: 'mae' };
+  await f.db.doc('usuarios/k2').set(kid);
+  await G.aoEscreverUsuario(ctx, { params: { uid: 'k2' }, antes: null, depois: kid });
+  const lk = certsDe(f, 'k2');
+  assert.deepEqual(lk.map((i) => i.cordao), ['Escravo', 'Fugitivo']);
+  const ck = f.ler(`certificados/${lk[0].codigo}`);
+  assert.equal(ck.nome, 'Pedro Lima');
+  // Núcleo do próprio Fundador: ele assina as duas.
+  assert.deepEqual(ck.assinaturas.map((a) => a.nome), ['Isaias Ramos', 'Isaias Ramos']);
+  assert.equal(notifs(f, 'mae').filter((x) => x.tipo === 'cordao').length, 0);
 });
 
 test('desfazer graduação (Admin): volta o cordão, cancela o certificado, some a festa e avisa o núcleo', async () => {
@@ -469,21 +474,25 @@ test('desfazer graduação (Admin): volta o cordão, cancela o certificado, some
   const depois = { ...antes, cordaoAtual: 'Vagante', historicoGraduacoes: [troca] };
   await f.db.doc('usuarios/nat').set(depois);
   await G.aoEscreverUsuario(ctx, { params: { uid: 'nat' }, antes, depois });
-  const cod = f.ler('certificadosDe/nat').itens[0].codigo;
-  assert.equal(notifs(f, 'nat').filter((x) => x.tipo === 'cordao').length, 1);
-  // Só a última troca; dados errados são recusados.
+  const cod = certsDe(f, 'nat').find((i) => i.cordao === 'Vagante').codigo;
   await assert.rejects(desfazerGraduacao(ctx, { uid: 'nat', cordao: 'Liberto', em: troca.em }), /não está mais/);
   const r = await desfazerGraduacao(ctx, { uid: 'nat', cordao: 'Vagante', em: troca.em, motivo: 'Aluno errado' }, { porUid: 'admin', porNome: 'Admin Master' });
   assert.equal(r.cordao, 'Quilombola');
   assert.equal(f.ler('usuarios/nat').cordaoAtual, 'Quilombola');
-  assert.deepEqual(f.ler('usuarios/nat').historicoGraduacoes, []);
   assert.equal(f.ler(`certificados/${cod}`).ativo, false);
-  assert.equal(f.ler('certificadosDe/nat').itens.length, 0);
+  assert.deepEqual(certsDe(f, 'nat').map((i) => i.cordao).sort(), ['Escravo', 'Fugitivo', 'Quilombola']);
   assert.equal(notifs(f, 'nat').filter((x) => x.tipo === 'cordao').length, 0);
+  assert.equal(Object.keys(f.lerCol('lembretes')).length, 0);
   assert.ok(notifs(f, 'tay').some((x) => x.tipo === 'graduacao'));
   assert.ok(Object.values(f.lerCol('auditoria')).some((a) => a.acao === 'desfez a graduação'));
-  // Pelo comando: quem não é Admin é negado.
   await f.db.doc('comandos/c1').set({ tipo: 'desfazerGraduacao', uid: 'nat', cordao: 'Quilombola', em: 'x', porUid: 'tay', status: 'pendente' });
   await executarComando(ctx, { params: { id: 'c1' }, depois: f.ler('comandos/c1'), authId: 'tay' });
   assert.equal(f.ler('comandos/c1').status, 'negado');
+});
+
+import { nomeNoCertificado } from '../src/certificado.js';
+test('certificado: nome em maiúsculas vira nome próprio; menor usa primeiro e último', () => {
+  assert.equal(nomeNoCertificado('MARIA DA SILVA SANTOS', false), 'Maria da Silva Santos');
+  assert.equal(nomeNoCertificado('JOÃO PEDRO DE ÁVILA', true), 'João Ávila');
+  assert.equal(nomeNoCertificado('Ana McArthur', false), 'Ana McArthur');
 });

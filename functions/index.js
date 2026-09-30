@@ -17,6 +17,7 @@ import * as G from './src/gatilhos.js';
 import { rotinaDiaria, executarComando } from './src/rotinas.js';
 import { criarVision } from './src/moderacao.js';
 import { aoEscreverFotoCarteirinha, sincronizarCarteirinha } from './src/carteirinha.js';
+import { processarLembretes } from './src/certificado.js';
 
 // Região: a mesma do banco (o GitHub Actions descobre e grava em .env como REGIAO).
 setGlobalOptions({ region: process.env.REGIAO || 'southamerica-east1', maxInstances: 5, memory: '256MiB' });
@@ -66,6 +67,12 @@ export const configEscrita = onDocumentWrittenWithAuthContext('config/{id}', seg
 export const rotinaDaMadrugada = onSchedule({ schedule: 'every day 03:00', timeZone: 'America/Campo_Grande', timeoutSeconds: 540, memory: '512MiB' }, async () => {
   const r = await rotinaDiaria(ctxBase());
   console.log('rotina diária', JSON.stringify(r));
+});
+
+// Todo dia às 10h: lembrete "compartilhe o seu card" para quem trocou de cordão e ainda não compartilhou.
+export const lembretesDoDia = onSchedule({ schedule: 'every day 10:00', timeZone: 'America/Campo_Grande' }, async () => {
+  const n = await processarLembretes(ctxBase());
+  console.log('lembretes enviados', n);
 });
 
 // ---------- Pedidos do painel (só Admin Master) ----------

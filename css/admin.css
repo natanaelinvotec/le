@@ -802,3 +802,19 @@ select.input-padrao { appearance: none; -webkit-appearance: none; background-ima
 .rg-lista span { display: flex; flex-direction: column; padding: 8px 10px; border-radius: 12px; background: var(--bg-app); }
 .rg-lista small { color: var(--text-muted); font-size: .76rem; }
 @media (max-width: 760px) { .rg-duas { grid-template-columns: 1fr; } .rg-exp { margin-left: 0; width: 100%; } .rg-abas [data-rg-aba] { flex: 1 1 auto; justify-content: center; } }
+
+/* ---------- assinaturas dos certificados ---------- */
+.gs-ass-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; margin-top: 10px; }
+.gs-ass { display: flex; flex-direction: column; gap: 5px; padding: 16px 16px 14px; border-radius: 16px; background: var(--bg-app); border: 1px solid var(--border-color); }
+.gs-ass-risco { height: 58px; display: flex; align-items: flex-end; }
+.gs-ass-risco img { max-height: 58px; max-width: 100%; object-fit: contain; margin-bottom: -8px; }
+.gs-ass-risco span { font: italic 400 28px/1 'Instrument Serif', Georgia, serif; color: #0B2E70; }
+.gs-ass hr { margin: 0; border: 0; height: 1px; background: var(--text-dark); opacity: .6; }
+.gs-ass b { font-size: .86rem; }
+.gs-ass small { font-size: .76rem; color: var(--text-muted); }
+.gs-ass .gs-ass-ok { color: #00873A; font-weight: 800; }
+.gs-ass .btn-mini { align-self: flex-start; margin-top: 6px; }
+.mod-legado { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: #FFF8E1; border: 1px solid #F2D27A; align-items: flex-start; line-height: 1.4; }
+.mod-legado small { display: block; font-weight: 600; color: var(--text-muted); font-size: .76rem; }
+.mod-legado input { margin-top: 2px; flex: none; }
+.mod-legado[hidden] { display: none; }

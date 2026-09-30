@@ -120,3 +120,10 @@ export function linkMapa(n) {
   const temCidade = new RegExp(ESCOLA.cidade, 'i').test(e);
   return e ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e + (temCidade ? '' : `, ${ESCOLA.cidadeParaMapa}`))}` : '';
 }
+// Nome digitado TODO EM MAIÚSCULAS vira "Nome Próprio" (certificado, festa, card);
+// quem escreveu normal fica como escreveu.
+export function nomeBonito(nome) {
+  const t = String(nome || '').trim().replace(/\s+/g, ' ');
+  if (!t || t !== t.toUpperCase() || !/\p{Lu}/u.test(t)) return t;
+  return t.toLowerCase().split(' ').map((p, i) => (i > 0 && /^(da|de|do|das|dos|e|d')$/.test(p) ? p : p.charAt(0).toUpperCase() + p.slice(1))).join(' ');
+}

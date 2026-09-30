@@ -28,6 +28,7 @@ body{margin:0;font-family:'Manrope',system-ui,sans-serif;background:#E3ECEA;colo
 
 /* ---------- a folha (escala para caber na tela; na impressão, tamanho real) ---------- */
 .folha-caixa{width:100%;overflow:hidden;border-radius:10px;box-shadow:0 30px 60px -30px rgba(6,26,58,.5)}
+.folha-caixa+.folha-caixa{margin-top:8px}
 .cert{width:1123px;height:794px;position:relative;overflow:hidden;background:var(--papel);color:var(--tinta);transform-origin:0 0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .gui{position:absolute;inset:0;pointer-events:none;background:repeating-radial-gradient(circle at 110% 120%,transparent 0 7px,rgba(56,158,146,.07) 7px 8px),repeating-radial-gradient(circle at 30% -40%,transparent 0 9px,rgba(0,45,114,.045) 9px 10px)}
 .faixa{position:absolute;left:0;top:0;bottom:0;width:118px;background:linear-gradient(180deg,#0B2E70 0%,#061A3A 100%)}
@@ -60,10 +61,10 @@ body{margin:0;font-family:'Manrope',system-ui,sans-serif;background:#E3ECEA;colo
 .linha-cordao span{font:800 44px 'Sora',sans-serif;letter-spacing:-.03em;color:var(--tinta)}
 .linha-cordao i{width:250px;height:18px;border-radius:9px;box-shadow:0 6px 12px -6px rgba(0,0,0,.45)}
 .criterios{font-size:14px;line-height:1.6;color:var(--suave);max-width:740px}
-.base{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 128px 200px;gap:28px;align-items:end}
-.base.uma{grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr) 128px 200px}
+.base{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 128px 196px;gap:28px;align-items:end}
 .assinatura{display:flex;flex-direction:column;gap:5px}
 .assinatura .cursiva{font:italic 400 30px/1 'Instrument Serif',Georgia,serif;color:#0B2E70}
+.assinatura .ass-img{display:block;height:52px;max-width:100%;object-fit:contain;object-position:left bottom;margin-bottom:-8px}
 .assinatura hr{width:100%;height:1px;margin:0;border:0;background:var(--tinta)}
 .assinatura b{font-size:13px;font-weight:800;color:var(--tinta)}
 .assinatura small{font-size:12px;color:var(--suave)}
@@ -73,6 +74,7 @@ body{margin:0;font-family:'Manrope',system-ui,sans-serif;background:#E3ECEA;colo
 .autentica span{display:flex;flex-direction:column;gap:4px}
 .autentica small{font-size:10px;font-weight:800;letter-spacing:.18em;color:var(--teal)}
 .autentica p{margin:0;font-size:11.5px;line-height:1.4;color:var(--texto)}
+.autentica .mat{font:700 11px 'JetBrains Mono',monospace;color:var(--marinho)}
 .cancelado{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
 .cancelado span{transform:rotate(-14deg);padding:12px 30px;border:5px solid #B3261E;border-radius:14px;color:#B3261E;font:800 64px 'Sora',sans-serif;letter-spacing:.08em;background:rgba(255,255,255,.7)}
 
@@ -82,9 +84,10 @@ body{margin:0;font-family:'Manrope',system-ui,sans-serif;background:#E3ECEA;colo
   html,body{background:#fff;margin:0;padding:0}
   .barra,.acoes,.status,.nao-imprime{display:none!important}
   .pagina{padding:0;max-width:none;margin:0;display:block}
-  .folha-caixa{width:auto!important;height:auto!important;overflow:visible;border-radius:0;box-shadow:none}
-  html,body{height:210mm;overflow:hidden}
-  .cert{transform:none!important;width:297mm;height:209.5mm;page-break-after:avoid;break-after:avoid}
+  .folha-caixa{width:297mm!important;height:209mm!important;margin:0!important;overflow:hidden;border-radius:0;box-shadow:none;break-inside:avoid;page-break-inside:avoid}
+  .folha-caixa{break-after:page;page-break-after:always}
+  .folha-caixa:last-of-type{break-after:auto;page-break-after:auto}
+  .cert{transform:none!important;width:297mm;height:209mm}
 }
 @media (max-width:560px){.marca small{display:none}.marca b{font-size:13px}.selo-ok{height:30px;font-size:11px;padding:0 10px;white-space:nowrap}.acoes .bt{flex:1 1 40%}.pagina{gap:12px}}
 @media (prefers-reduced-motion:reduce){.giro{animation:none}}

@@ -26,7 +26,7 @@ lancarPagamento, listarPagamentosDoNucleo, marcarPagamento,
 lancarDespesaComRateio, todosRateios, marcarRateioPago,
   presencasDoNucleo, presencasVisitantesDoNucleo, salvarFotoPerfil,
 } from './firebase.js';
-import { iniciarGestao, abrirTela as abrirTelaGestao, renderRelatoriosGerais } from './gestao.js?v=20260930';
+import { iniciarGestao, abrirTela as abrirTelaGestao, renderRelatoriosGerais } from './gestao.js?v=20260930b';
 import { iniciarExperiencia, abrirAcessibilidade, tutorial, pedirAceiteSeNecessario } from './experiencia.js';
 import { ligarContador, abrirCentral, ouvirPushComAppAberto } from './notificacoes.js?v=20260926e';
 import { apresentacaoDe, migrarApresentacao, tocarApresentacao, tocarAoEntrar, gerenciarApresentacao, abrirMinhaConta, abrirTrocaSenha, definirAutor, podeTerApresentacao, formatarCelular, celularValido, celularDe } from './conta.js?v=20260927a';
@@ -329,7 +329,7 @@ return;
 try {
 await iniciarPainel();
 // Mestres e professores também treinam: troca de cordão e brasão novo saltam aqui.
-setTimeout(() => { import('./celebrar.js?v=20260930').then((m) => m.verificarCelebracoes(sessaoAtual.uid, sessaoAtual)).catch((er) => console.warn('festa', er)); }, 2200);
+setTimeout(() => { import('./celebrar.js?v=20260930b').then((m) => m.verificarCelebracoes(sessaoAtual.uid, sessaoAtual)).catch((er) => console.warn('festa', er)); }, 2200);
 } catch (e) {
 console.error('Erro ao montar o painel:', e);
 const telaCarregando = document.getElementById('telaCarregando');
@@ -1344,7 +1344,22 @@ listaCordoesLocal.forEach((c, index) => { selCordao.innerHTML += `<option value=
 selCordao.value = usuarioSelecionado.cordaoAtual || 'Iniciante';
 notasAtuais = { ...(usuarioSelecionado.notas || {}) };
 gerarCriteriosUI(listaCordoesLocal, idadeNumero);
-selCordao.onchange = () => gerarCriteriosUI(listaCordoesLocal, idadeNumero);
+// Subiu o cordão aqui no prontuário: se pulou mais de um degrau é quase sempre
+// "colocar no cordão que já tinha" (lançamento do app) → marca "já tinha"
+// sozinho; a pessoa pode desmarcar se foi mesmo uma graduação de hoje.
+const wrapLegado = document.getElementById('modCordaoLegado') ? document.getElementById('wrapModLegado') : null;
+const cxLegado = document.getElementById('modCordaoLegado');
+const idxOriginal = listaCordoesLocal.findIndex((c) => c.nome === (usuarioSelecionado.cordaoAtual || 'Iniciante'));
+const conferirLegado = () => {
+  if (!wrapLegado) return;
+  const idxNovo = listaCordoesLocal.findIndex((c) => c.nome === selCordao.value);
+  const subiu = idxNovo > idxOriginal;
+  wrapLegado.hidden = !subiu;
+  if (!subiu) cxLegado.checked = false; else if (!cxLegado.dataset.mexeu) cxLegado.checked = idxNovo - Math.max(0, idxOriginal) > 1;
+};
+if (cxLegado) { cxLegado.checked = false; delete cxLegado.dataset.mexeu; cxLegado.onchange = () => { cxLegado.dataset.mexeu = '1'; }; }
+conferirLegado();
+selCordao.onchange = () => { gerarCriteriosUI(listaCordoesLocal, idadeNumero); conferirLegado(); };
 
 const wrapFormador = document.getElementById('wrapCriteriosFormador');
 if (avaliandoFormador) {
@@ -1552,7 +1567,8 @@ dadosAtualizados.notas = notasAtuais;
 // Rede Liberdade): guarda cordão novo, anterior, data e quem graduou.
 if (dadosAtualizados.cordaoAtual !== (usuarioSelecionado.cordaoAtual || 'Iniciante')) {
 const historico = Array.isArray(usuarioSelecionado.historicoGraduacoes) ? usuarioSelecionado.historicoGraduacoes.slice() : [];
-historico.push({ cordao: dadosAtualizados.cordaoAtual, anterior: usuarioSelecionado.cordaoAtual || 'Iniciante', em: new Date().toISOString(), por: sessaoAtual.uid, porNome: sessaoAtual.nome || '' });
+const jaTinha = !!(document.getElementById('modCordaoLegado') && document.getElementById('modCordaoLegado').checked && !document.getElementById('wrapModLegado').hidden);
+historico.push({ cordao: dadosAtualizados.cordaoAtual, anterior: usuarioSelecionado.cordaoAtual || 'Iniciante', em: new Date().toISOString(), por: sessaoAtual.uid, porNome: sessaoAtual.nome || '', ...(jaTinha ? { legado: true } : {}) });
 dadosAtualizados.historicoGraduacoes = historico.slice(-30);
 }
 // Avaliação de formador: grava só pra quem tem o papel de mestre/instrutor

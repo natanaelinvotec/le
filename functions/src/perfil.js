@@ -68,7 +68,7 @@ export async function calcularResumoRede(ctx, uid) {
 export async function calcularResumoFormacao(ctx, uid, academiaGerenciadaId) {
   if (!academiaGerenciadaId) return null;
   const snap = await ctx.db.collection('usuarios').where('academiaId', '==', academiaGerenciadaId).limit(400).get();
-  const formados = snap.docs.filter((d) => d.id !== uid && (d.data().historicoGraduacoes || []).some((h) => h && h.por === uid)).length;
+  const formados = snap.docs.filter((d) => d.id !== uid && (d.data().historicoGraduacoes || []).some((h) => h && h.por === uid && !h.legado)).length; // "já tinha" (antes do app) não conta como formado
   return { formados, calculadoEm: new Date().toISOString() };
 }
 

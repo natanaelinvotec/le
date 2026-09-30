@@ -93,6 +93,21 @@ service firebase.storage {
       allow list, write: if false;
     }
 
+    // Assinatura real para os certificados: assinaturas/<uid>/. Abre por link
+    // (a página do certificado é pública); ninguém lista. Grava a própria pessoa,
+    // se ela assina certificados (Fundador ou responsável de núcleo), ou o Admin.
+    function assinaCertificados() {
+      return perfilDe(request.auth.uid).get('acessoGeral', false) == true
+          || ('mestre' in perfilDe(request.auth.uid).get('papeis', []) && perfilDe(request.auth.uid).get('academiaGerenciadaId', null) != null);
+    }
+    match /assinaturas/{uid}/{arquivo} {
+      allow get: if true;
+      allow list: if false;
+      allow write: if request.auth != null && imagem(1)
+                   && ((request.auth.uid == uid && assinaCertificados()) || 'admin' in perfilDe(request.auth.uid).get('papeis', []));
+      allow delete: if request.auth != null && (request.auth.uid == uid || 'admin' in perfilDe(request.auth.uid).get('papeis', []));
+    }
+
     // Fotos do site público (painel "Gerenciar o site"): qualquer um vê,
     // só o Admin Master grava/apaga. Até 3 MB (o painel já comprime).
     match /site/{arquivo} {
