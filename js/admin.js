@@ -1565,7 +1565,11 @@ dadosAtualizados.cordaoAtual = document.getElementById('modCordao').value;
 dadosAtualizados.notas = notasAtuais;
 // Troca de cordão vira um marco na trajetória do atleta (linha do tempo da
 // Rede Liberdade): guarda cordão novo, anterior, data e quem graduou.
-if (dadosAtualizados.cordaoAtual !== (usuarioSelecionado.cordaoAtual || 'Iniciante')) {
+// Só SUBIR vira marco. Baixar o cordão não entra na trajetória: o servidor tira
+// os certificados, as trocas e as festas acima do cordão que ficou.
+const idxCordaoNovo = cordoesAdulto.findIndex((c) => c.nome === dadosAtualizados.cordaoAtual);
+const idxCordaoVelho = cordoesAdulto.findIndex((c) => c.nome === (usuarioSelecionado.cordaoAtual || 'Iniciante'));
+if (dadosAtualizados.cordaoAtual !== (usuarioSelecionado.cordaoAtual || 'Iniciante') && idxCordaoNovo > idxCordaoVelho) {
 const historico = Array.isArray(usuarioSelecionado.historicoGraduacoes) ? usuarioSelecionado.historicoGraduacoes.slice() : [];
 const jaTinha = !!(document.getElementById('modCordaoLegado') && document.getElementById('modCordaoLegado').checked && !document.getElementById('wrapModLegado').hidden);
 historico.push({ cordao: dadosAtualizados.cordaoAtual, anterior: usuarioSelecionado.cordaoAtual || 'Iniciante', em: new Date().toISOString(), por: sessaoAtual.uid, porNome: sessaoAtual.nome || '', ...(jaTinha ? { legado: true } : {}) });

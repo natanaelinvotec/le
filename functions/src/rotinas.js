@@ -2,7 +2,7 @@
 import { randomUUID } from 'node:crypto';
 import { sincronizarPerfil } from './perfil.js';
 import { sincronizarCarteirinha, apagarCarteirinha, temCarteirinha } from './carteirinha.js';
-import { apagarCertificados, conferirCertificados, cancelarCertificado, cancelarAcimaDe, idAvisoCordao } from './certificado.js';
+import { apagarCertificados, conferirCertificados, cancelarCertificado, cancelarAcimaDe, idAvisoCordao, alinharAoCordaoAtual } from './certificado.js';
 import { notificar, gestoresDoNucleo } from './notificar.js';
 import { responsaveisDe, apagarSubcolecao, apagarArquivosDoStorage } from './gatilhos.js';
 
@@ -46,6 +46,7 @@ export async function rotinaDiaria(ctx) {
   r.perfis = await emPaginas(ctx.db.collection('usuarios').orderBy('__name__'), async (d) => {
     await sincronizarPerfil(ctx, d.id, { presencas: true }).catch(() => null);
     if (temCarteirinha(d.data())) { await sincronizarCarteirinha(ctx, d.id).then(() => { r.carteirinhas++; }).catch(() => null); }
+    await alinharAoCordaoAtual(ctx, d.id, d.data()).catch(() => null);
     r.certificados = (r.certificados || 0) + await conferirCertificados(ctx, d.id, d.data()).catch(() => 0);
   });
   // 5. Conversas de menores sem o responsável legal anotado.
@@ -108,6 +109,15 @@ export async function migrarCertificados(ctx) {
   });
   return n;
 }
+// Quem teve o cordão baixado antes desta versão: tira o que ficou acima do cordão atual.
+export async function migrarCordoesQueVoltaram(ctx) {
+  let n = 0;
+  await emPaginas(ctx.db.collection('usuarios').orderBy('__name__'), async (d) => {
+    const r = await alinharAoCordaoAtual(ctx, d.id, d.data()).catch(() => null);
+    if (r && (r.certificados || r.trocas)) { n++; await sincronizarPerfil(ctx, d.id, { presencas: true, rede: true, formacao: true }).catch(() => null); }
+  });
+  return n;
+}
 
 export const MIGRACOES = [
   ['m1_posts_publico', migrarPosts],
@@ -115,6 +125,7 @@ export const MIGRACOES = [
   ['m3_perfis_servidor', migrarPerfis],
   ['m4_conversas_responsaveis', migrarConversas],
   ['m5_certificados_completos', migrarCertificados],
+  ['m6_cordoes_que_voltaram', migrarCordoesQueVoltaram],
 ];
 
 // forcar: roda de novo mesmo as já marcadas (ex.: "Recalcular tudo" no painel).

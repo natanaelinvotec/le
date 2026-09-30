@@ -178,6 +178,37 @@ export async function cancelarAcimaDe(ctx, uid, u, cordaoAtual, motivo = '') {
   return cancelados.filter(Boolean);
 }
 
+// Cordão VOLTOU (a professora baixou no prontuário, ou o Admin desfez): tudo o
+// que é de graduação acima do cordão atual sai — certificados (ficam CANCELADOS
+// para quem ler o QR impresso), as trocas da trajetória (a Rede e o brasão de
+// "graduações" param de contar), a festa que ainda não apareceu e o lembrete.
+// Os brasões de cordão somem sozinhos no recálculo do cartão (vêm do cordão atual).
+// Idempotente: roda no gatilho, na rotina da madrugada e na migração.
+export async function alinharAoCordaoAtual(ctx, uid, u, motivo = '') {
+  const escada = escadaDe(u).map((c) => c.nome);
+  const atual = u.cordaoAtual || 'Iniciante';
+  const idx = Math.max(0, escada.indexOf(atual));
+  const acima = (nome) => escada.indexOf(nome) > idx;
+  const texto = motivo || `Cordão voltou para ${atual}`;
+  const cancelados = await cancelarAcimaDe(ctx, uid, u, atual, texto);
+  const hist = Array.isArray(u.historicoGraduacoes) ? u.historicoGraduacoes : [];
+  // Sai também a "troca para baixo" que o prontuário antigo gravava (não é graduação).
+  const rebaixou = (h) => h.anterior && escada.indexOf(h.cordao) < escada.indexOf(h.anterior);
+  const sai = hist.filter((h) => h && (acima(h.cordao) || rebaixou(h)));
+  if (sai.length) {
+    await ctx.db.doc(`usuarios/${uid}`).update({ historicoGraduacoes: hist.filter((h) => !sai.includes(h)) });
+    for (const h of sai) {
+      const idAviso = idAvisoCordao(h, uid);
+      for (const dono of [uid, u.responsavelUid].filter(Boolean)) {
+        await ctx.db.doc(`notificacoes/${dono}/itens/${idAviso}`).delete().catch(() => {});
+        await ctx.db.doc(`notificacoes/${dono}/itens/lembrete_${idAviso}`).delete().catch(() => {});
+      }
+      await ctx.db.doc(`lembretes/${idAviso}`).delete().catch(() => {});
+    }
+  }
+  return { certificados: cancelados.length, trocas: sai.length };
+}
+
 // ---------- lembrete "compartilhe o seu card" (dia seguinte ao batizado) ----------
 export async function agendarLembrete(ctx, uid, idAviso, dados) {
   await ctx.db.doc(`lembretes/${idAviso}`).set({ uid, notifId: idAviso, quando: new Date(Date.now() + 6 * 3600000).toISOString(), ...dados });

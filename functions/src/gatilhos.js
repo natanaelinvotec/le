@@ -7,7 +7,7 @@ import { notificar, gestoresDoNucleo, admins, membros } from './notificar.js';
 import { registrar } from './auditoria.js';
 import { checarTexto, checarImagens } from './moderacao.js';
 import { sincronizarCarteirinha } from './carteirinha.js';
-import { emitirCertificado, apagarCertificados, idAvisoCordao, garantirCertificados, agendarLembrete } from './certificado.js';
+import { emitirCertificado, apagarCertificados, idAvisoCordao, garantirCertificados, agendarLembrete, alinharAoCordaoAtual } from './certificado.js';
 import { coresDoCordao } from './compartilhado/escola.js';
 
 // Campos de usuarios/{uid} que mudam a carteirinha (o próprio espelho entra:
@@ -82,6 +82,10 @@ export async function aoEscreverUsuario(ctx, ev) {
       // Dia seguinte: se ainda não compartilhou o card, um lembrete.
       if (!cert || !cert.repetido) { try { await agendarLembrete(ctx, uid, idAviso, { cordao: depois.cordaoAtual, cores: dados.cores, certificado: dados.certificado || '', atletaNome: dados.atletaNome, evento: dados.evento || '' }); } catch (e) { /* ok */ } }
     }
+  }
+  // Cordão VOLTOU: certificados, trocas da trajetória e festas acima do cordão atual saem.
+  if (!criado && antes.cordaoAtual !== depois.cordaoAtual && ORDEM.indexOf(depois.cordaoAtual || 'Iniciante') < ORDEM.indexOf(antes.cordaoAtual || 'Iniciante')) {
+    try { await alinharAoCordaoAtual(ctx, uid, depois, `Cordão voltou de ${antes.cordaoAtual} para ${depois.cordaoAtual || 'Iniciante'}`); } catch (e) { (ctx.log || console).warn('cordão voltou', uid, e && e.message); }
   }
   if (!criado && mudouAlgum(antes, depois, ['responsavelUid', 'idade'])) await atualizarResponsaveisDasConversas(ctx, uid);
 }

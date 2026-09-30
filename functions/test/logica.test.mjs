@@ -529,3 +529,31 @@ test('brasão removido pelo Admin Master (brasoesBloqueados) some do perfil e vo
   assert.ok(f.ler('perfisPublicos/nat').brasoes[id], 'voltou');
   assert.ok(notifs(f, 'nat').some((n) => n.tipo === 'brasao' && (n.brasoes || []).includes(id)), 'festa de novo');
 });
+
+test('cordão voltou (prontuário): certificados, trocas e festa acima do cordão atual saem; brasões de cordão também', async () => {
+  const { f, ctx } = ctxDe(base());
+  const u0 = f.ler('usuarios/nat');
+  // Sobe para Vagante (gera certificado com data + os anteriores sem data + festa).
+  const troca = { cordao: 'Vagante', anterior: 'Quilombola', em: '2026-09-30T15:00:00.000Z', por: 'tay', porNome: 'Taynara' };
+  const antes1 = { ...u0 }; const depois1 = { ...u0, cordaoAtual: 'Vagante', historicoGraduacoes: [troca] };
+  await f.db.doc('usuarios/nat').set(depois1);
+  await G.aoEscreverUsuario(ctx, { params: { uid: 'nat' }, antes: antes1, depois: depois1 });
+  await sincronizarPerfil(ctx, 'nat', { presencas: true, rede: true });
+  assert.deepEqual(certsDe(f, 'nat').map((i) => i.cordao).sort(), ['Escravo', 'Fugitivo', 'Quilombola', 'Vagante']);
+  const codVagante = certsDe(f, 'nat').find((i) => i.cordao === 'Vagante').codigo;
+  assert.ok(notifs(f, 'nat').some((n) => n.tipo === 'cordao'));
+  // A professora baixa para Fugitivo no prontuário (versão antiga gravava a "troca para baixo").
+  const depois2 = { ...depois1, cordaoAtual: 'Fugitivo', historicoGraduacoes: [troca, { cordao: 'Fugitivo', anterior: 'Vagante', em: '2026-10-01T12:00:00.000Z', por: 'tay' }] };
+  await f.db.doc('usuarios/nat').set(depois2);
+  await G.aoEscreverUsuario(ctx, { params: { uid: 'nat' }, antes: depois1, depois: depois2 });
+  assert.deepEqual(certsDe(f, 'nat').map((i) => i.cordao).sort(), ['Escravo', 'Fugitivo']);
+  assert.equal(f.ler(`certificados/${codVagante}`).ativo, false, 'QR impresso mostra cancelado');
+  assert.deepEqual(f.ler('usuarios/nat').historicoGraduacoes, [], 'trajetória sem trocas acima nem a troca para baixo');
+  assert.equal(notifs(f, 'nat').filter((n) => n.tipo === 'cordao').length, 0, 'festa que não apareceu some');
+  await sincronizarPerfil(ctx, 'nat', { presencas: true, rede: true });
+  const pub = f.ler('perfisPublicos/nat');
+  assert.deepEqual((pub.certificados || []).map((c) => c.cordao).sort(), ['Escravo', 'Fugitivo']);
+  const { porId: brPorId } = await import('../src/compartilhado/brasoes.js');
+  const deCordao = Object.keys(pub.brasoes).map(brPorId).filter((b) => b && b.regra.tipo === 'cordao').map((b) => b.regra.meta);
+  assert.ok(!deCordao.includes('Vagante') && !deCordao.includes('Quilombola'), `sem brasão de cordão acima: ${deCordao}`);
+});
