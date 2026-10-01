@@ -1,0 +1,672 @@
+<!-- admin.html — v4: Admin Master, Mestre/Professor e Instrutor, autenticado
+por Firebase Authentication (usuarios/{uid}.papeis). -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Gestão - Capoeira Liberdade</title><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#002D72"><link rel="icon" type="image/png" href="assets/app-icon-192.png"><link rel="apple-touch-icon" href="assets/app-apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- Chart.js com versão fixa e "defer": antes a página inteira parava esperando este arquivo (e a versão "mais nova" podia mudar sozinha). -->
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js">
+<link rel="stylesheet" href="css/admin.css?v=20261001">
+</head>
+<body>
+<noscript>Este painel exige JavaScript habilitado para funcionar.</noscript>
+
+<!-- Não existe mais tela de login própria aqui — login.html é a única porta
+de entrada do sistema (aluno, responsável, admin, mestre, professor e
+instrutor todos entram por lá). Esta tela só aparece por um instante
+enquanto a sessão do Firebase é conferida; quem não estiver logado é
+redirecionado pra login.html por admin.js (ver checarSessaoOuRedirecionar). -->
+<div class="tela-login" id="telaCarregando">
+<div class="card-padrao login-card" style="text-align:center;">
+<img src="assets/logo-liberdade150.png" alt="Logo Capoeira Liberdade" class="login-logo">
+<p class="login-sub"><i class="fas fa-spinner fa-spin"></i> Verificando sua sessão...</p>
+</div>
+</div>
+
+<!-- PAINEL PRINCIPAL - oculto até autenticar -->
+<div id="appPainel" class="oculto">
+<header class="top-nav">
+<div class="logo-area">
+<img src="assets/logo-liberdade150.png" alt="Logo Capoeira Liberdade" class="nav-logo">
+<span id="faixaAdminMaster" class="faixa-admin-master oculto"><i class="fas fa-shield-halved"></i> Admin Master</span>
+<span id="faixaFundador" class="faixa-fundador oculto"><i class="fas fa-star"></i> Acesso Geral · Fundador</span>
+</div>
+
+<button class="menu-toggle" id="mobile-menu-btn" aria-label="Abrir menu"><i class="fas fa-bars"></i></button>
+
+<nav class="nav-links" id="nav-links">
+<a href="#" class="nav-item active" data-papel="all" onclick="mudarAba('alunos', event)">Alunos</a>
+<a href="#" class="nav-item" data-papel="admin" onclick="mudarAba('nucleos', event)">Núcleos</a>
+<a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('solicitacoes', event)">Solicitações</a>
+<a href="#" class="nav-item" data-papel="all" onclick="mudarAba('avisos', event)">Avisos</a>
+<a href="#" class="nav-item" data-papel="all" onclick="mudarAba('materiais', event)">Materiais</a>
+<a href="#" class="nav-item" data-papel="formacao" onclick="mudarAba('formacao', event)">Formação</a>
+<a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('financeiro', event)">Financeiro</a>
+<a href="#" class="nav-item" data-papel="admin" onclick="mudarAba('rateio', event)">Despesas</a>
+<a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('presenca', event)">Presenças</a>
+<a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('aniversarios', event)"><i class="fas fa-cake-candles"></i> Aniversários <span class="an-badge" id="anBadge" hidden>0</span></a>
+<a href="#" class="nav-item" data-papel="gestor" onclick="irParaRelatorios(event)">Relatórios</a>
+<a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('indicadores', event)"><i class="fas fa-chart-line"></i> Indicadores</a>
+<a href="#" class="nav-item" data-papel="formacao" onclick="mudarAba('graduacao', event)"><i class="fas fa-ribbon"></i> Graduação</a>
+<a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('eventos', event)"><i class="fas fa-calendar-days"></i> Eventos</a>
+<a href="#" class="nav-item" data-papel="admin-fundador" onclick="mudarAba('auditoria', event)"><i class="fas fa-list-check"></i> Auditoria</a>
+<a href="#" class="nav-item" data-papel="admin" onclick="mudarAba('lgpd', event)"><i class="fas fa-user-shield"></i> LGPD</a>
+<a href="brasoes.html" class="nav-item" data-papel="gestor" title="Gerenciar brasões e conquistas"><i class="fas fa-medal"></i> Brasões</a>
+<a href="carteirinhas.html" class="nav-item" data-papel="gestor" title="Fotos e carteirinhas dos atletas"><i class="fas fa-id-card"></i> Carteirinhas</a>
+<a href="#" class="nav-item nav-item-conta" data-papel="all" onclick="event.preventDefault(); document.getElementById('nav-links').classList.remove('show'); __abrirMinhaConta();"><i class="fas fa-user-gear"></i> Minha conta</a>
+<a href="#" class="nav-item nav-item-conta" data-papel="all" onclick="event.preventDefault(); document.getElementById('nav-links').classList.remove('show'); __abrirAcessibilidade();"><i class="fas fa-universal-access"></i> Acessibilidade</a>
+<a href="#" class="nav-item nav-item-conta" data-papel="all" onclick="event.preventDefault(); document.getElementById('nav-links').classList.remove('show'); __tutorialPainel(true);"><i class="fas fa-circle-question"></i> Tutorial</a>
+</nav>
+
+<div class="user-area">
+<div class="search-bar" id="buscaBarWrap">
+<label for="buscaGeral" class="sr-only" style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0);">Buscar aluno</label>
+<input type="text" id="buscaGeral" placeholder="Buscar aluno...">
+<i class="fas fa-search"></i>
+</div>
+<a href="master.html" class="btn-fundador-link" data-papel="admin-fundador" title="Área exclusiva do Admin Master / Fundador"><i class="fas fa-crown"></i> <span class="btn-fundador-label">Painel do Fundador</span></a>
+<button type="button" class="btn-sino" id="btnSinoPainel" onclick="__abrirNotificacoes()" title="Notificações" aria-label="Notificações"><i class="far fa-bell"></i><span class="sino-cont oculto" id="sinoContPainel">0</span></button>
+<button type="button" class="admin-profile admin-profile-btn" onclick="__abrirMinhaConta()" title="Minha conta: celular, senha e apresentação" aria-label="Minha conta">
+<img src="assets/logo-liberdade150.png" alt="" class="admin-avatar">
+<span id="nomePerfilLogado">—</span>
+<i class="fas fa-gear admin-profile-gear" aria-hidden="true"></i>
+</button>
+<button id="btnLogout" class="btn-logout" title="Sair da Conta" aria-label="Sair da conta">
+<i class="fas fa-sign-out-alt"></i>
+</button>
+</div>
+</header>
+
+<div class="main-layout">
+<main class="content-area">
+
+<section id="aba-alunos" class="aba-content active">
+<div class="section-header">
+<div>
+<span class="eyebrow" id="eyebrowAbaAlunos">Painel de gestão</span>
+<h2 id="tituloAbaAlunos">Alunos</h2>
+</div>
+<span id="estrelaHeaderAlunos" class="estrela-viva oculto"></span>
+</div>
+
+<div id="heroFundador" class="hero-fundador oculto"></div>
+
+<!-- Minha Rede Liberdade e meus brasões: atalhos do responsável (dados reais
+do perfil público; sem dado, mostra só os atalhos). Preenchido por admin.js. -->
+<section id="cardRedeBrasoes" class="card-rede-brasoes oculto" aria-label="Minha Rede e brasões"></section>
+
+<!-- Visão geral: só números reais já carregados nesta sessão (alunos,
+solicitações, avisos, presença). Enquanto um dado não carregou, mostra "—". -->
+<div class="kpi-grid" id="kpisGestao" aria-live="polite"></div>
+
+<div class="secao-titulo"><h3 id="tituloGridAlunos">Alunos</h3></div>
+<div class="alunos-grid" id="gridAlunos" aria-live="polite"></div>
+
+<!-- Árvore de Formação: montada só com os cadastros reais, a partir do
+"direto de" de cada pessoa (formadorUid → instrutorUid → supervisor →
+professor do núcleo onde treina). Clicar numa caixa abre o painel lateral
+e expande a ramificação, que fica aberta até ser recolhida. -->
+<div id="secao-arvore" class="arv-secao" data-papel="gestor" style="margin-top: 40px;">
+<div class="section-header">
+<div>
+<span class="eyebrow">Formação</span>
+<h2><i class="fas fa-sitemap"></i> Árvore de Formação</h2>
+<p class="arv-sub">Quem formou quem — toque em uma caixa para ver os detalhes e abrir a ramificação dessa pessoa.</p>
+</div>
+<div class="arv-acoes-topo">
+<button type="button" id="btnArvoreAbrirTudo" class="btn-mini"><i class="fas fa-maximize"></i> Abrir tudo</button>
+<button type="button" id="btnArvoreRecolher" class="btn-mini"><i class="fas fa-minimize"></i> Recolher</button>
+</div>
+</div>
+<div class="arv-legenda" aria-label="Legenda das cores da árvore">
+<span><i class="arv-leg arv-leg-verde"></i> Pronto para graduar (≥ 70%)</span>
+<span><i class="arv-leg arv-leg-azul"></i> Em preparação</span>
+<span><i class="arv-leg arv-leg-ouro"></i> Fundador</span>
+<span><i class="arv-leg arv-leg-cinza"></i> Sem avaliação registrada</span>
+</div>
+<div class="arv-layout">
+<div class="arv-palco">
+<div id="arvoreFormacaoContainer" class="arv-container" aria-live="polite"></div>
+</div>
+<aside id="arvoreDetalhe" class="arv-detalhe" aria-live="polite">
+<div class="arv-detalhe-vazio">
+<i class="fas fa-hand-pointer"></i>
+<strong>Toque em alguém da árvore</strong>
+<span>Os dados do cadastro, a prontidão para o próximo cordão e os alunos formados por essa pessoa aparecem aqui.</span>
+</div>
+</aside>
+</div>
+</div>
+
+<div id="secao-graficos" class="chart-section" style="margin-top: 50px;">
+<div class="section-header">
+<div>
+<span class="eyebrow">Relatórios</span>
+<h2><i class="fas fa-chart-pie"></i> Inteligência do Núcleo</h2>
+</div>
+<span class="pill pill-neutra" id="relatoriosEscopo">—</span>
+</div>
+
+<!-- Insights em texto: cada frase é calculada dos dados reais carregados
+(alunos, check-ins, notas, mensalidades, matrículas). Sem dado, sem frase. -->
+<div class="insights-grid" id="relatoriosInsights"></div>
+
+<div class="charts-grid-layout">
+<div class="chart-box full-width">
+<div class="chart-titulo"><h3>Frequência semanal</h3><span>check-ins por semana · últimas 8 semanas</span></div>
+<div class="canvas-container"><canvas id="chartFrequenciaSemanal"></canvas></div>
+</div>
+<div class="chart-box">
+<div class="chart-titulo"><h3>Presença por dia da semana</h3><span>em que dias o núcleo mais treina</span></div>
+<div class="canvas-container"><canvas id="chartDiaSemana"></canvas></div>
+</div>
+<div class="chart-box">
+<div class="chart-titulo"><h3>Ranking de presença</h3><span>check-ins neste mês · top 10</span></div>
+<div class="canvas-container"><canvas id="chartRankingPresenca"></canvas></div>
+</div>
+<div class="chart-box full-width">
+<div class="chart-titulo"><h3>Prontidão para graduação</h3><span>% dos critérios avaliados por aluno · meta 70%</span></div>
+<div class="canvas-container canvas-alto"><canvas id="chartProntidao"></canvas></div>
+</div>
+<div class="chart-box">
+<div class="chart-titulo"><h3>Pontos fortes e a desenvolver</h3><span>média das notas (0 a 10) por critério</span></div>
+<div class="canvas-container"><canvas id="chartFundamentos"></canvas></div>
+</div>
+<div class="chart-box">
+<div class="chart-titulo"><h3>Pirâmide de graduação</h3><span>alunos por cordão</span></div>
+<div class="canvas-container"><canvas id="chartPiramide"></canvas></div>
+</div>
+<div class="chart-box">
+<div class="chart-titulo"><h3>Novas matrículas</h3><span>cadastros por mês · últimos 12 meses</span></div>
+<div class="canvas-container"><canvas id="chartMatriculas"></canvas></div>
+</div>
+<div class="chart-box">
+<div class="chart-titulo"><h3>Faixas etárias</h3><span>quantos alunos em cada faixa</span></div>
+<div class="canvas-container"><canvas id="chartIdades"></canvas></div>
+</div>
+<div class="chart-box full-width" data-papel="gestor">
+<div class="chart-titulo"><h3>Mensalidades</h3><span>recebido × em aberto por competência · últimos 6 meses</span></div>
+<div class="canvas-container"><canvas id="chartFinanceiro"></canvas></div>
+</div>
+<div class="chart-box" data-papel="admin">
+<div class="chart-titulo"><h3>Alunos por núcleo</h3><span>ativos em cada academia</span></div>
+<div class="canvas-container"><canvas id="chartAcademias"></canvas></div>
+</div>
+<div class="chart-box">
+<div class="chart-titulo"><h3>Retenção</h3><span>ativos × inativos/pausa</span></div>
+<div class="canvas-container"><canvas id="chartStatus"></canvas></div>
+</div>
+</div>
+</div>
+
+<!-- Relatórios gerais: atletas ativos/inativos, carteirinhas e graduações
+(desfazer graduação: só Admin Master). Montado por js/gestao.js. -->
+<div id="secao-relatorios-gerais" class="chart-section" data-papel="gestor" style="margin-top: 40px;">
+<div class="section-header">
+<div>
+<span class="eyebrow">Relatórios gerais</span>
+<h2><i class="fas fa-table-list"></i> Atletas, carteirinhas e graduações</h2>
+</div>
+<span class="pill pill-neutra" id="rgEscopo">—</span>
+</div>
+<div id="gsRelatorios"></div>
+</div>
+</section>
+
+<section id="aba-nucleos" class="aba-content">
+<div class="section-header"><div><span class="eyebrow">Admin Master</span><h2><i class="fas fa-building"></i> Núcleos e Permissões</h2></div></div>
+<div class="card-padrao" style="margin-bottom: 20px;">
+<h3>Criar Núcleo / Conceder Academia Própria</h3>
+<p style="font-size:0.85rem; color:var(--text-muted); margin:8px 0 15px;">
+Escolha um aluno já cadastrado para virar responsável por este núcleo
+(ele continua sendo avaliado como aluno normalmente), ou cadastre uma pessoa nova.
+</p>
+<form id="formNovoNucleo" style="display: grid; gap: 15px;">
+<input type="text" id="nomeNucleo" placeholder="Nome do Núcleo (Ex: Academia Mestre Profeta)" class="input-padrao" required>
+<input type="number" id="mensalidadeNucleo" placeholder="Valor da mensalidade (R$)" class="input-padrao" min="0" step="0.01">
+            <input type="text" id="enderecoNucleo" placeholder="Endereço completo do núcleo" class="input-padrao">
+            <input type="number" id="latitudeNucleo" placeholder="Latitude (ex: -23.5505)" class="input-padrao" step="0.000001">
+            <input type="number" id="longitudeNucleo" placeholder="Longitude (ex: -46.6333)" class="input-padrao" step="0.000001">
+            <input type="number" id="raioNucleo" placeholder="Raio de check-in (metros)" class="input-padrao" min="5" value="15">
+            <button type="button" class="btn-mini" onclick="usarLocalizacaoAtual('latitudeNucleo','longitudeNucleo')"><i class="fas fa-location-crosshairs"></i> Usar minha localização atual</button>
+<label for="responsavelNucleo" style="font-size:0.85rem; color:var(--text-muted);">Responsável (professor/mestre)</label>
+<select id="responsavelNucleo" class="input-padrao">
+<option value="__novo__">— Cadastrar pessoa nova —</option>
+</select>
+<div id="camposNovoResponsavel" style="display:grid; gap:15px;">
+<input type="text" id="nomeNovoResponsavel" placeholder="Nome completo" class="input-padrao">
+<input type="email" id="emailNovoResponsavel" placeholder="E-mail (login de acesso)" class="input-padrao">
+<input type="password" id="senhaNovoResponsavel" placeholder="Senha inicial (mín. 6 caracteres)" class="input-padrao" minlength="6" value="capoeira2026">
+</div>
+<button type="submit" class="btn-detalhes" style="width: 280px;">Criar Núcleo</button>
+</form>
+</div>
+<div class="secao-titulo"><h3>Núcleos cadastrados</h3></div>
+<div class="academias-grid" id="listaNucleosPainel"></div>
+</section>
+
+<section id="aba-solicitacoes" class="aba-content">
+<div class="section-header"><div><span class="eyebrow">Gestão</span><h2 id="tituloAbaSolicitacoes"><i class="fas fa-clipboard-check"></i> Solicitações</h2></div></div>
+
+<div id="painelSolicitarMestre" data-papel="mestre" class="card-padrao" style="margin-bottom:20px;">
+<h3>Nova Solicitação</h3>
+<div style="display:flex; gap:10px; flex-wrap:wrap; margin:15px 0;">
+<button type="button" class="btn-detalhes btn-soft" onclick="abrirFormSolicitacao('mensalidade')">Alterar Mensalidade</button>
+<button type="button" class="btn-detalhes btn-soft" onclick="abrirFormSolicitacao('evento')">Criar Evento/Batizado</button>
+<button type="button" class="btn-detalhes btn-soft" onclick="abrirFormSolicitacao('transferencia')">Transferir Aluno</button>
+</div>
+
+<form id="formSolicMensalidade" class="form-solicitacao" style="display:none; gap:15px;" data-tipo="mensalidade">
+<input type="number" id="solicMensalidadeValor" placeholder="Novo valor da mensalidade (R$)" class="input-padrao" min="0" step="0.01" required>
+<textarea id="solicMensalidadeJustificativa" placeholder="Justificativa (opcional)" class="input-padrao" rows="2"></textarea>
+<button type="submit" class="btn-salvar-modal">Enviar Solicitação</button>
+</form>
+
+<form id="formSolicEvento" class="form-solicitacao" style="display:none; gap:15px;" data-tipo="evento">
+<input type="text" id="solicEventoNome" placeholder="Nome do evento/batizado" class="input-padrao" required>
+<input type="date" id="solicEventoData" class="input-padrao" required>
+<textarea id="solicEventoDescricao" placeholder="Descrição (opcional)" class="input-padrao" rows="2"></textarea>
+<button type="submit" class="btn-salvar-modal">Enviar Solicitação</button>
+</form>
+
+<form id="formSolicTransferencia" class="form-solicitacao" style="display:none; gap:15px;" data-tipo="transferencia">
+<select id="solicTransferAluno" class="input-padrao" required>
+<option value="">Selecione o aluno...</option>
+</select>
+<select id="solicTransferDestino" class="input-padrao" required>
+<option value="">Núcleo de destino...</option>
+</select>
+<textarea id="solicTransferMotivo" placeholder="Motivo (opcional)" class="input-padrao" rows="2"></textarea>
+<button type="submit" class="btn-salvar-modal">Enviar Solicitação</button>
+</form>
+</div>
+
+<div class="secao-titulo" data-papel="mestre"><h3>Minhas solicitações</h3></div>
+<div class="lista-simples" id="listaMinhasSolic" data-papel="mestre"></div>
+
+<div class="secao-titulo" data-papel="mestre"><h3><i class="fas fa-user-group"></i> Vínculos de parentesco pendentes</h3></div>
+<p data-papel="mestre" style="font-size:0.85rem; color:var(--text-muted); margin:-4px 0 12px;">Pedidos dos seus próprios alunos para linkar o perfil de outro aluno (ex.: mãe e filho) — você aprova direto, sem precisar do admin.</p>
+<div class="lista-simples" id="listaSolicFamiliaPendentes" data-papel="mestre"></div>
+
+<div class="secao-titulo" data-papel="mestre"><h3><i class="fas fa-right-left"></i> Transferências aguardando seu aceite</h3></div>
+<p data-papel="mestre" style="font-size:0.85rem; color:var(--text-muted); margin:-4px 0 12px;">Alunos que o admin ou outro professor pediu para transferir para o seu núcleo — o aluno só muda de academia depois que você aceita aqui.</p>
+<div class="lista-simples" id="listaTransferPendentes" data-papel="mestre"></div>
+
+<div class="secao-titulo" data-papel="admin"><h3>Solicitações pendentes</h3></div>
+<div class="lista-simples" id="listaSolicPendentes" data-papel="admin"></div>
+
+<div class="secao-titulo" data-papel="admin"><h3>Histórico</h3></div>
+<div class="lista-simples" id="listaSolicHistorico" data-papel="admin"></div>
+</section>
+
+<section id="aba-avisos" class="aba-content">
+<div class="section-header"><div><span class="eyebrow">Comunicação</span><h2><i class="fas fa-bell"></i> Avisos</h2></div></div>
+<!-- Publicar aviso: só Admin Master e Fundador. Mestres, professores e instrutores só visualizam os avisos ativos. -->
+<div class="card-padrao" data-papel="admin-fundador" style="margin-bottom:20px;">
+<h3>Publicar Aviso</h3>
+<form id="formNovoAviso" style="display:grid; gap:15px; margin-top:15px;">
+<input type="text" id="avisoTitulo" placeholder="Título do aviso" class="input-padrao" required>
+<textarea id="avisoTexto" placeholder="Mensagem" class="input-padrao" rows="3" required></textarea>
+<select id="avisoTipo" class="input-padrao">
+<option value="geral">Geral</option>
+<option value="financeiro">Financeiro</option>
+<option value="evento">Evento</option>
+</select>
+<select id="avisoAcademia" class="input-padrao" data-papel="admin-fundador">
+<option value="">Todos os núcleos</option>
+</select>
+<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+<label style="display:flex; flex-direction:column; gap:4px; font-size:0.78rem; color:var(--text-muted);">Data (opcional)
+<input type="date" id="avisoData" class="input-padrao">
+</label>
+<label style="display:flex; flex-direction:column; gap:4px; font-size:0.78rem; color:var(--text-muted);">Hora (opcional)
+<input type="time" id="avisoHora" class="input-padrao">
+</label>
+<label style="display:flex; flex-direction:column; gap:4px; font-size:0.78rem; color:var(--text-muted);">Local (opcional)
+<input type="text" id="avisoLocal" placeholder="Ex: Academia Mestre Profeta" class="input-padrao">
+</label>
+</div>
+<p style="font-size:0.78rem; color:var(--text-muted); margin:0;">Preenchendo a data, o aviso some sozinho da lista assim que o dia passar — deixe em branco para um aviso sem prazo.</p>
+<button type="submit" class="btn-detalhes" style="width:220px;">Publicar</button>
+</form>
+</div>
+<div class="secao-titulo"><h3>Avisos ativos</h3></div>
+<div class="lista-simples" id="listaAvisos"></div>
+</section>
+
+<section id="aba-materiais" class="aba-content">
+<div class="section-header"><div><span class="eyebrow">Estudo</span><h2><i class="fas fa-folder-open"></i> Materiais</h2></div></div>
+<div class="card-padrao" data-papel="admin" style="margin-bottom:20px;">
+<h3>Publicar Material</h3>
+<p style="font-size:0.85rem; color:var(--text-muted); margin:8px 0 15px;">Visível a todos os cadastrados — vídeos, apostilas, documentos, links úteis.</p>
+<form id="formNovoMaterial" style="display:grid; gap:15px;">
+<input type="text" id="materialTitulo" placeholder="Título" class="input-padrao" required>
+<textarea id="materialDescricao" placeholder="Descrição (opcional)" class="input-padrao" rows="2"></textarea>
+<input type="url" id="materialUrl" placeholder="Link do material (vídeo, PDF, imagem...)" class="input-padrao" required>
+<select id="materialTipo" class="input-padrao">
+<option value="Videoaula">Videoaula</option>
+<option value="Oficina de canto">Oficina de canto</option>
+<option value="Oficina de música">Oficina de música</option>
+<option value="Biblioteca">Biblioteca</option>
+<option value="Avaliação">Avaliação</option>
+</select>
+<button type="submit" class="btn-detalhes" style="width:220px;">Publicar</button>
+</form>
+</div>
+<div class="secao-titulo"><h3>Materiais publicados</h3></div>
+<div class="lista-simples" id="listaMateriais"></div>
+</section>
+
+<section id="aba-formacao" class="aba-content">
+<div class="section-header"><div><span class="eyebrow">Formadores</span><h2><i class="fas fa-graduation-cap"></i> Formação</h2></div></div>
+<div class="card-padrao" data-papel="admin" style="margin-bottom:20px;">
+<h3>Publicar Conteúdo de Formação</h3>
+<p style="font-size:0.85rem; color:var(--text-muted); margin:8px 0 15px;">Vídeos, conduta, ética e preparação de graduação — visível a instrutores, mestres/professores e ao Admin.</p>
+<form id="formNovaFormacao" style="display:grid; gap:15px;">
+<input type="text" id="formacaoTitulo" placeholder="Título" class="input-padrao" required>
+<select id="formacaoCategoria" class="input-padrao">
+<option value="video">Vídeo</option>
+<option value="conduta">Conduta</option>
+<option value="etica">Ética</option>
+<option value="graduacao">Preparação de Graduação</option>
+</select>
+<input type="url" id="formacaoUrl" placeholder="Link do conteúdo" class="input-padrao" required>
+<textarea id="formacaoDescricao" placeholder="Descrição (opcional)" class="input-padrao" rows="2"></textarea>
+<button type="submit" class="btn-detalhes" style="width:260px;">Publicar</button>
+</form>
+</div>
+<div class="secao-titulo"><h3>Conteúdo de formação</h3></div>
+<div class="lista-simples" id="listaFormacao"></div>
+</section>
+
+<section id="aba-financeiro" class="aba-content">
+<div class="section-header"><div><span class="eyebrow">Mensalidades</span><h2><i class="fas fa-sack-dollar"></i> Financeiro</h2></div></div>
+<div id="financeiroBloqueado" class="card-padrao" style="text-align:center; padding:40px 20px;">
+<i class="fas fa-lock" style="font-size:2rem; color:var(--text-muted); margin-bottom:12px; display:block;"></i>
+<h3 style="color:var(--text-muted);">Disponível quando você tiver uma academia própria</h3>
+<p style="font-size:0.85rem; color:var(--text-muted); margin-top:8px; max-width:480px; margin-left:auto; margin-right:auto;">Peça ao Admin Master para vincular você como responsável de um núcleo — assim que estiver vinculado, o financeiro do seu núcleo aparece aqui automaticamente.</p>
+</div>
+<div id="financeiroConteudo" class="oculto">
+<div class="card-padrao" style="margin-bottom:20px;">
+<div class="lanc-topo">
+<h3 id="tituloLancamento">Lançar mensalidade</h3>
+<div class="lanc-seg" role="tablist" aria-label="Tipo de lançamento">
+<button type="button" class="lanc-seg-btn on" role="tab" aria-selected="true" data-tipo-lanc="mensalidade"><i class="fas fa-calendar-check"></i> Lançar mensalidade</button>
+<button type="button" class="lanc-seg-btn" role="tab" aria-selected="false" data-tipo-lanc="adicional"><i class="fas fa-plus-circle"></i> Lançar valores adicionais</button>
+</div>
+</div>
+<form id="formNovoPagamento" class="form-lancamento">
+<label class="lanc-campo lanc-aluno"><span>Aluno</span><select id="pagamentoAluno" class="input-padrao" required><option value="">Carregando alunos…</option></select></label>
+<label class="lanc-campo lanc-desc oculto"><span>Descrição</span><input type="text" id="pagamentoDescricao" class="input-padrao" maxlength="60" placeholder="ex.: Abadá, Batizado, Evento"></label>
+<label class="lanc-campo"><span id="rotuloCompetencia">Mês de referência</span><input type="month" id="pagamentoCompetencia" class="input-padrao" required></label>
+<label class="lanc-campo"><span>Valor (R$)</span><input type="number" id="pagamentoValor" placeholder="0,00" class="input-padrao" min="0" step="0.01" required></label>
+<button type="submit" class="btn-detalhes lanc-enviar" id="btnLancar"><i class="fas fa-check"></i> Lançar mensalidade</button>
+</form>
+<p class="lanc-ajuda" id="ajudaLancamento">O valor já vem com a mensalidade do núcleo — ajuste se precisar.</p>
+</div>
+<div class="financeiro-resumo" style="margin-bottom:20px;">
+<div><span>Recebido no mês</span><strong id="finTotalPago" style="color:#00B140;">R$ 0,00</strong></div>
+<div><span>Pendente</span><strong id="finTotalPendente" style="color:#E74C3C;">R$ 0,00</strong></div>
+<div><span>Alunos em dia</span><strong id="finAlunosDia" style="color:var(--primary-blue);">0</strong></div>
+</div>
+<div class="lista-simples" id="listaPagamentos"></div>
+<div class="card-padrao" style="margin-top:10px; opacity:0.65;">
+<h3><i class="fas fa-clock"></i> Em breve (API de pagamento)</h3>
+<p style="font-size:0.85rem; color:var(--text-muted); margin-top:8px;">Solicitar cobrança automática, aprovação de pagamento via API e redefinição de senha automática chegam junto com a integração de pagamentos.</p>
+<div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+<button class="btn-detalhes" disabled style="opacity:0.5; cursor:not-allowed;">Solicitar Cobrança (API)</button>
+<button class="btn-detalhes" disabled style="opacity:0.5; cursor:not-allowed;">Aprovar via API</button>
+</div>
+</div>
+</div>
+</section>
+
+<section id="aba-presenca" class="aba-content">
+<div class="section-header"><div><span class="eyebrow">Check-in do núcleo</span><h2><i class="fas fa-map-marker-alt"></i> Presenças</h2></div></div>
+<select id="filtroAcademiaPresenca" class="input-padrao" style="max-width:320px;margin-bottom:14px;"></select>
+
+<!-- Check-in por Face ID (reconhecimento facial no tablet do professor).
+O reconhecimento roda 100% no navegador (face-api / TensorFlow.js): a
+câmera compara o rosto na frente do tablet com a foto de perfil de cada
+aluno do núcleo e registra a presença em presencas/{id} com origem
+'faceid'. Nenhuma imagem da câmera é enviada ou gravada — só o vetor de
+128 números (descritor) da foto de perfil fica salvo no cadastro do aluno,
+pra não recalcular a cada aula. -->
+<div class="card-padrao faceid-card" id="faceidCard">
+<div class="faceid-topo">
+<div>
+<span class="eyebrow">Reconhecimento facial</span>
+<h3><i class="fas fa-face-viewfinder"></i> Check-in por Face ID</h3>
+<p id="faceidSubtitulo">Aponte a câmera do tablet para o aluno: o app reconhece pela foto de perfil e marca a presença sozinho.</p>
+</div>
+<div class="faceid-acoes">
+<button type="button" class="btn-detalhes" id="btnFaceidIniciar"><i class="fas fa-video"></i> Iniciar câmera</button>
+<button type="button" class="btn-detalhes btn-soft oculto" id="btnFaceidParar"><i class="fas fa-stop"></i> Parar</button>
+<button type="button" class="btn-mini oculto" id="btnFaceidVirar" title="Trocar câmera frontal/traseira"><i class="fas fa-camera-rotate"></i></button>
+</div>
+</div>
+<div class="faceid-corpo">
+<div class="faceid-palco" id="faceidPalco">
+<video id="faceidVideo" autoplay muted playsinline></video>
+<canvas id="faceidCanvas"></canvas>
+<div class="faceid-status" id="faceidStatus"><i class="fas fa-face-smile"></i> Câmera desligada</div>
+<div class="faceid-match oculto" id="faceidMatch"></div>
+</div>
+<div class="faceid-lateral">
+<div class="faceid-enrol" id="faceidEnrol"><span class="kpi-valor mono">—</span><span class="kpi-rotulo">alunos com rosto cadastrado</span></div>
+<div class="secao-titulo" style="margin:14px 0 8px;"><h3 style="font-size:.92rem;">Reconhecidos nesta sessão</h3></div>
+<div class="faceid-lista" id="faceidLista"><p class="cascata-vazio">Ninguém reconhecido ainda.</p></div>
+<div class="faceid-manual">
+<label for="faceidManualAluno">Não reconheceu? Marque manualmente</label>
+<div style="display:flex; gap:8px;">
+<select id="faceidManualAluno" class="input-padrao"><option value="">Selecione o aluno...</option></select>
+<button type="button" class="btn-mini btn-mini-aprovar" id="btnFaceidManual">Marcar</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="secao-titulo"><h3>Resumo do núcleo</h3></div>
+<div class="card-padrao" id="presencaResumoCard"><p>Carregando...</p></div>
+<div class="lista-simples" id="listaPresencas"></div>
+</section>
+
+<section id="aba-aniversarios" class="aba-content">
+<div class="section-header"><div><span class="eyebrow">Calendário do grupo</span><h2><i class="fas fa-cake-candles"></i> Aniversários</h2></div></div>
+<div id="anConteudo"></div>
+</section>
+
+<section id="aba-indicadores" class="aba-content">
+<div class="section-header"><div><span class="eyebrow">Gestão do núcleo</span><h2><i class="fas fa-chart-line"></i> Indicadores</h2></div></div>
+<div id="gsIndicadores"></div>
+</section>
+<section id="aba-graduacao" class="aba-content">
+<div class="section-header"><div><span class="eyebrow">Batizado e troca de cordão</span><h2><i class="fas fa-ribbon"></i> Graduação</h2></div></div>
+<div id="gsGraduacao"></div>
+</section>
+<section id="aba-eventos" class="aba-content">
+<div class="section-header"><div><span class="eyebrow">Agenda do grupo</span><h2><i class="fas fa-calendar-days"></i> Eventos e inscrições</h2></div></div>
+<div id="gsEventos"></div>
+</section>
+<section id="aba-auditoria" class="aba-content">
+<div class="section-header"><div><span class="eyebrow">Admin Master · Fundador</span><h2><i class="fas fa-list-check"></i> Auditoria</h2></div></div>
+<div id="gsAuditoria"></div>
+</section>
+<section id="aba-lgpd" class="aba-content">
+<div class="section-header"><div><span class="eyebrow">Admin Master</span><h2><i class="fas fa-user-shield"></i> LGPD e servidor</h2></div></div>
+<div id="gsLGPD"></div>
+</section>
+<section id="aba-rateio" class="aba-content">
+<div class="section-header"><div><span class="eyebrow">Admin Master</span><h2><i class="fas fa-scale-balanced"></i> Despesas &amp; Rateio</h2></div></div>
+<div class="card-padrao" style="margin-bottom:20px;">
+<h3>Lançar Despesa</h3>
+<p style="font-size:0.85rem; color:var(--text-muted); margin:8px 0 15px;">O valor é dividido automaticamente entre os responsáveis de núcleo, proporcional à capacidade financeira de cada um (alunos ativos × mensalidade) — quem tem mais estrutura paga uma fatia maior.</p>
+<form id="formNovaDespesa" style="display:grid; gap:15px;">
+<input type="text" id="despesaTitulo" placeholder="Descrição da despesa (ex: Marketing setembro)" class="input-padrao" required>
+<select id="despesaCategoria" class="input-padrao">
+<option value="marketing">Marketing</option>
+<option value="juridico">Jurídico</option>
+<option value="administrativo">Administrativo</option>
+<option value="outro">Outro</option>
+</select>
+<input type="number" id="despesaValor" placeholder="Valor total (R$)" class="input-padrao" min="0" step="0.01" required>
+<button type="submit" class="btn-detalhes" style="width:220px;">Lançar e Ratear</button>
+</form>
+</div>
+<div class="secao-titulo"><h3>Rateios lançados</h3></div>
+<div class="lista-simples" id="listaRateios"></div>
+</section>
+</main>
+
+<aside class="sidebar" data-papel="admin">
+<div class="widget">
+<h3>Filtros Avançados</h3>
+<p style="font-size: 0.8rem; color: #666; margin-bottom: 10px;">Ao filtrar, os gráficos e o financeiro mostrarão apenas os dados do núcleo selecionado.</p>
+<label for="filtroAcademia" style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0);">Filtrar por núcleo</label>
+<select class="input-padrao" id="filtroAcademia" style="margin-bottom: 10px;">
+<option value="">Todos os Núcleos</option>
+</select>
+</div>
+</aside>
+</div>
+
+<!-- MODAL AVALIAÇÃO E EDIÇÃO DO ALUNO -->
+<div class="modal-overlay" id="modalAvaliacao" role="dialog" aria-modal="true" aria-labelledby="modNomeTitulo">
+<div class="modal-content modal-large">
+<button class="close-modal" onclick="fecharModal()" aria-label="Fechar"><i class="fas fa-times"></i></button>
+<div class="modal-header-centered">
+<img src="" id="modFoto" class="mod-foto-large" alt="">
+<h2 id="modNomeTitulo">EDITAR ALUNO</h2>
+<p><i class="fas fa-map-marker-alt"></i> <span id="modAcademia">Núcleo</span></p>
+</div>
+<div class="cordao-container" id="cordaoContainerWrap">
+<div class="cordao-header"><span id="textoEvolucao">Progresso</span><span id="porcentagemEvolucao">0%</span></div>
+<div class="cordao-track"><div class="cordao-fill" id="cordaoTrancado"></div></div>
+</div>
+<div class="modal-body-split">
+<div class="mod-left">
+<div class="form-group-mod" style="margin-bottom: 12px;">
+<label for="modNomeInput">Nome do Aluno:</label>
+<input type="text" id="modNomeInput" class="input-padrao">
+</div>
+<div class="form-group-mod" style="margin-bottom: 12px;">
+<label for="modIdadeInput">Idade:</label>
+<input type="number" id="modIdadeInput" class="input-padrao" min="0" max="120">
+</div>
+<div class="form-group-mod" style="margin-bottom: 12px;">
+<label for="modCelularInput">Celular / WhatsApp:</label>
+<input type="tel" id="modCelularInput" class="input-padrao" inputmode="tel" autocomplete="off" placeholder="(67) 99129-3269">
+</div>
+<div class="form-group-mod" style="margin-bottom: 12px;">
+<label for="modFotoInput">URL da Foto:</label>
+<input type="text" id="modFotoInput" class="input-padrao">
+<div style="display:flex; gap:8px; margin-top:8px;">
+<button type="button" class="btn-cam-mini" id="btnModGaleria"><i class="fas fa-images"></i> Enviar da Galeria</button>
+<input type="file" id="modInputGaleria" accept="image/*" style="display:none;">
+<span id="modFotoStatus" style="font-size:0.75rem; color:var(--text-muted); align-self:center;"></span>
+</div>
+</div>
+<div class="form-group-mod" style="margin-bottom: 12px;">
+<label for="modStatus">Status:</label>
+<select id="modStatus" class="input-padrao mod-input">
+<option value="Ativo">Ativo</option><option value="Inativo">Inativo</option><option value="Pausa">Pausa</option><option value="Lesionado">Lesionado</option>
+</select>
+</div>
+<div class="form-group-mod" style="margin-bottom: 12px;" id="wrapModCordao">
+<label for="modCordao">Graduação Atual:</label>
+<select id="modCordao" class="input-padrao mod-input"></select>
+<!-- Atleta que já era graduado antes do app: certificados sem data, sem festa. -->
+<label class="mod-checkbox-linha mod-legado" id="wrapModLegado" hidden>
+<input type="checkbox" id="modCordaoLegado"> <span>O aluno já tinha este cordão antes do app <small>(certificados sem data, sem festa "Troquei de cordão")</small></span>
+</label>
+</div>
+
+<div class="mod-secao-papeis" data-papel="admin">
+<h4><i class="fas fa-user-shield"></i> Papéis especiais (Admin)</h4>
+<label class="mod-checkbox-linha">
+<input type="checkbox" id="modPapelInstrutor"> Papel: Instrutor
+</label>
+<div class="form-group-mod" id="wrapSupervisorInstrutor" style="margin-top:8px;">
+<label for="modSupervisorInstrutor">Mestre responsável (financeiro/supervisão):</label>
+<select id="modSupervisorInstrutor" class="input-padrao"></select>
+</div>
+<label class="mod-checkbox-linha mod-checkbox-fundador">
+<input type="checkbox" id="modAcessoGeral"> Acesso geral (exclusivo do fundador — Mestre Profeta)
+</label>
+</div>
+
+<div class="form-group-mod" style="margin-bottom: 12px;" data-papel="gestor" id="wrapInstrutorDoAluno">
+<label for="modInstrutorDoAluno">Instrutor responsável por este aluno:</label>
+<select id="modInstrutorDoAluno" class="input-padrao"><option value="">Nenhum</option></select>
+</div>
+
+<div class="mod-apresentacao oculto" id="wrapApresentacaoModal">
+<div class="mod-apr-info"><i class="fas fa-film"></i><span><strong>Apresentação em vídeo</strong><small id="modAprInfo">—</small></span></div>
+<button type="button" class="btn-mini" onclick="__gerenciarApresentacaoModal()"><i class="fas fa-sliders"></i> Configurar</button>
+</div>
+
+<button type="button" class="btn-cam-mini btn-senha-modal oculto" id="btnMinhaSenhaModal" onclick="__trocarMinhaSenha()"><i class="fas fa-key"></i> Trocar minha senha</button>
+<button class="btn-excluir-aluno" id="btnExcluirModal" data-papel="admin" onclick="alternarStatusAlunoBtn()"><i class="fas fa-user-slash"></i> Desativar Aluno</button>
+<button class="btn-excluir-aluno" id="btnResetSenhaModal" data-papel="gestor" onclick="resetarSenhaAluno()" style="margin-top:8px;"><i class="fas fa-key"></i> Enviar link para trocar a senha</button>
+<button class="btn-excluir-aluno btn-excluir-permanente" id="btnExcluirPermanenteModal" data-papel="admin" onclick="excluirAlunoPermanentemente()" style="margin-top:8px;"><i class="fas fa-trash-alt"></i> Excluir permanentemente</button>
+</div>
+<div class="mod-right">
+<h3 class="mod-title-right" id="tituloCriteriosModal">Critérios de Evolução (0 a 10)</h3>
+<div class="criterios-grid" id="gridCriterios"></div>
+<div id="wrapCriteriosFormador" style="display:none; margin-top:18px;">
+<h3 class="mod-title-right"><i class="fas fa-chalkboard-teacher"></i> Avaliação de Formador (0 a 10)</h3>
+<div class="criterios-grid" id="gridCriteriosFormador"></div>
+</div>
+</div>
+</div>
+<div class="modal-footer-centered" style="margin-top: 20px;">
+<button class="btn-salvar-modal" id="btnSalvarModal" onclick="salvarEdicaoAluno()"><i class="fas fa-save"></i> Atualizar Prontuário</button>
+</div>
+</div>
+</div>
+
+<!-- MODAL EDITAR NÚCLEO -->
+<div class="modal-overlay" id="modalEditarNucleo" role="dialog" aria-modal="true">
+<div class="modal-content" style="max-width: 500px;">
+<button class="close-modal" onclick="fecharModalNucleo()" aria-label="Fechar"><i class="fas fa-times"></i></button>
+<span class="eyebrow">Núcleo</span>
+<h2 style="margin-bottom: 20px;">Editar núcleo</h2>
+<form id="formEditNucleo" style="display: grid; gap: 15px;">
+<div><label for="editNomeNucleo">Nome do Núcleo</label><input type="text" id="editNomeNucleo" class="input-padrao" required></div>
+<div><label for="editMensalidadeNucleo">Mensalidade (R$)</label><input type="number" id="editMensalidadeNucleo" class="input-padrao" min="0" step="0.01"></div>
+            <div><label for="editEnderecoNucleo">Endereço completo do núcleo</label><input type="text" id="editEnderecoNucleo" class="input-padrao"></div>
+            <div><label for="editLatitudeNucleo">Latitude</label><input type="number" id="editLatitudeNucleo" class="input-padrao" step="0.000001"></div>
+            <div><label for="editLongitudeNucleo">Longitude</label><input type="number" id="editLongitudeNucleo" class="input-padrao" step="0.000001"></div>
+            <div><label for="editRaioNucleo">Raio de check-in (metros)</label><input type="number" id="editRaioNucleo" class="input-padrao" min="5"></div>
+            <button type="button" class="btn-mini" onclick="usarLocalizacaoAtual('editLatitudeNucleo','editLongitudeNucleo')"><i class="fas fa-location-crosshairs"></i> Usar minha localização atual</button>
+<div>
+<label for="editResponsavelNucleo">Responsável (mestre / professor / instrutor)</label>
+<select id="editResponsavelNucleo" class="input-padrao"></select>
+<p style="font-size:0.8rem; color:var(--text-muted); margin-top:6px;">Vincula essa pessoa a este núcleo e libera o painel completo de gestão dela (alunos, avaliação, financeiro, relatórios) — mesmo princípio de "Papéis especiais".</p>
+</div>
+<div>
+<label for="editAtivoNucleo">Status</label>
+<select id="editAtivoNucleo" class="input-padrao">
+<option value="true">Ativo (aparece na inscrição)</option>
+<option value="false">Inativo</option>
+</select>
+</div>
+<button type="submit" class="btn-salvar-modal" style="width: 100%; margin-top: 10px;"><i class="fas fa-save"></i> Salvar Alterações</button>
+</form>
+</div>
+</div>
+</div>
+
+<script type="module" src="js/admin.js?v=20261001c"></script>
+</body>
+</html>
