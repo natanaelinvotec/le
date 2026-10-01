@@ -37,7 +37,7 @@ import { iniciarExperiencia, abrirAcessibilidade, instalar, estaInstalado, tutor
 import { ligarContador, listar as listarNotificacoes, marcarTodasLidas, itemHTML as notificacaoHTML, CSS_NOTIF, ativarPush, desativarPush, estadoPush, ouvirPushComAppAberto } from './notificacoes.js';
 import { pedirExclusaoDaConta } from './lgpd.js';
 import { apresentacaoDe, tocarApresentacao, gerenciarApresentacao, abrirTrocaSenha, definirAutor, podeTerApresentacao } from './conta.js?v=20261001';
-import { BRASOES, SERIES, avaliar as avaliarBrasoes, consolidar as consolidarBrasoes, resumirPresencas, urlThumb, urlPng, urlGlb, textoMetrica, porId as brasaoPorId } from './brasoes.js?v=20260927b';
+import { BRASOES, SERIES, avaliar as avaliarBrasoes, consolidar as consolidarBrasoes, resumirPresencas, urlThumb, urlPng, urlGlb, textoMetrica, porId as brasaoPorId } from './brasoes.js?v=20261001b';
 
 /* ===================== CONSTANTES ===================== */
 // Cordões, cores e critérios ficam em escola.js (white-label).
@@ -784,7 +784,14 @@ return `<div class="grade">${lista.map((p, i) => { const m = midiasDe(p)[0]; ret
 function dadosBrasoesDe(pub) {
 const manuais = {}; const doAdmin = {};
 Object.entries(pub.brasoes || {}).forEach(([id, v]) => { if (v && v.manual) (v.admin ? doAdmin : manuais)[id] = { em: v.em, porNome: v.por || null }; });
-return { cordaoAtual: pub.cordaoAtual, fundador: !!pub.fundador, historicoGraduacoes: pub.historicoGraduacoes || [], criadoEm: pub.criadoEm, resumoPresencas: pub.resumoPresencas || null, resumoRede: pub.resumoRede || null, resumoFormacao: pub.resumoFormacao || null, academiaId: pub.academiaId, academiaGerenciadaId: pub.academiaGerenciadaId, uid: pub.id, brasoesManuais: manuais, brasoesAdmin: doAdmin, brasoes: pub.brasoes || {} };
+return {
+cordaoAtual: pub.cordaoAtual, fundador: !!pub.fundador, historicoGraduacoes: pub.historicoGraduacoes || [], criadoEm: pub.criadoEm,
+resumoPresencas: pub.resumoPresencas || null, resumoRede: pub.resumoRede || null, resumoFormacao: pub.resumoFormacao || null, resumoCompromisso: pub.resumoCompromisso || null,
+academiaId: pub.academiaId, academiaGerenciadaId: pub.academiaGerenciadaId, uid: pub.id, brasoesManuais: manuais, brasoesAdmin: doAdmin, brasoes: pub.brasoes || {},
+// Brasões 46–71: tudo o que o cartão público já mostra sobre a pessoa (certificados, seguidores, capa/bio, vídeo e assinatura).
+certificados: Array.isArray(pub.certificados) ? pub.certificados : [], seguidoresTotal: Array.isArray(pub.seguidores) ? pub.seguidores.length : 0,
+fotoUrl: pub.fotoUrl || '', capaUrl: pub.capaUrl || '', bio: pub.bio || '', temApresentacao: pub.temApresentacao === true, temAssinatura: pub.temAssinatura === true,
+};
 }
 function avaliacaoDe(pub) { return avaliarBrasoes(dadosBrasoesDe(pub), configBrasoes).filter((a) => a.ativo); }
 function brasaoCardHTML(a, tam = '') {

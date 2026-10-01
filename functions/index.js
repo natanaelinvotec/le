@@ -63,6 +63,11 @@ export const fotoCarteirinhaEscrita = onDocumentWrittenWithAuthContext('fotosCar
 // Pai, mãe, irmãos e avós do atleta: o servidor gera/remove o código de cada um.
 export const beneficiariosEscritos = onDocumentWrittenWithAuthContext('beneficiarios/{uid}', seguro('beneficiarios', (e) => sincronizarCarteirinha(ctxBase(), e.params.uid)));
 export const configEscrita = onDocumentWrittenWithAuthContext('config/{id}', seguro('config', (e) => G.aoEscreverConfig(ctxBase(), ev(e))));
+// Brasões 46–71: "Eu vou", card compartilhado, apresentação e assinatura.
+export const confirmadoEscrito = onDocumentWrittenWithAuthContext('eventos/{id}/confirmados/{uid}', seguro('confirmado', (e) => G.aoEscreverConfirmado(ctxBase(), ev(e))));
+export const notificacaoEscrita = onDocumentWrittenWithAuthContext('notificacoes/{uid}/itens/{id}', seguro('notificacao', (e) => G.aoEscreverNotificacao(ctxBase(), ev(e))));
+export const apresentacaoEscrita = onDocumentWrittenWithAuthContext('apresentacoes/{uid}', seguro('apresentacao', (e) => G.aoEscreverApresentacaoOuAssinatura(ctxBase(), ev(e))));
+export const assinaturaEscrita = onDocumentWrittenWithAuthContext('assinaturas/{uid}', seguro('assinatura', (e) => G.aoEscreverApresentacaoOuAssinatura(ctxBase(), ev(e))));
 
 // Todo dia às 3h (horário de Campo Grande): limpeza + brasões que dependem do tempo.
 export const rotinaDaMadrugada = onSchedule({ schedule: 'every day 03:00', timeZone: 'America/Campo_Grande', timeoutSeconds: 540, memory: '512MiB' }, async () => {

@@ -7,8 +7,10 @@
 //   usuarios/{uid}  → nome, foto, cordão, graduações, núcleo, papéis, concessões
 //   presencas       → resumoPresencas (Face ID / painel)
 //   posts           → resumoRede (publicações, melhores momentos, curtidas)
-//   usuarios do núcleo que administra → resumoFormacao (alunos que graduou)
-import { avaliar, consolidar, resumirPresencas, porId } from './compartilhado/brasoes.js';
+//   usuarios do núcleo que administra → resumoFormacao (alunos que graduou, núcleo completo)
+//   pagamentos      → resumoCompromisso (meses seguidos de mensalidade paga)
+//   certificados, carteirinha, seguidores, apresentação e assinatura → brasões 46–71
+import { avaliar, consolidar, resumirPresencas, porId, carteirinhaEmDia, beneficiariosDe } from './compartilhado/brasoes.js';
 import { prontidao } from './compartilhado/escola.js';
 import { notificar } from './notificar.js';
 
@@ -17,6 +19,7 @@ import { notificar } from './notificar.js';
 export const CAMPOS_DO_CARTAO = [
   'nome', 'fotoUrl', 'cordaoAtual', 'idade', 'academiaId', 'academiaNome', 'academiaGerenciadaId', 'papeis',
   'acessoGeral', 'usoImagem', 'historicoGraduacoes', 'notas', 'criadoEm', 'brasoesManuais', 'brasoesAdmin', 'brasoesBloqueados', 'ativo',
+  'carteirinha', 'dataNasc', 'isentoMensalidade', 'eventosConfirmados', 'cardsCompartilhados', // brasões 46–71
   'sincronizarEm', // o app pede um recálculo completo quando o cartão está velho
 ];
 
@@ -49,9 +52,34 @@ export async function carregarConfigBrasoes(ctx) {
   return cfg;
 }
 
-export async function calcularResumoPresencas(ctx, uid) {
+export async function calcularResumoPresencas(ctx, uid, dataNasc = null) {
   const snap = await ctx.db.collection('presencas').where('uid', '==', uid).limit(400).get();
-  return resumirPresencas(snap.docs.map((d) => d.data()));
+  return resumirPresencas(snap.docs.map((d) => d.data()), dataNasc);
+}
+
+// Meses SEGUIDOS com mensalidade paga, contando para trás a partir do mês atual
+// (ou do anterior, se o atual ainda não foi pago). Bolsista (isentoMensalidade):
+// conta os meses desde a entrada no grupo. Núcleo que não lança mensalidade no
+// app: 0 (o brasão fica bloqueado, sem "chutar").
+export function mesesSeguidosPagos(pagamentos, { isento = false, criadoEm = null, hoje = new Date() } = {}) {
+  const chave = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  const voltar = (d) => new Date(d.getFullYear(), d.getMonth() - 1, 1);
+  if (isento) {
+    if (!criadoEm) return 0;
+    const c = new Date(criadoEm); if (isNaN(c)) return 0;
+    return Math.max(0, (hoje.getFullYear() - c.getFullYear()) * 12 + hoje.getMonth() - c.getMonth());
+  }
+  const pagos = new Set((pagamentos || []).filter((p) => p && p.pago === true && (p.tipo || 'mensalidade') !== 'adicional' && /^\d{4}-\d{2}$/.test(String(p.competencia || ''))).map((p) => p.competencia));
+  if (!pagos.size) return 0;
+  let d = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  if (!pagos.has(chave(d))) d = voltar(d); // o mês atual pode ainda não ter vencido
+  let n = 0;
+  while (pagos.has(chave(d)) && n < 240) { n++; d = voltar(d); }
+  return n;
+}
+export async function calcularResumoCompromisso(ctx, uid, u) {
+  const snap = await ctx.db.collection('pagamentos').where('alunoId', '==', uid).limit(400).get();
+  return { mesesSeguidos: mesesSeguidosPagos(snap.docs.map((d) => d.data()), { isento: u.isentoMensalidade === true, criadoEm: u.criadoEm || null }), calculadoEm: new Date().toISOString() };
 }
 
 export async function calcularResumoRede(ctx, uid) {
@@ -69,7 +97,11 @@ export async function calcularResumoFormacao(ctx, uid, academiaGerenciadaId) {
   if (!academiaGerenciadaId) return null;
   const snap = await ctx.db.collection('usuarios').where('academiaId', '==', academiaGerenciadaId).limit(400).get();
   const formados = snap.docs.filter((d) => d.id !== uid && (d.data().historicoGraduacoes || []).some((h) => h && h.por === uid && !h.legado)).length; // "já tinha" (antes do app) não conta como formado
-  return { formados, calculadoEm: new Date().toISOString() };
+  // Núcleo completo: todo atleta ATIVO do núcleo com foto de carteirinha aprovada e data de nascimento (mínimo 3).
+  const atletas = snap.docs.map((d) => d.data()).filter((x) => Array.isArray(x.papeis) && x.papeis.some((p) => ['aluno', 'instrutor', 'mestre'].includes(p)) && x.ativo !== false && x.statusAtual !== 'Inativo');
+  const completo = (x) => !!(x.carteirinha && x.carteirinha.fotoAprovada === true) && /^\d{4}-\d{2}-\d{2}/.test(String(x.dataNasc || ''));
+  const nucleoCompleto = atletas.length >= 3 && atletas.every(completo);
+  return { formados, nucleoCompleto, atletas: atletas.length, completos: atletas.filter(completo).length, calculadoEm: new Date().toISOString() };
 }
 
 // Recalcula e grava o cartão público. `refazer` escolhe quais resumos buscar
@@ -87,7 +119,23 @@ export async function sincronizarPerfil(ctx, uid, refazer = {}) {
   const papeis = Array.isArray(u.papeis) ? u.papeis : [];
   const menor = ehMenor(u);
 
-  const resumoPresencas = (refazer.presencas || !pub || !pub.resumoPresencas) ? await calcularResumoPresencas(ctx, uid) : pub.resumoPresencas;
+  const resumoPresencas = (refazer.presencas || !pub || !pub.resumoPresencas || pub.resumoPresencas.treinouNoAniversario === undefined) ? await calcularResumoPresencas(ctx, uid, u.dataNasc || null) : pub.resumoPresencas;
+  // Meses pagos custam uma consulta (só quando pedido ou na 1ª vez); os contadores do
+  // cadastro são baratos e entram sempre — é por eles que o navegador avalia os brasões
+  // de carteirinha, eventos e card compartilhado sem ler o documento privado do atleta.
+  const base = (refazer.compromisso || !pub || !pub.resumoCompromisso) ? await calcularResumoCompromisso(ctx, uid, u) : pub.resumoCompromisso;
+  const resumoCompromisso = {
+    ...base,
+    eventosConfirmados: Math.max(0, Number(u.eventosConfirmados) || 0),
+    cardsCompartilhados: Math.max(0, Number(u.cardsCompartilhados) || 0),
+    beneficiarios: beneficiariosDe(u.carteirinha),
+    carteirinhaEmDia: carteirinhaEmDia(u.carteirinha),
+  };
+  // Apresentação em vídeo e assinatura dos certificados: só quem pode ter (2 leituras pequenas).
+  const podeTerVideo = papeis.includes('mestre') || papeis.includes('instrutor') || u.acessoGeral === true || ['Instrutor', 'Professor', 'Mestre', 'Mestre/Presidente'].includes(u.cordaoAtual);
+  const [sa, ss] = podeTerVideo ? await Promise.all([ctx.db.doc(`apresentacoes/${uid}`).get(), ctx.db.doc(`assinaturas/${uid}`).get()]) : [null, null];
+  const temApresentacao = !!(sa && sa.exists && sa.data().videoUrl);
+  const temAssinatura = !!(ss && ss.exists && /^https:/.test(String(ss.data().url || '')));
   const resumoRede = (refazer.rede || !pub || !pub.resumoRede) ? await calcularResumoRede(ctx, uid) : pub.resumoRede;
   let resumoFormacao = pub ? (pub.resumoFormacao || null) : null;
   if (u.academiaGerenciadaId && (refazer.formacao || !resumoFormacao)) resumoFormacao = await calcularResumoFormacao(ctx, uid, u.academiaGerenciadaId);
@@ -113,12 +161,21 @@ export async function sincronizarPerfil(ctx, uid, refazer = {}) {
     resumoPresencas,
     resumoRede,
     resumoFormacao,
+    resumoCompromisso,
+    temApresentacao,
+    temAssinatura,
     sincronizadoEm: new Date().toISOString(),
   };
   if (!pub || pub.privado === undefined) dados.privado = menor; // menor nasce privado
   if (!pub) { dados.seguidores = []; dados.pedidosSeguir = []; }
 
-  const avaliacao = avaliar({ ...dados, uid, brasoesManuais: u.brasoesManuais || {}, brasoesAdmin: u.brasoesAdmin || {}, brasoesBloqueados: u.brasoesBloqueados || {}, brasoes: (pub && pub.brasoes) || {} }, cfg);
+  const avaliacao = avaliar({
+    ...dados, uid, brasoesManuais: u.brasoesManuais || {}, brasoesAdmin: u.brasoesAdmin || {}, brasoesBloqueados: u.brasoesBloqueados || {}, brasoes: (pub && pub.brasoes) || {},
+    // Fontes dos brasões 46–71 (dados reais do cadastro e do cartão público).
+    certificados: (pub && Array.isArray(pub.certificados)) ? pub.certificados : [],
+    carteirinha: u.carteirinha || null, cardsCompartilhados: Number(u.cardsCompartilhados) || 0, eventosConfirmados: Number(u.eventosConfirmados) || 0,
+    seguidoresTotal: (pub && Array.isArray(pub.seguidores)) ? pub.seguidores.length : 0, capaUrl: (pub && pub.capaUrl) || '', bio: (pub && pub.bio) || '',
+  }, cfg);
   const cons = consolidar(avaliacao, (pub && pub.brasoes) || {});
   dados.brasoes = cons.mapa;
   dados.brasoesTotal = cons.total;

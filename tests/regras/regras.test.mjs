@@ -74,6 +74,9 @@ test('a pessoa não muda a própria graduação, idade nem total de brasões', a
   await assertFails(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { idade: 17 }));
   await assertFails(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { brasoesTotal: 45 }));
   await assertFails(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { acessoGeral: true }));
+  // Contadores dos brasões "Eu vou!" e "Mostrou o cordão": só o servidor soma.
+  await assertFails(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { eventosConfirmados: 99 }));
+  await assertFails(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { cardsCompartilhados: 99 }));
 });
 
 test('cartão público: a pessoa só mexe em bio/capa/privacidade', async () => {

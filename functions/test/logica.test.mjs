@@ -578,3 +578,111 @@ test('aniversários: aviso 48 h antes e no dia para o responsável do núcleo e 
   // 29/02 em ano comum → 28/02
   assert.equal(aniversarioNoAno({ a: 2000, m: 2, d: 29 }, 2027).getDate(), 28);
 });
+
+/* ===================== brasões 46–71 ===================== */
+import { readFileSync } from 'node:fs';
+import { mesesSeguidosPagos } from '../src/perfil.js';
+import { carteirinhaEmDia, avaliar as avaliarBrasoes } from '../src/compartilhado/brasoes.js';
+
+test('mensalidades em dia: meses seguidos contam para trás, mês atual pode estar em aberto; adicional não conta; isento conta tempo de grupo', () => {
+  const hoje = new Date(2026, 9, 15); // outubro/2026
+  const pg = (c, extra = {}) => ({ competencia: c, pago: true, ...extra });
+  assert.equal(mesesSeguidosPagos([pg('2026-10'), pg('2026-09'), pg('2026-08')], { hoje }), 3);
+  assert.equal(mesesSeguidosPagos([pg('2026-09'), pg('2026-08'), pg('2026-07')], { hoje }), 3, 'outubro ainda não venceu: começa de setembro');
+  assert.equal(mesesSeguidosPagos([pg('2026-09'), pg('2026-07')], { hoje }), 1, 'agosto em aberto quebra a sequência');
+  assert.equal(mesesSeguidosPagos([pg('2026-09'), pg('2026-08', { tipo: 'adicional' }), pg('2026-07')], { hoje }), 1, 'adicional (abadá, evento) não é mensalidade');
+  assert.equal(mesesSeguidosPagos([pg('2026-09', { pago: false })], { hoje }), 0);
+  assert.equal(mesesSeguidosPagos([], { isento: true, criadoEm: '2025-10-01T00:00:00.000Z', hoje }), 12, 'isento: 12 meses de grupo = "Um ano em dia"');
+});
+
+test('carteirinha em dia: emitida + ativa + foto aprovada; com controle por mensalidade, só dentro da validade', () => {
+  const hoje = new Date(2026, 9, 1);
+  assert.equal(carteirinhaEmDia(null), false);
+  assert.equal(carteirinhaEmDia({ codigo: 'LE-1', fotoAprovada: true }, hoje), true);
+  assert.equal(carteirinhaEmDia({ codigo: 'LE-1', fotoAprovada: false }, hoje), false, 'sem foto aprovada não vale');
+  assert.equal(carteirinhaEmDia({ codigo: 'LE-1', fotoAprovada: true, ativo: false }, hoje), false);
+  assert.equal(carteirinhaEmDia({ codigo: 'LE-1', fotoAprovada: true, controle: 'mensalidade', validaAte: '2026-10-31' }, hoje), true);
+  assert.equal(carteirinhaEmDia({ codigo: 'LE-1', fotoAprovada: true, controle: 'mensalidade', validaAte: '2026-09-30' }, hoje), false, 'vencida');
+});
+
+test('brasões 46–71 no cartão público: certificados, trajetória, batizados, carteirinha, família, eventos, card, seguidores, perfil completo, veterano', async () => {
+  const certs = (...cordoes) => cordoes.map((c, i) => ({ codigo: `C${i}`, cordao: c, data: i === cordoes.length - 1 ? '2026-03-01' : null, legado: i < cordoes.length - 1 }));
+  const { f, ctx } = ctxDe(base({
+    perfisPublicos: { nat: { seguidores: Array.from({ length: 12 }, (_, i) => `s${i}`), pedidosSeguir: [], capaUrl: 'https://x/capa.jpg', bio: 'Capoeirista do núcleo da Professora Taynara desde 2024.', certificados: certs('Escravo', 'Fugitivo', 'Quilombola') } },
+    pagamentos: { a: { alunoId: 'nat', competencia: '2026-09', pago: true }, b: { alunoId: 'nat', competencia: '2026-08', pago: true }, c: { alunoId: 'nat', competencia: '2026-07', pago: true } },
+  }));
+  f.db.doc('usuarios/nat').update({
+    fotoUrl: 'https://x/foto.jpg', dataNasc: '1996-05-10', criadoEm: '2021-01-01T00:00:00.000Z',
+    historicoGraduacoes: [{ cordao: 'Escravo', legado: true }, { cordao: 'Fugitivo', legado: true }, { cordao: 'Quilombola', em: '2026-03-01', por: 'tay' }],
+    carteirinha: { codigo: 'LE-0001', ativo: true, fotoAprovada: true, beneficiarios: [{ nome: 'Mãe', parentesco: 'mãe' }] },
+    eventosConfirmados: 1, cardsCompartilhados: 1,
+  });
+  await sincronizarPerfil(ctx, 'nat', { presencas: true, rede: true, compromisso: true });
+  const pub = f.ler('perfisPublicos/nat'); const b = pub.brasoes;
+  assert.ok(b['primeiro-certificado'], '46: tem certificado');
+  assert.ok(b['trajetoria-completa'], '47: Escravo→Quilombola todos com certificado');
+  assert.ok(b['mostrou-o-cordao'], '48: card compartilhado');
+  assert.ok(!b['dois-batizados'], '49: só 1 troca com data (legado não conta)');
+  assert.ok(b['carteirinha-em-dia'], '51');
+  assert.ok(b['familia-no-grupo'] && !b['casa-cheia'], '52 sim, 53 (3 beneficiários) não');
+  assert.ok(b['mensalidade-em-dia'] && !b['um-ano-em-dia'], '54: 3 meses seguidos; 55 não');
+  assert.ok(b['eu-vou'], '56: confirmou presença num evento');
+  assert.ok(b['veterano-3-anos'] && b['veterano-5-anos'] && !b['veterano-10-anos'], '58/59 sim, 60 não (desde 2021)');
+  assert.ok(b['dez-seguidores'] && !b['cinquenta-seguidores'], '61 sim, 62 não');
+  assert.ok(b['perfil-completo'], '63: foto + capa + bio');
+  assert.ok(!b['apresentacao-no-ar'] && !b['assinatura-registrada'], '64/67 só para quem tem vídeo/assinatura');
+  // O navegador avalia só com o cartão público (sem ler usuarios): precisa chegar ao mesmo resultado.
+  assert.equal(pub.resumoCompromisso.eventosConfirmados, 1); assert.equal(pub.resumoCompromisso.beneficiarios, 1); assert.equal(pub.resumoCompromisso.carteirinhaEmDia, true);
+  const noNavegador = avaliarBrasoes({ ...pub, uid: 'nat', seguidoresTotal: pub.seguidores.length }, {}).filter((a) => a.ganho).map((a) => a.id).sort();
+  assert.deepEqual(noNavegador, Object.keys(b).sort(), 'servidor e navegador concordam');
+});
+
+test('trajetória incompleta: cordão anterior sem certificado não ganha; progresso mostra quantos faltam', () => {
+  const av = avaliarBrasoes({ cordaoAtual: 'Quilombola', certificados: [{ cordao: 'Quilombola' }] }, {});
+  const t = av.find((a) => a.id === 'trajetoria-completa');
+  assert.equal(t.ganho, false); assert.deepEqual(t.progresso, { atual: 1, meta: 3 });
+  assert.equal(av.find((a) => a.id === 'trajetoria-completa' && a.ganho), undefined);
+  const ini = avaliarBrasoes({ cordaoAtual: 'Iniciante', certificados: [] }, {}).find((a) => a.id === 'trajetoria-completa');
+  assert.equal(ini.ganho, false, 'Iniciante ainda não tem trajetória');
+});
+
+test('contadores do servidor: confirmar presença em evento e compartilhar o card somam uma vez; cancelar desconta; o app não altera (rules)', async () => {
+  const { f, ctx } = ctxDe(base());
+  await G.aoEscreverConfirmado(ctx, { params: { id: 'ev1', uid: 'nat' }, antes: null, depois: { em: 'x' } });
+  await G.aoEscreverConfirmado(ctx, { params: { id: 'ev1', uid: 'nat' }, antes: { em: 'x' }, depois: { em: 'y' } }); // edição não soma
+  assert.equal(f.ler('usuarios/nat').eventosConfirmados, 1);
+  await G.aoEscreverConfirmado(ctx, { params: { id: 'ev1', uid: 'nat' }, antes: { em: 'y' }, depois: null });
+  assert.equal(f.ler('usuarios/nat').eventosConfirmados, 0);
+  const aviso = { tipo: 'cordao', titulo: 'Troquei de cordão' };
+  await G.aoEscreverNotificacao(ctx, { params: { uid: 'nat', id: 'n1' }, antes: aviso, depois: { ...aviso, compartilhadoEm: '2026-10-01' } });
+  await G.aoEscreverNotificacao(ctx, { params: { uid: 'nat', id: 'n1' }, antes: { ...aviso, compartilhadoEm: '2026-10-01' }, depois: { ...aviso, compartilhadoEm: '2026-10-01', lida: true } });
+  await G.aoEscreverNotificacao(ctx, { params: { uid: 'nat', id: 'n2' }, antes: null, depois: { tipo: 'curtida', compartilhadoEm: '2026-10-01' } }); // outro tipo não conta
+  assert.equal(f.ler('usuarios/nat').cardsCompartilhados, 1);
+  const regras = readFileSync(new URL('../../firebase/firestore.rules', import.meta.url), 'utf8');
+  assert.match(regras, /camposTravadosDoProprio[\s\S]*'eventosConfirmados'[\s\S]*'cardsCompartilhados'/, 'o próprio usuário não mexe nos contadores');
+});
+
+test('vídeo de apresentação e assinatura ligam os brasões 64 e 67; "Núcleo completo" (68) e "Formou 5" (65) para quem gerencia núcleo', async () => {
+  const alunos = {};
+  for (let i = 1; i <= 5; i++) alunos[`a${i}`] = { nome: `Aluno ${i}`, papeis: ['aluno'], academiaId: 'taynara', cordaoAtual: 'Escravo', idade: 20, dataNasc: '2000-01-0' + i, carteirinha: { codigo: `LE-${i}`, fotoAprovada: true }, historicoGraduacoes: [{ cordao: 'Escravo', em: '2026-03-01', por: 'tay' }] };
+  const { f, ctx } = ctxDe(base({ apresentacoes: { tay: { videoUrl: 'https://x/v.mp4' } }, assinaturas: { tay: { url: 'https://x/ass.png' } } }));
+  Object.entries(alunos).forEach(([id, d]) => f.db.doc(`usuarios/${id}`).set(d));
+  await sincronizarPerfil(ctx, 'tay', { formacao: true });
+  let b = f.ler('perfisPublicos/tay').brasoes;
+  assert.ok(b['apresentacao-no-ar'] && b['assinatura-registrada'], '64 e 67');
+  assert.ok(b['formou-cinco-alunos'] && !b['formou-dez-alunos'], '65 sim, 66 não');
+  assert.ok(!b['nucleo-completo'], '68 não: nat e kid do núcleo ainda sem foto aprovada/dataNasc');
+  // Completando a ficha de cada aluno (data de nascimento no prontuário + foto da carteirinha
+  // aprovada pelo servidor), o gatilho do usuário recalcula a formação do responsável.
+  for (const id of ['nat', 'kid', 'mae']) {
+    const antes = f.ler(`usuarios/${id}`);
+    f.db.doc(`usuarios/${id}`).update({ dataNasc: '1990-02-02' });
+    await aoEscreverFotoCarteirinha(ctx, { params: { uid: id }, antes: null, depois: { status: 'aprovada', caminho: `carteirinha/${id}/1.jpg`, url: 'https://x' } });
+    const depois = f.ler(`usuarios/${id}`);
+    assert.equal(depois.carteirinha.fotoAprovada, true, 'o servidor marcou a foto como aprovada');
+    await G.aoEscreverUsuario(ctx, { params: { uid: id }, antes, depois, authId: null, authType: 'system' });
+  }
+  b = f.ler('perfisPublicos/tay').brasoes;
+  assert.ok(b['nucleo-completo'], '68: todo o núcleo com foto aprovada e data de nascimento');
+  assert.equal(f.ler('perfisPublicos/tay').resumoFormacao.completos, 8);
+});

@@ -44,7 +44,7 @@ export async function rotinaDiaria(ctx) {
   //    mensalidade lançada hoje no núcleo muda a regra de todos os alunos dele).
   r.carteirinhas = 0;
   r.perfis = await emPaginas(ctx.db.collection('usuarios').orderBy('__name__'), async (d) => {
-    await sincronizarPerfil(ctx, d.id, { presencas: true }).catch(() => null);
+    await sincronizarPerfil(ctx, d.id, { presencas: true, compromisso: true, formacao: true }).catch(() => null); // presenças, mensalidades e tempo de grupo mudam com o calendário; formação só consulta para quem gerencia núcleo
     if (temCarteirinha(d.data())) { await sincronizarCarteirinha(ctx, d.id).then(() => { r.carteirinhas++; }).catch(() => null); }
     await alinharAoCordaoAtual(ctx, d.id, d.data()).catch(() => null);
     r.certificados = (r.certificados || 0) + await conferirCertificados(ctx, d.id, d.data()).catch(() => 0);
@@ -87,9 +87,12 @@ export async function migrarFotos(ctx) {
   return n;
 }
 
-export async function migrarPerfis(ctx) {
-  return emPaginas(ctx.db.collection('usuarios').orderBy('__name__'), (d) => sincronizarPerfil(ctx, d.id, { presencas: true, rede: true, formacao: true }).catch((e) => (ctx.log || console).warn('perfil', d.id, e && e.message)));
+export async function migrarPerfis(ctx, refazer = { presencas: true, rede: true, formacao: true }) {
+  return emPaginas(ctx.db.collection('usuarios').orderBy('__name__'), (d) => sincronizarPerfil(ctx, d.id, refazer).catch((e) => (ctx.log || console).warn('perfil', d.id, e && e.message)));
 }
+// Brasões 46–71: recalcula todo mundo uma vez (inclui mensalidades), para quem já
+// merecia ganhar os brasões novos no mesmo dia da publicação, sem esperar a rotina.
+export const migrarBrasoes46a71 = (ctx) => migrarPerfis(ctx, { presencas: true, rede: true, formacao: true, compromisso: true });
 
 export async function migrarConversas(ctx) {
   let n = 0;
@@ -126,6 +129,7 @@ export const MIGRACOES = [
   ['m4_conversas_responsaveis', migrarConversas],
   ['m5_certificados_completos', migrarCertificados],
   ['m6_cordoes_que_voltaram', migrarCordoesQueVoltaram],
+  ['m7_brasoes_46_71', migrarBrasoes46a71],
 ];
 
 // forcar: roda de novo mesmo as já marcadas (ex.: "Recalcular tudo" no painel).

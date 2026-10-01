@@ -1,4 +1,4 @@
-/* brasoes.js — catálogo e motor dos 45 brasões do Capoeira Liberdade e Expressão.
+/* brasoes.js — catálogo e motor dos 71 brasões do Capoeira Liberdade e Expressão.
 
 Regra de ouro: um brasão só é "ganho" quando o dado real que o sustenta existe.
 Nada aqui inventa número. As fontes são:
@@ -26,6 +26,20 @@ Métrica de cada brasão:
   tipo 'responsavel' → academiaGerenciadaId preenchido
   tipo 'linhagem'    → treina no núcleo do Fundador (academiaId == nucleoFundadorId) ou é o Fundador
   tipo 'aniversario' → anos completos desde criadoEm ≥ meta
+  tipo 'certificados'→ certificados de graduação emitidos (perfisPublicos.certificados) ≥ meta
+  tipo 'trajetoria'  → tem certificado de TODOS os cordões, do Escravo ao atual
+  tipo 'compartilhou'→ cards "Troquei de cordão" compartilhados (usuarios.cardsCompartilhados) ≥ meta
+  tipo 'batizados'   → trocas de cordão COM data (não "já tinha") ≥ meta
+  tipo 'carteirinha' → carteirinha válida com foto aprovada (usuarios.carteirinha)
+  tipo 'beneficiarios'→ beneficiários cadastrados na carteirinha ≥ meta
+  tipo 'mensalidades'→ meses seguidos de mensalidade paga (resumoCompromisso.mesesSeguidos) ≥ meta; bolsista conta
+  tipo 'eventos'     → inscrições "Eu vou" em eventos (usuarios.eventosConfirmados) ≥ meta
+  tipo 'aniversarioTreino' → presença registrada no dia do próprio aniversário (resumoPresencas.treinouNoAniversario)
+  tipo 'seguidores'  → seguidores na Rede (perfisPublicos.seguidores) ≥ meta
+  tipo 'perfilCompleto' → foto, capa e biografia preenchidas na Rede
+  tipo 'apresentacao'→ vídeo de apresentação publicado (apresentacoes/{uid})
+  tipo 'assinatura'  → assinatura real dos certificados cadastrada (assinaturas/{uid})
+  tipo 'nucleoCompleto' → responsável cujo núcleo (≥ 3 atletas ativos) tem 100% com foto de carteirinha aprovada e data de nascimento
   tipo 'manual'      → só por concessão (brasoesManuais[id])
 Os números das medalhas (1, 10, 50…) estão GRAVADOS na arte — por isso as metas
 numéricas não são editáveis no painel; o que se edita é nome/descrição e ativo/inativo. */
@@ -43,6 +57,9 @@ eventos: { nome: 'Eventos e rodas', sub: 'Batizado automático; os demais o resp
 rede: { nome: 'Rede Liberdade', sub: 'Publicações, melhores momentos e curtidas recebidas', icone: 'fa-camera', forma: 'medalha' },
 formacao: { nome: 'Formação', sub: 'Quem forma, quem lidera e a linhagem do Fundador', icone: 'fa-sitemap', forma: 'hex' },
 destaques: { nome: 'Destaques na capoeira', sub: 'Concedidos pelo responsável quando o atleta mostra a evolução', icone: 'fa-star', forma: 'hex' },
+graduacao: { nome: 'Certificados', sub: 'Certificados de graduação, trajetória e o card "Troquei de cordão"', icone: 'fa-award', forma: 'hex' },
+carteirinha: { nome: 'Carteirinha', sub: 'Carteirinha em dia e a família cadastrada como beneficiária', icone: 'fa-id-card', forma: 'hex' },
+compromisso: { nome: 'Compromisso', sub: 'Mensalidade em dia, inscrições em eventos e tempo de grupo', icone: 'fa-calendar-check', forma: 'medalha' },
 };
 
 const b = (n, slug, nome, serie, regra, extra = {}) => ({ id: slug, n, arquivo: `brasao-${String(n).padStart(2, '0')}-${slug}`, nome, serie, forma: SERIES[serie].forma, regra, nivel: null, glb: null, ...extra });
@@ -101,6 +118,38 @@ b(42, 'primeira-acrobacia', 'Primeira acrobacia', 'destaques', { tipo: 'manual' 
 b(43, 'tocou-berimbau-na-roda', 'Tocou berimbau na roda', 'destaques', { tipo: 'manual' }, { como: 'Concedido a quem tocou berimbau numa roda de verdade.' }),
 b(44, 'tocou-atabaque', 'Tocou atabaque', 'destaques', { tipo: 'manual' }, { como: 'Concedido a quem tocou atabaque numa roda de verdade.' }),
 b(45, 'aniversario-de-capoeira', 'Aniversário de capoeira', 'destaques', { tipo: 'aniversario', meta: 1 }, { como: 'Completar 1 ano desde a entrada no grupo.' }),
+// ---- I · Certificados e graduação (hex / medalha) ----
+b(46, 'primeiro-certificado', 'Primeiro certificado', 'graduacao', { tipo: 'certificados', meta: 1 }, { como: 'Receber o primeiro certificado de graduação (sai sozinho na troca de cordão).' }),
+b(47, 'trajetoria-completa', 'Trajetória completa', 'graduacao', { tipo: 'trajetoria' }, { como: 'Ter o certificado de todos os cordões, do Escravo até o seu cordão atual.' }),
+b(48, 'mostrou-o-cordao', 'Mostrou o cordão', 'graduacao', { tipo: 'compartilhou', meta: 1 }, { como: 'Compartilhar o card "Troquei de cordão!" com a família e os amigos.' }),
+b(49, 'dois-batizados', '2 batizados', 'graduacao', { tipo: 'batizados', meta: 2 }, { nivel: 'prata', forma: 'medalha', como: 'Ter 2 trocas de cordão registradas com data no app.' }),
+b(50, 'cinco-batizados', '5 batizados', 'graduacao', { tipo: 'batizados', meta: 5 }, { nivel: 'ouro', forma: 'medalha', como: 'Ter 5 trocas de cordão registradas com data no app.' }),
+// ---- J · Carteirinha (hex) ----
+b(51, 'carteirinha-em-dia', 'Carteirinha em dia', 'carteirinha', { tipo: 'carteirinha' }, { como: 'Carteirinha de atleta válida, com a foto de documento aprovada pelo núcleo.' }),
+b(52, 'familia-no-grupo', 'Família no grupo', 'carteirinha', { tipo: 'beneficiarios', meta: 1 }, { como: 'Cadastrar o primeiro beneficiário da carteirinha (pai, mãe, irmão ou avô).' }),
+b(53, 'casa-cheia', 'Casa cheia', 'carteirinha', { tipo: 'beneficiarios', meta: 3 }, { como: 'Cadastrar 3 ou mais beneficiários na carteirinha.' }),
+// ---- K · Compromisso (medalha / hex) ----
+b(54, 'mensalidade-em-dia', 'Mensalidade em dia', 'compromisso', { tipo: 'mensalidades', meta: 3 }, { nivel: 'prata', como: '3 meses seguidos com a mensalidade paga (bolsista também ganha).' }),
+b(55, 'um-ano-em-dia', 'Um ano em dia', 'compromisso', { tipo: 'mensalidades', meta: 12 }, { nivel: 'ouro', como: '12 meses seguidos com a mensalidade paga (bolsista também ganha).' }),
+b(56, 'eu-vou', 'Eu vou!', 'compromisso', { tipo: 'eventos', meta: 1 }, { forma: 'hex', como: 'Confirmar presença ("Eu vou") num evento pela agenda do app.' }),
+b(57, 'treinou-no-aniversario', 'Treinou no aniversário', 'compromisso', { tipo: 'aniversarioTreino' }, { forma: 'hex', como: 'Ter uma presença registrada no dia do seu aniversário.' }),
+b(58, 'veterano-3-anos', 'Veterano 3 anos', 'compromisso', { tipo: 'aniversario', meta: 3 }, { nivel: 'prata', como: 'Completar 3 anos desde a entrada no grupo.' }),
+b(59, 'veterano-5-anos', 'Veterano 5 anos', 'compromisso', { tipo: 'aniversario', meta: 5 }, { nivel: 'ouro', como: 'Completar 5 anos desde a entrada no grupo.' }),
+b(60, 'veterano-10-anos', 'Veterano 10 anos', 'compromisso', { tipo: 'aniversario', meta: 10 }, { nivel: 'platina', como: 'Completar 10 anos desde a entrada no grupo.' }),
+// ---- L · Rede Liberdade, segunda leva ----
+b(61, 'dez-seguidores', '10 seguidores', 'rede', { tipo: 'seguidores', meta: 10 }, { nivel: 'bronze', como: 'Ter 10 pessoas seguindo você na Rede Liberdade.' }),
+b(62, 'cinquenta-seguidores', '50 seguidores', 'rede', { tipo: 'seguidores', meta: 50 }, { nivel: 'ouro', como: 'Ter 50 pessoas seguindo você na Rede Liberdade.' }),
+b(63, 'perfil-completo', 'Perfil completo', 'rede', { tipo: 'perfilCompleto' }, { forma: 'hex', como: 'Preencher foto, capa e biografia no seu perfil da Rede.' }),
+b(64, 'apresentacao-no-ar', 'Apresentação no ar', 'rede', { tipo: 'apresentacao' }, { forma: 'hex', como: 'Publicar o seu vídeo de apresentação (Instrutor, Professor ou Mestre).' }),
+// ---- M · Formação, segunda leva ----
+b(65, 'formou-cinco-alunos', 'Formou 5 alunos', 'formacao', { tipo: 'formados', meta: 5 }, { nivel: 'ouro', forma: 'medalha', como: 'Registrar a troca de cordão de 5 alunos do núcleo que você administra.' }),
+b(66, 'formou-dez-alunos', 'Formou 10 alunos', 'formacao', { tipo: 'formados', meta: 10 }, { nivel: 'platina', forma: 'medalha', como: 'Registrar a troca de cordão de 10 alunos do núcleo que você administra.' }),
+b(67, 'assinatura-registrada', 'Assinatura registrada', 'formacao', { tipo: 'assinatura' }, { como: 'Cadastrar a sua assinatura real para os certificados (responsável de núcleo ou Fundador).' }),
+b(68, 'nucleo-completo', 'Núcleo completo', 'formacao', { tipo: 'nucleoCompleto' }, { como: 'Responsável cujo núcleo tem todos os atletas com foto de carteirinha aprovada e data de nascimento cadastrada.' }),
+// ---- N · Destaques, segunda leva (manuais) ----
+b(69, 'puxou-a-ladainha', 'Puxou a ladainha', 'destaques', { tipo: 'manual' }, { como: 'Concedido a quem puxou a ladainha sozinho pela primeira vez na roda.' }),
+b(70, 'ajudou-na-aula', 'Ajudou na aula', 'destaques', { tipo: 'manual' }, { como: 'Concedido a quem ajudou o professor na aula, cuidando dos menores.' }),
+b(71, 'levou-um-amigo', 'Levou um amigo', 'destaques', { tipo: 'manual' }, { como: 'Concedido a quem indicou um amigo que se inscreveu no grupo.' }),
 ];
 
 export const porId = (id) => BRASOES.find((x) => x.id === id) || null;
@@ -134,12 +183,36 @@ case 'formados': return 'Graduou um aluno do próprio núcleo';
 case 'responsavel': return 'Responsável cadastrado por um núcleo';
 case 'linhagem': return 'Treina no núcleo do Fundador';
 case 'aniversario': return `${r.meta} ano${r.meta > 1 ? 's' : ''} no grupo`;
+case 'certificados': return `${r.meta} certificado${r.meta > 1 ? 's' : ''} de graduação`;
+case 'trajetoria': return 'Certificado de todos os cordões até o atual';
+case 'compartilhou': return 'Card "Troquei de cordão" compartilhado';
+case 'batizados': return `${r.meta} trocas de cordão com data`;
+case 'carteirinha': return 'Carteirinha válida com foto aprovada';
+case 'beneficiarios': return `${r.meta} beneficiário${r.meta > 1 ? 's' : ''} na carteirinha`;
+case 'mensalidades': return `${r.meta} meses seguidos com mensalidade paga`;
+case 'eventos': return `${r.meta} inscriç${r.meta > 1 ? 'ões' : 'ão'} em evento ("Eu vou")`;
+case 'aniversarioTreino': return 'Presença no dia do aniversário';
+case 'seguidores': return `${r.meta} seguidores na Rede`;
+case 'perfilCompleto': return 'Foto, capa e biografia no perfil';
+case 'apresentacao': return 'Vídeo de apresentação publicado';
+case 'assinatura': return 'Assinatura dos certificados cadastrada';
+case 'nucleoCompleto': return 'Núcleo 100% com foto aprovada e data de nascimento';
 default: return 'Concessão do responsável do núcleo';
 }
 }
 
 // Avalia todos os brasões para uma pessoa. `dados` só traz o que existe de verdade;
 // campo ausente = brasão fica bloqueado (nunca "chuta").
+// Carteirinha "em dia": emitida, ativa, foto aprovada e — quando a validade segue a
+// mensalidade — ainda dentro do prazo. Mesma regra no servidor e no navegador.
+export function carteirinhaEmDia(c, hoje = new Date()) {
+if (!c || !c.codigo || c.ativo === false || c.fotoAprovada !== true) return false;
+if (c.controle !== 'mensalidade') return true;
+const iso = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+return !!(c.validaAte && String(c.validaAte).slice(0, 10) >= iso);
+}
+export function beneficiariosDe(c) { return c && Array.isArray(c.beneficiarios) ? c.beneficiarios.length : 0; }
+
 export function avaliar(dados, config) {
 dados = dados || {}; config = config || {};
 const ativos = config.ativos || {};
@@ -147,6 +220,8 @@ const textos = config.textos || {};
 const rp = dados.resumoPresencas || null;
 const rr = dados.resumoRede || null;
 const rf = dados.resumoFormacao || null;
+const rc = dados.resumoCompromisso || null;
+const certs = Array.isArray(dados.certificados) ? dados.certificados : [];
 const manuais = dados.brasoesManuais || {};
 const doAdmin = dados.brasoesAdmin || {};
 const bloqueados = dados.brasoesBloqueados || {}; // removidos pelo Admin Master (teste): não vale nem por concessão
@@ -172,6 +247,29 @@ case 'formados': ganho = rf ? num(rf.formados || 0, r.meta) : false; break;
 case 'responsavel': ganho = !!dados.academiaGerenciadaId; break;
 case 'linhagem': ganho = dados.fundador === true || (!!nucleoFundador && dados.academiaId === nucleoFundador); break;
 case 'aniversario': ganho = dados.criadoEm ? num(anos, r.meta) : false; break;
+case 'certificados': ganho = num(certs.length, r.meta); break;
+case 'trajetoria': {
+// Do Escravo até o cordão atual, cada cordão precisa ter certificado (os "antes do app" contam).
+const tem = new Set(certs.map((c) => c.cordao));
+const ate = ORDEM_CORDOES.slice(1, Math.max(1, idxCordao) + 1).filter((c) => c !== 'Mestre/Presidente');
+ganho = idxCordao >= 1 && ate.length > 0 && ate.every((c) => tem.has(c));
+progresso = { atual: ate.filter((c) => tem.has(c)).length, meta: Math.max(1, ate.length) };
+break;
+}
+// Contadores do cadastro (usuarios) chegam diretos no servidor; no navegador vêm pelo
+// resumoCompromisso do cartão público — por isso cada um aceita as duas origens.
+case 'compartilhou': ganho = num(Number(dados.cardsCompartilhados ?? (rc && rc.cardsCompartilhados)) || 0, r.meta); break;
+case 'batizados': ganho = num((dados.historicoGraduacoes || []).filter((h) => h && !h.legado && h.em).length, r.meta); break;
+case 'carteirinha': ganho = dados.carteirinha !== undefined ? carteirinhaEmDia(dados.carteirinha) : !!(rc && rc.carteirinhaEmDia); break;
+case 'beneficiarios': ganho = num(dados.carteirinha !== undefined ? beneficiariosDe(dados.carteirinha) : Number(rc && rc.beneficiarios) || 0, r.meta); break;
+case 'mensalidades': ganho = rc ? num(rc.mesesSeguidos || 0, r.meta) : false; if (!rc) progresso = { atual: 0, meta: r.meta }; break;
+case 'eventos': ganho = num(Number(dados.eventosConfirmados ?? (rc && rc.eventosConfirmados)) || 0, r.meta); break;
+case 'aniversarioTreino': ganho = !!(rp && rp.treinouNoAniversario); break;
+case 'seguidores': ganho = num(Number(dados.seguidoresTotal) || 0, r.meta); break;
+case 'perfilCompleto': ganho = !!(dados.fotoUrl && dados.capaUrl && String(dados.bio || '').trim().length >= 20); break;
+case 'apresentacao': ganho = dados.temApresentacao === true; break;
+case 'assinatura': ganho = dados.temAssinatura === true; break;
+case 'nucleoCompleto': ganho = !!(rf && rf.nucleoCompleto); break;
 default: ganho = false;
 }
 // Concessões: manuais só valem para brasão manual; as do Admin valem para
@@ -213,7 +311,7 @@ return { mapa, novos, total: Object.keys(mapa).length };
 
 // Resumo de presenças honesto (mesma lógica em todo o app): total, no mês,
 // sequência atual, recorde de sequência, núcleos visitados (ids) e última.
-export function resumirPresencas(lista) {
+export function resumirPresencas(lista, dataNasc = null) {
 const dataDe = (v) => (v && v.toDate ? v.toDate() : new Date(v));
 const datas = (lista || []).map((p) => dataDe(p.entradaEm)).filter((d) => !isNaN(d)).sort((a, b) => b - a);
 const visitados = new Set((lista || []).filter((p) => p.nucleoVisitadoId && p.nucleoVisitadoId !== p.nucleoId).map((p) => p.nucleoVisitadoId));
@@ -225,8 +323,11 @@ if (semanas.length && (semanas[0] === semanaHoje || semanas[0] === semanaHoje - 
 let recorde = semanas.length ? 1 : 0, corrida = 1;
 for (let i = 1; i < semanas.length; i++) { if (semanas[i - 1] - semanas[i] === SEM) { corrida++; recorde = Math.max(recorde, corrida); } else corrida = 1; }
 const inicioMes = new Date(); inicioMes.setDate(1); inicioMes.setHours(0, 0, 0, 0);
+// Treinou no dia do próprio aniversário (dataNasc "AAAA-MM-DD").
+const mN = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(dataNasc || ''));
+const treinouNoAniversario = !!mN && datas.some((d) => d.getMonth() + 1 === Number(mN[2]) && d.getDate() === Number(mN[3]));
 return {
-total: datas.length, noMes: datas.filter((d) => d >= inicioMes).length, semanasSeguidas: atual, maiorSequencia: recorde,
+total: datas.length, noMes: datas.filter((d) => d >= inicioMes).length, semanasSeguidas: atual, maiorSequencia: recorde, treinouNoAniversario,
 nucleosVisitados: visitados.size, nucleosVisitadosIds: Array.from(visitados), ultima: datas[0] ? datas[0].toISOString() : null, calculadoEm: new Date().toISOString(),
 };
 }

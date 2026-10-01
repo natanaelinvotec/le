@@ -33,7 +33,7 @@ function brasoesManuaisInalterados() { return request.resource.data.get('brasoes
 // menor) e o total de brasões (calculado no servidor).
 function camposTravadosDoProprio() {
 return ['cordaoAtual', 'historicoGraduacoes', 'instrutorUid', 'responsavelUid', 'idade', 'dataNasc',
-'statusAtual', 'brasoesTotal', 'origemTransferenciaDireta', 'academiaAnteriorId',
+'statusAtual', 'brasoesTotal', 'eventosConfirmados', 'cardsCompartilhados', 'origemTransferenciaDireta', 'academiaAnteriorId',
 'carteirinha', 'isentoMensalidade'];
 }
 
@@ -52,7 +52,7 @@ resource.data.responsavelUid == request.auth.uid
 allow create: if ehAdmin() || (
 request.auth.uid == uid &&
 request.resource.data.papeis == ['aluno'] &&
-!request.resource.data.keys().hasAny(['acessoGeral', 'brasoesAdmin', 'brasoesManuais', 'brasoesBloqueados', 'instrutorUid',
+!request.resource.data.keys().hasAny(['acessoGeral', 'brasoesAdmin', 'brasoesManuais', 'brasoesBloqueados', 'eventosConfirmados', 'cardsCompartilhados', 'instrutorUid',
 'historicoGraduacoes', 'brasoesTotal', 'origemTransferenciaDireta', 'academiaAnteriorId', 'carteirinha', 'isentoMensalidade']) &&
 request.resource.data.get('academiaGerenciadaId', null) == null &&
 request.resource.data.get('cordaoAtual', 'Iniciante') == 'Iniciante' &&

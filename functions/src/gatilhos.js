@@ -42,6 +42,17 @@ export async function aoEscreverUsuario(ctx, ev) {
     }
     await sincronizarPerfil(ctx, uid, criado || pedidoDoApp ? { presencas: true, rede: true, formacao: true } : { formacao: gerenciadoMudou });
   }
+  // "Núcleo completo" (brasão 68) do responsável depende da ficha de cada aluno:
+  // foto da carteirinha aprovada, data de nascimento, ativo/inativo e o próprio núcleo.
+  if (!criado && mudouAlgum(antes, depois, ['carteirinha', 'dataNasc', 'ativo', 'statusAtual', 'academiaId'])) {
+    const nucleos = Array.from(new Set([antes.academiaId, depois.academiaId].filter(Boolean)));
+    for (const nid of nucleos) {
+      for (const g of await gestoresDoNucleo(ctx, nid)) {
+        if (g === uid) continue;
+        try { await sincronizarPerfil(ctx, g, { formacao: true }); } catch (e) { (ctx.log || console).warn('formação', g, e && e.message); }
+      }
+    }
+  }
   // Troca de cordão: parabéns ao atleta e recalcula "formou o primeiro aluno" de quem graduou.
   if (!criado && mudouAlgum(antes, depois, ['historicoGraduacoes'])) {
     const velhos = new Set((antes.historicoGraduacoes || []).map((h) => JSON.stringify(h)));
@@ -217,6 +228,12 @@ export async function aoCriarMensagem(ctx, ev) {
 // ---------- seguir ----------
 export async function aoAtualizarPerfilPublico(ctx, ev) {
   const { uid } = ev.params; const { antes, depois } = ev; if (!antes || !depois) return;
+  // Seguidores, capa, bio ou certificados mudaram → brasões da Rede/Certificados (46–48, 61–63).
+  // Depois do recálculo esses campos ficam iguais, então o gatilho não entra em laço.
+  const n = (x) => (Array.isArray(x) ? x.length : 0);
+  if (n(antes.seguidores) !== n(depois.seguidores) || (antes.capaUrl || '') !== (depois.capaUrl || '') || (antes.bio || '') !== (depois.bio || '') || n(antes.certificados) !== n(depois.certificados)) {
+    try { await sincronizarPerfil(ctx, uid); } catch (e) { (ctx.log || console).warn('perfil (rede)', uid, e && e.message); }
+  }
   const pedidos = (depois.pedidosSeguir || []).filter((u) => !(antes.pedidosSeguir || []).includes(u));
   const seguidores = (depois.seguidores || []).filter((u) => !(antes.seguidores || []).includes(u) && !(antes.pedidosSeguir || []).includes(u));
   for (const u of pedidos) { const s = await ctx.db.doc(`perfisPublicos/${u}`).get(); const nome = s.exists ? s.data().nome : 'Alguém'; await notificar(ctx, [uid], { tipo: 'seguir', titulo: `${primeiroNome(nome)} pediu para seguir você`, texto: 'Aceite ou recuse no seu perfil.', link: 'rede.html#perfil', de: { uid: u, nome } }); }
@@ -258,7 +275,34 @@ export async function aoEscreverPagamento(ctx, ev) {
   await auditar(ctx, 'pagamentos', ev);
   // Mensalidade paga/estornada muda a validade da carteirinha.
   const alunos = new Set([ev.antes && ev.antes.alunoId, ev.depois && ev.depois.alunoId].filter((a) => a && !String(a).startsWith('excluido_')));
-  for (const a of alunos) await carteirinhaSegura(ctx, a);
+  for (const a of alunos) {
+    await carteirinhaSegura(ctx, a);
+    // Meses seguidos pagos → brasões "Mensalidade em dia" / "Um ano em dia".
+    try { await sincronizarPerfil(ctx, a, { compromisso: true }); } catch (e) { (ctx.log || console).warn('compromisso', a, e && e.message); }
+  }
+}
+
+// ---------- brasões 46–71: contadores e recálculos ----------
+// "Eu vou" num evento: eventos/{id}/confirmados/{uid} criado/apagado → contador no cadastro
+// (campo que só o servidor grava; o gatilho de usuarios recalcula o cartão).
+export async function aoEscreverConfirmado(ctx, ev) {
+  const { uid } = ev.params; if (!uid) return;
+  const delta = ev.depois && !ev.antes ? 1 : (!ev.depois && ev.antes ? -1 : 0);
+  if (!delta) return;
+  const ref = ctx.db.doc(`usuarios/${uid}`); const s = await ref.get(); if (!s.exists) return;
+  await ref.update({ eventosConfirmados: Math.max(0, (Number(s.data().eventosConfirmados) || 0) + delta) });
+}
+// Card "Troquei de cordão" compartilhado (o app marca compartilhadoEm no aviso) → contador.
+export async function aoEscreverNotificacao(ctx, ev) {
+  const { uid } = ev.params; const { antes, depois } = ev;
+  if (!uid || !depois || depois.tipo !== 'cordao' || !depois.compartilhadoEm || (antes && antes.compartilhadoEm)) return;
+  const ref = ctx.db.doc(`usuarios/${uid}`); const s = await ref.get(); if (!s.exists) return;
+  await ref.update({ cardsCompartilhados: (Number(s.data().cardsCompartilhados) || 0) + 1 });
+}
+// Vídeo de apresentação ou assinatura cadastrada/removida → brasões 64 e 67.
+export async function aoEscreverApresentacaoOuAssinatura(ctx, ev) {
+  const { uid } = ev.params; if (!uid) return;
+  try { await sincronizarPerfil(ctx, uid); } catch (e) { (ctx.log || console).warn('perfil (apresentação/assinatura)', uid, e && e.message); }
 }
 // Falha na carteirinha nunca derruba o resto do gatilho.
 async function carteirinhaSegura(ctx, uid) {
