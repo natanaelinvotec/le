@@ -15,7 +15,7 @@ por Firebase Authentication (usuarios/{uid}.papeis). -->
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js">
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js">
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js">
-<link rel="stylesheet" href="css/admin.css?v=20261001">
+<link rel="stylesheet" href="css/admin.css?v=20261001b">
 </head>
 <body>
 <noscript>Este painel exige JavaScript habilitado para funcionar.</noscript>
@@ -34,38 +34,55 @@ redirecionado pra login.html por admin.js (ver checarSessaoOuRedirecionar). -->
 
 <!-- PAINEL PRINCIPAL - oculto até autenticar -->
 <div id="appPainel" class="oculto">
+<!-- Menu lateral (computador) / gaveta (celular). Mesmos itens de antes,
+agrupados; a visibilidade por papel continua por data-papel (admin.js). -->
+<div class="nav-backdrop" id="nav-backdrop" hidden></div>
+<nav class="nav-links" id="nav-links" aria-label="Menu do painel">
+<div class="nav-marca">
+<img src="assets/logo-liberdade150.png" alt="" class="nav-logo">
+<span class="nav-marca-txt"><b>Liberdade e Expressão</b><small>Painel de gestão</small></span>
+<button type="button" class="nav-fechar" id="nav-fechar" aria-label="Fechar menu"><i class="fas fa-xmark"></i></button>
+</div>
+<div class="nav-eu" data-papel="all">
+<img src="assets/logo-liberdade150.png" alt="" class="admin-avatar nav-eu-foto" id="navEuFoto">
+<span><b id="navEuNome">—</b><small id="navEuPapel">Painel</small></span>
+</div>
+<span class="nav-grupo" data-papel="all">Núcleo</span>
+<a href="#" class="nav-item active" data-papel="all" onclick="mudarAba('alunos', event)"><i class="fas fa-users"></i><span>Alunos</span></a>
+<a href="#" class="nav-item" data-papel="admin" onclick="mudarAba('nucleos', event)"><i class="fas fa-location-dot"></i><span>Núcleos</span></a>
+<a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('solicitacoes', event)"><i class="fas fa-clipboard-check"></i><span>Solicitações</span></a>
+<a href="#" class="nav-item" data-papel="all" onclick="mudarAba('avisos', event)"><i class="fas fa-bullhorn"></i><span>Avisos</span></a>
+<a href="#" class="nav-item" data-papel="all" onclick="mudarAba('materiais', event)"><i class="fas fa-book-open"></i><span>Materiais</span></a>
+<span class="nav-grupo" data-papel="formacao">Treino</span>
+<a href="#" class="nav-item" data-papel="formacao" onclick="mudarAba('formacao', event)"><i class="fas fa-graduation-cap"></i><span>Formação</span></a>
+<a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('presenca', event)"><i class="fas fa-clipboard-user"></i><span>Presenças</span></a>
+<a href="#" class="nav-item" data-papel="formacao" onclick="mudarAba('graduacao', event)"><i class="fas fa-ribbon"></i><span>Graduação</span></a>
+<a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('eventos', event)"><i class="fas fa-calendar-days"></i><span>Eventos</span></a>
+<a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('aniversarios', event)"><i class="fas fa-cake-candles"></i><span>Aniversários</span><em class="an-badge" id="anBadge" hidden>0</em></a>
+<a href="brasoes.html" class="nav-item" data-papel="gestor" title="Gerenciar brasões e conquistas"><i class="fas fa-medal"></i><span>Brasões</span></a>
+<a href="carteirinhas.html" class="nav-item" data-papel="gestor" title="Fotos e carteirinhas dos atletas"><i class="fas fa-id-card"></i><span>Carteirinhas</span></a>
+<span class="nav-grupo" data-papel="gestor">Financeiro</span>
+<a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('financeiro', event)"><i class="fas fa-wallet"></i><span>Financeiro</span></a>
+<a href="#" class="nav-item" data-papel="admin" onclick="mudarAba('rateio', event)"><i class="fas fa-receipt"></i><span>Despesas</span></a>
+<span class="nav-grupo" data-papel="gestor">Análise</span>
+<a href="#" class="nav-item" data-papel="gestor" onclick="irParaRelatorios(event)"><i class="fas fa-chart-pie"></i><span>Relatórios</span></a>
+<a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('indicadores', event)"><i class="fas fa-chart-line"></i><span>Indicadores</span></a>
+<a href="#" class="nav-item" data-papel="admin-fundador" onclick="mudarAba('auditoria', event)"><i class="fas fa-list-check"></i><span>Auditoria</span></a>
+<a href="#" class="nav-item" data-papel="admin" onclick="mudarAba('lgpd', event)"><i class="fas fa-user-shield"></i><span>LGPD</span></a>
+<span class="nav-grupo nav-item-conta" data-papel="all">Conta</span>
+<a href="master.html" class="nav-item nav-item-conta" data-papel="admin-fundador"><i class="fas fa-crown" style="color:var(--accent-gold)"></i><span>Painel do Fundador</span></a>
+<a href="#" class="nav-item nav-item-conta" data-papel="all" onclick="event.preventDefault(); __fecharMenu(); __abrirMinhaConta();"><i class="fas fa-user-gear"></i><span>Minha conta</span></a>
+<a href="#" class="nav-item nav-item-conta" data-papel="all" onclick="event.preventDefault(); __fecharMenu(); __abrirAcessibilidade();"><i class="fas fa-universal-access"></i><span>Acessibilidade</span></a>
+<a href="#" class="nav-item nav-item-conta" data-papel="all" onclick="event.preventDefault(); __fecharMenu(); __tutorialPainel(true);"><i class="fas fa-circle-question"></i><span>Tutorial</span></a>
+</nav>
+
 <header class="top-nav">
+<button class="menu-toggle" id="mobile-menu-btn" aria-label="Abrir menu" aria-controls="nav-links" aria-expanded="false"><i class="fas fa-bars"></i></button>
 <div class="logo-area">
-<img src="assets/logo-liberdade150.png" alt="Logo Capoeira Liberdade" class="nav-logo">
+<img src="assets/logo-liberdade150.png" alt="Logo Capoeira Liberdade" class="nav-logo topo-logo">
 <span id="faixaAdminMaster" class="faixa-admin-master oculto"><i class="fas fa-shield-halved"></i> Admin Master</span>
 <span id="faixaFundador" class="faixa-fundador oculto"><i class="fas fa-star"></i> Acesso Geral · Fundador</span>
 </div>
-
-<button class="menu-toggle" id="mobile-menu-btn" aria-label="Abrir menu"><i class="fas fa-bars"></i></button>
-
-<nav class="nav-links" id="nav-links">
-<a href="#" class="nav-item active" data-papel="all" onclick="mudarAba('alunos', event)">Alunos</a>
-<a href="#" class="nav-item" data-papel="admin" onclick="mudarAba('nucleos', event)">Núcleos</a>
-<a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('solicitacoes', event)">Solicitações</a>
-<a href="#" class="nav-item" data-papel="all" onclick="mudarAba('avisos', event)">Avisos</a>
-<a href="#" class="nav-item" data-papel="all" onclick="mudarAba('materiais', event)">Materiais</a>
-<a href="#" class="nav-item" data-papel="formacao" onclick="mudarAba('formacao', event)">Formação</a>
-<a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('financeiro', event)">Financeiro</a>
-<a href="#" class="nav-item" data-papel="admin" onclick="mudarAba('rateio', event)">Despesas</a>
-<a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('presenca', event)">Presenças</a>
-<a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('aniversarios', event)"><i class="fas fa-cake-candles"></i> Aniversários <span class="an-badge" id="anBadge" hidden>0</span></a>
-<a href="#" class="nav-item" data-papel="gestor" onclick="irParaRelatorios(event)">Relatórios</a>
-<a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('indicadores', event)"><i class="fas fa-chart-line"></i> Indicadores</a>
-<a href="#" class="nav-item" data-papel="formacao" onclick="mudarAba('graduacao', event)"><i class="fas fa-ribbon"></i> Graduação</a>
-<a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('eventos', event)"><i class="fas fa-calendar-days"></i> Eventos</a>
-<a href="#" class="nav-item" data-papel="admin-fundador" onclick="mudarAba('auditoria', event)"><i class="fas fa-list-check"></i> Auditoria</a>
-<a href="#" class="nav-item" data-papel="admin" onclick="mudarAba('lgpd', event)"><i class="fas fa-user-shield"></i> LGPD</a>
-<a href="brasoes.html" class="nav-item" data-papel="gestor" title="Gerenciar brasões e conquistas"><i class="fas fa-medal"></i> Brasões</a>
-<a href="carteirinhas.html" class="nav-item" data-papel="gestor" title="Fotos e carteirinhas dos atletas"><i class="fas fa-id-card"></i> Carteirinhas</a>
-<a href="#" class="nav-item nav-item-conta" data-papel="all" onclick="event.preventDefault(); document.getElementById('nav-links').classList.remove('show'); __abrirMinhaConta();"><i class="fas fa-user-gear"></i> Minha conta</a>
-<a href="#" class="nav-item nav-item-conta" data-papel="all" onclick="event.preventDefault(); document.getElementById('nav-links').classList.remove('show'); __abrirAcessibilidade();"><i class="fas fa-universal-access"></i> Acessibilidade</a>
-<a href="#" class="nav-item nav-item-conta" data-papel="all" onclick="event.preventDefault(); document.getElementById('nav-links').classList.remove('show'); __tutorialPainel(true);"><i class="fas fa-circle-question"></i> Tutorial</a>
-</nav>
 
 <div class="user-area">
 <div class="search-bar" id="buscaBarWrap">
@@ -559,9 +576,12 @@ pra não recalcular a cada aula. -->
 <label for="modNomeInput">Nome do Aluno:</label>
 <input type="text" id="modNomeInput" class="input-padrao">
 </div>
-<div class="form-group-mod" style="margin-bottom: 12px;">
-<label for="modIdadeInput">Idade:</label>
-<input type="number" id="modIdadeInput" class="input-padrao" min="0" max="120">
+<div class="form-group-mod mod-nasc-idade" style="margin-bottom: 12px;">
+<div><label for="modNascInput">Data de nascimento:</label>
+<input type="date" id="modNascInput" class="input-padrao" min="1920-01-01" autocomplete="off"></div>
+<div><label for="modIdadeInput">Idade:</label>
+<input type="number" id="modIdadeInput" class="input-padrao" min="0" max="120"></div>
+<small class="mod-nasc-dica">Vem da ficha de inscrição; com a data, a idade e o aniversário atualizam sozinhos.</small>
 </div>
 <div class="form-group-mod" style="margin-bottom: 12px;">
 <label for="modCelularInput">Celular / WhatsApp:</label>
@@ -667,6 +687,6 @@ pra não recalcular a cada aula. -->
 </div>
 </div>
 
-<script type="module" src="js/admin.js?v=20261001c"></script>
+<script type="module" src="js/admin.js?v=20261001d"></script>
 </body>
 </html>

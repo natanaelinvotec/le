@@ -353,6 +353,14 @@ irParaLogin();
 // data-papel="instrutor" → só instrutor (sem mestre/admin)
 // data-papel="formacao"  → admin, mestre/professor OU instrutor
 // data-papel="all"       → todo mundo com acesso ao painel
+// Idade a partir de "AAAA-MM-DD" (null se a data não vale ou é futura).
+function idadePelaData(ymd) {
+const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(ymd || '')); if (!m) return null;
+const d = new Date(+m[1], +m[2] - 1, +m[3]); if (isNaN(d) || d > new Date()) return null;
+const h = new Date(); let i = h.getFullYear() - d.getFullYear();
+if (h.getMonth() < d.getMonth() || (h.getMonth() === d.getMonth() && h.getDate() < d.getDate())) i--;
+return i >= 0 && i <= 120 ? i : null;
+}
 function aplicarVisibilidadePapeis() {
 const admin = ehAdmin();
 const gestor = ehGestor();
@@ -406,6 +414,14 @@ if (!ehAdmin() && sessaoAtual.academiaGerenciadaId) {
 const nuc = await buscar('nucleos', sessaoAtual.academiaGerenciadaId);
 nomeNucleoProprio = nuc ? nuc.nome : sessaoAtual.academiaGerenciadaId;
 }
+// Quem sou eu, no topo do menu lateral (foto, nome e papel/núcleo).
+{
+const n = document.getElementById('navEuNome'); const pp = document.getElementById('navEuPapel'); const f = document.getElementById('navEuFoto');
+if (n) n.textContent = sessaoAtual.nome || sessaoAtual.email || '—';
+if (pp) pp.textContent = ehAdmin() ? 'Admin Master' : souFundador(sessaoAtual) ? 'Fundador · Acesso Geral' : nomeNucleoProprio ? nomeNucleoProprio.replace(/^\s*(academia|núcleo|nucleo)\s+(d[oa]s?\s+)?/i, '') : (ehInstrutorLogado() ? 'Instrutor(a)' : 'Painel');
+const foto = sessaoAtual.fotoUrl && /^https:/.test(sessaoAtual.fotoUrl) ? sessaoAtual.fotoUrl : '';
+if (foto) { if (f) f.src = foto; document.querySelectorAll('.admin-profile .admin-avatar').forEach((img) => { img.src = foto; }); }
+}
 const instrutorSolo = !ehGestor() && ehInstrutorLogado();
 // Cabeçalho no padrão do mockup: eyebrow em caixa alta + título forte
 // (sem faixa colorida). Admin vê o grupo todo; mestre/professor vê o
@@ -427,9 +443,19 @@ if (tituloGrid) tituloGrid.textContent = 'Alunos do núcleo';
 }
 document.getElementById('tituloAbaSolicitacoes').innerHTML = '<i class="fas fa-clipboard-check"></i> ' + (ehAdmin() ? 'Solicitações recebidas' : 'Solicitações');
 
-document.getElementById('mobile-menu-btn').addEventListener('click', () => {
-document.getElementById('nav-links').classList.toggle('show');
-});
+// Menu: gaveta no celular (hambúrguer, fundo escurecido, Esc fecha);
+// barra lateral fixa no computador. Itens sem rótulo visível (modo compacto)
+// ganham title para a dica aparecer ao passar o mouse.
+{
+const nav = document.getElementById('nav-links'); const fundo = document.getElementById('nav-backdrop'); const btn = document.getElementById('mobile-menu-btn');
+const abrir = (on) => { nav.classList.toggle('show', on); if (fundo) fundo.hidden = !on; btn.setAttribute('aria-expanded', String(on)); document.documentElement.classList.toggle('menu-aberto', on); if (on) { const x = document.getElementById('nav-fechar'); if (x) x.focus({ preventScroll: true }); } };
+window.__fecharMenu = () => abrir(false);
+btn.addEventListener('click', () => abrir(!nav.classList.contains('show')));
+if (fundo) fundo.addEventListener('click', () => abrir(false));
+const x = document.getElementById('nav-fechar'); if (x) x.addEventListener('click', () => abrir(false));
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && nav.classList.contains('show')) { abrir(false); btn.focus(); } });
+nav.querySelectorAll('.nav-item').forEach((a) => { if (!a.title) a.title = (a.querySelector('span') || a).textContent.trim(); });
+}
 
 mostrarSkeletons();
 renderizarKpisGestao();
@@ -668,7 +694,7 @@ evt.currentTarget.classList.add('active');
 const item = Array.from(document.querySelectorAll('.nav-item')).find((a) => (a.getAttribute('onclick') || '').includes(`mudarAba('${abaId}'`));
 if (item) item.classList.add('active');
 }
-document.getElementById('nav-links').classList.remove('show');
+if (window.__fecharMenu) window.__fecharMenu(); else document.getElementById('nav-links').classList.remove('show');
 if (abaId !== 'presenca') pararFaceId(); // libera a câmera do Face ID ao sair da aba
 window.scrollTo({ top: 0, behavior: 'smooth' });
 };
@@ -1305,6 +1331,16 @@ document.getElementById('modAcademia').textContent = usuarioSelecionado.academia
 
 document.getElementById('modNomeInput').value = usuarioSelecionado.nome || '';
 document.getElementById('modIdadeInput').value = usuarioSelecionado.idade || '';
+// Data de nascimento (da ficha de inscrição; editável aqui para correção).
+{
+const nasc = document.getElementById('modNascInput');
+if (nasc) {
+const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(usuarioSelecionado.dataNasc || '')) || (/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(usuarioSelecionado.dataNasc || '')) ? (() => { const x = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(usuarioSelecionado.dataNasc)); return [null, x[3], x[2], x[1]]; })() : null);
+nasc.value = m ? `${m[1]}-${m[2]}-${m[3]}` : '';
+nasc.max = new Date().toISOString().slice(0, 10);
+nasc.onchange = () => { const i = idadePelaData(nasc.value); if (i !== null) document.getElementById('modIdadeInput').value = i; };
+}
+}
 document.getElementById('modFotoInput').value = usuarioSelecionado.fotoUrl || '';
 document.getElementById('modStatus').value = usuarioSelecionado.statusAtual || 'Ativo';
 const campoCel = document.getElementById('modCelularInput');
@@ -1550,6 +1586,11 @@ btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Atualizando...';
 btn.disabled = true;
 try {
 const novoNome = sanitizeInput(document.getElementById('modNomeInput').value);
+const campoNasc = document.getElementById('modNascInput');
+const novaNasc = campoNasc && campoNasc.value ? campoNasc.value : '';
+if (novaNasc && idadePelaData(novaNasc) === null) { toast('Data de nascimento inválida.', 'error'); return; }
+// Com a data de nascimento, a idade vem dela (não deixa as duas em desacordo).
+if (novaNasc) document.getElementById('modIdadeInput').value = idadePelaData(novaNasc);
 const novaIdade = Number(document.getElementById('modIdadeInput').value);
 const novaFoto = document.getElementById('modFotoInput').value;
 
@@ -1571,6 +1612,7 @@ statusAtual: document.getElementById('modStatus').value,
 // Celular de contato: o cadastro usa o campo "celular" (inscrição, app e
 // painel). Antes o app gravava em "telefone" e nada lia de volta.
 if (novoCelular !== null) dadosAtualizados.celular = novoCelular;
+if (novaNasc) dadosAtualizados.dataNasc = novaNasc;
 
 // Graduação/fundamentos de aluno: sempre grava (todo mundo treina, mesmo
 // quem também é mestre/professor/instrutor).
