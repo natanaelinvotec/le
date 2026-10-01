@@ -14,7 +14,7 @@ ao conteúdo de Formação; sem ferramentas financeiras próprias.
 */
 import {
 observarSessao, recuperarSenha, sair,
-buscar, listar, listarOnde, listarPorAcademia, salvar, atualizar, remover, criar,
+buscar, listar, listarDoCache, listarOnde, listarPorAcademia, salvar, atualizar, remover, criar,
 criarSolicitacao, minhasSolicitacoes, criarContaComoAdmin,
 solicitacoesPendentesDoNucleo, aprovarVinculoFamilia, transferenciasPendentesParaDestino,
 publicarAviso, listarAvisos,
@@ -459,23 +459,29 @@ nav.querySelectorAll('.nav-item').forEach((a) => { if (!a.title) a.title = (a.qu
 
 mostrarSkeletons();
 renderizarKpisGestao();
-await Promise.all([
-carregarNucleos(),
-carregarUsuarios(),
+// 1) Pinta na hora com o que o aparelho já tem da última visita (0 leituras).
+try {
+const [nucCache, usuCache] = await Promise.all([listarDoCache('nucleos'), ehAdmin() ? listarDoCache('usuarios') : (ehGestor() ? listarDoCache('usuarios', sessaoAtual.academiaGerenciadaId || '__none__') : Promise.resolve([]))]);
+if (nucCache.length) todosNucleos = nucCache;
+if (usuCache.length) { todosUsuarios = usuCache; aplicarFiltros(); renderizarNucleosUI(); renderizarKpisGestao(); }
+} catch (e) { /* sem cache ainda: segue para o servidor */ }
+// 2) Núcleos e alunos do servidor — é o que o painel precisa para abrir de verdade.
+await Promise.all([carregarNucleos(), carregarUsuarios()]);
+renderizarNucleosUI();
+atualizarEstrelaHeader();
+renderizarKpisGestao();
+// 3) O resto (solicitações, avisos, materiais, financeiro, presenças, eventos)
+//    carrega em segundo plano: a tela já está utilizável enquanto chega.
+Promise.all([
 carregarSolicitacoes(),
 carregarAvisos(),
 carregarMateriais(),
 carregarFormacao(),
 carregarFinanceiro(),
 carregarRateios(),
-  carregarPresencas(),
+carregarPresencas(),
 carregarEventosResumo(),
-]);
-
-renderizarNucleosUI();
-atualizarEstrelaHeader();
-renderizarKpisGestao();
-preencherAlunosFinanceiro(); definirTipoLancamento('mensalidade');
+]).then(() => { renderizarKpisGestao(); preencherAlunosFinanceiro(); definirTipoLancamento('mensalidade'); aplicarFiltros(); }).catch((e) => console.warn('carga em segundo plano', e));
 // Apresentação em vídeo: abre sozinha quando o Instrutor/Professor/Mestre
 // entra na plataforma (se tiver vídeo) e fecha na foto do cartão.
 migrarApresentacoesDosNucleos().catch(() => {});

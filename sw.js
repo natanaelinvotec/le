@@ -1,23 +1,22 @@
-// sw.js — app instalável (PWA): velocidade, modo offline e notificações push.
+// sw.js — app instalável (PWA): cache "pesado" para celular e navegador,
+// modo offline e notificações push.
 //
-// VELOCIDADE (v6): as telas, scripts e estilos abrem DIRETO do aparelho
-// (sem esperar a internet) e, ao mesmo tempo, o app confere com o servidor se
-// algo mudou. Se mudou, ele baixa a versão nova de TODOS os arquivos guardados
-// de uma vez (para nunca misturar arquivo velho com novo) e avisa a tela:
-// aparece "Versão nova pronta · Atualizar". Quem não tocar recebe a versão nova
-// automaticamente na próxima vez que abrir.
-// Bibliotecas externas com versão no endereço (Firebase, React, Font Awesome,
-// fontes) nunca mudam: ficam guardadas e não voltam a ser baixadas.
+// VELOCIDADE (v17): TUDO abre do aparelho — telas, scripts, estilos, fontes,
+// ícones, bibliotecas do Firebase e fotos. Nada é conferido com o servidor a
+// cada abertura (antes, cada arquivo era reconferido toda vez: dezenas de
+// pedidos em paralelo brigando com o banco pela internet do celular).
+// A ÚNICA coisa que manda baixar de novo é a linha VERSAO abaixo — e uma
+// checagem leve, uma vez por dia, para o app instalado que fica aberto.
 //
 // Offline: sem internet o app abre com o que já foi carregado e o Firestore
-// mostra os dados do cache local dele. Fotos já vistas ficam guardadas (até 250).
+// mostra os dados do cache local dele. Fotos já vistas ficam guardadas (até 800).
 // Push: o Firebase Cloud Messaging entrega a notificação mesmo com o app fechado.
-const VERSAO = 'le-app-v16';
+const VERSAO = 'le-app-v17'; // ← mude SÓ isto a cada atualização publicada (ver quadro abaixo)
 const CACHE_TELAS = `${VERSAO}-telas`;
 const CACHE_FOTOS = `${VERSAO}-fotos`;
 const CACHE_LIBS = 'le-libs-v1'; // não depende da VERSAO: endereços versionados não mudam
-const MAX_FOTOS = 250;
-const MAX_LIBS = 80;
+const MAX_FOTOS = 800; // fotos de alunos, brasões e Rede guardadas no aparelho
+const MAX_LIBS = 120;
 
 // Mesmo projeto de js/escola.js (FIREBASE_CONFIG). Ao clonar para outra escola, troque aqui também.
 const FIREBASE_CONFIG = {
@@ -34,30 +33,56 @@ try {
   firebase.messaging(); // mostra sozinho as notificações que chegam com o app fechado
 } catch (e) { /* sem internet na instalação: o push volta na próxima atualização */ }
 
-// Guardados já na instalação: abrir qualquer tela principal não depende da internet.
+// ============================================================================
+// COMO ATUALIZAR O APP DEPOIS DE SUBIR ARQUIVOS NOVOS
+// Troque SÓ a linha "const VERSAO" lá em cima (ex.: le-app-v17 → le-app-v18).
+// O navegador percebe que este sw.js mudou, baixa tudo de novo numa tacada só,
+// apaga o cache antigo e mostra "Versão nova pronta · Atualizar" em quem
+// estiver com o app aberto. Quem abrir depois já entra na versão nova.
+// Não precisa mexer em ?v= nos HTMLs: este cache ignora o ?v= dos arquivos
+// do próprio site (a versão é a VERSAO acima).
+// ============================================================================
+
+// Guardados já na instalação: qualquer tela abre do aparelho, sem internet.
 const ESSENCIAIS = [
-  './', 'index.html', 'gerenciar.html', 'css/site.css', 'js/site.js', 'js/site-render.js', 'js/site-padrao.js', 'app.html', 'rede.html', 'admin.html', 'login.html', 'offline.html', 'instalar.html', 'instalar-rede.html',
-  'css/rede.css', 'css/admin.css',
+  './', 'index.html', 'login.html', 'app.html', 'admin.html', 'rede.html', 'gerenciar.html', 'offline.html', 'instalar.html', 'instalar-rede.html',
+  'brasoes.html', 'carteirinhas.html', 'carteirinha.html', 'certificado.html', 'certificados.html', 'master.html', 'checkin.html', 'v.html', 'inscricao.html', 'privacidade.html',
+  'css/site.css', 'css/rede.css', 'css/admin.css', 'css/carteirinha.css', 'css/certificado.css', 'css/certificados.css', 'css/master.css', 'css/gerenciar.css', 'css/inscricao.css',
   'js/firebase.js', 'js/escola.js', 'js/shared.js', 'js/support.js', 'js/experiencia.js', 'js/notificacoes.js',
-  'js/brasoes.js', 'js/conta.js', 'js/apresentacao.js', 'js/moderacao.js', 'js/lgpd.js', 'js/gestao.js', 'js/login.js',
-  'carteirinha.html', 'css/carteirinha.css', 'js/carteirinha.js', 'js/carteirinha-comum.js', 'js/qr.js',
-  'certificado.html', 'css/certificado.css', 'js/certificado.js', 'js/certificado-render.js', 'js/celebrar.js', 'js/card-story.js',
-  'certificados.html', 'css/certificados.css', 'js/certificados.js', 'js/assinatura.js', 'js/aniversarios.js',
+  'js/brasoes.js', 'js/brasoes-admin.js', 'js/conta.js', 'js/apresentacao.js', 'js/moderacao.js', 'js/lgpd.js', 'js/gestao.js', 'js/login.js', 'js/admin.js', 'js/rede.js', 'js/master.js', 'js/faceid.js',
+  'js/carteirinha.js', 'js/carteirinhas.js', 'js/carteirinha-comum.js', 'js/qr.js', 'js/verificar.js', 'js/checkin.js', 'js/inscricao.js', 'js/gerenciar.js',
+  'js/certificado.js', 'js/certificado-render.js', 'js/certificados.js', 'js/celebrar.js', 'js/card-story.js', 'js/assinatura.js', 'js/aniversarios.js',
+  'js/site.js', 'js/site-render.js', 'js/site-padrao.js',
   'manifest.webmanifest', 'rede.webmanifest',
 ];
 // Imagens essenciais vão para o cache de fotos (é lá que as imagens são procuradas).
-const IMAGENS_ESSENCIAIS = ['assets/app-icon-192.png', 'assets/rede-icon-192.png', 'assets/logo-liberdade.png', 'assets/logo-liberdade150.png', 'assets/parceiros/celula-20anos.png'];
+const IMAGENS_ESSENCIAIS = ['assets/app-icon-192.png', 'assets/rede-icon-192.png', 'assets/logo-liberdade.png', 'assets/logo-liberdade150.png', 'assets/marca/brasao-1024.png', 'assets/parceiros/celula-20anos.png'];
+// Bibliotecas externas que o painel e o app usam sempre: já ficam guardadas na
+// instalação (endereço com versão = nunca mudam = nunca baixam de novo).
+const LIBS_ESSENCIAIS = [
+  'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js', 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js',
+  'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js', 'https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js', 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-lite.js', 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-check.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-regular-400.woff2', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-brands-400.woff2',
+  'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js',
+];
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
   // Guarda o essencial sem travar a instalação se um arquivo falhar.
-  const guardar = (nome, lista) => caches.open(nome).then((c) => Promise.all(lista.map((u) => c.add(new Request(u, { cache: 'reload' })).catch(() => null))));
-  e.waitUntil(Promise.all([guardar(CACHE_TELAS, ESSENCIAIS), guardar(CACHE_FOTOS, IMAGENS_ESSENCIAIS)]));
+  const guardar = (nome, lista, opcoes) => caches.open(nome).then((c) => Promise.all(lista.map((u) => fetch(new Request(u, opcoes)).then((r) => { if (guardavel(r)) return c.put(chaveDe(new Request(u)), r); return null; }).catch(() => null))));
+  e.waitUntil(Promise.all([
+    guardar(CACHE_TELAS, ESSENCIAIS, { cache: 'reload', credentials: 'same-origin' }),
+    guardar(CACHE_FOTOS, IMAGENS_ESSENCIAIS, { cache: 'reload' }),
+    caches.open(CACHE_LIBS).then(async (c) => { for (const u of LIBS_ESSENCIAIS) { if (!(await c.match(u))) await fetch(u).then((r) => (guardavel(r) ? c.put(u, r) : null)).catch(() => null); } }),
+  ]));
 });
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys()
     .then((ks) => Promise.all(ks.filter((k) => k.startsWith('le-app-') && !k.startsWith(VERSAO)).map((k) => caches.delete(k))))
-    .then(() => self.clients.claim()));
+    .then(() => self.clients.claim())
+    // Quem está com o app aberto na versão velha vê "Versão nova pronta · Atualizar".
+    .then(() => self.clients.matchAll({ type: 'window', includeUncontrolled: true }))
+    .then((abas) => { if (abas.length) { novidadePendente = true; abas.forEach((a) => a.postMessage({ tipo: 'le-nova-versao' })); } }));
 });
 
 const ehFoto = (url, req) => req.destination === 'image' || /\.(png|jpe?g|webp|gif|svg|ico)(\?|$)/i.test(url.pathname) || url.hostname === 'firebasestorage.googleapis.com';
@@ -68,7 +93,8 @@ const ehLibFixa = (url) =>
   (url.hostname === 'cdnjs.cloudflare.com' && /\/ajax\/libs\/[^/]+\/\d/.test(url.pathname)) ||
   (url.hostname === 'cdn.jsdelivr.net' && /@\d/.test(url.pathname)) ||
   url.hostname === 'fonts.gstatic.com';
-// Externo sem versão no endereço (CSS do Google Fonts, jsdelivr "latest"): mostra o guardado e atualiza por trás.
+// Externo sem versão no endereço (CSS do Google Fonts, jsdelivr "latest"): guarda e usa do aparelho;
+// confere com o servidor só na checagem diária.
 const ehExternoVariavel = (url) => url.hostname === 'fonts.googleapis.com' || url.hostname === 'cdn.jsdelivr.net';
 // Banco, login, App Check e reCAPTCHA nunca passam por aqui — o SDK cuida deles.
 const ehApi = (url) => /firestore\.googleapis\.com|identitytoolkit|securetoken|firebaseinstallations|fcmregistrations|firebaseappcheck|content-firebaseappcheck|googleapis\.com\/(v1|google\.firestore)/.test(url.hostname + url.pathname)
@@ -80,72 +106,35 @@ async function limitar(nome, max) {
   for (let i = 0; i < ks.length - max; i++) await c.delete(ks[i]);
 }
 const guardavel = (r) => r && (r.ok || r.type === 'opaque');
+// Chave de cache dos arquivos do próprio site: sem ?v=... e sem #. Assim o
+// pré-cache da instalação serve os pedidos reais (que vêm com ?v=) e uma
+// mudança de ?v= não força download — a versão é a VERSAO deste arquivo.
+const chaveDe = (req) => { const u = new URL(req.url, self.location.href); return u.origin === self.location.origin ? new Request(u.origin + u.pathname) : req; };
 
-// ---------- Novidade: detectar versão nova e atualizar tudo de uma vez ----------
-// Assinatura de um arquivo = ETag/Last-Modified do GitHub Pages (ou o tamanho).
-const assinatura = (r) => (r && (r.headers.get('etag') || r.headers.get('last-modified') || r.headers.get('content-length'))) || '';
-let novidadePendente = false; // já baixou a versão nova e a tela aberta ainda é a velha
-let atualizandoTudo = null;
-let rodando = false;
-
-async function avisarTelas() {
-  novidadePendente = true;
-  const abas = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-  abas.forEach((a) => a.postMessage({ tipo: 'le-nova-versao' }));
-}
-// Rebaixa cada arquivo do próprio site guardado no aparelho numa área SEPARADA
-// e só troca tudo de uma vez no fim — a tela nunca lê metade nova, metade velha.
-// Se faltar internet no meio, nada é trocado (fica a versão velha inteira).
-const CACHE_NOVO = `${VERSAO}-novo`;
-function atualizarTudo() {
-  if (atualizandoTudo) return atualizandoTudo;
-  rodando = true;
-  atualizandoTudo = (async () => {
-    const c = await caches.open(CACHE_TELAS);
-    await caches.delete(CACHE_NOVO);
-    const novo = await caches.open(CACHE_NOVO);
-    const pedidos = await c.keys();
-    let i = 0; let falhou = false;
-    const trabalhador = async () => {
-      while (i < pedidos.length && !falhou) {
-        const req = pedidos[i++];
-        try {
-          const r = await fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' });
-          if (r && r.ok && r.status === 200) await novo.put(req, r);
-          else if (!r || r.status !== 404) falhou = true; // 404: arquivo saiu do site, fica o velho
-        } catch (e) { falhou = true; }
-      }
-    };
-    await Promise.all([trabalhador(), trabalhador(), trabalhador(), trabalhador()]);
-    if (!falhou) {
-      const prontos = await novo.keys();
-      const respostas = await Promise.all(prontos.map((k) => novo.match(k)));
-      await Promise.all(prontos.map((k, n) => c.put(k, respostas[n])));
-    }
-    await caches.delete(CACHE_NOVO);
-    rodando = false;
-    if (!falhou) await avisarTelas();
-  })().finally(() => { rodando = false; setTimeout(() => { atualizandoTudo = null; }, 30000); });
-  return atualizandoTudo;
-}
-
-// Confere um arquivo do site com o servidor. Igual: guarda. Diferente: NÃO troca
-// só ele — dispara a troca de tudo (atualizarTudo), para não misturar versões.
-async function conferir(chave, cache, guardada) {
-  try {
-    const r = await fetch(chave.url, { cache: 'no-cache', credentials: 'same-origin' });
-    if (!r || !r.ok || r.status !== 200) return r;
-    if (guardada && assinatura(guardada) !== assinatura(r)) { atualizarTudo(); return r; }
-    if (!rodando) await cache.put(chave, r.clone());
-    return r;
-  } catch (e) { return null; }
-}
-
+// ---------- Versão nova ----------
+let novidadePendente = false; // o app aberto ainda é a versão velha
 self.addEventListener('message', (e) => {
   const d = e.data || {};
   if (d.tipo === 'le-tem-novidade' && novidadePendente && e.source) e.source.postMessage({ tipo: 'le-nova-versao' });
   if (d.tipo === 'le-aplicou') novidadePendente = false;
 });
+// Checagem diária (app instalado que fica dias aberto): lê este sw.js no
+// servidor e, se a VERSAO lá for outra, manda o navegador instalar a nova.
+// Uma leitura pequena por dia — e não uma conferência de cada arquivo a cada abertura.
+const META = 'le-meta';
+const INTERVALO_CHECAGEM = 12 * 3600000;
+async function checarVersaoNoServidor() {
+  try {
+    const meta = await caches.open(META);
+    const ultima = await meta.match('ultima-checagem');
+    if (ultima && Date.now() - Number(await ultima.text()) < INTERVALO_CHECAGEM) return;
+    await meta.put('ultima-checagem', new Response(String(Date.now())));
+    const r = await fetch(self.location.href, { cache: 'no-cache' });
+    if (!r.ok) return;
+    const m = /const VERSAO = '([^']+)'/.exec(await r.text());
+    if (m && m[1] !== VERSAO) await self.registration.update();
+  } catch (e) { /* sem internet: tenta no próximo dia */ }
+}
 
 self.addEventListener('fetch', (e) => {
   const req = e.request;
@@ -162,7 +151,8 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  if (ehLibFixa(url)) {
+  // Bibliotecas externas com versão fixa e CSS de fontes: do aparelho; baixa uma vez só.
+  if (ehLibFixa(url) || ehExternoVariavel(url)) {
     e.respondWith(caches.open(CACHE_LIBS).then(async (c) => {
       const guardada = await c.match(req);
       if (guardada) return guardada;
@@ -173,49 +163,39 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
+  // Fotos e imagens (Storage e do site): do aparelho; baixa uma vez só.
+  // Toda foto nova no Storage tem endereço novo (carimbo de data), então a
+  // guardada nunca fica "velha". As do site trocam junto com a VERSAO.
   if (ehFoto(url, req)) {
-    // Foto: mostra a guardada na hora e atualiza por trás.
     e.respondWith(caches.open(CACHE_FOTOS).then(async (c) => {
-      const guardada = await c.match(req);
-      const rede = fetch(req).then((r) => { if (guardavel(r)) { c.put(req, r.clone()).then(() => limitar(CACHE_FOTOS, MAX_FOTOS)).catch(() => {}); } return r; }).catch(() => guardada || Response.error());
-      if (guardada) { e.waitUntil(rede.catch(() => null)); return guardada; }
-      return rede;
-    }));
-    return;
-  }
-
-  if (ehExternoVariavel(url)) {
-    e.respondWith(caches.open(CACHE_LIBS).then(async (c) => {
-      const guardada = await c.match(req);
-      const rede = fetch(req).then((r) => { if (guardavel(r)) c.put(req, r.clone()).catch(() => {}); return r; });
-      if (guardada) { e.waitUntil(rede.catch(() => null)); return guardada; }
-      return rede;
+      const chave = url.origin === self.location.origin ? chaveDe(req) : req;
+      const guardada = await c.match(chave);
+      if (guardada) return guardada;
+      try {
+        const r = await fetch(req);
+        if (guardavel(r)) c.put(chave, r.clone()).then(() => limitar(CACHE_FOTOS, MAX_FOTOS)).catch(() => {});
+        return r;
+      } catch (err) { return Response.error(); }
     }));
     return;
   }
 
   if (url.origin !== self.location.origin) return;
 
-  // Telas, scripts e estilos do próprio site: do aparelho na hora + conferência por trás.
+  // Telas, scripts e estilos do próprio site: do aparelho, sem conferir cada
+  // arquivo a cada abertura. A atualização é pela VERSAO (ver o quadro no topo).
   const navegacao = req.mode === 'navigate';
-  // Tela aberta depois que a versão nova terminou de baixar já É a nova.
-  if (navegacao && !rodando) novidadePendente = false;
-  // Página: a chave é o endereço sem ?modo=... e sem #, para achar a tela guardada.
-  const chave = navegacao ? new Request(url.origin + url.pathname) : req;
+  if (navegacao) { novidadePendente = false; e.waitUntil(checarVersaoNoServidor()); }
+  const chave = chaveDe(req);
   e.respondWith(caches.open(CACHE_TELAS).then(async (c) => {
     const guardada = await c.match(chave);
-    if (guardada) {
-      e.waitUntil(conferir(chave, c, guardada));
-      return guardada;
-    }
-    // Primeira vez (ou arquivo novo): internet; sem internet, o que tiver.
+    if (guardada) return guardada;
+    // Arquivo que não estava no pré-cache: baixa uma vez e guarda.
     try {
       const r = await fetch(req);
       if (r && r.ok && r.status === 200 && r.type === 'basic' && !r.redirected) c.put(chave, r.clone()).catch(() => {});
       return r;
     } catch (err) {
-      const parecida = await c.match(req, { ignoreSearch: true });
-      if (parecida) return parecida;
       if (navegacao) return (await c.match('offline.html')) || Response.error();
       return Response.error();
     }

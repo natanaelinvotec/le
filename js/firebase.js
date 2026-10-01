@@ -12,7 +12,7 @@ import {
 import {
   getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc,
   deleteDoc, query, where, orderBy, limit, startAfter, arrayUnion,
-  getCountFromServer, initializeFirestore, persistentLocalCache,
+  getCountFromServer, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, getDocsFromCache,
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import {
   getStorage, ref as storageRef, uploadString, getDownloadURL, uploadBytes, deleteObject,
@@ -40,7 +40,9 @@ export const firebaseApp = app;
 export const auth = initializeAuth(app, { persistence: [browserLocalPersistence, indexedDBLocalPersistence] });
 // Cache local ligado - visões repetidas na mesma sessão não voltam a ler do
 // servidor o que não mudou (parte do esforço de reduzir leituras do Firestore).
-export const db = initializeFirestore(app, { localCache: persistentLocalCache() });
+// Cache local do Firestore compartilhado entre abas (painel + Rede abertos
+// juntos): antes, a segunda aba ficava SEM cache e relia tudo do servidor.
+export const db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
 export const storage = getStorage(app);
 
 // App Check (reCAPTCHA v3): só liga quando a chave do site estiver em escola.js.
@@ -231,6 +233,15 @@ export async function criarContaComoAdmin(email, senha, dados) {
 
 // ===== Coleções genéricas =====
 export const listar = async (col) => (await getDocs(collection(db, col))).docs.map((d) => ({ id: d.id, ...d.data() }));
+// "Do aparelho primeiro": o que o Firestore já guardou da última visita, na hora
+// (0 leituras, sem esperar a internet). A tela pinta com isso e troca pelo dado
+// do servidor logo em seguida. Devolve [] quando ainda não há nada guardado.
+export const listarDoCache = async (col, academiaId = null) => {
+  try {
+    const q = academiaId ? query(collection(db, col), where('academiaId', '==', academiaId)) : collection(db, col);
+    return (await getDocsFromCache(q)).docs.map((d) => ({ id: d.id, ...d.data() }));
+  } catch (e) { return []; }
+};
 // Consulta simples por igualdade (provável pelas regras quando o campo é o
 // mesmo que a regra confere — ex.: instrutorUid == uid do instrutor logado).
 export const listarOnde = async (col, campo, valor) =>
