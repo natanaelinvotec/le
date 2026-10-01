@@ -18,6 +18,7 @@ import { rotinaDiaria, executarComando } from './src/rotinas.js';
 import { criarVision } from './src/moderacao.js';
 import { aoEscreverFotoCarteirinha, sincronizarCarteirinha } from './src/carteirinha.js';
 import { processarLembretes } from './src/certificado.js';
+import { processarAniversarios } from './src/aniversarios.js';
 
 // Região: a mesma do banco (o GitHub Actions descobre e grava em .env como REGIAO).
 setGlobalOptions({ region: process.env.REGIAO || 'southamerica-east1', maxInstances: 5, memory: '256MiB' });
@@ -73,6 +74,12 @@ export const rotinaDaMadrugada = onSchedule({ schedule: 'every day 03:00', timeZ
 export const lembretesDoDia = onSchedule({ schedule: 'every day 10:00', timeZone: 'America/Campo_Grande' }, async () => {
   const n = await processarLembretes(ctxBase());
   console.log('lembretes enviados', n);
+});
+
+// Aniversários: aviso 48 h antes e no dia para o responsável do núcleo e o Admin Master.
+export const aniversariosDoDia = onSchedule({ schedule: 'every day 07:00', timeZone: 'America/Campo_Grande' }, async () => {
+  const n = await processarAniversarios(ctxBase());
+  console.log('avisos de aniversário', n);
 });
 
 // ---------- Pedidos do painel (só Admin Master) ----------

@@ -12,7 +12,7 @@
 // Offline: sem internet o app abre com o que já foi carregado e o Firestore
 // mostra os dados do cache local dele. Fotos já vistas ficam guardadas (até 250).
 // Push: o Firebase Cloud Messaging entrega a notificação mesmo com o app fechado.
-const VERSAO = 'le-app-v14';
+const VERSAO = 'le-app-v15';
 const CACHE_TELAS = `${VERSAO}-telas`;
 const CACHE_FOTOS = `${VERSAO}-fotos`;
 const CACHE_LIBS = 'le-libs-v1'; // não depende da VERSAO: endereços versionados não mudam
@@ -42,7 +42,7 @@ const ESSENCIAIS = [
   'js/brasoes.js', 'js/conta.js', 'js/apresentacao.js', 'js/moderacao.js', 'js/lgpd.js', 'js/gestao.js', 'js/login.js',
   'carteirinha.html', 'css/carteirinha.css', 'js/carteirinha.js', 'js/carteirinha-comum.js', 'js/qr.js',
   'certificado.html', 'css/certificado.css', 'js/certificado.js', 'js/certificado-render.js', 'js/celebrar.js', 'js/card-story.js',
-  'certificados.html', 'css/certificados.css', 'js/certificados.js', 'js/assinatura.js',
+  'certificados.html', 'css/certificados.css', 'js/certificados.js', 'js/assinatura.js', 'js/aniversarios.js',
   'manifest.webmanifest', 'rede.webmanifest',
 ];
 // Imagens essenciais vão para o cache de fotos (é lá que as imagens são procuradas).

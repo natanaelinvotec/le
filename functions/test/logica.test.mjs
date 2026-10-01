@@ -557,3 +557,24 @@ test('cordão voltou (prontuário): certificados, trocas e festa acima do cordã
   const deCordao = Object.keys(pub.brasoes).map(brPorId).filter((b) => b && b.regra.tipo === 'cordao').map((b) => b.regra.meta);
   assert.ok(!deCordao.includes('Vagante') && !deCordao.includes('Quilombola'), `sem brasão de cordão acima: ${deCordao}`);
 });
+
+import { processarAniversarios, aniversariantesEm, aniversarioNoAno } from '../src/aniversarios.js';
+test('aniversários: aviso 48 h antes e no dia para o responsável do núcleo e o Admin (sem duplicar)', async () => {
+  const ini = base();
+  ini.usuarios.nat.dataNasc = '1996-10-03'; // daqui a 2 dias (hoje = 01/10/2026)
+  ini.usuarios.kid.dataNasc = '2016-10-01'; // hoje
+  ini.usuarios.mae.dataNasc = '1986-10-03'; ini.usuarios.mae.statusAtual = 'Inativo'; // inativo não avisa
+  const { f, ctx } = ctxDe(ini);
+  const hoje = new Date(2026, 9, 1, 7, 0, 0);
+  assert.deepEqual(aniversariantesEm(Object.entries(ini.usuarios).map(([id, u]) => ({ id, ...u })), hoje, 2).map((a) => [a.uid, a.idade]), [['nat', 30]]);
+  await processarAniversarios(ctx, hoje);
+  await processarAniversarios(ctx, hoje); // a rotina rodou 2x: não duplica
+  const daTay = notifs(f, 'tay').filter((n) => n.tipo === 'aniversario');
+  assert.equal(daTay.length, 2, 'um aviso de 48 h e um do dia');
+  assert.ok(daTay.some((n) => n.dias === 2 && /Natanael \(30 anos\)/.test(n.texto)));
+  assert.ok(daTay.some((n) => n.dias === 0 && /Teste \(10 anos\)/.test(n.texto)));
+  assert.equal(notifs(f, 'admin').filter((n) => n.tipo === 'aniversario').length, 2);
+  assert.equal(notifs(f, 'profeta').filter((n) => n.tipo === 'aniversario').length, 0, 'outro núcleo não recebe');
+  // 29/02 em ano comum → 28/02
+  assert.equal(aniversarioNoAno({ a: 2000, m: 2, d: 29 }, 2027).getDate(), 28);
+});

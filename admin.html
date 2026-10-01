@@ -15,7 +15,7 @@ por Firebase Authentication (usuarios/{uid}.papeis). -->
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js">
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js">
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js">
-<link rel="stylesheet" href="css/admin.css?v=20260930b">
+<link rel="stylesheet" href="css/admin.css?v=20261001">
 </head>
 <body>
 <noscript>Este painel exige JavaScript habilitado para funcionar.</noscript>
@@ -53,6 +53,7 @@ redirecionado pra login.html por admin.js (ver checarSessaoOuRedirecionar). -->
 <a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('financeiro', event)">Financeiro</a>
 <a href="#" class="nav-item" data-papel="admin" onclick="mudarAba('rateio', event)">Despesas</a>
 <a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('presenca', event)">Presenças</a>
+<a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('aniversarios', event)"><i class="fas fa-cake-candles"></i> Aniversários <span class="an-badge" id="anBadge" hidden>0</span></a>
 <a href="#" class="nav-item" data-papel="gestor" onclick="irParaRelatorios(event)">Relatórios</a>
 <a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('indicadores', event)"><i class="fas fa-chart-line"></i> Indicadores</a>
 <a href="#" class="nav-item" data-papel="formacao" onclick="mudarAba('graduacao', event)"><i class="fas fa-ribbon"></i> Graduação</a>
@@ -480,6 +481,11 @@ pra não recalcular a cada aula. -->
 <div class="lista-simples" id="listaPresencas"></div>
 </section>
 
+<section id="aba-aniversarios" class="aba-content">
+<div class="section-header"><div><span class="eyebrow">Calendário do grupo</span><h2><i class="fas fa-cake-candles"></i> Aniversários</h2></div></div>
+<div id="anConteudo"></div>
+</section>
+
 <section id="aba-indicadores" class="aba-content">
 <div class="section-header"><div><span class="eyebrow">Gestão do núcleo</span><h2><i class="fas fa-chart-line"></i> Indicadores</h2></div></div>
 <div id="gsIndicadores"></div>
@@ -661,6 +667,6 @@ pra não recalcular a cada aula. -->
 </div>
 </div>
 
-<script type="module" src="js/admin.js?v=20261001b"></script>
+<script type="module" src="js/admin.js?v=20261001c"></script>
 </body>
 </html>

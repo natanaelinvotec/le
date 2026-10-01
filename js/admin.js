@@ -26,7 +26,8 @@ lancarPagamento, listarPagamentosDoNucleo, marcarPagamento,
 lancarDespesaComRateio, todosRateios, marcarRateioPago,
   presencasDoNucleo, presencasVisitantesDoNucleo, salvarFotoPerfil,
 } from './firebase.js';
-import { iniciarGestao, abrirTela as abrirTelaGestao, renderRelatoriosGerais } from './gestao.js?v=20260930b';
+import { iniciarGestao, abrirTela as abrirTelaGestao, renderRelatoriosGerais, exportarExcel, exportarPDF } from './gestao.js?v=20260930b';
+import { iniciarAniversarios, renderAniversarios, lembrete48h } from './aniversarios.js?v=20261001';
 import { iniciarExperiencia, abrirAcessibilidade, tutorial, pedirAceiteSeNecessario } from './experiencia.js';
 import { ligarContador, abrirCentral, ouvirPushComAppAberto } from './notificacoes.js?v=20260926e';
 import { apresentacaoDe, migrarApresentacao, tocarApresentacao, tocarAoEntrar, gerenciarApresentacao, abrirMinhaConta, abrirTrocaSenha, definirAutor, podeTerApresentacao, formatarCelular, celularValido, celularDe } from './conta.js?v=20261001';
@@ -459,11 +460,21 @@ sessao: () => sessaoAtual, usuarios: () => todosUsuarios, nucleos: () => todosNu
 ehAdmin, ehGestor, fundador: () => souFundador(sessaoAtual), instrutor: ehInstrutorLogado, recarregarUsuarios: carregarUsuarios,
 });
 try { renderRelatoriosGerais(ehAdmin() && selectFiltroAcademia ? (selectFiltroAcademia.value || null) : null); } catch (e) { /* ok */ }
+// Aniversários: aba + lembrete de 48 h no topo (Admin, Fundador e responsável de núcleo).
+if (ehGestor() || ehAdmin() || souFundador(sessaoAtual)) {
+try {
+iniciarAniversarios({
+usuarios: () => (souFundador(sessaoAtual) && !ehAdmin() && Array.isArray(arvoreUsuarios) ? arvoreUsuarios : todosUsuarios), nucleos: () => todosNucleos, sessao: () => sessaoAtual,
+ehAdmin, fundador: () => souFundador(sessaoAtual), toast, salvarUsuario: (id, dados) => atualizar('usuarios', id, dados), exportarExcel, exportarPDF,
+});
+} catch (e) { console.warn('aniversários', e); }
+}
 iniciarExperiencia();
 { const eu = todosUsuarios.find((u) => u.id === sessaoAtual.uid) || sessaoAtual; pedirAceiteSeNecessario({ ...sessaoAtual, ...eu }, (d) => atualizar('usuarios', sessaoAtual.uid, d)); }
 ligarContador(sessaoAtual.uid, (n) => { const b = document.getElementById('sinoContPainel'); if (!b) return; b.textContent = n > 9 ? '9+' : String(n); b.classList.toggle('oculto', !n); });
 ouvirPushComAppAberto((n) => toast(`${n.title || 'Notificação'}${n.body ? ` — ${n.body}` : ''}`));
 if (location.hash === '#lgpd' && ehAdmin()) window.mudarAba('lgpd');
+if (location.hash === '#aniversarios' && (ehGestor() || ehAdmin() || souFundador(sessaoAtual))) window.mudarAba('aniversarios');
 setTimeout(() => window.__tutorialPainel(false), 1500);
 {
 const eu = todosUsuarios.find((u) => u.id === sessaoAtual.uid) || { id: sessaoAtual.uid, ...sessaoAtual };
@@ -648,6 +659,7 @@ if (!alvo) return;
 alvo.classList.add('active');
 if (abaId === 'financeiro') { preencherAlunosFinanceiro(); definirTipoLancamento(tipoLancamento); }
 if (['indicadores', 'graduacao', 'eventos', 'auditoria', 'lgpd'].includes(abaId)) abrirTelaGestao(abaId);
+if (abaId === 'aniversarios') { try { renderAniversarios(); } catch (e) { console.error(e); toast('Não foi possível abrir os aniversários.', 'error'); } }
 if (evt && evt.currentTarget && evt.currentTarget.classList) {
 evt.currentTarget.classList.add('active');
 } else {
@@ -955,6 +967,7 @@ if (souFundador(sessaoAtual) && !ehAdmin()) {
 try { arvoreUsuarios = await listar('usuarios'); } catch (e) { console.warn('Árvore: sem leitura geral, usando só o núcleo.', e); arvoreUsuarios = null; }
 }
 aplicarFiltros();
+try { lembrete48h(); } catch (e) { /* aba de aniversários ainda não iniciada */ }
 } catch (e) {
 console.error(e);
 toast('Não foi possível carregar os alunos.', 'error');
