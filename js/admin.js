@@ -330,7 +330,7 @@ return;
 try {
 await iniciarPainel();
 // Mestres e professores também treinam: troca de cordão e brasão novo saltam aqui.
-setTimeout(() => { import('./celebrar.js?v=20260930b').then((m) => m.verificarCelebracoes(sessaoAtual.uid, sessaoAtual)).catch((er) => console.warn('festa', er)); }, 2200);
+setTimeout(() => { import('./celebrar.js?v=20261002').then((m) => m.verificarCelebracoes(sessaoAtual.uid, sessaoAtual)).catch((er) => console.warn('festa', er)); }, 2200);
 } catch (e) {
 console.error('Erro ao montar o painel:', e);
 const telaCarregando = document.getElementById('telaCarregando');

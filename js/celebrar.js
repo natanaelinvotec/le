@@ -30,6 +30,14 @@ const BRASAO_GRUPO = 'assets/marca/brasao-1024.png';
 const INSTAGRAM = '@capoeiraliberdadeeexpressao';
 const linkSite = () => new URL('index.html', location.href).href;
 const semMovimento = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Celular, tela pequena, pouca memória ou economia de dados → festa em modo leve (ver CSS .festa.leve).
+const modoLeve = () => {
+  try {
+    const n = navigator;
+    return matchMedia('(pointer: coarse)').matches || Math.min(innerWidth, innerHeight) < 700
+      || (typeof n.deviceMemory === 'number' && n.deviceMemory <= 3) || !!(n.connection && n.connection.saveData);
+  } catch (e) { return true; }
+};
 
 /* O card tem 1080×1920 "pontos" (o mesmo do PNG de stories). Dentro dele tudo é
 medido em --k = 1/1080 da largura (unidade de container), então a festa é o card
@@ -40,6 +48,7 @@ const CSS = `
   animation:fstFundo .5s cubic-bezier(.16,1,.3,1)}
 @keyframes fstFundo{from{opacity:0}}
 .fst-luzes{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.fst-feixes,.fst-bola,.fst-raios,.fst-onda,.fst-img-brasao,.fst-anel,.fst-borda::before{will-change:transform}
 .fst-feixes{position:absolute;left:50%;top:32%;width:220vmax;height:220vmax;margin:-110vmax 0 0 -110vmax;border-radius:50%;opacity:.34;mix-blend-mode:screen;filter:blur(14px);
   background:conic-gradient(from 0deg,transparent 0 6deg,var(--n1) 9deg,transparent 13deg 42deg,var(--n2) 46deg,transparent 51deg 84deg,var(--n3) 88deg,transparent 93deg 128deg,var(--n1) 131deg,transparent 135deg 172deg,var(--n2) 176deg,transparent 181deg 218deg,var(--n3) 222deg,transparent 227deg 262deg,var(--n1) 266deg,transparent 270deg 306deg,var(--n2) 310deg,transparent 315deg 360deg);
   -webkit-mask:radial-gradient(circle,#000 0,#000 18%,transparent 58%);mask:radial-gradient(circle,#000 0,#000 18%,transparent 58%);animation:fstGira 26s linear infinite}
@@ -83,11 +92,11 @@ const CSS = `
   text-shadow:0 0 calc(var(--k)*6) #fff,0 0 calc(var(--k)*22) var(--n1),0 0 calc(var(--k)*56) var(--n1)}
 .fst-titulo .l{display:block;white-space:nowrap}.fst-titulo .l+.l{margin-top:calc(var(--k)*-2)}
 .fst-titulo .c{display:inline-block;animation:fstLetra .75s cubic-bezier(.16,1,.3,1) calc(.55s + var(--i) * 45ms) both}
-@keyframes fstLetra{0%{opacity:0;transform:translateY(.55em) scale(.2) rotate(-18deg);filter:blur(10px)}70%{transform:translateY(-.06em) scale(1.12)}100%{opacity:1;transform:none;filter:none}}
+@keyframes fstLetra{0%{opacity:0;transform:translateY(.55em) scale(.2) rotate(-18deg)}70%{transform:translateY(-.06em) scale(1.12)}100%{opacity:1;transform:none}}
 @keyframes fstNeon{0%{text-shadow:0 0 calc(var(--k)*6) #fff,0 0 calc(var(--k)*22) var(--n1),0 0 calc(var(--k)*56) var(--n1)}
   50%{text-shadow:0 0 calc(var(--k)*8) #fff,0 0 calc(var(--k)*30) var(--n2),0 0 calc(var(--k)*80) var(--n2)}
   100%{text-shadow:0 0 calc(var(--k)*6) #fff,0 0 calc(var(--k)*26) var(--n3),0 0 calc(var(--k)*70) var(--n3)}}
-.fst-corda-caixa{left:calc(var(--k)*-160);right:calc(var(--k)*-160);transform:translateY(-50%) rotate(var(--rot,-11deg));filter:drop-shadow(0 0 calc(var(--k)*14) var(--n1)) drop-shadow(0 0 calc(var(--k)*42) var(--n2)) drop-shadow(0 calc(var(--k)*24) calc(var(--k)*30) rgba(0,0,0,.55))}
+.fst-corda-caixa{left:calc(var(--k)*-160);right:calc(var(--k)*-160);transform:translateY(-50%) rotate(var(--rot,-11deg));border-radius:999px;box-shadow:0 0 calc(var(--k)*14) var(--n1),0 0 calc(var(--k)*42) var(--n2),0 calc(var(--k)*24) calc(var(--k)*30) rgba(0,0,0,.55)}
 .fst-corda{position:relative;height:calc(var(--k)*var(--esp,64));border-radius:999px;overflow:hidden;
   background:repeating-linear-gradient(45deg,var(--c1) 0 calc(var(--k)*var(--p,22)),var(--c2) calc(var(--k)*var(--p,22)) calc(var(--k)*var(--p,22)*2),var(--c3) calc(var(--k)*var(--p,22)*2) calc(var(--k)*var(--p,22)*3));
   clip-path:inset(0 0 0 0 round 999px);animation:fstDesenha 1.25s cubic-bezier(.16,1,.3,1) 1.05s both,fstCorre 1.6s linear 2.2s infinite}
@@ -100,7 +109,7 @@ const CSS = `
   background:linear-gradient(100deg,#fff 0 40%,var(--n1) 47%,#fff 52%,var(--n2) 57%,#fff 64% 100%);background-size:260% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
   filter:drop-shadow(0 0 calc(var(--k)*16) rgba(255,255,255,.35));animation:fstSobe .9s cubic-bezier(.16,1,.3,1) 1.7s both,fstBrilhaNome 4.5s linear 2.6s infinite}
 @keyframes fstBrilhaNome{from{background-position:100% 0}to{background-position:-160% 0}}
-@keyframes fstSobe{from{opacity:0;transform:translateY(calc(var(--k)*60));filter:blur(8px)}}
+@keyframes fstSobe{from{opacity:0;transform:translateY(calc(var(--k)*60))}}
 .fst-pill{left:50%;right:auto;transform:translateX(-50%);display:flex;align-items:center;gap:calc(var(--k)*24);height:calc(var(--k)*96);padding:0 calc(var(--k)*40) 0 calc(var(--k)*24);border-radius:999px;white-space:nowrap;
   background:rgba(255,255,255,.1);border:calc(var(--k)*2) solid rgba(255,255,255,.18);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);font:800 calc(var(--k)*44) 'Sora',sans-serif;
   box-shadow:0 0 calc(var(--k)*30) -4px var(--n1);animation:fstPop .8s cubic-bezier(.16,1,.3,1) 2s both,fstPillLuz 2.4s ease-in-out 2.8s infinite}
@@ -141,6 +150,27 @@ const CSS = `
 @keyframes cai{to{transform:translate(var(--dx,0),110vh) rotate(var(--r,720deg))}}
 .fst-estouro{position:fixed;z-index:9001;width:9px;height:9px;border-radius:50%;pointer-events:none;animation:fstEstoura 1.1s cubic-bezier(.16,1,.3,1) forwards}
 @keyframes fstEstoura{to{transform:translate(var(--dx),var(--dy)) scale(.3);opacity:0}}
+/* ----- modo leve (celular e aparelhos fracos): mesma festa, sem o que derruba a GPU -----
+   Em celulares, blur em camadas gigantes + mix-blend-mode + sombras animadas estouram a
+   memória de vídeo e o navegador descarta pedaços da tela (letras e botões somem/piscam).
+   Aqui as luzes viram gradientes (sem filtro), o neon fica fixo e as sombras param de pulsar. */
+.festa.leve .fst-feixes{filter:none;mix-blend-mode:normal;opacity:.22}
+.festa.leve .fst-feixes.f2{display:none}
+.festa.leve .fst-bola{filter:none;mix-blend-mode:normal;opacity:.5;background:radial-gradient(circle,var(--b) 0,transparent 62%)}
+.festa.leve .fst-bola.b1{--b:var(--n1)}.festa.leve .fst-bola.b2{--b:var(--n2)}.festa.leve .fst-bola.b3{--b:var(--n3)}
+.festa.leve .fst-raios{mix-blend-mode:normal;opacity:.3}
+.festa.leve .fst-borda{animation:fstEntra .9s cubic-bezier(.16,1,.3,1) both}
+.festa.leve .fst-anel.brilho{display:none}
+.festa.leve .fst-disco{box-shadow:0 calc(var(--k)*30) calc(var(--k)*60) rgba(0,0,0,.6),0 0 calc(var(--k)*50) var(--n1)}
+.festa.leve .fst-img-brasao{filter:drop-shadow(0 0 calc(var(--k)*30) var(--n1))}
+.festa.leve .fst-titulo{animation:none}
+.festa.leve .fst-corda::after{display:none}
+.festa.leve .fst-nome{filter:none;animation:fstSobe .9s cubic-bezier(.16,1,.3,1) 1.7s both}
+.festa.leve .fst-pill{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(255,255,255,.14);animation:fstPop .8s cubic-bezier(.16,1,.3,1) 2s both}
+.festa.leve .fst-faisca{filter:none}
+.festa.leve .fst-x{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(255,255,255,.2)}
+.festa.leve .fst-bts .principal{animation:none}
+.festa.leve .fst-mini-lista img{filter:none}
 @media (prefers-reduced-motion:reduce){
   .festa,.festa *,.festa *::before,.festa *::after{animation:none!important}
   .fst-onda,.fst-faisca{display:none}
@@ -186,7 +216,8 @@ function neons(cores) {
 function confetes(cores) {
   if (semMovimento()) return;
   const paleta = cores.concat(['#00E676', '#7FD3C7', '#FFFFFF']);
-  for (let i = 0; i < 90; i++) {
+  const total = modoLeve() ? 45 : 90;
+  for (let i = 0; i < total; i++) {
     const p = document.createElement('span'); p.className = `confete${i % 4 === 0 ? ' fita' : ''}`;
     p.style.left = `${Math.random() * 100}vw`; p.style.background = paleta[i % paleta.length];
     p.style.setProperty('--dx', `${Math.round((Math.random() - 0.5) * 30)}vw`);
@@ -307,8 +338,9 @@ export function abrirFesta(festa, { uid, perfil } = {}) {
       ? `<div class="fst-peca" style="${Y(y.centro)};width:calc(var(--k)*${y.tam});height:calc(var(--k)*${y.tam})"><img class="fst-img-brasao" src="${esc(urlPng(principal))}" alt="${esc(principal.nome)}"></div>`
       : `<div class="fst-peca" style="${Y(y.centro)};width:calc(var(--k)*300);height:calc(var(--k)*300)"><i class="fst-anel brilho" aria-hidden="true"></i><i class="fst-anel" aria-hidden="true"></i><span class="fst-disco"><img src="${BRASAO_GRUPO}" alt="Brasão do Grupo ${esc(ESCOLA.nomeCurto)}"></span></div>`;
 
+    const leve = modoLeve();
     const raiz = document.createElement('div');
-    raiz.className = 'festa';
+    raiz.className = leve ? 'festa leve' : 'festa';
     raiz.setAttribute('role', 'dialog'); raiz.setAttribute('aria-modal', 'true'); raiz.setAttribute('aria-label', tituloCard);
     raiz.style.cssText = `--n1:${luz[0]};--n2:${luz[1]};--n3:${luz[2]};--c1:${cordaCores[0]};--c2:${cordaCores[1]};--c3:${cordaCores[2]}`;
     const txt = festa.lembrete
@@ -324,7 +356,7 @@ export function abrirFesta(festa, { uid, perfil } = {}) {
           <i class="fst-circ" style="${Y(y.centro)};width:calc(var(--k)*1000);height:calc(var(--k)*1000)" aria-hidden="true"></i>
           <i class="fst-raios" style="${Y(y.centro)}" aria-hidden="true"></i>
           <i class="fst-onda" style="${Y(y.centro)}" aria-hidden="true"></i><i class="fst-onda o2" style="${Y(y.centro)}" aria-hidden="true"></i><i class="fst-onda o3" style="${Y(y.centro)}" aria-hidden="true"></i>
-          ${faiscas(22, luz)}
+          ${faiscas(leve ? 8 : 22, luz)}
           ${peca}
           <span class="fst-eyebrow" style="${Y(y.eyebrow)}">${esc(eyebrow)}</span>
           <h2 class="fst-titulo" style="${Y(y.titulo)};font-size:calc(var(--k)*${tamTitulo})" aria-label="${esc(tituloCard)}">${letras(linhasTitulo)}</h2>

@@ -855,7 +855,7 @@ btn3d.remove();
 }
 // Festa de brasão (e compartilhar: stories, WhatsApp, Rede) — a mesma do app (js/celebrar.js).
 function abrirFestaBrasoes(ids, soCompartilhar = false) {
-import('./celebrar.js?v=20260930b').then((m) => m.abrirFesta({ tipo: 'brasao', nome: perfil.nome || (meuPub && meuPub.nome) || '', brasoes: ids, compartilhar: soCompartilhar }, { uid, perfil }))
+import('./celebrar.js?v=20261002').then((m) => m.abrirFesta({ tipo: 'brasao', nome: perfil.nome || (meuPub && meuPub.nome) || '', brasoes: ids, compartilhar: soCompartilhar }, { uid, perfil }))
 .catch(() => { if (!soCompartilhar) celebrarBrasoesSimples(ids); });
 }
 function celebrarBrasoes(ids) { abrirFestaBrasoes(ids, false); }
