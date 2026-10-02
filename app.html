@@ -2625,6 +2625,7 @@ class Component extends DCLogic {
         .concat([{ rotulo:'Núcleos', ajuda:'Veja o seu núcleo e os demais do grupo', icone:'fas fa-map-marker-alt', acao: () => this.irPara('nucleos') }])
         .concat([
           { rotulo:'Agenda de eventos', ajuda:'Batizados, rodas e oficinas — inscrição em um toque', icone:'fas fa-calendar-days', acao: () => { window.location.href = 'rede.html#agenda'; } },
+          { rotulo:'Campeonatos', ajuda:'Inscreva-se, acompanhe as chaves ao vivo e veja o pódio', icone:'fas fa-trophy', acao: () => { window.location.href = 'campeonatos.html'; } },
           { rotulo:'Notificações', ajuda:'Curtidas, mensagens, brasões e avisos — e o aviso no celular', icone:'fas fa-bell', acao: () => this.abrirNotificacoes() },
           { rotulo:'Rede Liberdade no celular', ajuda:'Instala um atalho da Rede na tela inicial (abre direto nela)', icone:'fas fa-mobile-screen-button', acao: () => { window.location.href = 'instalar-rede.html'; } },
           { rotulo:'Acessibilidade', ajuda:'Texto maior e alto contraste', icone:'fas fa-universal-access', acao: () => this.abrirAcessibilidadeAcao() },

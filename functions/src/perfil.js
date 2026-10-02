@@ -20,6 +20,7 @@ export const CAMPOS_DO_CARTAO = [
   'nome', 'fotoUrl', 'cordaoAtual', 'idade', 'academiaId', 'academiaNome', 'academiaGerenciadaId', 'papeis',
   'acessoGeral', 'usoImagem', 'historicoGraduacoes', 'notas', 'criadoEm', 'brasoesManuais', 'brasoesAdmin', 'brasoesBloqueados', 'ativo',
   'carteirinha', 'dataNasc', 'isentoMensalidade', 'eventosConfirmados', 'cardsCompartilhados', // brasões 46–71
+  'competicoes', // brasões 72–74 (campeonatos)
   'sincronizarEm', // o app pede um recálculo completo quando o cartão está velho
 ];
 
@@ -162,6 +163,8 @@ export async function sincronizarPerfil(ctx, uid, refazer = {}) {
     resumoRede,
     resumoFormacao,
     resumoCompromisso,
+    // Campeonatos (só o servidor escreve usuarios.competicoes; aqui vai o resumo público).
+    resumoCompeticoes: { participacoes: Number((u.competicoes || {}).participacoes) || 0, podios: Number((u.competicoes || {}).podios) || 0, titulos: Number((u.competicoes || {}).titulos) || 0 },
     temApresentacao,
     temAssinatura,
     sincronizadoEm: new Date().toISOString(),

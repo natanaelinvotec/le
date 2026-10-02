@@ -55,6 +55,8 @@ before(async () => {
     await setDoc(doc(d, 'certificados', 'CERT000001'), { numero: 'LE-CERT-2026-0001', nome: 'Natanael', cordao: 'Vagante', ativo: true });
     await setDoc(doc(d, 'certificadosDe', 'nat'), { itens: [{ codigo: 'CERT000001', cordao: 'Vagante' }] });
     await setDoc(doc(d, 'certificadosDe', 'kid'), { itens: [] });
+    await setDoc(doc(d, 'campeonatos', 'camp1'), { nome: 'Interno', status: 'inscricoes', academiaId: 'taynara', organizadorUid: 'tay', data: '2026-11-01' });
+    await setDoc(doc(d, 'campeonatos', 'campGrupo'), { nome: 'Do grupo', status: 'chaves', academiaId: null, organizadorUid: 'profeta', data: '2026-11-01' });
   });
 });
 after(async () => { if (env) await env.cleanup(); });
@@ -288,4 +290,24 @@ test('assinaturas: quem assina (Fundador, responsável de núcleo) grava a próp
   await assertSucceeds(getDoc(doc(db(null), 'assinaturas', 'tay')));
   await assertFails(getDocs(collection(db(null), 'assinaturas')));
   await assertSucceeds(updateDoc(doc(db('nat'), 'notificacoes/nat/itens/n1'), { compartilhadoEm: AGORA }));
+});
+
+test('campeonatos: atleta se inscreve só a si mesmo e só com inscrições abertas; organizador inscreve qualquer um e mexe nas chaves', async () => {
+  const insc = { uid: 'nat', nome: 'Natanael', cordao: 'Quilombola', sexo: 'M', peso: 80, em: AGORA, por: 'nat', demo: false };
+  await assertSucceeds(setDoc(doc(db('nat'), 'campeonatos/camp1/inscricoes/nat'), insc));
+  await assertFails(setDoc(doc(db('nat'), 'campeonatos/camp1/inscricoes/kid'), { ...insc, uid: 'kid' }), 'não inscreve outro');
+  await assertFails(setDoc(doc(db('nat'), 'campeonatos/camp1/inscricoes/nat'), { ...insc, bonus: 1 }), 'campo fora da lista');
+  await assertFails(setDoc(doc(db('nat'), 'campeonatos/campGrupo/inscricoes/nat'), insc), 'inscrições já fechadas');
+  await assertSucceeds(setDoc(doc(db('tay'), 'campeonatos/camp1/inscricoes/demo_01'), { ...insc, uid: 'demo_01', demo: true }), 'organizador inscreve demo');
+  await assertFails(setDoc(doc(db('estranho'), 'campeonatos/camp1/inscricoes/estranho'), { ...insc, uid: 'estranho', demo: true }), 'atleta não se marca como demo');
+  await assertFails(setDoc(doc(db('nat'), 'campeonatos/camp1/chaves/cat1'), { rodadas: [] }), 'atleta não monta chave');
+  await assertSucceeds(setDoc(doc(db('tay'), 'campeonatos/camp1/chaves/cat1'), { rodadas: [] }));
+  await assertSucceeds(setDoc(doc(db('profeta'), 'campeonatos/campGrupo/chaves/cat1'), { rodadas: [] }), 'campeonato do grupo: qualquer responsável');
+  await assertFails(updateDoc(doc(db('nat'), 'campeonatos', 'camp1'), { status: 'encerrado' }));
+  await assertSucceeds(updateDoc(doc(db('tay'), 'campeonatos', 'camp1'), { status: 'categorias' }));
+  await assertFails(updateDoc(doc(db('tay'), 'campeonatos', 'camp1'), { status: 'qualquer' }), 'status inválido');
+  await assertSucceeds(setDoc(doc(db('tay'), 'campeonatos', 'novo'), { nome: 'Novo', status: 'inscricoes', academiaId: 'taynara', organizadorUid: 'tay' }));
+  await assertFails(setDoc(doc(db('tay'), 'campeonatos', 'novo2'), { nome: 'Novo', status: 'inscricoes', academiaId: 'profeta', organizadorUid: 'tay' }), 'não cria para outro núcleo');
+  await assertFails(setDoc(doc(db('nat'), 'campeonatos', 'novo3'), { nome: 'Novo', status: 'inscricoes', academiaId: 'taynara', organizadorUid: 'nat' }), 'atleta não cria');
+  await assertFails(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { competicoes: { titulos: 99 } }), 'competições só pelo servidor');
 });

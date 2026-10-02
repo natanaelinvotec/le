@@ -1,4 +1,4 @@
-/* brasoes.js — catálogo e motor dos 71 brasões do Capoeira Liberdade e Expressão.
+/* brasoes.js — catálogo e motor dos 74 brasões do Capoeira Liberdade e Expressão.
 
 Regra de ouro: um brasão só é "ganho" quando o dado real que o sustenta existe.
 Nada aqui inventa número. As fontes são:
@@ -57,6 +57,7 @@ eventos: { nome: 'Eventos e rodas', sub: 'Batizado automático; os demais o resp
 rede: { nome: 'Rede Liberdade', sub: 'Publicações, melhores momentos e curtidas recebidas', icone: 'fa-camera', forma: 'medalha' },
 formacao: { nome: 'Formação', sub: 'Quem forma, quem lidera e a linhagem do Fundador', icone: 'fa-sitemap', forma: 'hex' },
 destaques: { nome: 'Destaques na capoeira', sub: 'Concedidos pelo responsável quando o atleta mostra a evolução', icone: 'fa-star', forma: 'hex' },
+competicao: { nome: 'Competição', sub: 'Campeonatos internos e entre escolas: participar, subir ao pódio e vencer', icone: 'fa-trophy', forma: 'hex' },
 graduacao: { nome: 'Certificados', sub: 'Certificados de graduação, trajetória e o card "Troquei de cordão"', icone: 'fa-award', forma: 'hex' },
 carteirinha: { nome: 'Carteirinha', sub: 'Carteirinha em dia e a família cadastrada como beneficiária', icone: 'fa-id-card', forma: 'hex' },
 compromisso: { nome: 'Compromisso', sub: 'Mensalidade em dia, inscrições em eventos e tempo de grupo', icone: 'fa-calendar-check', forma: 'medalha' },
@@ -150,6 +151,10 @@ b(68, 'nucleo-completo', 'Núcleo completo', 'formacao', { tipo: 'nucleoCompleto
 b(69, 'puxou-a-ladainha', 'Puxou a ladainha', 'destaques', { tipo: 'manual' }, { como: 'Concedido a quem puxou a ladainha sozinho pela primeira vez na roda.' }),
 b(70, 'ajudou-na-aula', 'Ajudou na aula', 'destaques', { tipo: 'manual' }, { como: 'Concedido a quem ajudou o professor na aula, cuidando dos menores.' }),
 b(71, 'levou-um-amigo', 'Levou um amigo', 'destaques', { tipo: 'manual' }, { como: 'Concedido a quem indicou um amigo que se inscreveu no grupo.' }),
+// Série Competição (72–74): vem do módulo de campeonatos, quando o organizador encerra.
+b(72, 'competidor', 'Competidor', 'competicao', { tipo: 'participacoes', meta: 1 }, { como: 'Competiu em um campeonato do grupo ou entre escolas.' }),
+b(73, 'subiu-ao-podio', 'Subiu ao pódio', 'competicao', { tipo: 'podios', meta: 1 }, { como: 'Ficou entre os três primeiros de uma categoria.' }),
+b(74, 'campeao', 'Campeão', 'competicao', { tipo: 'titulos', meta: 1 }, { como: 'Venceu uma categoria em um campeonato.', nivel: 'ouro' }),
 ];
 
 export const porId = (id) => BRASOES.find((x) => x.id === id) || null;
@@ -197,6 +202,9 @@ case 'perfilCompleto': return 'Foto, capa e biografia no perfil';
 case 'apresentacao': return 'Vídeo de apresentação publicado';
 case 'assinatura': return 'Assinatura dos certificados cadastrada';
 case 'nucleoCompleto': return 'Núcleo 100% com foto aprovada e data de nascimento';
+case 'participacoes': return `${r.meta} campeonato${r.meta > 1 ? 's' : ''} disputado${r.meta > 1 ? 's' : ''}`;
+case 'podios': return `${r.meta} pódio${r.meta > 1 ? 's' : ''} em campeonato`;
+case 'titulos': return `${r.meta} título${r.meta > 1 ? 's' : ''} de campeão`;
 default: return 'Concessão do responsável do núcleo';
 }
 }
@@ -270,6 +278,8 @@ case 'perfilCompleto': ganho = !!(dados.fotoUrl && dados.capaUrl && String(dados
 case 'apresentacao': ganho = dados.temApresentacao === true; break;
 case 'assinatura': ganho = dados.temAssinatura === true; break;
 case 'nucleoCompleto': ganho = !!(rf && rf.nucleoCompleto); break;
+// Competição: no servidor vem de usuarios.competicoes; no navegador, do resumo público.
+case 'participacoes': case 'podios': case 'titulos': { const cp = dados.competicoes || dados.resumoCompeticoes || null; ganho = num(cp ? Number(cp[r.tipo]) || 0 : 0, r.meta); break; }
 default: ganho = false;
 }
 // Concessões: manuais só valem para brasão manual; as do Admin valem para

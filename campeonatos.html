@@ -1,0 +1,37 @@
+<!-- campeonatos.html — Campeonatos (interno e externo).
+Responsável do núcleo, Admin Master e Fundador criam o campeonato, geram as
+categorias (graduação × peso × sexo, idade opcional), montam as chaves,
+registram os resultados e encerram. Atletas se inscrevem pelo app e
+acompanham as chaves. Tela de área (#area/ID/CATEGORIA) é o placar para TV.
+Regras: js/campeonato-motor.js (puro, testado); dados: campeonatos/{id},
+campeonatos/{id}/inscricoes/{uid}, campeonatos/{id}/chaves/{categoriaId}. -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#061A3A">
+<meta name="robots" content="noindex, nofollow">
+<title>Campeonatos — Capoeira Liberdade e Expressão</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="assets/app-icon-192.png">
+<link rel="apple-touch-icon" href="assets/app-apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="css/campeonatos.css?v=20261002">
+</head>
+<body>
+<header class="barra" id="barra">
+  <a class="voltar" id="btVoltar" href="app.html" aria-label="Voltar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></a>
+  <span class="marca"><img src="assets/logo-liberdade150.png" alt="" width="34" height="34"><span><b id="tituloBarra">Campeonatos</b><small>Capoeira Liberdade e Expressão</small></span></span>
+  <div class="acoes" id="acoesBarra"></div>
+</header>
+<main id="pagina" class="pagina">
+  <div class="carregando"><span class="giro" aria-hidden="true"></span><p>Abrindo os campeonatos…</p></div>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script type="module" src="js/campeonatos.js?v=20261002"></script>
+</body>
+</html>

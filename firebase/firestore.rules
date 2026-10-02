@@ -34,7 +34,7 @@ function brasoesManuaisInalterados() { return request.resource.data.get('brasoes
 function camposTravadosDoProprio() {
 return ['cordaoAtual', 'historicoGraduacoes', 'instrutorUid', 'responsavelUid', 'idade', 'dataNasc',
 'statusAtual', 'brasoesTotal', 'eventosConfirmados', 'cardsCompartilhados', 'origemTransferenciaDireta', 'academiaAnteriorId',
-'carteirinha', 'isentoMensalidade'];
+'carteirinha', 'isentoMensalidade', 'competicoes'];
 }
 
 match /usuarios/{uid} {
@@ -53,7 +53,7 @@ allow create: if ehAdmin() || (
 request.auth.uid == uid &&
 request.resource.data.papeis == ['aluno'] &&
 !request.resource.data.keys().hasAny(['acessoGeral', 'brasoesAdmin', 'brasoesManuais', 'brasoesBloqueados', 'eventosConfirmados', 'cardsCompartilhados', 'instrutorUid',
-'historicoGraduacoes', 'brasoesTotal', 'origemTransferenciaDireta', 'academiaAnteriorId', 'carteirinha', 'isentoMensalidade']) &&
+'historicoGraduacoes', 'brasoesTotal', 'origemTransferenciaDireta', 'academiaAnteriorId', 'carteirinha', 'isentoMensalidade', 'competicoes']) &&
 request.resource.data.get('academiaGerenciadaId', null) == null &&
 request.resource.data.get('cordaoAtual', 'Iniciante') == 'Iniciante' &&
 request.resource.data.get('notas', {}) == {} &&
@@ -220,6 +220,38 @@ allow read: if logado();
 allow create, update: if logado() && request.auth.uid == uid &&
 request.resource.data.keys().hasOnly(['nome', 'em', 'academiaId', 'cordaoAtual', 'fotoUrl']);
 allow delete: if logado() && (request.auth.uid == uid || ehAdmin() || souFundador());
+}
+
+// Campeonatos (interno e externo). Organiza: Admin, Fundador e o responsável do
+// núcleo organizador (ou qualquer responsável quando é do grupo inteiro).
+// Atletas se inscrevem a si mesmos; o organizador inscreve qualquer um (inclusive
+// atletas fictícios da demonstração) e é o único que mexe nas chaves.
+match /campeonatos/{id} {
+function camp() { return resource.data; }
+function organizo(d) { return ehAdmin() || souFundador() || (ehGestor() && (d.get('academiaId', null) == null || d.academiaId == minhaAcademiaGerenciada() || d.get('organizadorUid', '') == request.auth.uid)); }
+function statusOk(d) { return d.get('status', '') in ['inscricoes', 'categorias', 'chaves', 'andamento', 'encerrado']; }
+allow read: if logado();
+allow create: if ehGestor() && request.resource.data.organizadorUid == request.auth.uid && statusOk(request.resource.data) &&
+request.resource.data.nome is string && request.resource.data.nome.size() <= 80 &&
+(ehAdmin() || souFundador() || request.resource.data.get('academiaId', null) == minhaAcademiaGerenciada());
+allow update: if organizo(camp()) && statusOk(request.resource.data) &&
+(camp().status != 'encerrado' || ehAdmin() || souFundador());
+allow delete: if organizo(camp());
+match /inscricoes/{uid} {
+function campPai() { return get(/databases/$(database)/documents/campeonatos/$(id)).data; }
+function camposInsc() { return request.resource.data.keys().hasOnly(['uid', 'nome', 'apelido', 'fotoUrl', 'cordao', 'academiaId', 'academiaNome', 'sexo', 'peso', 'idade', 'categoriaId', 'demo', 'em', 'por', 'pesagemOk']); }
+allow read: if logado();
+// O próprio atleta: só enquanto as inscrições estão abertas, com os próprios dados.
+allow create, update: if logado() && camposInsc() && (
+(request.auth.uid == uid && campPai().status == 'inscricoes' && request.resource.data.get('demo', false) == false) ||
+organizo(campPai()));
+allow delete: if logado() && ((request.auth.uid == uid && campPai().status == 'inscricoes') || organizo(campPai()));
+}
+match /chaves/{categoriaId} {
+function campPai() { return get(/databases/$(database)/documents/campeonatos/$(id)).data; }
+allow read: if logado();
+allow write: if organizo(campPai()) && campPai().status != 'encerrado';
+}
 }
 
 match /avisos/{id} {

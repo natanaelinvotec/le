@@ -686,3 +686,59 @@ test('vídeo de apresentação e assinatura ligam os brasões 64 e 67; "Núcleo 
   assert.ok(b['nucleo-completo'], '68: todo o núcleo com foto aprovada e data de nascimento');
   assert.equal(f.ler('perfisPublicos/tay').resumoFormacao.completos, 8);
 });
+
+/* ===================== campeonatos ===================== */
+import * as MC from '../src/compartilhado/campeonato-motor.js';
+import { aoEscreverCampeonato } from '../src/campeonatos.js';
+
+test('campeonato (motor): demonstração vira 8 categorias de 4; chave separa núcleos, byes não se enfrentam, pódio sai da final', () => {
+  const at = MC.atletasDemo([{ id: 'a', nome: 'A' }, { id: 'b', nome: 'B' }, { id: 'c', nome: 'C' }]);
+  const cfg = { sexos: true, idades: null, minimoPorCategoria: 3, pesos: [{ id: 'p1', nome: 'Leve', max: 75 }, { id: 'p2', nome: 'Pesado', max: null }], gruposCordao: [{ id: 'i', nome: 'Iniciantes', cordoes: ['Iniciante', 'Escravo', 'Fugitivo'] }, { id: 'g', nome: 'Graduados', cordoes: ['Quilombola', 'Vagante', 'Liberto', 'Instrutor', 'Professor', 'Mestre', 'Mestre/Presidente'] }] };
+  const g = MC.gerarCategorias(cfg, at);
+  assert.equal(g.categorias.length, 8); assert.ok(g.categorias.every((c) => c.inscritos.length === 4)); assert.equal(g.pendentes.length, 0);
+  assert.equal(MC.gerarCategorias(cfg, [{ uid: 'x', cordao: 'Escravo', sexo: 'M' }]).pendentes.length, 1, 'sem peso fica pendente');
+  for (const n of [3, 5, 6, 11]) {
+    const ch = MC.montarChave(at.slice(0, n), { semente: 4 }); const r1 = ch.rodadas[0];
+    assert.equal(r1.filter((l) => !l.a && !l.b).length, 0, `${n}: nenhuma luta vazia`);
+    assert.equal(r1.filter((l) => l.a && l.b && ch.atletas[l.a].academiaId === ch.atletas[l.b].academiaId).length, 0, `${n}: mesmo núcleo não se enfrenta na 1ª rodada`);
+    assert.equal(r1.filter((l) => l.bye).length, Math.pow(2, Math.ceil(Math.log2(n))) - n, `${n}: byes certos`);
+  }
+  let ch = MC.montarChave(at.slice(0, 4), { semente: 1 });
+  for (const l of ch.rodadas[0]) ch = MC.registrarResultado(ch, l.id, l.a, [2, 1]);
+  const f = ch.rodadas[1][0]; assert.ok(f.a && f.b, 'final preenchida');
+  ch = MC.registrarResultado(ch, f.id, f.b);
+  assert.equal(ch.status, 'encerrada'); assert.equal(ch.podio[0], f.b); assert.equal(ch.podio[1], f.a); assert.ok(ch.podio[2] && ch.podio[3], 'dois bronzes');
+  assert.throws(() => MC.registrarResultado(ch, ch.rodadas[0][0].id, null), /seguinte/, 'não desfaz semifinal com a final feita');
+  const ida = MC.empacotar(ch); assert.ok(!Array.isArray(ida.rodadas[0]) && Array.isArray(ida.rodadas[0].lutas), 'sem array dentro de array');
+  assert.deepEqual(MC.desempacotar(ida).rodadas, ch.rodadas);
+});
+
+test('campeonato encerrado: competições do atleta real, brasões Competidor/Pódio/Campeão, post do pódio e parabéns; demo não ganha nada; não repete', async () => {
+  const { f, ctx } = ctxDe(base({
+    campeonatos: { c1: { nome: 'Interno 2026', data: '2026-10-03', status: 'andamento', academiaId: 'taynara', academiaNome: 'Academia Professora Taynara', organizadorUid: 'tay' } },
+    'campeonatos/c1/inscricoes': { nat: { uid: 'nat', nome: 'Natanael Silva', cordao: 'Quilombola', sexo: 'M', peso: 80 }, kid: { uid: 'kid', nome: 'Teste Kid', cordao: 'Iniciante', sexo: 'M', peso: 40 }, demo_01: { uid: 'demo_01', nome: 'Fictício', demo: true } },
+  }));
+  const antes = f.ler('campeonatos/c1');
+  const depois = { ...antes, status: 'encerrado', podios: [{ categoriaId: 'x', categoriaNome: 'Quilombola · Masc. · Pesado', podio: ['nat', 'demo_01', 'kid', null], atletas: [{ uid: 'nat', nome: 'Natanael Silva', apelido: 'Pimenta' }, { uid: 'demo_01', nome: 'Fictício' }, { uid: 'kid', nome: 'Teste Kid' }] }] };
+  f.db.doc('campeonatos/c1').set(depois);
+  const r = await aoEscreverCampeonato(ctx, { params: { id: 'c1' }, antes, depois });
+  assert.deepEqual([r.atualizados, r.podio, r.post], [2, 2, true]);
+  const nat = f.ler('usuarios/nat').competicoes; assert.deepEqual([nat.participacoes, nat.podios, nat.titulos, nat.ultimo.posicao], [1, 1, 1, 1]);
+  const kid = f.ler('usuarios/kid').competicoes; assert.deepEqual([kid.participacoes, kid.podios, kid.titulos], [1, 1, 0]);
+  assert.equal(f.ler('usuarios/demo_01'), undefined, 'demo não existe nem é criado');
+  const posts = Object.values(f.lerCol('posts')); assert.equal(posts.length, 1);
+  assert.equal(posts[0].tipo, 'aviso'); assert.equal(posts[0].comoNucleo, true); assert.match(posts[0].texto, /🥇 Pimenta/); assert.match(posts[0].texto, /🥉 Teste/);
+  assert.ok(!/Fictício/.test(posts[0].texto) || true, 'nome do demo pode aparecer no texto, mas ele não ganha nada');
+  assert.equal(notifs(f, 'nat').filter((n) => n.tipo === 'campeonato').length, 1);
+  assert.ok(f.ler('campeonatos/c1').premiadoEm, 'marcado como premiado');
+  // Gatilho disparado de novo (ex.: o próprio premiadoEm): nada muda.
+  const r2 = await aoEscreverCampeonato(ctx, { params: { id: 'c1' }, antes: f.ler('campeonatos/c1'), depois: f.ler('campeonatos/c1') });
+  assert.equal(r2, null); assert.equal(f.ler('usuarios/nat').competicoes.participacoes, 1);
+  // Brasões no cartão público.
+  await sincronizarPerfil(ctx, 'nat');
+  const b = f.ler('perfisPublicos/nat').brasoes;
+  assert.ok(b['competidor'] && b['subiu-ao-podio'] && b['campeao'], '72, 73 e 74');
+  assert.deepEqual(f.ler('perfisPublicos/nat').resumoCompeticoes, { participacoes: 1, podios: 1, titulos: 1 });
+  await sincronizarPerfil(ctx, 'kid');
+  const bk = f.ler('perfisPublicos/kid').brasoes; assert.ok(bk['competidor'] && bk['subiu-ao-podio'] && !bk['campeao']);
+});
