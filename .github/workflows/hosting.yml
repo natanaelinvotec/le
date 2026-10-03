@@ -1,0 +1,46 @@
+# Publica os DOIS sites no Firebase Hosting, sozinho, a cada envio na main:
+#   • app   → o app da Liberdade e Expressão (a raiz deste repositório)
+#   • atletapay → o site da AtletaPay (pasta atletapay/)
+# Usa o mesmo segredo FIREBASE_SERVICE_ACCOUNT do firebase.yml — nada novo.
+# O GitHub Pages continua publicando o app como sempre; este é um endereço a mais.
+name: Hosting (app e AtletaPay)
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'functions/**'
+      - 'tests/**'
+      - 'firebase/**'
+      - 'docs/**'
+      - '**/*.md'
+      - '.github/workflows/firebase.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: firebase-hosting
+  cancel-in-progress: true
+
+env:
+  PROJETO: capoeira-liberdade
+
+jobs:
+  publicar:
+    name: Publicar no Firebase Hosting
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Entrar no Google Cloud com a conta de serviço
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      - name: Instalar o Firebase CLI
+        run: npm install -g firebase-tools --no-audit --no-fund
+      - name: Garantir que o site da AtletaPay existe (só faz algo na primeira vez)
+        run: firebase hosting:sites:create atletapay --project "$PROJETO" --non-interactive 2>/dev/null || echo "Site atletapay já existe (ou será criado pelo Console)."
+      - name: Publicar os dois sites
+        run: firebase deploy --only hosting --project "$PROJETO" --non-interactive -m "GitHub ${{ github.sha }}"
