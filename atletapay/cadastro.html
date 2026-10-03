@@ -1,0 +1,41 @@
+<!-- cadastro.html — assistente de criação da escola (5 etapas):
+1 Conta (Firebase Auth) · 2 Escola (nome, modalidade, cidade, subdomínio) ·
+3 Plano · 4 Logo e fotos (Storage) · 5 Modelo de site → grava escolas/{id} e
+abre o painel. Tudo o que o assistente coleta já fica no formato que o gerador
+automático consome; enquanto a ativação é feita pela AtletaPay, o painel mostra
+a fila. -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B0E1F">
+<meta name="robots" content="noindex">
+<title>Criar a minha escola — AtletaPay</title>
+<link rel="icon" type="image/svg+xml" href="assets/marca.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="css/atletapay.css?v=20261002">
+</head>
+<body>
+<main class="wizard">
+  <aside class="lado">
+    <a class="marca" href="index.html" style="color:#fff"><img src="assets/marca.svg" alt="">Atleta<b>Pay</b></a>
+    <span class="eyebrow" style="color:var(--laranja-claro)">Criar a minha escola</span>
+    <h2 style="margin-top:10px">Em 15 minutos a sua turma está dentro.</h2>
+    <ol class="etapas" id="etapas" aria-label="Etapas"></ol>
+    <p class="nota">Seus dados ficam no Firebase (Google), em servidores com criptografia, e só a sua conta acessa a escola. Senha: mínimo de 8 caracteres. Dúvidas: contato@atletapay.com.br</p>
+  </aside>
+  <section class="conteudo">
+    <div class="wrap">
+      <div class="progresso" aria-hidden="true"><i id="progresso"></i></div>
+      <div id="passo"><div style="display:grid;place-items:center;padding:60px 0;color:var(--texto-3)">Carregando…</div></div>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script type="module" src="js/cadastro.js?v=20261002"></script>
+</body>
+</html>

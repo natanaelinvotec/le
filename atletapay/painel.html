@@ -1,0 +1,33 @@
+<!-- painel.html — painel do dono da escola na AtletaPay: situação da ativação,
+checklist do que falta (fotos, modelo), dados da escola, plano e período de
+teste. Quando a escola é ativada, o botão "Abrir o painel da escola" leva ao
+subdomínio dela. Login: a mesma conta criada no cadastro. -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B0E1F">
+<meta name="robots" content="noindex">
+<title>Minha escola — AtletaPay</title>
+<link rel="icon" type="image/svg+xml" href="assets/marca.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="css/atletapay.css?v=20261002">
+</head>
+<body class="painel">
+<header class="topo">
+  <div class="wrap">
+    <a class="marca" href="index.html"><img src="assets/marca.svg" alt="">Atleta<b>Pay</b></a>
+    <div class="acoes" style="margin-left:auto"><span id="quem" style="color:var(--texto-inv-2);font-size:.86rem;font-weight:700;align-self:center"></span><button type="button" class="bt bt-branco bt-sm" id="btSair"><i class="fas fa-right-from-bracket"></i> Sair</button></div>
+  </div>
+</header>
+<main id="pagina">
+  <div style="display:grid;place-items:center;padding:80px 0;color:var(--texto-3)">Abrindo a sua escola…</div>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script type="module" src="js/painel.js?v=20261002"></script>
+</body>
+</html>

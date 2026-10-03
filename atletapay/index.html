@@ -1,0 +1,160 @@
+<!-- index.html — atletapay.com.br: a vitrine da plataforma.
+Proposta, como funciona, módulos, planos por faixa de alunos com simulador,
+demonstração (campeonato ao vivo), perguntas frequentes e o botão "Começar",
+que leva ao cadastro já com o plano escolhido. Estático, sem login. -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B0E1F">
+<title>AtletaPay — gestão, cobrança e competição para escolas de artes marciais</title>
+<meta name="description" content="Site, app, carteirinha, certificados, brasões, mensalidade via Pix com split e campeonatos com chaves — tudo pronto em minutos para a sua academia. Planos por quantidade de alunos.">
+<link rel="icon" type="image/svg+xml" href="assets/marca.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="css/atletapay.css?v=20261002">
+<meta property="og:title" content="AtletaPay — a plataforma das escolas de artes marciais">
+<meta property="og:description" content="Mensalidade via Pix com split, carteirinha, certificados, brasões, Rede e campeonatos. Comece grátis.">
+<meta property="og:type" content="website">
+</head>
+<body>
+<header class="topo">
+  <div class="wrap">
+    <a class="marca" href="#"><img src="assets/marca.svg" alt="">Atleta<b>Pay</b></a>
+    <nav class="menu" id="menu" aria-label="Seções">
+      <a href="#como">Como funciona</a><a href="#modulos">O que vem pronto</a><a href="#planos">Planos</a><a href="#demo">Campeonatos</a><a href="#faq">Dúvidas</a>
+    </nav>
+    <div class="acoes"><a class="bt bt-vidro bt-sm" href="painel.html">Entrar</a><a class="bt bt-laranja bt-sm" href="cadastro.html">Começar grátis</a></div>
+    <button type="button" class="hamb" id="hamb" aria-label="Abrir menu" aria-expanded="false"><i class="fas fa-bars"></i></button>
+  </div>
+</header>
+
+<section class="heroi">
+  <div class="wrap">
+    <div>
+      <span class="eyebrow" style="color:var(--laranja-claro)">Para escolas de artes marciais</span>
+      <h1 style="margin-top:14px">A sua academia com <span class="pop">site, app e cobrança</span> prontos em 15 minutos.</h1>
+      <p class="sub">Inscrição dos alunos, carteirinha, certificados de graduação, brasões, rede social do grupo, mensalidade via Pix com repasse automático e campeonatos com chaves. Você escolhe o plano, sobe o logo e as fotos — a AtletaPay monta o resto.</p>
+      <div class="cta"><a class="bt bt-laranja" href="cadastro.html">Começar grátis <i class="fas fa-arrow-right"></i></a><a class="bt bt-vidro" href="#planos">Ver planos</a></div>
+      <div class="micro"><span>14 dias grátis em qualquer plano</span><span>Sem cartão para começar</span><span>Cancele quando quiser</span></div>
+    </div>
+    <aside class="placar" aria-label="Exemplo do que a escola acompanha">
+      <div class="faixa-topo"></div>
+      <div class="linha"><div><small>Mensalidades de outubro</small><b>Recebido via Pix</b></div><span class="num" data-conta="18760" data-prefixo="R$ ">R$ 0</span></div>
+      <div class="linha"><div><small>Alunos ativos</small><b>3 núcleos</b></div><span class="num" data-conta="212">0</span></div>
+      <div class="linha"><div><small>Inadimplência</small><b>Lembrete automático em 3 dias</b></div><span class="num" data-conta="4" data-sufixo="%">0%</span></div>
+      <div class="linha"><div><small>Campeonato interno</small><b>Semifinal · Graduados · Masc.</b></div><span class="pill vivo">ao vivo</span></div>
+      <div class="linha" style="display:block"><small style="display:block;color:var(--texto-inv-3);font-size:.72rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px">Prontidão para a próxima graduação</small><div class="barra"><i data-largura="72"></i></div></div>
+    </aside>
+  </div>
+</section>
+<div class="faixa" aria-hidden="true"></div>
+
+<section class="secao" id="como">
+  <div class="wrap">
+    <div class="cab"><span class="eyebrow">Como funciona</span><h2>Três passos e a escola está no ar.</h2><p class="sub">Nada de orçamento, reunião ou espera. O cadastro é um assistente que termina com o seu painel aberto.</p></div>
+    <div class="grade-3">
+      <article class="passo"><div class="n">01</div><h3>Escolha o plano</h3><p>Pelo número de alunos ativos. Comece no Roda sem mensalidade: a AtletaPay só ganha quando o aluno paga.</p></article>
+      <article class="passo"><div class="n">02</div><h3>Conte sobre a escola</h3><p>Nome, arte marcial, cidade, logo, foto do mestre e da turma. Escolha um dos 5 modelos de site e veja a prévia na hora.</p></article>
+      <article class="passo"><div class="n">03</div><h3>Convide a turma</h3><p>Link de inscrição e QR para imprimir. Cada aluno entra no app, recebe a carteirinha e começa a acompanhar a própria evolução.</p></article>
+    </div>
+  </div>
+</section>
+
+<section class="secao escuro" id="modulos">
+  <div class="wrap">
+    <div class="cab"><span class="eyebrow">O que vem pronto</span><h2>O que levou dois anos para construir com um grupo de capoeira, entregue no primeiro dia.</h2><p class="sub">A AtletaPay nasceu dentro de uma escola real, núcleo por núcleo, até ficar redonda. Agora qualquer arte marcial usa a mesma estrutura.</p></div>
+    <div class="modulos">
+      <div class="mod"><i class="fas fa-user-plus"></i><b>Inscrição com foto</b><span>Ficha completa, menores com responsável, termo de imagem, idade pela data de nascimento.</span></div>
+      <div class="mod"><i class="fas fa-id-card"></i><b>Carteirinha digital</b><span>QR de verificação, matrícula, validade pela mensalidade e beneficiários da família.</span></div>
+      <div class="mod"><i class="fas fa-award"></i><b>Certificados de graduação</b><span>Emitidos na troca de faixa ou cordão, com assinatura do mestre, PDF e página pública.</span></div>
+      <div class="mod"><i class="fas fa-medal"></i><b>74 brasões</b><span>Conquistas automáticas pelos dados reais: presenças, graduação, mensalidade em dia, pódio.</span></div>
+      <div class="mod"><i class="fas fa-chart-line"></i><b>Painel do professor</b><span>Avaliações por estrelas, prontidão para a próxima graduação, presenças com Face ID, aniversários.</span></div>
+      <div class="mod"><i class="fas fa-pix"></i><b>Mensalidade via Pix</b><span>Cobrança automática, lembretes e split: a parte da academia cai direto na conta dela.</span></div>
+      <div class="mod"><i class="fas fa-users"></i><b>Rede do grupo</b><span>Posts, melhores momentos, conversas moderadas, e a Rede Global entre todas as escolas.</span></div>
+      <div class="mod"><i class="fas fa-trophy"></i><b>Campeonatos com chaves</b><span>Categorias por graduação, peso e sexo, chave em tempo real, tela para TV e pódio com brasão.</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="secao" id="planos">
+  <div class="wrap">
+    <div class="cab"><span class="eyebrow">Planos</span><h2>Pague pelo tamanho da sua turma. Só isso.</h2><p class="sub">Mensalidade fixa por faixa de alunos ativos e um split por aluno pago, descontado na própria mensalidade dele. Mude de faixa quando crescer; o sistema faz sozinho.</p></div>
+    <div class="simulador">
+      <div>
+        <label for="simAlunos">Quantos alunos ativos você tem hoje?</label>
+        <div class="valor"><span id="simN">120</span><small>alunos</small></div>
+        <input type="range" id="simAlunos" min="10" max="800" step="5" value="120" aria-label="Número de alunos">
+        <label for="simTicket" style="margin-top:14px">Mensalidade média cobrada do aluno</label>
+        <div class="valor" style="font-size:1.6rem"><span id="simTicketTxt">R$ 100</span></div>
+        <input type="range" id="simTicket" min="40" max="300" step="5" value="100" aria-label="Mensalidade média">
+      </div>
+      <div class="res" id="simRes"></div>
+    </div>
+    <div class="planos" id="listaPlanos"></div>
+    <p class="sub" style="margin-top:18px;font-size:.88rem">Valores em reais, por mês. A tarifa do meio de pagamento (Pix) é descontada da mensalidade do aluno antes do repasse e aparece discriminada no extrato da academia. Preços de lançamento, válidos para quem assinar em 2026.</p>
+  </div>
+</section>
+
+<section class="secao branco" id="demo">
+  <div class="wrap demo">
+    <div class="tela" aria-label="Exemplo de chave de campeonato">
+      <div class="cab-tela"><span>CAMPEONATO INTERNO · SEMIFINAL</span><span style="color:#00E676">● ao vivo</span></div>
+      <div class="chave">
+        <div class="luta vivo"><i style="background:linear-gradient(#4F4F4F 33%,#DAA520 33% 66%,#4F4F4F 66%)"></i><div><b>Furacão</b><small>Fugitivo · Núcleo Centro</small></div><span class="pl">3</span></div>
+        <div class="luta"><i style="background:linear-gradient(#DAA520 33%,#DAA520 33% 66%,#DAA520 66%)"></i><div><b>Pimenta</b><small>Quilombola · Núcleo Sul</small></div><span class="pl">1</span></div>
+        <div class="luta" style="opacity:.75"><i style="background:linear-gradient(#4F4F4F 33%,#D32F2F 33% 66%,#4F4F4F 66%)"></i><div><b>Coruja</b><small>Vagante · Núcleo Norte</small></div><span class="pl">—</span></div>
+        <div class="luta" style="opacity:.75"><i style="background:linear-gradient(#D32F2F 33%,#D32F2F 33% 66%,#D32F2F 66%)"></i><div><b>Trovão</b><small>Liberto · Núcleo Centro</small></div><span class="pl">—</span></div>
+      </div>
+    </div>
+    <div>
+      <span class="eyebrow">Competição</span>
+      <h2 style="margin-top:12px">Campeonatos com chave ao vivo, do interno ao entre escolas.</h2>
+      <p class="sub" style="margin-top:14px">Categorias geradas por graduação, peso e sexo. Sorteio que separa atletas do mesmo núcleo. O árbitro registra no celular, a chave avança sozinha na TV, e o pódio vira brasão, certificado e post na Rede.</p>
+      <ul class="lista-check">
+        <li><i class="fas fa-check"></i><span>Tela de área com cronômetro, placar e "a seguir"</span></li>
+        <li><i class="fas fa-check"></i><span>Pesagem e check-in pelo QR da carteirinha</span></li>
+        <li><i class="fas fa-check"></i><span>Campeonato externo: atletas de outras escolas se inscrevem pelo próprio app</span></li>
+        <li><i class="fas fa-check"></i><span>Ranking anual por escola e geral — o conteúdo que patrocinador quer ver</span></li>
+      </ul>
+      <div class="cta" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:24px"><a class="bt bt-indigo" href="cadastro.html?plano=grupo">Quero campeonatos <i class="fas fa-arrow-right"></i></a><a class="bt bt-branco" href="https://natanaelinvotec.github.io/le/" target="_blank" rel="noopener">Ver uma escola real no ar</a></div>
+    </div>
+  </div>
+</section>
+
+<section class="secao" id="faq">
+  <div class="wrap">
+    <div class="cab"><span class="eyebrow">Dúvidas</span><h2>Perguntas que toda academia faz.</h2></div>
+    <div class="faq">
+      <details><summary>O dinheiro das mensalidades passa pela AtletaPay?</summary><p>Não. A cobrança é feita por uma instituição de pagamento autorizada pelo Banco Central, numa conta da própria academia. No momento do pagamento, o split separa a parte da plataforma e repassa o líquido para a academia. A AtletaPay nunca fica com o dinheiro dos seus alunos.</p></details>
+      <details><summary>Quanto custa para o aluno?</summary><p>Nada a mais do que a mensalidade que você já cobra. A tarifa do Pix e o split por aluno saem do valor recebido, discriminados no extrato. Para uma mensalidade de R$ 100 no plano Núcleo, a academia recebe cerca de R$ 97, dependendo da tarifa do meio de pagamento.</p></details>
+      <details><summary>Já tenho site e domínio. E agora?</summary><p>O site da AtletaPay fica em um subdomínio seu (suaescola.atletapay.com.br) desde o primeiro dia. Se preferir usar o domínio próprio, o suporte aponta a URL para você em até um dia útil.</p></details>
+      <details><summary>Serve para qualquer arte marcial?</summary><p>Sim. Capoeira, jiu-jitsu, judô, karatê, taekwondo, muay thai, boxe, MMA, kung fu — cada uma com a sua escada de graduações, cores e vocabulário. Se a sua não estiver na lista, você monta a escada em um minuto.</p></details>
+      <details><summary>E se eu quiser sair?</summary><p>Cancele quando quiser, sem multa. Os certificados e as carteirinhas já emitidos continuam válidos e públicos, e você exporta todos os dados dos alunos em um clique (LGPD).</p></details>
+      <details><summary>Quem está por trás?</summary><p>A AtletaPay nasceu dentro do Grupo de Capoeira Liberdade e Expressão, em Campo Grande (MS), construída por um especialista em segurança com duas décadas de servidores. O app do grupo é o cliente nº 1 e está no ar para qualquer um ver.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="secao escuro" style="padding-block:64px">
+  <div class="wrap" style="display:grid;gap:16px;justify-items:start">
+    <span class="eyebrow">Comece hoje</span>
+    <h2>14 dias grátis. Sem cartão. Com a sua turma dentro em 15 minutos.</h2>
+    <a class="bt bt-laranja" href="cadastro.html">Criar a minha escola <i class="fas fa-arrow-right"></i></a>
+  </div>
+</section>
+
+<footer class="rodape">
+  <div class="wrap">
+    <div><a class="marca" href="#" style="color:#fff"><img src="assets/marca.svg" alt="">Atleta<b>Pay</b></a><p style="margin-top:12px;max-width:40ch">Gestão, cobrança e competição para escolas de artes marciais. Feita no tatame, em Campo Grande — MS.</p></div>
+    <div><h4>Plataforma</h4><a href="#como">Como funciona</a><a href="#modulos">O que vem pronto</a><a href="#planos">Planos</a><a href="#demo">Campeonatos</a></div>
+    <div><h4>Conta</h4><a href="cadastro.html">Criar escola</a><a href="painel.html">Entrar</a><a href="privacidade.html">Privacidade e termos</a><a href="mailto:contato@atletapay.com.br">contato@atletapay.com.br</a></div>
+    <div class="legal"><span>© 2026 AtletaPay. Todos os direitos reservados.</span><span>atletapay.com.br</span></div>
+  </div>
+</footer>
+<script type="module" src="js/site.js?v=20261002"></script>
+</body>
+</html>

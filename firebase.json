@@ -14,6 +14,50 @@
       "ignore": ["node_modules", "test", "scripts", ".git", "*.log"]
     }
   ],
+  "hosting": [
+    {
+      "site": "capoeira-liberdade",
+      "public": ".",
+      "ignore": [
+        "firebase.json", ".firebaserc", "**/.*", "**/node_modules/**",
+        "functions/**", "tests/**", "firebase/**", "docs/**", "tools/**", "_ds/**",
+        "atletapay/**", "**/*.md", "**/*.mjs", "**/*.zip", "**/*.rar", "**/*.psd"
+      ],
+      "cleanUrls": false,
+      "trailingSlash": false,
+      "headers": [
+        { "source": "sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+        { "source": "**/*.webmanifest", "headers": [{ "key": "Content-Type", "value": "application/manifest+json" }] },
+        { "source": "**/*.@(html|json)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }] },
+        { "source": "**/*.@(js|css)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }] },
+        { "source": "**/*.@(png|jpg|jpeg|webp|svg|ico|woff2|mp4|pdf)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }] },
+        { "source": "**", "headers": [
+          { "key": "X-Content-Type-Options", "value": "nosniff" },
+          { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+          { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+          { "key": "Permissions-Policy", "value": "camera=(self), microphone=(), geolocation=(self)" }
+        ] }
+      ]
+    },
+    {
+      "site": "atletapay",
+      "public": "atletapay",
+      "ignore": ["**/.*", "**/node_modules/**", "**/*.md", "CNAME"],
+      "cleanUrls": true,
+      "trailingSlash": false,
+      "headers": [
+        { "source": "**/*.@(html|json)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }] },
+        { "source": "**/*.@(js|css)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }] },
+        { "source": "**/*.@(png|jpg|jpeg|webp|svg|ico|woff2)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }] },
+        { "source": "**", "headers": [
+          { "key": "X-Content-Type-Options", "value": "nosniff" },
+          { "key": "X-Frame-Options", "value": "DENY" },
+          { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+          { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
+        ] }
+      ]
+    }
+  ],
   "emulators": {
     "firestore": { "port": 8080 },
     "storage": { "port": 9199 },

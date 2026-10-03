@@ -254,6 +254,40 @@ allow write: if organizo(campPai()) && campPai().status != 'encerrado';
 }
 }
 
+// AtletaPay (atletapay.com.br): escolas que se cadastram sozinhas. O dono é a
+// conta que criou; a escola nasce 'rascunho', vira 'fila' quando o assistente
+// termina e só a AtletaPay (Admin) a torna 'ativa'. escolasSlugs garante o
+// subdomínio único (o id É o slug: criar duas vezes falha sozinho).
+match /escolasSlugs/{slug} {
+allow get: if logado();
+allow list: if false;
+allow create: if logado() && request.resource.data.donoUid == request.auth.uid && request.resource.data.escolaId == slug &&
+slug.matches('^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$');
+allow update, delete: if ehAdmin();
+}
+match /escolas/{id} {
+function dono() { return logado() && resource.data.donoUid == request.auth.uid; }
+function statusOk(s) { return s in ['rascunho', 'fila', 'ativa', 'pausada', 'cancelada']; }
+function planoOk(p) { return p in ['roda', 'nucleo', 'grupo', 'federacao']; }
+allow get: if dono() || ehAdmin();
+allow list: if ehAdmin();
+allow create: if logado() && request.resource.data.donoUid == request.auth.uid && request.resource.data.slug == id &&
+request.resource.data.status == 'rascunho' && planoOk(request.resource.data.plano) &&
+request.resource.data.nome is string && request.resource.data.nome.size() <= 80 &&
+id.matches('^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$');
+// O dono edita a própria escola, sem trocar dono/slug e só entre rascunho e fila; o Admin faz o resto.
+// (dono() vem primeiro: o dono da escola não tem usuarios/{uid}, e ehAdmin() falharia ao ler o perfil.)
+allow update: if (dono() && request.resource.data.donoUid == resource.data.donoUid && request.resource.data.slug == resource.data.slug &&
+request.resource.data.status in ['rascunho', 'fila'] && planoOk(request.resource.data.plano) &&
+!mudou().hasAny(['assinatura', 'ativadaEm', 'ativadaPor', 'escolaId', 'projeto'])) || ehAdmin();
+allow delete: if ehAdmin();
+}
+match /donos/{uid} {
+allow read: if (logado() && request.auth.uid == uid) || ehAdmin();
+allow create, update: if logado() && request.auth.uid == uid && request.resource.data.keys().hasOnly(['nome', 'email', 'celular', 'escolaId', 'criadoEm', 'atualizadoEm', 'origem']);
+allow delete: if ehAdmin();
+}
+
 match /avisos/{id} {
 allow read: if logado();
 allow create: if ehAdmin() || souFundador() || (ehGestor() && request.resource.data.academiaId == minhaAcademiaGerenciada());

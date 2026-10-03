@@ -311,3 +311,27 @@ test('campeonatos: atleta se inscreve só a si mesmo e só com inscrições aber
   await assertFails(setDoc(doc(db('nat'), 'campeonatos', 'novo3'), { nome: 'Novo', status: 'inscricoes', academiaId: 'taynara', organizadorUid: 'nat' }), 'atleta não cria');
   await assertFails(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { competicoes: { titulos: 99 } }), 'competições só pelo servidor');
 });
+
+test('AtletaPay: dono (sem usuarios/) cria slug + escola em rascunho, edita até "fila", não ativa; outro não lê; atleta vê só o slug', async () => {
+  const dono = db('dono1'); const agora = AGORA;
+  await assertSucceeds(setDoc(doc(dono, 'donos', 'dono1'), { nome: 'Dona', email: 'd@x.com', celular: '67', escolaId: null, criadoEm: agora, origem: 'atletapay.com.br' }));
+  await assertFails(setDoc(doc(dono, 'donos', 'dono1'), { nome: 'Dona', papeis: ['admin'] }), 'campo fora da lista');
+  await assertFails(setDoc(doc(db('estranho'), 'donos', 'dono1'), { nome: 'x' }), 'só o próprio');
+  await assertSucceeds(setDoc(doc(dono, 'escolasSlugs', 'dragao'), { escolaId: 'dragao', donoUid: 'dono1', criadoEm: agora }));
+  await assertFails(setDoc(doc(dono, 'escolasSlugs', 'www'), { escolaId: 'www', donoUid: 'dono1', criadoEm: agora }), 'slug curto/reservado pelo formato');
+  const escola = { nome: 'Dragão', nomeCurto: 'Dragão', slug: 'dragao', donoUid: 'dono1', status: 'rascunho', plano: 'nucleo', modalidade: 'jiujitsu', cidade: 'Campo Grande', uf: 'MS', criadoEm: agora, fotos: {} };
+  await assertSucceeds(setDoc(doc(dono, 'escolas', 'dragao'), escola));
+  await assertFails(setDoc(doc(dono, 'escolas', 'outra'), { ...escola, slug: 'dragao' }), 'id tem de ser o slug');
+  await assertFails(setDoc(doc(dono, 'escolas', 'tigre'), { ...escola, slug: 'tigre', status: 'ativa' }), 'nasce em rascunho');
+  await assertFails(setDoc(doc(db('estranho'), 'escolas', 'lobo'), { ...escola, slug: 'lobo', donoUid: 'dono1' }), 'dono tem de ser quem cria');
+  await assertSucceeds(getDoc(doc(dono, 'escolas', 'dragao')));
+  await assertFails(getDoc(doc(db('estranho'), 'escolas', 'dragao')), 'outro não lê a escola');
+  await assertSucceeds(getDoc(doc(db('nat'), 'escolasSlugs', 'dragao')), 'disponibilidade do endereço é consulta por id');
+  await assertFails(getDocs(collection(db('nat'), 'escolasSlugs')), 'mas não lista');
+  await assertSucceeds(updateDoc(doc(dono, 'escolas', 'dragao'), { status: 'fila', modelo: 'tatame', atualizadoEm: agora }));
+  await assertFails(updateDoc(doc(dono, 'escolas', 'dragao'), { status: 'ativa' }), 'dono não ativa');
+  await assertFails(updateDoc(doc(dono, 'escolas', 'dragao'), { donoUid: 'estranho' }), 'não troca de dono');
+  await assertFails(updateDoc(doc(dono, 'escolas', 'dragao'), { assinatura: { status: 'ativa' } }), 'assinatura é do servidor/Admin');
+  await assertSucceeds(updateDoc(doc(db('admin'), 'escolas', 'dragao'), { status: 'ativa', ativadaEm: agora }));
+  await assertSucceeds(getDoc(doc(db('admin'), 'escolas', 'dragao')));
+});
