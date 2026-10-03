@@ -258,11 +258,16 @@ allow write: if organizo(campPai()) && campPai().status != 'encerrado';
 // conta que criou; a escola nasce 'rascunho', vira 'fila' quando o assistente
 // termina e só a AtletaPay (Admin) a torna 'ativa'. escolasSlugs garante o
 // subdomínio único (o id É o slug: criar duas vezes falha sozinho).
+// Nomes reservados: subdomínios da própria plataforma (mesma lista de
+// atletapay/js/catalogo.js — a regra garante que ninguém pule o formulário).
+function slugLivre(s) {
+return s.matches('^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$') &&
+!(s in ['www', 'app', 'api', 'admin', 'painel', 'master', 'suporte', 'ajuda', 'blog', 'docs', 'mail', 'email', 'ftp', 'cdn', 'static', 'assets', 'atletapay', 'redbull', 'teste', 'demo', 'login', 'conta', 'pagamentos', 'pix']);
+}
 match /escolasSlugs/{slug} {
 allow get: if logado();
 allow list: if false;
-allow create: if logado() && request.resource.data.donoUid == request.auth.uid && request.resource.data.escolaId == slug &&
-slug.matches('^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$');
+allow create: if logado() && request.resource.data.donoUid == request.auth.uid && request.resource.data.escolaId == slug && slugLivre(slug);
 allow update, delete: if ehAdmin();
 }
 match /escolas/{id} {
@@ -274,7 +279,7 @@ allow list: if ehAdmin();
 allow create: if logado() && request.resource.data.donoUid == request.auth.uid && request.resource.data.slug == id &&
 request.resource.data.status == 'rascunho' && planoOk(request.resource.data.plano) &&
 request.resource.data.nome is string && request.resource.data.nome.size() <= 80 &&
-id.matches('^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$');
+slugLivre(id);
 // O dono edita a própria escola, sem trocar dono/slug e só entre rascunho e fila; o Admin faz o resto.
 // (dono() vem primeiro: o dono da escola não tem usuarios/{uid}, e ehAdmin() falharia ao ler o perfil.)
 allow update: if (dono() && request.resource.data.donoUid == resource.data.donoUid && request.resource.data.slug == resource.data.slug &&
