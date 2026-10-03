@@ -45,7 +45,7 @@ export const FIREBASE_CONFIG = {
   appId: '1:492022804215:web:c61aed556d9f1aa9576df2',
 };
 
-// App Check (reCAPTCHA v3). Vazio = desligado. Cole aqui a CHAVE DO SITE (a
+// App Check (reCAPTCHA Enterprise / Fraud Defense). Vazio = desligado. Cole aqui a CHAVE DO SITE (a
 // pública) depois de registrar o app em Console → App Check (docs/SEGURANCA.md).
 export const APP_CHECK_SITE_KEY = '6LccBdQtAAAAANJl-I6rIh-fMLOrl-RHaikSEjfY';
 

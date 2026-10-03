@@ -21,8 +21,8 @@ export const FIREBASE_CONFIG = {
   messagingSenderId: '492022804215',
   appId: '1:492022804215:web:c61aed556d9f1aa9576df2',
 };
-// App Check (reCAPTCHA v3): a mesma chave do app. Adicione atletapay.com.br aos
-// domínios da chave no console do reCAPTCHA; enquanto isso fica em monitoramento.
+// App Check (reCAPTCHA Enterprise / "Fraud Defense"): a mesma chave e o mesmo provedor do
+// app — o provedor registrado no Console → App Check é Enterprise. Monitoramento por enquanto.
 const APP_CHECK_SITE_KEY = '6LccBdQtAAAAANJl-I6rIh-fMLOrl-RHaikSEjfY';
 
 const app = initializeApp(FIREBASE_CONFIG);
@@ -32,9 +32,9 @@ export const storage = getStorage(app);
 export { doc, getDoc, setDoc, updateDoc, addDoc, collection, serverTimestamp, onSnapshot, writeBatch, storageRef, uploadString, getDownloadURL };
 
 if (APP_CHECK_SITE_KEY && typeof window !== 'undefined') {
-  const ligar = () => import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-check.js').then(({ initializeAppCheck, ReCaptchaV3Provider }) => {
+  const ligar = () => import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-check.js').then(({ initializeAppCheck, ReCaptchaEnterpriseProvider }) => {
     if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-    initializeAppCheck(app, { provider: new ReCaptchaV3Provider(APP_CHECK_SITE_KEY), isTokenAutoRefreshEnabled: true });
+    initializeAppCheck(app, { provider: new ReCaptchaEnterpriseProvider(APP_CHECK_SITE_KEY), isTokenAutoRefreshEnabled: true });
   }).catch(() => {});
   const depois = () => setTimeout(() => (window.requestIdleCallback || ((f) => f()))(ligar, { timeout: 4000 }), 2500);
   if (document.readyState === 'complete') depois(); else window.addEventListener('load', depois, { once: true });

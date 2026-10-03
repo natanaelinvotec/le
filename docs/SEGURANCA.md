@@ -27,11 +27,15 @@
 Impede que scripts fora do site usem a configuração do Firebase para ler, gravar
 ou gerar custo.
 
-1. Crie uma chave **reCAPTCHA v3** em https://www.google.com/recaptcha/admin
-   com os domínios `natanaelinvotec.github.io` e `le-rho.vercel.app`.
-2. Firebase Console → **App Check** → Apps → o app da Web → **reCAPTCHA v3** →
-   cole a **chave secreta** → Salvar.
-3. Em `js/escola.js`, cole a **chave do site** (pública) em `APP_CHECK_SITE_KEY` e envie o arquivo.
+1. A chave do site fica em https://www.google.com/recaptcha/admin (a mesma aparece em
+   Google Cloud → Segurança → Fraud Defense → Chaves). Nos **domínios** da chave têm de
+   estar todos os endereços em que o app abre: `natanaelinvotec.github.io`,
+   `capoeira-liberdade.web.app`, `liberdadeeexpressao.com.br`, `atletapay.com.br`, `atletapay.web.app`.
+2. Firebase Console → **App Check** → Apps → o app da Web → provedor **Fraud Defense
+   (reCAPTCHA Enterprise)** → a **mesma chave do site** → Salvar. (Em 03/10/2026 estava
+   registrada uma chave que não existia mais: o cliente recebia HTTP 400 e nunca tinha token.)
+3. Em `js/escola.js`, a **chave do site** (pública) fica em `APP_CHECK_SITE_KEY`; o código usa
+   `ReCaptchaEnterpriseProvider` — o provedor do código e o do Console precisam ser o mesmo.
 4. Deixe uns dias em **monitoramento** (App Check → APIs → veja as métricas). Quando
    quase todo o tráfego aparecer como "verificado", clique em **Aplicar** no
    Firestore e no Storage.

@@ -45,7 +45,9 @@ export const auth = initializeAuth(app, { persistence: [browserLocalPersistence,
 export const db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
 export const storage = getStorage(app);
 
-// App Check (reCAPTCHA v3): só liga quando a chave do site estiver em escola.js.
+// App Check (reCAPTCHA Enterprise / "Fraud Defense"): só liga quando a chave do site
+// estiver em escola.js. O provedor TEM de ser o mesmo registrado no Console → App Check
+// (lá é Enterprise; com o provedor v3 clássico o servidor devolvia 400 e nunca emitia token).
 // Liga DEPOIS que a tela abriu (modo monitoramento): o reCAPTCHA pesa ~800 KB e,
 // ligado no início, o login e o banco esperavam o token (2–4 s a mais por tela).
 // Firestore, Auth e Storage passam a mandar o token assim que ele existe.
@@ -53,9 +55,9 @@ export const storage = getStorage(app);
 // (docs/SEGURANCA.md) — senão as primeiras chamadas de cada tela seriam barradas.
 const APP_CHECK_IMEDIATO = false;
 function ligarAppCheck() {
-  import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-check.js').then(({ initializeAppCheck, ReCaptchaV3Provider }) => {
+  import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-check.js').then(({ initializeAppCheck, ReCaptchaEnterpriseProvider }) => {
     if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-    initializeAppCheck(app, { provider: new ReCaptchaV3Provider(APP_CHECK_SITE_KEY), isTokenAutoRefreshEnabled: true });
+    initializeAppCheck(app, { provider: new ReCaptchaEnterpriseProvider(APP_CHECK_SITE_KEY), isTokenAutoRefreshEnabled: true });
   }).catch((e) => console.warn('App Check não carregou', e));
 }
 if (APP_CHECK_SITE_KEY && typeof window !== 'undefined') {
