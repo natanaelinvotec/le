@@ -20,7 +20,7 @@
       "public": ".",
       "ignore": [
         "firebase.json", ".firebaserc", "**/.*", "**/node_modules/**",
-        "functions/**", "tests/**", "firebase/**", "docs/**", "tools/**", "_ds/**",
+        "functions/**", "tests/**", "firebase/**", "docs/**", "tools/**",
         "atletapay/**", "**/*.md", "**/*.mjs", "**/*.zip", "**/*.rar", "**/*.psd"
       ],
       "cleanUrls": false,
