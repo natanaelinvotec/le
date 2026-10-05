@@ -48,7 +48,7 @@ input[readonly] { background-color: var(--bg-light); color: var(--text-muted); c
 input:focus, select:focus, input:focus-visible, select:focus-visible { border-color: var(--teal-light); background: white; box-shadow: 0 0 0 3px rgba(56,158,146,0.16); }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 
-.camera-container { text-align: center; margin-bottom: 30px; background: var(--bg-light); padding: 20px; border-radius: 18px; border: 1.5px dashed var(--border-color); }
+.camera-container { position: relative; text-align: center; margin-bottom: 30px; background: var(--bg-light); padding: 20px; border-radius: 18px; border: 1.5px dashed var(--border-color); }
 .cam-controls { display: flex; gap: 10px; justify-content: center; margin-bottom: 10px; }
 #video, #canvas { width: 100%; max-width: 320px; border-radius: 18px; border: 3px solid var(--white); box-shadow: 0 0 0 1px var(--border-color); display: none; margin: 0 auto; }
 .btn-cam { background: var(--teal-soft); color: var(--secondary-blue); border: none; padding: 11px 18px; border-radius: 14px; cursor: pointer; font-weight: 800; font-size: 0.88rem; transition: background 0.2s, transform 0.2s; }
@@ -107,3 +107,19 @@ input:focus, select:focus, input:focus-visible, select:focus-visible { border-co
         margin-bottom: 5px;
     }
 }
+
+/* Atenção e inclusão (laços) */
+.inclusao-box { background: var(--bg-light); border: 1.5px solid var(--border-color); border-radius: 18px; padding: 16px 18px 10px; margin-bottom: 26px; }
+.inclusao-dica { display: block; margin-top: 6px; font-size: 0.76rem; color: var(--text-muted); line-height: 1.4; }
+.inclusao-chips { min-height: 0; margin-bottom: 10px; }
+.inclusao-chips:empty { display: none; }
+.inclusao-chips .laco-chip { padding-right: 4px; }
+.inclusao-chips .laco-chip button { border: 0; background: transparent; color: var(--text-muted); font-weight: 900; cursor: pointer; padding: 0 4px; font-size: 0.9rem; line-height: 1; }
+.inclusao-chips .laco-chip button:hover { color: #D32F2F; }
+.inclusao-ajuda { font-size: 0.74rem; color: var(--text-muted); margin: 4px 0 6px; line-height: 1.45; }
+.inclusao-ajuda i { color: var(--secondary-blue); margin-right: 4px; }
+#inclusaoObs { width: 100%; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: 14px; font: inherit; font-size: 0.92rem; resize: vertical; background: var(--white); color: var(--text-dark); }
+.foto-wrap-inscricao { max-width: 100%; }
+.foto-wrap-inscricao .lacos-foto { right: 6px; bottom: 10px; }
+.foto-wrap-inscricao .lacos-foto:empty { display: none; }
+@media print { .inclusao-box { border: 1px solid #333; background: transparent; } .inclusao-ajuda, .inclusao-dica, .inclusao-chips button { display: none !important; } #inclusaoSelect { display: none; } .foto-wrap-inscricao .lacos-foto { display: none; } }

@@ -26,8 +26,10 @@ lancarPagamento, listarPagamentosDoNucleo, marcarPagamento,
 lancarDespesaComRateio, todosRateios, marcarRateioPago,
   presencasDoNucleo, presencasVisitantesDoNucleo, salvarFotoPerfil,
 } from './firebase.js';
-import { iniciarGestao, abrirTela as abrirTelaGestao, renderRelatoriosGerais, exportarExcel, exportarPDF } from './gestao.js?v=20260930b';
+import { iniciarGestao, abrirTela as abrirTelaGestao, renderRelatoriosGerais, exportarExcel, exportarPDF } from './gestao.js?v=20261005';
 import { iniciarAniversarios, renderAniversarios, lembrete48h } from './aniversarios.js?v=20261001';
+import { CONDICOES, lacosHTML, lacoSVG, normalizarInclusao, temInclusao, resumoInclusao, garantirEstilos as estilosInclusao } from './inclusao.js?v=20261005';
+estilosInclusao();
 import { iniciarExperiencia, abrirAcessibilidade, tutorial, pedirAceiteSeNecessario } from './experiencia.js';
 import { ligarContador, abrirCentral, ouvirPushComAppAberto } from './notificacoes.js?v=20260926e';
 import { apresentacaoDe, migrarApresentacao, tocarApresentacao, tocarAoEntrar, gerenciarApresentacao, abrirMinhaConta, abrirTrocaSenha, definirAutor, podeTerApresentacao, formatarCelular, celularValido, celularDe } from './conta.js?v=20261001';
@@ -1014,12 +1016,30 @@ if (selectFiltroAcademia) selectFiltroAcademia.addEventListener('change', () => 
 const inputBusca = document.getElementById('buscaGeral');
 if (inputBusca) inputBusca.addEventListener('input', debounce(aplicarFiltros, 200));
 
+// Filtro "Atenção e inclusão" (todos · só com atenção · uma condição) — fica no
+// cabeçalho da aba Alunos e vale para o Admin e para o professor do núcleo.
+const selectFiltroInclusao = document.getElementById('filtroInclusao');
+if (selectFiltroInclusao) {
+CONDICOES.forEach((c) => { const o = document.createElement('option'); o.value = c.id; o.textContent = `${c.sigla} — ${c.nome}`; selectFiltroInclusao.appendChild(o); });
+selectFiltroInclusao.addEventListener('change', aplicarFiltros);
+}
+function passaInclusao(a) {
+const f = selectFiltroInclusao ? selectFiltroInclusao.value : '';
+if (!f) return true;
+const { condicoes } = normalizarInclusao(a.inclusao);
+if (f === '__com') return condicoes.length > 0;
+if (f === '__sem') return condicoes.length === 0;
+return condicoes.includes(f);
+}
+
 function aplicarFiltros() {
 const alunos = todosUsuarios.filter((u) => (u.papeis || []).includes('aluno'));
 const ac = ehAdmin() && selectFiltroAcademia ? selectFiltroAcademia.value : '';
 const txt = inputBusca ? inputBusca.value.toLowerCase() : '';
 
-const filtrados = alunos.filter((a) => (ac === '' || a.academiaId === ac) && (txt === '' || (a.nome || '').toLowerCase().includes(txt)));
+const filtrados = alunos.filter((a) => (ac === '' || a.academiaId === ac) && (txt === '' || (a.nome || '').toLowerCase().includes(txt)) && passaInclusao(a));
+const contInclusao = document.getElementById('contInclusao');
+if (contInclusao) { const n = alunos.filter((a) => (ac === '' || a.academiaId === ac) && temInclusao(a)).length; contInclusao.textContent = n ? `${n} com atenção` : ''; }
 
 // O fundador (Acesso Geral) também treina como aluno no próprio núcleo que
 // administra — em vez de misturar o registro dele no meio da grade normal
@@ -1084,7 +1104,7 @@ const tagTransferido = a.academiaAnteriorId && !ehAdmin() ? '' : '';
 return `
 <div class="aluno-card" style="--card-index:${i}${a.origemTransferenciaDireta ? '; opacity:0.85' : ''}">
 <div class="card-top">
-<img src="${escapeHTML(a.fotoUrl || 'https://via.placeholder.com/70')}" class="card-foto" alt="Foto de ${escapeHTML(a.nome || 'aluno')}" loading="lazy">
+<span class="foto-com-lacos"><img src="${escapeHTML(a.fotoUrl || 'https://via.placeholder.com/70')}" class="card-foto" alt="Foto de ${escapeHTML(a.nome || 'aluno')}" loading="lazy">${lacosHTML(a.inclusao, { px: 24 })}</span>
 <div class="card-info">
 <h3>${escapeHTML(a.nome || 'Sem nome')} ${badges}${estrelasHtml}</h3>
 <p>Rank: <strong>${escapeHTML(a.cordaoAtual || 'Iniciante')}</strong></p>
@@ -1332,6 +1352,21 @@ btnStatus.innerHTML = ativo ? '<i class="fas fa-user-slash"></i> Desativar Aluno
 btnStatus.classList.remove('confirm-danger');
 
 document.getElementById('modFoto').src = usuarioSelecionado.fotoUrl || 'https://via.placeholder.com/90';
+// Atenção e inclusão: laços no canto da foto do modal + caixas para editar.
+{
+const lacosMod = document.getElementById('modFotoLacos');
+if (lacosMod) lacosMod.innerHTML = lacosHTML(usuarioSelecionado.inclusao, { px: 28 }).replace('class="lacos-foto"', 'class="lacos-foto lacos-foto-modal"');
+const caixa = document.getElementById('modInclusaoLista');
+const incl = normalizarInclusao(usuarioSelecionado.inclusao);
+if (caixa) {
+caixa.innerHTML = CONDICOES.map((c) => `<label class="mod-inclusao-item${incl.condicoes.includes(c.id) ? ' on' : ''}" title="${escapeHTML(c.nome)}"><input type="checkbox" value="${c.id}" ${incl.condicoes.includes(c.id) ? 'checked' : ''}>${lacoSVG(c.id, 22)}<span><b>${escapeHTML(c.sigla)}</b><small>${escapeHTML(c.nome)}</small></span></label>`).join('');
+caixa.querySelectorAll('input').forEach((i) => i.addEventListener('change', () => { i.closest('label').classList.toggle('on', i.checked); const sem = document.getElementById('modInclusaoSem'); if (sem) sem.textContent = caixa.querySelectorAll('input:checked').length ? '' : 'Sem limitações'; }));
+const sem = document.getElementById('modInclusaoSem'); if (sem) sem.textContent = incl.condicoes.length ? '' : 'Sem limitações';
+const obs = document.getElementById('modInclusaoObs'); if (obs) obs.value = incl.observacoes || '';
+const dicas = document.getElementById('modInclusaoDicas');
+if (dicas) dicas.innerHTML = incl.condicoes.length ? `<b>Orientações gerais:</b> ${incl.condicoes.map((id) => { const c = CONDICOES.find((x) => x.id === id); return c ? `<span>${escapeHTML(c.sigla)}: ${escapeHTML(c.dica)}</span>` : ''; }).join(' ')}` : '';
+}
+}
 document.getElementById('modNomeTitulo').textContent = usuarioSelecionado.nome || 'Aluno';
 document.getElementById('modAcademia').textContent = usuarioSelecionado.academiaNome || usuarioSelecionado.academiaId || '-';
 
@@ -1618,6 +1653,15 @@ statusAtual: document.getElementById('modStatus').value,
 // Celular de contato: o cadastro usa o campo "celular" (inscrição, app e
 // painel). Antes o app gravava em "telefone" e nada lia de volta.
 if (novoCelular !== null) dadosAtualizados.celular = novoCelular;
+// Atenção e inclusão (laços): lista vazia = "Sem limitações".
+{
+const caixa = document.getElementById('modInclusaoLista');
+if (caixa) {
+const marcadas = [...caixa.querySelectorAll('input:checked')].map((i) => i.value);
+const obs = document.getElementById('modInclusaoObs');
+dadosAtualizados.inclusao = normalizarInclusao({ condicoes: marcadas, observacoes: sanitizeInput(obs ? obs.value : '') });
+}
+}
 if (novaNasc) dadosAtualizados.dataNasc = novaNasc;
 
 // Graduação/fundamentos de aluno: sempre grava (todo mundo treina, mesmo

@@ -40,9 +40,27 @@
 </div>
 <video id="video" autoplay playsinline muted></video>
 <button type="button" class="btn-cam" id="snapBtn" style="display:none; background:var(--accent-green); width:100%; margin-top:10px;"><i class="fas fa-camera"></i> Capturar Foto</button>
-<canvas id="canvas"></canvas>
+<span class="foto-com-lacos foto-wrap-inscricao"><canvas id="canvas"></canvas><div id="fotoLacos" class="lacos-foto" aria-live="polite"></div></span>
 <input type="hidden" id="fotoDataUrl" name="fotoDataUrl">
 <p id="fotoStatus" style="font-size:0.8rem; color:var(--text-muted, #667); margin-top:6px; min-height:1em;"></p>
+</div>
+
+<h2><i class="fas fa-ribbon"></i> Atenção e inclusão</h2>
+<div class="inclusao-box">
+<div class="form-group">
+<label for="inclusaoSelect">O aluno tem alguma condição que o professor deva conhecer?</label>
+<select id="inclusaoSelect" aria-describedby="inclusaoAjuda">
+<option value="">Sem limitações</option>
+</select>
+<small class="inclusao-dica">Pode marcar mais de uma: escolha uma, depois escolha outra. Cada uma vira um laço no canto da foto, que o professor vê no painel.</small>
+</div>
+<div id="inclusaoChips" class="lacos-linha inclusao-chips" aria-label="Condições marcadas"></div>
+<input type="hidden" name="inclusaoCondicoes" id="inclusaoCondicoes" value="[]">
+<div class="form-group" id="wrapInclusaoObs" hidden>
+<label for="inclusaoObs">Orientações para o professor (opcional)</label>
+<textarea name="inclusaoObs" id="inclusaoObs" rows="2" maxlength="400" placeholder="Ex.: prefere aviso antes de mudar a atividade; sensível a som alto; usa aparelho auditivo no ouvido esquerdo."></textarea>
+</div>
+<p id="inclusaoAjuda" class="inclusao-ajuda"><i class="fas fa-lock"></i> Informação sensível, protegida pela LGPD: só o professor do núcleo e a administração veem. Não aparece na Rede, na carteirinha nem no perfil público.</p>
 </div>
 
 <h2>Dados Pessoais e Acesso ao Painel</h2>

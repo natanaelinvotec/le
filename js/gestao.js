@@ -11,6 +11,7 @@ import {
 } from './firebase.js';
 import { ESCOLA, CORDOES_ADULTO, prontidao, proximoCordao, coresDoCordao, META_PRONTIDAO, escadaDe } from './escola.js';
 import { situacao as situacaoCarteirinha, textoValidade } from './carteirinha-comum.js';
+import { CONDICOES, lacosHTML, lacoSVG, normalizarInclusao, resumoInclusao, SEM_LIMITACOES } from './inclusao.js?v=20261005';
 
 let C = null; // contexto vindo do admin.js
 const el = (id) => document.getElementById(id);
@@ -77,8 +78,8 @@ function botoesExportar(id, rotulo) {
 const EXPORTS = {
   alunos: async (nid) => ({
     titulo: 'Alunos', sub: nid ? nomeNucleo(nid) : 'Grupo todo',
-    colunas: [{ chave: 'nome', titulo: 'Nome' }, { chave: 'cordao', titulo: 'Cordão' }, { chave: 'idade', titulo: 'Idade' }, { chave: 'nucleo', titulo: 'Núcleo' }, { chave: 'celular', titulo: 'Celular' }, { chave: 'status', titulo: 'Status' }, { chave: 'prontidao', titulo: 'Prontidão' }, { chave: 'desde', titulo: 'No grupo desde' }],
-    linhas: alunosDe(nid).sort((a, b) => String(a.nome).localeCompare(String(b.nome))).map((a) => ({ nome: a.nome || '', cordao: a.cordaoAtual || 'Iniciante', idade: a.idade || '', nucleo: nomeNucleo(a.academiaId), celular: a.celular || '', status: a.statusAtual || 'Ativo', prontidao: prontidao(a) == null ? '—' : `${prontidao(a)}%`, desde: a.criadoEm ? new Date(a.criadoEm).toLocaleDateString('pt-BR') : '' })),
+    colunas: [{ chave: 'nome', titulo: 'Nome' }, { chave: 'cordao', titulo: 'Cordão' }, { chave: 'idade', titulo: 'Idade' }, { chave: 'nucleo', titulo: 'Núcleo' }, { chave: 'celular', titulo: 'Celular' }, { chave: 'status', titulo: 'Status' }, { chave: 'prontidao', titulo: 'Prontidão' }, { chave: 'inclusao', titulo: 'Atenção e inclusão' }, { chave: 'desde', titulo: 'No grupo desde' }],
+    linhas: alunosDe(nid).sort((a, b) => String(a.nome).localeCompare(String(b.nome))).map((a) => ({ nome: a.nome || '', cordao: a.cordaoAtual || 'Iniciante', idade: a.idade || '', nucleo: nomeNucleo(a.academiaId), celular: a.celular || '', status: a.statusAtual || 'Ativo', prontidao: prontidao(a) == null ? '—' : `${prontidao(a)}%`, inclusao: resumoInclusao(a), desde: a.criadoEm ? new Date(a.criadoEm).toLocaleDateString('pt-BR') : '' })),
   }),
   presencas: async (nid) => {
     const itens = await presencasPeriodo(nid, 90);
@@ -315,7 +316,7 @@ function ligarDesfazer(raiz, depois) {
 // ---------- RELATÓRIOS GERAIS (atletas, carteirinhas, graduações) ----------
 // Tudo sai dos cadastros já carregados no painel (usuarios/*, com o espelho
 // .carteirinha que o servidor grava): nenhuma leitura extra do banco.
-let rgAba = 'atletas'; let rgFiltroCart = 'todas'; let rgDias = 90;
+let rgAba = 'atletas'; let rgFiltroCart = 'todas'; let rgDias = 90; let rgFiltroIncl = 'todas';
 const PAPEIS_ATLETA = ['aluno', 'instrutor', 'mestre'];
 const ehAtletaU = (u) => (u.papeis || []).some((p) => PAPEIS_ATLETA.includes(p));
 const inativo = (u) => u.statusAtual === 'Inativo' || u.ativo === false;
@@ -361,6 +362,22 @@ export function renderRelatoriosGerais(nid) {
       ${lista.length ? `<div class="rg-tabela"><table><thead><tr><th>Atleta</th><th>Núcleo</th><th>Matrícula</th><th>Situação</th><th>Validade</th><th>Beneficiários</th><th></th></tr></thead><tbody>${lista.slice(0, 400).map((u) => { const s = sitCart(u); const c = u.carteirinha || {}; return `<tr><td><b>${esc(u.nome || '')}</b><small class="rg-sutil">${esc(funcaoDe(u))}</small></td><td>${esc(nomeNucleo(u.academiaId))}</td><td class="rg-mono">${esc(c.matricula || '—')}</td><td><span class="pill ${ROT_CART[s][1]}">${esc(ROT_CART[s][0].replace(/s$/, '').replace('Sem foto aprovada', 'Sem foto').replace('Não emitida', 'Não emitida'))}</span></td><td>${esc(c.codigo ? textoValidade(c) : '—')}</td><td>${Array.isArray(c.beneficiarios) ? c.beneficiarios.length : 0}</td><td>${c.codigo ? `<a class="btn-mini" href="v.html#${esc(encodeURIComponent(c.codigo))}" target="_blank" rel="noopener">Conferir</a>` : ''}</td></tr>`; }).join('')}</tbody></table></div>` : '<div class="empty-state"><i class="fas fa-id-card"></i>Nenhuma carteirinha nesta situação.</div>'}`;
     exportar = () => ({ titulo: 'Carteirinhas', sub: rotEscopo, colunas: [{ chave: 'nome', titulo: 'Atleta' }, { chave: 'nucleo', titulo: 'Núcleo' }, { chave: 'matricula', titulo: 'Matrícula' }, { chave: 'situacao', titulo: 'Situação' }, { chave: 'validade', titulo: 'Validade' }, { chave: 'benef', titulo: 'Beneficiários' }, { chave: 'bolsista', titulo: 'Bolsista' }],
       linhas: lista.map((u) => { const c = u.carteirinha || {}; const s = sitCart(u); return { nome: u.nome || '', nucleo: nomeNucleo(u.academiaId), matricula: c.matricula || '', situacao: ROT_CART[s][0], validade: c.codigo ? textoValidade(c) : '', benef: Array.isArray(c.beneficiarios) ? c.beneficiarios.length : 0, bolsista: u.isentoMensalidade === true ? 'Sim' : '' }; }) });
+  } else if (rgAba === 'inclusao') {
+    // Atenção e inclusão: quem precisa de atenção, por condição e por núcleo,
+    // com as orientações da ficha e o contato do responsável. Só para quem já
+    // pode ler usuarios/ (Admin, fundador, gestor do núcleo) — o dado é sensível.
+    const comAtencao = pessoas.filter((u) => normalizarInclusao(u.inclusao).condicoes.length);
+    const porCond = {}; comAtencao.forEach((u) => normalizarInclusao(u.inclusao).condicoes.forEach((c) => { porCond[c] = (porCond[c] || 0) + 1; }));
+    const porNucleo = {}; comAtencao.forEach((u) => { const n = nomeNucleo(u.academiaId); porNucleo[n] = (porNucleo[n] || 0) + 1; });
+    const menores = comAtencao.filter((u) => Number(u.idade) < 18).length;
+    const lista = comAtencao.filter((u) => rgFiltroIncl === 'todas' || normalizarInclusao(u.inclusao).condicoes.includes(rgFiltroIncl)).sort((a, b) => String(a.nome).localeCompare(String(b.nome)));
+    const pct = pessoas.length ? Math.round((comAtencao.length / pessoas.length) * 100) : 0;
+    corpo = `<div class="rg-tiles">${tile(comAtencao.length, `atletas com atenção (${pct}% de ${pessoas.length})`, 'ok')}${tile(menores, 'menores de 18 com atenção')}${tile(Object.keys(porNucleo).length, 'núcleos com atletas de inclusão')}${CONDICOES.filter((c) => porCond[c.id]).map((c) => `<div class="rg-tile rg-tile-laco" title="${esc(c.nome)}">${lacoSVG(c.id, 30)}<b>${porCond[c.id]}</b><small>${esc(c.sigla)}</small></div>`).join('')}</div>
+      <div class="rg-filtros" role="group" aria-label="Filtrar por condição"><button type="button" class="btn-mini${rgFiltroIncl === 'todas' ? ' on' : ''}" data-rg-incl="todas" aria-pressed="${rgFiltroIncl === 'todas'}">Todas</button>${CONDICOES.map((c) => `<button type="button" class="btn-mini${rgFiltroIncl === c.id ? ' on' : ''}" data-rg-incl="${c.id}" aria-pressed="${rgFiltroIncl === c.id}" title="${esc(c.nome)}">${lacoSVG(c.id, 16)} ${esc(c.sigla)}</button>`).join('')}</div>
+      ${lista.length ? `<div class="rg-tabela"><table><thead><tr><th>Atleta</th><th>Núcleo</th><th>Idade</th><th>Condições</th><th>Orientações do cadastro</th><th>Responsável</th></tr></thead><tbody>${lista.slice(0, 400).map((u) => { const i = normalizarInclusao(u.inclusao); const r = u.responsavelContato || {}; return `<tr><td><b>${esc(u.nome || '')}</b><small class="rg-sutil">${esc(u.cordaoAtual || 'Iniciante')} · ${esc(funcaoDe(u))}</small></td><td>${esc(nomeNucleo(u.academiaId))}</td><td>${esc(u.idade ?? '—')}</td><td>${lacosHTML(i, { px: 20, classe: 'lacos-linha', comSigla: true })}</td><td class="rg-obs">${esc(i.observacoes || '—')}</td><td>${r.nome ? `${esc(r.nome)}<small class="rg-sutil">${esc(r.parentesco || '')} ${esc(r.telefone || '')}</small>` : (u.celular ? esc(u.celular) : '—')}</td></tr>`; }).join('')}</tbody></table></div>` : `<div class="empty-state"><i class="fas fa-ribbon"></i>${comAtencao.length ? 'Nenhum atleta com esta condição.' : `Nenhum atleta marcado com atenção neste escopo — todos "${SEM_LIMITACOES}".`}</div>`}
+      <p class="gs-ajuda" style="margin-top:10px"><i class="fas fa-lock"></i> Dado sensível (LGPD): use só para adaptar o treino e orientar a equipe. Não divulgue a lista. Exportar gera um arquivo local — guarde com o mesmo cuidado.</p>`;
+    exportar = () => ({ titulo: 'Atenção e inclusão', sub: rotEscopo + (rgFiltroIncl === 'todas' ? '' : ` · ${rgFiltroIncl}`), colunas: [{ chave: 'nome', titulo: 'Atleta' }, { chave: 'nucleo', titulo: 'Núcleo' }, { chave: 'idade', titulo: 'Idade' }, { chave: 'cordao', titulo: 'Cordão' }, { chave: 'condicoes', titulo: 'Condições' }, { chave: 'obs', titulo: 'Orientações' }, { chave: 'resp', titulo: 'Responsável' }, { chave: 'contato', titulo: 'Contato' }],
+      linhas: lista.map((u) => { const i = normalizarInclusao(u.inclusao); const r = u.responsavelContato || {}; return { nome: u.nome || '', nucleo: nomeNucleo(u.academiaId), idade: u.idade ?? '', cordao: u.cordaoAtual || 'Iniciante', condicoes: i.condicoes.map((c) => { const k = CONDICOES.find((x) => x.id === c); return k ? `${k.sigla} (${k.nome})` : c; }).join('; '), obs: i.observacoes || '', resp: r.nome || '', contato: r.telefone || u.celular || '' }; }) });
   } else {
     const lista = graduacoesDe(escopo, rgDias || null).filter((g) => g.subiu && !g.h.legado);
     const porCordao = {}; lista.forEach((g) => { porCordao[g.h.cordao] = (porCordao[g.h.cordao] || 0) + 1; });
@@ -371,12 +388,13 @@ export function renderRelatoriosGerais(nid) {
     exportar = () => ({ titulo: 'Graduações', sub: `${rotEscopo} · ${rgDias ? `últimos ${rgDias} dias` : 'todo o período'}`, colunas: [{ chave: 'data', titulo: 'Data' }, { chave: 'nome', titulo: 'Atleta' }, { chave: 'nucleo', titulo: 'Núcleo' }, { chave: 'de', titulo: 'Cordão anterior' }, { chave: 'para', titulo: 'Novo cordão' }, { chave: 'por', titulo: 'Graduado por' }, { chave: 'evento', titulo: 'Evento' }],
       linhas: lista.map(({ u, h }) => ({ data: new Date(h.em).toLocaleDateString('pt-BR'), nome: u.nome || '', nucleo: nomeNucleo(u.academiaId), de: h.anterior || 'Iniciante', para: h.cordao, por: h.porNome || '', evento: h.eventoNome || '' })) });
   }
-  box.innerHTML = `<div class="rg-abas" role="tablist" aria-label="Relatórios gerais">${[['atletas', 'fa-users', 'Atletas ativos e inativos'], ['carteirinhas', 'fa-id-card', 'Carteirinhas'], ['graduacoes', 'fa-ribbon', 'Graduações']].map(([k, ic, r]) => `<button type="button" role="tab" aria-selected="${rgAba === k}" class="${rgAba === k ? 'on' : ''}" data-rg-aba="${k}"><i class="fas ${ic}"></i> ${r}</button>`).join('')}
+  box.innerHTML = `<div class="rg-abas" role="tablist" aria-label="Relatórios gerais">${[['atletas', 'fa-users', 'Atletas ativos e inativos'], ['carteirinhas', 'fa-id-card', 'Carteirinhas'], ['graduacoes', 'fa-award', 'Graduações'], ['inclusao', 'fa-ribbon', 'Atenção e inclusão']].map(([k, ic, r]) => `<button type="button" role="tab" aria-selected="${rgAba === k}" class="${rgAba === k ? 'on' : ''}" data-rg-aba="${k}"><i class="fas ${ic}"></i> ${r}</button>`).join('')}
     <span class="rg-exp"><button type="button" class="btn-mini exp-btn" data-rg-exp="xlsx"><i class="fas fa-file-excel"></i> Excel</button><button type="button" class="btn-mini exp-btn" data-rg-exp="pdf"><i class="fas fa-file-pdf"></i> PDF</button></span></div>
     <div class="rg-corpo">${corpo}</div>`;
   box.querySelectorAll('[data-rg-aba]').forEach((b) => b.addEventListener('click', () => { rgAba = b.dataset.rgAba; renderRelatoriosGerais(nid); }));
   box.querySelectorAll('[data-rg-filtro]').forEach((b) => b.addEventListener('click', () => { rgFiltroCart = b.dataset.rgFiltro; renderRelatoriosGerais(nid); }));
   box.querySelectorAll('[data-rg-dias]').forEach((b) => b.addEventListener('click', () => { rgDias = Number(b.dataset.rgDias); renderRelatoriosGerais(nid); }));
+  box.querySelectorAll('[data-rg-incl]').forEach((b) => b.addEventListener('click', () => { rgFiltroIncl = b.dataset.rgIncl; renderRelatoriosGerais(nid); }));
   box.querySelectorAll('[data-rg-exp]').forEach((b) => b.addEventListener('click', () => { const d = exportar(); exportarRel(b.dataset.rgExp, d); }));
   ligarDesfazer(box, () => renderRelatoriosGerais(nid));
 }

@@ -67,6 +67,10 @@ test('autocadastro: só aluno Iniciante, sem acesso geral nem brasões', async (
   await assertFails(setDoc(doc(db('novo1'), 'usuarios', 'novo1'), { ...novo, cordaoAtual: 'Mestre' }));
   await assertFails(setDoc(doc(db('novo1'), 'usuarios', 'novo1'), { ...novo, brasoesAdmin: { x: {} } }));
   await assertFails(setDoc(doc(db('novo1'), 'usuarios', 'novo1'), { ...novo, papeis: ['aluno', 'admin'] }));
+  // Atenção e inclusão: a própria pessoa grava na inscrição e pode corrigir depois; dado sensível, mas do próprio titular.
+  await assertSucceeds(setDoc(doc(db('novo1'), 'usuarios', 'novo1'), { ...novo, inclusao: { condicoes: ['TEA'], observacoes: 'avisar antes de mudar a atividade' } }));
+  await assertSucceeds(updateDoc(doc(db('novo1'), 'usuarios', 'novo1'), { inclusao: { condicoes: [], observacoes: '' } }));
+  await assertFails(getDoc(doc(db('estranho'), 'usuarios', 'novo1')), 'outro aluno não lê a ficha (inclusive a inclusão)');
   await assertSucceeds(setDoc(doc(db('novo1'), 'usuarios', 'novo1'), novo));
 });
 

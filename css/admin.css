@@ -970,3 +970,29 @@ select.input-padrao { appearance: none; -webkit-appearance: none; background-ima
   .an-colunas { gap: 3px; height: 150px; }
 }
 @media (prefers-reduced-motion: reduce) { .an-lembrete { animation: none; } .an-dia, .an-zap, .an-col i { transition: none; } }
+
+/* Atenção e inclusão (laços) */
+.filtro-inclusao { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; }
+.filtro-inclusao i { color: var(--primary-teal); }
+.filtro-inclusao .input-padrao { max-width: 260px; padding: 8px 10px; font-size: 0.82rem; }
+.filtro-inclusao small { color: var(--text-muted); font-size: 0.76rem; white-space: nowrap; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
+.lacos-foto-modal { right: -8px; bottom: 6px; }
+.mod-inclusao-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; margin-top: 4px; }
+.mod-inclusao-item { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-app); cursor: pointer; font-size: 0.8rem; transition: border-color .2s, background .2s, transform .35s cubic-bezier(.16,1,.3,1); }
+.mod-inclusao-item:hover { transform: translateY(-1px); }
+.mod-inclusao-item.on { border-color: var(--primary-teal); background: var(--teal-soft); }
+.mod-inclusao-item input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.mod-inclusao-item span { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.mod-inclusao-item b { color: var(--text-dark); }
+.mod-inclusao-item small { color: var(--text-muted); font-size: 0.68rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mod-inclusao-sem { font-weight: 600; color: var(--primary-teal); margin-left: 6px; font-size: 0.78rem; }
+.mod-inclusao-dicas { font-size: 0.76rem; color: var(--text-muted); margin-top: 6px; line-height: 1.45; }
+.mod-inclusao-dicas span { display: block; }
+.mod-inclusao-lgpd { display: block; margin-top: 6px; font-size: 0.7rem; color: var(--text-muted); }
+.mod-inclusao textarea.input-padrao { resize: vertical; font: inherit; font-size: 0.86rem; }
+@media (max-width: 700px) { .filtro-inclusao { margin-left: 0; width: 100%; } .filtro-inclusao .input-padrao { max-width: none; flex: 1; } }
+.rg-tile-laco { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.rg-tile-laco svg { margin-bottom: -4px; }
+.rg-obs { max-width: 320px; font-size: 0.8rem; color: var(--text-muted); white-space: pre-wrap; }
+.rg-filtros .btn-mini svg { vertical-align: -3px; margin-right: 2px; }

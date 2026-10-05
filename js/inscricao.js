@@ -7,6 +7,7 @@ sem precisar de uma inscrição separada).
 */
 import { criarConta, listarNucleosAtivos, comprimirImagemDataUrl, arquivoParaDataUrlComprimido, registroConsentimento } from './firebase.js';
 import { sanitizeInput, gerarSlug } from './shared.js';
+import { CONDICOES, SEM_LIMITACOES, nomeDe, siglaDe, lacoSVG, lacosHTML, normalizarInclusao, garantirEstilos } from './inclusao.js?v=20261005';
 
 const steps = document.querySelectorAll('.form-step');
 const indicators = document.querySelectorAll('.step-indicator');
@@ -244,6 +245,34 @@ function mensagemDeErro(codigoOuErro) {
 
 const form = document.getElementById('formInscricao');
 
+
+// ---------- Atenção e inclusão (laços) ----------
+// "Sem limitações" é o padrão. Cada condição escolhida vira um chip (com X para
+// tirar) e um laço no canto da foto; a lista vai em usuarios/{uid}.inclusao.
+garantirEstilos();
+const inclusaoSelect = document.getElementById('inclusaoSelect');
+const inclusaoChips = document.getElementById('inclusaoChips');
+const inclusaoHidden = document.getElementById('inclusaoCondicoes');
+const wrapInclusaoObs = document.getElementById('wrapInclusaoObs');
+const fotoLacos = document.getElementById('fotoLacos');
+let condicoesEscolhidas = [];
+if (inclusaoSelect) {
+  CONDICOES.forEach((c) => { const o = document.createElement('option'); o.value = c.id; o.textContent = `${c.sigla} — ${c.nome}`; inclusaoSelect.appendChild(o); });
+  const desenharInclusao = () => {
+    inclusaoHidden.value = JSON.stringify(condicoesEscolhidas);
+    inclusaoChips.innerHTML = condicoesEscolhidas.map((id) => `<span class="laco-chip" data-nome="${siglaDe(id)} · ${nomeDe(id)}" title="${nomeDe(id)}">${lacoSVG(id, 20)}<b>${siglaDe(id)}</b><button type="button" data-tirar="${id}" aria-label="Tirar ${nomeDe(id)}">×</button></span>`).join('');
+    if (fotoLacos) fotoLacos.innerHTML = condicoesEscolhidas.map((id) => `<span class="laco-chip" data-nome="${siglaDe(id)} · ${nomeDe(id)}" title="${nomeDe(id)}">${lacoSVG(id, 26)}</span>`).join('');
+    wrapInclusaoObs.hidden = condicoesEscolhidas.length === 0;
+    // Com uma condição marcada, o seletor volta a oferecer as outras; sem nenhuma, mostra "Sem limitações".
+    inclusaoSelect.options[0].textContent = condicoesEscolhidas.length ? 'Adicionar outra condição…' : SEM_LIMITACOES;
+    [...inclusaoSelect.options].forEach((o) => { o.disabled = !!o.value && condicoesEscolhidas.includes(o.value); });
+    inclusaoSelect.value = '';
+  };
+  inclusaoSelect.addEventListener('change', () => { const v = inclusaoSelect.value; if (v && !condicoesEscolhidas.includes(v)) condicoesEscolhidas.push(v); desenharInclusao(); });
+  inclusaoChips.addEventListener('click', (e) => { const b = e.target.closest('[data-tirar]'); if (!b) return; condicoesEscolhidas = condicoesEscolhidas.filter((x) => x !== b.dataset.tirar); desenharInclusao(); });
+  desenharInclusao();
+}
+
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   if (!fotoDataUrl.value) { alert("Tire a foto do aluno (ou envie uma da galeria) no Passo 1 antes de finalizar!"); return; }
@@ -302,6 +331,9 @@ form.addEventListener('submit', async (e) => {
         tamCamiseta: data.tamCamiseta, tamCalca: data.tamCalca,
       },
       financeiro: { dataPagamento: data.dataPagamento, formaPagamento: data.formaPagamento },
+      // Atenção e inclusão: lista vazia = "Sem limitações". Só o núcleo e a
+      // administração leem (não entra no cartão público).
+      inclusao: normalizarInclusao({ condicoes: (() => { try { return JSON.parse(data.inclusaoCondicoes || '[]'); } catch (e) { return []; } })(), observacoes: data.inclusaoObs || '' }),
       usoImagem: data.usoImagem,
       // Aceite do termo e da política de privacidade (LGPD): quem aceitou e quando.
       consentimento: registroConsentimento(idadeAluno < 18 ? (inputResponsavel.value || data.emergenciaNome || data.nome) : data.nome, data.usoImagem),

@@ -114,6 +114,16 @@ agrupados; a visibilidade por papel continua por data-papel (admin.js). -->
 <h2 id="tituloAbaAlunos">Alunos</h2>
 </div>
 <span id="estrelaHeaderAlunos" class="estrela-viva oculto"></span>
+<div class="filtro-inclusao" title="Atenção e inclusão">
+<label for="filtroInclusao" class="sr-only">Filtrar por atenção e inclusão</label>
+<i class="fas fa-ribbon" aria-hidden="true"></i>
+<select id="filtroInclusao" class="input-padrao">
+<option value="">Inclusão: todos</option>
+<option value="__com">Só com atenção</option>
+<option value="__sem">Sem limitações</option>
+</select>
+<small id="contInclusao"></small>
+</div>
 </div>
 
 <div id="heroFundador" class="hero-fundador oculto"></div>
@@ -563,7 +573,7 @@ pra não recalcular a cada aula. -->
 <div class="modal-content modal-large">
 <button class="close-modal" onclick="fecharModal()" aria-label="Fechar"><i class="fas fa-times"></i></button>
 <div class="modal-header-centered">
-<img src="" id="modFoto" class="mod-foto-large" alt="">
+<span class="foto-com-lacos"><img src="" id="modFoto" class="mod-foto-large" alt=""><span id="modFotoLacos"></span></span>
 <h2 id="modNomeTitulo">EDITAR ALUNO</h2>
 <p><i class="fas fa-map-marker-alt"></i> <span id="modAcademia">Núcleo</span></p>
 </div>
@@ -596,6 +606,14 @@ pra não recalcular a cada aula. -->
 <input type="file" id="modInputGaleria" accept="image/*" style="display:none;">
 <span id="modFotoStatus" style="font-size:0.75rem; color:var(--text-muted); align-self:center;"></span>
 </div>
+</div>
+<div class="form-group-mod mod-inclusao" style="margin-bottom: 14px;">
+<label><i class="fas fa-ribbon"></i> Atenção e inclusão <span id="modInclusaoSem" class="mod-inclusao-sem"></span></label>
+<div id="modInclusaoLista" class="mod-inclusao-lista"></div>
+<label for="modInclusaoObs" style="margin-top:8px;">Orientações para o professor</label>
+<textarea id="modInclusaoObs" class="input-padrao" rows="2" maxlength="400" placeholder="Ex.: avisar antes de mudar a atividade; sensível a som alto."></textarea>
+<p id="modInclusaoDicas" class="mod-inclusao-dicas"></p>
+<small class="mod-inclusao-lgpd"><i class="fas fa-lock"></i> Dado sensível (LGPD): visível só ao núcleo e à administração; não vai para a Rede, carteirinha ou perfil público.</small>
 </div>
 <div class="form-group-mod" style="margin-bottom: 12px;">
 <label for="modStatus">Status:</label>
