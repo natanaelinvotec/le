@@ -687,6 +687,33 @@ test('vídeo de apresentação e assinatura ligam os brasões 64 e 67; "Núcleo 
   assert.equal(f.ler('perfisPublicos/tay').resumoFormacao.completos, 8);
 });
 
+test('"Roda Inclusiva" (75): atleta de inclusão ativo há 6 meses no núcleo; só o total vai ao cartão público', async () => {
+  const { f, ctx } = ctxDe(base());
+  const ha7meses = new Date(Date.now() - 210 * 86400000).toISOString();
+  await sincronizarPerfil(ctx, 'tay', { formacao: true });
+  let rf = f.ler('perfisPublicos/tay').resumoFormacao;
+  assert.ok(!f.ler('perfisPublicos/tay').brasoes['roda-inclusiva'] && rf.atletasInclusao === 0, 'sem atleta de inclusão: sem brasão');
+  // Cadastro recente com TEA: conta no total, mas ainda não dá o brasão (menos de 6 meses).
+  f.db.doc('usuarios/a1').set({ nome: 'Aluno 1', papeis: ['aluno'], academiaId: 'taynara', cordaoAtual: 'Iniciante', idade: 9, criadoEm: new Date().toISOString(), inclusao: { condicoes: ['TEA'], observacoes: 'avisar antes de mudar a atividade' } });
+  await G.aoEscreverUsuario(ctx, { params: { uid: 'a1' }, antes: null, depois: f.ler('usuarios/a1'), authId: null, authType: 'system' });
+  await sincronizarPerfil(ctx, 'tay', { formacao: true });
+  rf = f.ler('perfisPublicos/tay').resumoFormacao;
+  assert.equal(rf.atletasInclusao, 1); assert.equal(rf.rodaInclusiva, false, 'menos de 6 meses ainda não');
+  assert.equal(f.ler('perfisPublicos/a1').inclusao, undefined, 'a condição NUNCA vai para o cartão público');
+  // O professor marca a condição de um atleta antigo (nat, 7 meses): o gatilho recalcula o responsável.
+  const antes = f.ler('usuarios/nat');
+  f.db.doc('usuarios/nat').update({ criadoEm: ha7meses, inclusao: { condicoes: ['TDAH'], observacoes: '' } });
+  await G.aoEscreverUsuario(ctx, { params: { uid: 'nat' }, antes, depois: f.ler('usuarios/nat'), authId: 'tay', authType: 'user' });
+  rf = f.ler('perfisPublicos/tay').resumoFormacao;
+  assert.equal(rf.atletasInclusao, 2); assert.equal(rf.rodaInclusiva, true);
+  assert.ok(f.ler('perfisPublicos/tay').brasoes['roda-inclusiva'], '75 concedido ao responsável do núcleo');
+  // Inativar o atleta tira o brasão (a roda precisa MANTER o atleta).
+  const antes2 = f.ler('usuarios/nat');
+  f.db.doc('usuarios/nat').update({ statusAtual: 'Inativo' });
+  await G.aoEscreverUsuario(ctx, { params: { uid: 'nat' }, antes: antes2, depois: f.ler('usuarios/nat'), authId: 'tay', authType: 'user' });
+  assert.ok(!f.ler('perfisPublicos/tay').brasoes['roda-inclusiva'], 'atleta inativo não sustenta o brasão');
+});
+
 /* ===================== campeonatos ===================== */
 import * as MC from '../src/compartilhado/campeonato-motor.js';
 import { aoEscreverCampeonato } from '../src/campeonatos.js';

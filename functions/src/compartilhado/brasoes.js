@@ -1,4 +1,4 @@
-/* brasoes.js — catálogo e motor dos 74 brasões do Capoeira Liberdade e Expressão.
+/* brasoes.js — catálogo e motor dos 75 brasões do Capoeira Liberdade e Expressão.
 
 Regra de ouro: um brasão só é "ganho" quando o dado real que o sustenta existe.
 Nada aqui inventa número. As fontes são:
@@ -40,6 +40,7 @@ Métrica de cada brasão:
   tipo 'apresentacao'→ vídeo de apresentação publicado (apresentacoes/{uid})
   tipo 'assinatura'  → assinatura real dos certificados cadastrada (assinaturas/{uid})
   tipo 'nucleoCompleto' → responsável cujo núcleo (≥ 3 atletas ativos) tem 100% com foto de carteirinha aprovada e data de nascimento
+  tipo 'rodaInclusiva' → responsável cujo núcleo mantém atleta(s) de atenção e inclusão ATIVOS há pelo menos 6 meses (resumoFormacao.rodaInclusiva)
   tipo 'manual'      → só por concessão (brasoesManuais[id])
 Os números das medalhas (1, 10, 50…) estão GRAVADOS na arte — por isso as metas
 numéricas não são editáveis no painel; o que se edita é nome/descrição e ativo/inativo. */
@@ -61,6 +62,7 @@ competicao: { nome: 'Competição', sub: 'Campeonatos internos e entre escolas: 
 graduacao: { nome: 'Certificados', sub: 'Certificados de graduação, trajetória e o card "Troquei de cordão"', icone: 'fa-award', forma: 'hex' },
 carteirinha: { nome: 'Carteirinha', sub: 'Carteirinha em dia e a família cadastrada como beneficiária', icone: 'fa-id-card', forma: 'hex' },
 compromisso: { nome: 'Compromisso', sub: 'Mensalidade em dia, inscrições em eventos e tempo de grupo', icone: 'fa-calendar-check', forma: 'medalha' },
+inclusao: { nome: 'Inclusão', sub: 'Núcleos que acolhem e mantêm atletas de atenção e inclusão na roda', icone: 'fa-universal-access', forma: 'hex' },
 };
 
 const b = (n, slug, nome, serie, regra, extra = {}) => ({ id: slug, n, arquivo: `brasao-${String(n).padStart(2, '0')}-${slug}`, nome, serie, forma: SERIES[serie].forma, regra, nivel: null, glb: null, ...extra });
@@ -155,6 +157,8 @@ b(71, 'levou-um-amigo', 'Levou um amigo', 'destaques', { tipo: 'manual' }, { com
 b(72, 'competidor', 'Competidor', 'competicao', { tipo: 'participacoes', meta: 1 }, { como: 'Competiu em um campeonato do grupo ou entre escolas.' }),
 b(73, 'subiu-ao-podio', 'Subiu ao pódio', 'competicao', { tipo: 'podios', meta: 1 }, { como: 'Ficou entre os três primeiros de uma categoria.' }),
 b(74, 'campeao', 'Campeão', 'competicao', { tipo: 'titulos', meta: 1 }, { como: 'Venceu uma categoria em um campeonato.', nivel: 'ouro' }),
+// Série Inclusão (75): o núcleo que acolhe. Calculado no servidor a partir de usuarios.inclusao (dado sensível — só o total chega ao cartão público).
+b(75, 'roda-inclusiva', 'Roda Inclusiva', 'inclusao', { tipo: 'rodaInclusiva' }, { como: 'Responsável cujo núcleo mantém atletas de atenção e inclusão (TEA, TDAH, PC, SD, DI, DV/DA, TDC) ativos há pelo menos 6 meses.', nivel: 'ouro' }),
 ];
 
 export const porId = (id) => BRASOES.find((x) => x.id === id) || null;
@@ -202,6 +206,7 @@ case 'perfilCompleto': return 'Foto, capa e biografia no perfil';
 case 'apresentacao': return 'Vídeo de apresentação publicado';
 case 'assinatura': return 'Assinatura dos certificados cadastrada';
 case 'nucleoCompleto': return 'Núcleo 100% com foto aprovada e data de nascimento';
+case 'rodaInclusiva': return 'Núcleo com atletas de inclusão ativos há 6 meses';
 case 'participacoes': return `${r.meta} campeonato${r.meta > 1 ? 's' : ''} disputado${r.meta > 1 ? 's' : ''}`;
 case 'podios': return `${r.meta} pódio${r.meta > 1 ? 's' : ''} em campeonato`;
 case 'titulos': return `${r.meta} título${r.meta > 1 ? 's' : ''} de campeão`;
@@ -278,6 +283,7 @@ case 'perfilCompleto': ganho = !!(dados.fotoUrl && dados.capaUrl && String(dados
 case 'apresentacao': ganho = dados.temApresentacao === true; break;
 case 'assinatura': ganho = dados.temAssinatura === true; break;
 case 'nucleoCompleto': ganho = !!(rf && rf.nucleoCompleto); break;
+case 'rodaInclusiva': ganho = !!(rf && rf.rodaInclusiva); break;
 // Competição: no servidor vem de usuarios.competicoes; no navegador, do resumo público.
 case 'participacoes': case 'podios': case 'titulos': { const cp = dados.competicoes || dados.resumoCompeticoes || null; ganho = num(cp ? Number(cp[r.tipo]) || 0 : 0, r.meta); break; }
 default: ganho = false;

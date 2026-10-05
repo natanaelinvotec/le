@@ -1788,6 +1788,7 @@ class Component extends DCLogic {
       academiaId: u.academiaId || null,
       notasReais: u.notas || {},
       mensalidadeValor,
+      inclusao: u.inclusao || null, // atenção e inclusão (dado sensível: só o próprio app do titular/família lê)
       apresentacao: null, // vídeo do responsável do núcleo — chega depois, sem segurar a tela
       papelFamilia: '',
     };
@@ -1824,7 +1825,7 @@ class Component extends DCLogic {
   }
 
   // conta.js (senha, celular, apresentação) — carregado sob demanda, uma vez.
-  conta() { if (!this._contaP) this._contaP = import(new URL('js/conta.js?v=20261001', document.baseURI).href); return this._contaP; }
+  conta() { if (!this._contaP) this._contaP = import(new URL('js/conta.js?v=20261006', document.baseURI).href); return this._contaP; }
   // Módulos compartilhados com a Rede e o painel (acessibilidade, notificações, LGPD).
   xp() { if (!this._xpP) this._xpP = import(new URL('js/experiencia.js', document.baseURI).href); return this._xpP; }
   notif() { if (!this._notifP) this._notifP = import(new URL('js/notificacoes.js?v=20260926e', document.baseURI).href); return this._notifP; }
@@ -1848,6 +1849,17 @@ class Component extends DCLogic {
     } catch (e) { /* sem tutorial */ }
   }
   async trocarSenhaAcao() { try { (await this.conta()).abrirTrocaSenha(); } catch (e) { console.error(e); this.toast('Não foi possível abrir a troca de senha.'); } }
+  // Atenção e inclusão: a família (ou o próprio atleta) atualiza a ficha — condições,
+  // o que ajuda na aula e orientações. O professor vê no painel e na chamada.
+  async inclusaoAcao() {
+    try {
+      const familia = !!(PERFIS[0] && PERFIS[0].conta === 'familia');
+      const atleta = (familia ? ATLETAS[this.state.atleta] : ATLETAS[0]) || null;
+      if (!atleta) return;
+      const C = await this.conta();
+      C.abrirInclusao({ uid: atleta.uid, nome: atleta.nome, inclusao: atleta.inclusao }, { aoSalvar: (incl) => { atleta.inclusao = incl; this.setState({}); this.toast('Ficha de atenção e inclusão salva.'); } });
+    } catch (e) { console.error(e); this.toast('Não foi possível abrir a ficha de inclusão.'); }
+  }
   async minhaApresentacaoAcao() {
     try {
       const C = await this.conta();
@@ -2620,6 +2632,7 @@ class Component extends DCLogic {
         { rotulo:'Minha carteirinha', ajuda:'Carteirinha com QR, beneficiários, certificados de graduação e descontos dos parceiros', icone:'fas fa-address-card', acao: () => { window.location.href = 'carteirinha.html'; } },
         { rotulo:'Meus certificados', ajuda:'Um certificado para cada cordão: ver, baixar em PDF e compartilhar', icone:'fas fa-award', acao: () => { window.location.href = 'certificados.html'; } },
         { rotulo:'Meus dados', ajuda:'Nome, foto do perfil (a da Rede, do seu jeito) e celular', icone:'fas fa-id-card', acao: () => this.abrirSheet('dados') },
+        { rotulo:'Atenção e inclusão', ajuda: (atleta && atleta.inclusao && Array.isArray(atleta.inclusao.condicoes) && atleta.inclusao.condicoes.length) ? ('Ficha de ' + atleta.curto + ': ' + atleta.inclusao.condicoes.join(', ') + ' — toque para atualizar') : ('Condições que o professor deve conhecer e o que ajuda ' + (atleta ? atleta.curto : 'o atleta') + ' na aula'), icone:'fas fa-ribbon', acao: () => this.inclusaoAcao() },
         { rotulo:'Trocar senha', ajuda:'Com a senha atual; se esqueceu, enviamos um link', icone:'fas fa-key', acao: () => this.trocarSenhaAcao() },
       ].concat(podeTerApresentacaoApp(this._perfilBruto) ? [{ rotulo:'Minha apresentação', ajuda:'Vídeo que abre quando você entra na plataforma', icone:'fas fa-film', acao: () => this.minhaApresentacaoAcao() }] : []).concat([{ rotulo:'Troféus & Brasões', ajuda:'Sua escada de cordoada e conquistas', icone:'fas fa-trophy', acao: () => { window.location.href = 'rede.html#brasoes'; } }])
         .concat([{ rotulo:'Núcleos', ajuda:'Veja o seu núcleo e os demais do grupo', icone:'fas fa-map-marker-alt', acao: () => this.irPara('nucleos') }])

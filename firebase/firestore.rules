@@ -70,7 +70,9 @@ allow update: if ehAdmin() || (souFundador() && brasoesAdminInalterados()) ||
 (souInstrutorDoAluno() && academiaInalterada() && papeisInalterados() && academiaGerenciadaInalterada() && acessoGeralInalterado() && brasoesAdminInalterados() && brasoesManuaisInalterados()
 && !mudou().hasAny(['isentoMensalidade', 'carteirinha'])) ||
 (request.auth.uid == uid && papeisInalterados() && academiaInalterada() && academiaGerenciadaInalterada() && notasInalteradas() && acessoGeralInalterado() && brasoesAdminInalterados() && brasoesManuaisInalterados()
-&& !mudou().hasAny(camposTravadosDoProprio()));
+&& !mudou().hasAny(camposTravadosDoProprio())) ||
+// Responsável legal: só a ficha de atenção e inclusão do dependente (condições, apoios, orientações) — nada mais.
+(resource.data.responsavelUid == request.auth.uid && mudou().hasOnly(['inclusao']));
 
 allow delete: if ehAdmin();
 }

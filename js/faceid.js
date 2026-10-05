@@ -8,6 +8,9 @@ Decisões importantes:
 - Tudo roda no navegador (face-api / TensorFlow.js carregados sob demanda do
   jsDelivr, só quando o professor aperta "Iniciar câmera"). Nenhum quadro da
   câmera sai do aparelho nem é gravado em lugar nenhum.
+- Atenção e inclusão: quando o aluno tem alguma condição marcada (usuarios.inclusao),
+  a chamada mostra um aviso ao professor com os laços, a ficha de adaptação e as
+  orientações — na hora em que o aluno chega, que é quando a informação serve.
 - O "cadastro do rosto" de cada aluno é o vetor de 128 números (descritor)
   calculado a partir da foto de perfil dele (usuarios/{uid}.fotoUrl). Ele fica
   salvo no próprio cadastro (faceDescriptor) pra não recalcular a cada aula, e
@@ -18,6 +21,9 @@ Decisões importantes:
 - Registra uma presença por aluno por sessão de câmera, e nunca duas no mesmo
   dia pro mesmo núcleo (confere o histórico já carregado quando ele existe).
 */
+
+import { CONDICOES, lacosHTML, apoiosHTML, normalizarInclusao, temInclusao, garantirEstilos as estilosInclusao } from './inclusao.js?v=20261006';
+estilosInclusao();
 
 const FACEAPI_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1/dist/face-api.esm.js';
 const MODELOS_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1/model/';
@@ -149,15 +155,41 @@ if (lista.querySelector('.cascata-vazio')) lista.innerHTML = '';
 const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 lista.insertAdjacentHTML('afterbegin', `
 <div class="faceid-item">
-<img src="${deps.escapeHTML(aluno.fotoUrl || 'https://via.placeholder.com/34')}" alt="">
+<span class="foto-com-lacos"><img src="${deps.escapeHTML(aluno.fotoUrl || 'https://via.placeholder.com/34')}" alt="">${lacosHTML(aluno.inclusao, { px: 16 })}</span>
 <div><strong>${deps.escapeHTML(aluno.nome || 'Aluno')}</strong><small>${hora} · ${origem === 'faceid' ? 'reconhecido pela câmera' : 'marcado manualmente'}</small></div>
 <span class="pill pill-aprovado"><i class="fas fa-check"></i></span>
 </div>`);
 }
 
+// Aviso de atenção e inclusão: aparece no momento da chamada, com os laços, a ficha
+// de adaptação (apoios marcados) e as orientações da família. Some sozinho em 45 s,
+// ou quando o professor fecha. No máximo 3 avisos ao mesmo tempo (os mais novos em cima).
+function avisarInclusao(aluno) {
+const caixa = el('faceidAvisos');
+if (!caixa || !temInclusao(aluno)) return;
+const incl = normalizarInclusao(aluno.inclusao);
+const dicas = incl.condicoes.map((id) => CONDICOES.find((c) => c.id === id)).filter(Boolean);
+const aviso = document.createElement('div');
+aviso.className = 'aviso-inclusao';
+aviso.setAttribute('role', 'status');
+aviso.innerHTML = `
+${lacosHTML(aluno.inclusao, { px: 30, classe: 'lacos-linha', comSigla: true })}
+<div style="flex:1;min-width:0">
+<h4>${deps.escapeHTML((aluno.nome || 'Aluno').split(' ')[0])} chegou — ${deps.escapeHTML(dicas.map((c) => c.nome).join(' · '))}</h4>
+${incl.observacoes ? `<p><i class="fas fa-comment" aria-hidden="true"></i> ${deps.escapeHTML(incl.observacoes)}</p>` : ''}
+${apoiosHTML(incl) || `<p>${dicas.map((c) => deps.escapeHTML(c.dica)).join(' ')}</p>`}
+</div>
+<button type="button" class="fechar" aria-label="Fechar aviso">×</button>`;
+aviso.querySelector('.fechar').addEventListener('click', () => aviso.remove());
+caixa.prepend(aviso);
+while (caixa.children.length > 3) caixa.lastElementChild.remove();
+setTimeout(() => { if (aviso.isConnected) { aviso.style.transition = 'opacity .6s'; aviso.style.opacity = '0'; setTimeout(() => aviso.remove(), 650); } }, 45000);
+}
+
 async function registrarPresenca(aluno, origem) {
 if (jaRegistradoHoje(aluno.id)) {
 deps.toast(`${aluno.nome || 'Aluno'} já tem presença registrada hoje neste núcleo.`);
+if (!registradosNaSessao.has(aluno.id)) avisarInclusao(aluno); // presença veio de outro aparelho: ainda assim avisa o professor
 registradosNaSessao.set(aluno.id, new Date());
 return false;
 }
@@ -177,6 +209,7 @@ registradoPorNome: contexto.registradoPorNome,
 });
 registradosNaSessao.set(aluno.id, agora);
 adicionarNaLista(aluno, origem);
+avisarInclusao(aluno);
 deps.toast(`Presença de ${aluno.nome || 'aluno'} registrada!`);
 if (deps.aoRegistrar) deps.aoRegistrar();
 return true;

@@ -28,13 +28,14 @@ lancarDespesaComRateio, todosRateios, marcarRateioPago,
 } from './firebase.js';
 import { iniciarGestao, abrirTela as abrirTelaGestao, renderRelatoriosGerais, exportarExcel, exportarPDF } from './gestao.js?v=20261005';
 import { iniciarAniversarios, renderAniversarios, lembrete48h } from './aniversarios.js?v=20261001';
-import { CONDICOES, lacosHTML, lacoSVG, normalizarInclusao, temInclusao, resumoInclusao, garantirEstilos as estilosInclusao } from './inclusao.js?v=20261005';
+import { CONDICOES, lacosHTML, lacoSVG, normalizarInclusao, temInclusao, resumoInclusao, apoiosChecklistHTML, ligarChecklist, apoiosMarcados, materiaisHTML, garantirEstilos as estilosInclusao } from './inclusao.js?v=20261006';
 estilosInclusao();
+{ const mi = document.getElementById('materiaisInclusao'); if (mi) mi.innerHTML = materiaisHTML([], { modo: 'cards' }); }
 import { iniciarExperiencia, abrirAcessibilidade, tutorial, pedirAceiteSeNecessario } from './experiencia.js';
 import { ligarContador, abrirCentral, ouvirPushComAppAberto } from './notificacoes.js?v=20260926e';
-import { apresentacaoDe, migrarApresentacao, tocarApresentacao, tocarAoEntrar, gerenciarApresentacao, abrirMinhaConta, abrirTrocaSenha, definirAutor, podeTerApresentacao, formatarCelular, celularValido, celularDe } from './conta.js?v=20261001';
+import { apresentacaoDe, migrarApresentacao, tocarApresentacao, tocarAoEntrar, gerenciarApresentacao, abrirMinhaConta, abrirTrocaSenha, definirAutor, podeTerApresentacao, formatarCelular, celularValido, celularDe } from './conta.js?v=20261006';
 import { escapeHTML, sanitizeInput, debounce, gerarSlug } from './shared.js';
-import { BRASOES, porId as brasaoPorId, urlThumb as brasaoThumb, ehManual as brasaoManual } from './brasoes.js?v=20261002';
+import { BRASOES, porId as brasaoPorId, urlThumb as brasaoThumb, ehManual as brasaoManual } from './brasoes.js?v=20261006';
 import { configurarFaceId, atualizarContextoFaceId, pararFaceId } from './faceid.js';
 import { ESCOLA, ORDEM_CORDOES as ORDEM_ESCOLA, CORDOES_ADULTO as ADULTO_ESCOLA, CORDOES_KIDS as KIDS_ESCOLA, CRITERIOS as CRITERIOS_ESCOLA, linkMapa as linkMapaEscola } from './escola.js';
 
@@ -1360,11 +1361,24 @@ const caixa = document.getElementById('modInclusaoLista');
 const incl = normalizarInclusao(usuarioSelecionado.inclusao);
 if (caixa) {
 caixa.innerHTML = CONDICOES.map((c) => `<label class="mod-inclusao-item${incl.condicoes.includes(c.id) ? ' on' : ''}" title="${escapeHTML(c.nome)}"><input type="checkbox" value="${c.id}" ${incl.condicoes.includes(c.id) ? 'checked' : ''}>${lacoSVG(c.id, 22)}<span><b>${escapeHTML(c.sigla)}</b><small>${escapeHTML(c.nome)}</small></span></label>`).join('');
-caixa.querySelectorAll('input').forEach((i) => i.addEventListener('change', () => { i.closest('label').classList.toggle('on', i.checked); const sem = document.getElementById('modInclusaoSem'); if (sem) sem.textContent = caixa.querySelectorAll('input:checked').length ? '' : 'Sem limitações'; }));
+// Ficha de adaptação (apoios): aparece quando há alguma condição marcada; os sugeridos acompanham as condições.
+const wrapApoios = document.getElementById('wrapModApoios');
+const caixaApoios = document.getElementById('modInclusaoApoios');
+const condicoesMarcadas = () => [...caixa.querySelectorAll('input:checked')].map((i) => i.value);
+if (caixaApoios) { caixaApoios.innerHTML = apoiosChecklistHTML(incl); ligarChecklist(caixaApoios, condicoesMarcadas); }
+const materiais = document.getElementById('modInclusaoMateriais');
+const atualizarApoios = () => {
+const marcadas = condicoesMarcadas();
+if (wrapApoios) wrapApoios.hidden = marcadas.length === 0;
+if (caixaApoios && caixaApoios.atualizarSugeridos) caixaApoios.atualizarSugeridos();
+if (materiais) materiais.innerHTML = materiaisHTML(marcadas);
+};
+caixa.querySelectorAll('input').forEach((i) => i.addEventListener('change', () => { i.closest('label').classList.toggle('on', i.checked); const sem = document.getElementById('modInclusaoSem'); if (sem) sem.textContent = caixa.querySelectorAll('input:checked').length ? '' : 'Sem limitações'; atualizarApoios(); }));
 const sem = document.getElementById('modInclusaoSem'); if (sem) sem.textContent = incl.condicoes.length ? '' : 'Sem limitações';
 const obs = document.getElementById('modInclusaoObs'); if (obs) obs.value = incl.observacoes || '';
 const dicas = document.getElementById('modInclusaoDicas');
 if (dicas) dicas.innerHTML = incl.condicoes.length ? `<b>Orientações gerais:</b> ${incl.condicoes.map((id) => { const c = CONDICOES.find((x) => x.id === id); return c ? `<span>${escapeHTML(c.sigla)}: ${escapeHTML(c.dica)}</span>` : ''; }).join(' ')}` : '';
+atualizarApoios();
 }
 }
 document.getElementById('modNomeTitulo').textContent = usuarioSelecionado.nome || 'Aluno';
@@ -1659,7 +1673,7 @@ const caixa = document.getElementById('modInclusaoLista');
 if (caixa) {
 const marcadas = [...caixa.querySelectorAll('input:checked')].map((i) => i.value);
 const obs = document.getElementById('modInclusaoObs');
-dadosAtualizados.inclusao = normalizarInclusao({ condicoes: marcadas, observacoes: sanitizeInput(obs ? obs.value : '') });
+dadosAtualizados.inclusao = normalizarInclusao({ condicoes: marcadas, apoios: apoiosMarcados(document.getElementById('modInclusaoApoios')), observacoes: sanitizeInput(obs ? obs.value : '') });
 }
 }
 if (novaNasc) dadosAtualizados.dataNasc = novaNasc;

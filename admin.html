@@ -412,6 +412,11 @@ Escolha um aluno já cadastrado para virar responsável por este núcleo
 <button type="submit" class="btn-detalhes" style="width:260px;">Publicar</button>
 </form>
 </div>
+<div class="card-padrao" style="margin-bottom:20px;">
+<h3><i class="fas fa-ribbon" style="color:var(--primary-teal)"></i> Material da equipe — Atenção e inclusão</h3>
+<p style="font-size:0.85rem; color:var(--text-muted); margin:8px 0 4px;">Um PDF por condição (como aparece na roda, o que ajuda, o que evitar, sinais para pausar) e o guia completo com a ficha de adaptação e o fluxo no app. Para instrutores, professores e mestres.</p>
+<div id="materiaisInclusao"></div>
+</div>
 <div class="secao-titulo"><h3>Conteúdo de formação</h3></div>
 <div class="lista-simples" id="listaFormacao"></div>
 </section>
@@ -490,6 +495,7 @@ pra não recalcular a cada aula. -->
 <div class="faceid-match oculto" id="faceidMatch"></div>
 </div>
 <div class="faceid-lateral">
+<div id="faceidAvisos" class="faceid-avisos" aria-live="polite"></div>
 <div class="faceid-enrol" id="faceidEnrol"><span class="kpi-valor mono">—</span><span class="kpi-rotulo">alunos com rosto cadastrado</span></div>
 <div class="secao-titulo" style="margin:14px 0 8px;"><h3 style="font-size:.92rem;">Reconhecidos nesta sessão</h3></div>
 <div class="faceid-lista" id="faceidLista"><p class="cascata-vazio">Ninguém reconhecido ainda.</p></div>
@@ -610,9 +616,14 @@ pra não recalcular a cada aula. -->
 <div class="form-group-mod mod-inclusao" style="margin-bottom: 14px;">
 <label><i class="fas fa-ribbon"></i> Atenção e inclusão <span id="modInclusaoSem" class="mod-inclusao-sem"></span></label>
 <div id="modInclusaoLista" class="mod-inclusao-lista"></div>
+<div id="wrapModApoios" hidden>
+<label style="margin-top:8px;"><i class="fas fa-clipboard-check"></i> Ficha de adaptação <small style="font-weight:600;color:var(--text-muted)">— o que funciona com este atleta na aula (o pontinho verde é o sugerido pela condição)</small></label>
+<div id="modInclusaoApoios"></div>
+</div>
 <label for="modInclusaoObs" style="margin-top:8px;">Orientações para o professor</label>
 <textarea id="modInclusaoObs" class="input-padrao" rows="2" maxlength="400" placeholder="Ex.: avisar antes de mudar a atividade; sensível a som alto."></textarea>
 <p id="modInclusaoDicas" class="mod-inclusao-dicas"></p>
+<p id="modInclusaoMateriais" class="mod-inclusao-dicas"></p>
 <small class="mod-inclusao-lgpd"><i class="fas fa-lock"></i> Dado sensível (LGPD): visível só ao núcleo e à administração; não vai para a Rede, carteirinha ou perfil público.</small>
 </div>
 <div class="form-group-mod" style="margin-bottom: 12px;">

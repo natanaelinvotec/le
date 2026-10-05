@@ -9,6 +9,9 @@ aluno e Rede Liberdade):
    Quem edita: a própria pessoa, o Admin Master, o Fundador e o responsável do
    núcleo onde ela treina (as regras do Firestore/Storage conferem de novo).
 4) Abertura automática ao entrar na plataforma (uma vez por login/sessão).
+5) Atenção e inclusão (app do aluno/responsável): a família atualiza a ficha —
+   condições, o que ajuda na aula e orientações — em usuarios/{uid}.inclusao.
+   As regras deixam o titular e o responsável legal (só este campo) gravarem.
 
 Nada aqui inventa dado: sem vídeo, sem botão; sem celular, campo vazio. */
 import {
@@ -17,6 +20,7 @@ import {
   trocarSenha, recuperarSenha, emailDaSessao, SENHA_PADRAO,
 } from './firebase.js';
 import { abrirApresentacao, temApresentacao, podeTerApresentacao, podeAbrirSozinho, textoCargo } from './apresentacao.js?v=20261001';
+import { CONDICOES, SEM_LIMITACOES, lacoSVG, lacosHTML, normalizarInclusao, apoiosChecklistHTML, ligarChecklist, apoiosMarcados, garantirEstilos as estilosInclusao } from './inclusao.js?v=20261006';
 
 export { podeTerApresentacao, temApresentacao };
 
@@ -54,6 +58,15 @@ const CSS = `
 .cta-msg{min-height:18px;font-size:.8rem;font-weight:700}
 .cta-msg.erro{color:#C62828}.cta-msg.ok{color:#0B6B3A}
 .cta-lista{display:grid;gap:8px;margin-top:4px}
+.cta-incl-cond{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.cta-incl-cond label{flex-direction:row;align-items:center;gap:8px;padding:8px 10px;border:1px solid #D5DEE8;border-radius:12px;background:#fff;font-size:.76rem;cursor:pointer;transition:border-color .2s,background .2s}
+.cta-incl-cond label.on{border-color:#389E92;background:rgba(56,158,146,.1)}
+.cta-incl-cond input{margin:0;accent-color:#389E92}
+.cta-incl-cond b{display:block;font-size:.8rem}.cta-incl-cond small{display:block;font-size:.66rem;color:#5A6B72;font-weight:600;line-height:1.2}
+.cta-incl-topo{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:#F3F7FB;font-size:.8rem;color:#23343A}
+.cta-incl-topo .lacos-linha:empty+span{font-weight:800}
+.cta-form textarea{width:100%;box-sizing:border-box;padding:11px 13px;border:1px solid #D5DEE8;border-radius:12px;font:500 .88rem 'Manrope',system-ui,sans-serif;color:#0D211D;background:#fff;resize:vertical}
+@media (max-width:420px){.cta-incl-cond{grid-template-columns:1fr}}
 .cta-item{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border:1px solid #E3EAF2;border-radius:16px;background:#fff;cursor:pointer;text-align:left;font-family:inherit;transition:border-color .2s,transform .25s cubic-bezier(0.16,1,0.3,1)}
 .cta-item:hover{border-color:#B9CFF0;transform:translateY(-1px)}
 .cta-item i.ic{width:36px;height:36px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;background:#EAF2FF;color:#1B5FC2;flex:none}
@@ -383,6 +396,7 @@ export function abrirMinhaConta(pessoa, { extras = {}, aoSalvar } = {}) {
 <div class="cta-lista">
 <button type="button" class="cta-item" data-cta="senha"><i class="ic">🔑</i><span><b>Trocar senha</b><small>Com a senha atual; se esqueceu, enviamos um link</small></span></button>
 ${temApr ? '<button type="button" class="cta-item" data-cta="apr"><i class="ic">▶</i><span><b>Minha apresentação</b><small>Vídeo que abre quando você entra na plataforma</small></span></button>' : ''}
+<button type="button" class="cta-item" data-cta="incl"><i class="ic">🎗️</i><span><b>Atenção e inclusão</b><small>Condições que o professor deve conhecer e o que ajuda na aula</small></span></button>
 </div>`, { rotulo: 'Minha conta' });
   const f = caixa.querySelector('[data-cta="dados"]');
   f.celular.addEventListener('input', () => { const pos = f.celular.value.length; f.celular.value = formatarCelular(f.celular.value); if (pos >= f.celular.value.length) f.celular.setSelectionRange(f.celular.value.length, f.celular.value.length); });
@@ -400,4 +414,57 @@ ${temApr ? '<button type="button" class="cta-item" data-cta="apr"><i class="ic">
   caixa.querySelector('[data-cta="senha"]').addEventListener('click', abrirTrocaSenha);
   const b = caixa.querySelector('[data-cta="apr"]');
   if (b) b.addEventListener('click', () => gerenciarApresentacao(pessoa, { extras }));
+  caixa.querySelector('[data-cta="incl"]').addEventListener('click', () => abrirInclusao(pessoa, { aoSalvar: (incl) => { pessoa.inclusao = incl; if (typeof aoSalvar === 'function') aoSalvar({ inclusao: incl }); } }));
+}
+
+/* ------------------------------------------------- atenção e inclusão */
+// Ficha do atleta editada pela própria pessoa ou pelo responsável legal (app do aluno).
+// `pessoa` = { uid|id, nome, inclusao }. Grava usuarios/{uid}.inclusao e avisa quem chamou.
+export function abrirInclusao(pessoa, { aoSalvar } = {}) {
+  const uid = pessoa && (pessoa.uid || pessoa.id);
+  if (!uid) return;
+  estilosInclusao();
+  const incl = normalizarInclusao(pessoa.inclusao);
+  const primeiro = (pessoa.nome || 'o atleta').split(' ')[0];
+  const { caixa, fechar } = janela(`${topo('Atenção e inclusão', primeiro)}
+<form class="cta-form" data-cta="incl" novalidate>
+<div class="cta-incl-topo"><span class="lacos-linha" data-cta="lacos">${lacosHTML(incl, { px: 26, classe: 'lacos-linha', comSigla: true })}</span><span data-cta="sem" ${incl.condicoes.length ? 'hidden' : ''}>${esc(SEM_LIMITACOES)}</span></div>
+<p class="cta-dica" style="margin:0">Marque só o que o professor precisa saber para cuidar bem na aula. Vira um laço no canto da foto, visível apenas ao núcleo e à administração — nunca na Rede, na carteirinha ou no perfil público (LGPD).</p>
+<div class="cta-incl-cond" data-cta="cond">
+${CONDICOES.map((c) => `<label class="${incl.condicoes.includes(c.id) ? 'on' : ''}"><input type="checkbox" name="cond" value="${esc(c.id)}" ${incl.condicoes.includes(c.id) ? 'checked' : ''}>${lacoSVG(c.id, 24)}<span><b>${esc(c.sigla)}</b><small>${esc(c.nome)}</small></span></label>`).join('')}
+</div>
+<div data-cta="apoiosWrap" ${incl.condicoes.length ? '' : 'hidden'}>
+<label style="margin-bottom:4px">O que ajuda na aula? <small style="font-weight:600;color:#5A6B72">O pontinho verde é o que costuma ajudar na condição marcada; marque o que funciona com ${esc(primeiro)}.</small></label>
+<div data-cta="apoios">${apoiosChecklistHTML(incl)}</div>
+<label style="margin-top:10px">Orientações para o professor<textarea name="obs" rows="3" maxlength="400" placeholder="Ex.: avisar antes de mudar a atividade; sensível a som alto; usa aparelho auditivo no ouvido esquerdo.">${esc(incl.observacoes)}</textarea></label>
+</div>
+<div class="cta-msg" role="status" aria-live="polite"></div>
+<button type="submit" class="cta-btn cta-primario">Salvar ficha</button>
+</form>`, { rotulo: 'Atenção e inclusão' });
+  const f = caixa.querySelector('[data-cta="incl"]');
+  const cond = f.querySelector('[data-cta="cond"]');
+  const apoios = f.querySelector('[data-cta="apoios"]');
+  const marcadas = () => [...cond.querySelectorAll('input:checked')].map((i) => i.value);
+  ligarChecklist(apoios, marcadas);
+  const redesenhar = () => {
+    const lista = marcadas();
+    cond.querySelectorAll('label').forEach((l) => l.classList.toggle('on', l.querySelector('input').checked));
+    f.querySelector('[data-cta="lacos"]').innerHTML = lacosHTML({ condicoes: lista }, { px: 26, classe: 'lacos-linha', comSigla: true });
+    f.querySelector('[data-cta="sem"]').hidden = lista.length > 0;
+    f.querySelector('[data-cta="apoiosWrap"]').hidden = lista.length === 0;
+    apoios.atualizarSugeridos();
+  };
+  cond.addEventListener('change', redesenhar);
+  f.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const nova = normalizarInclusao({ condicoes: marcadas(), apoios: apoiosMarcados(apoios), observacoes: String(f.obs.value || '').replace(/[<>]/g, '').trim() });
+    const btn = f.querySelector('button[type=submit]'); btn.disabled = true;
+    try {
+      await atualizar('usuarios', uid, { inclusao: nova });
+      pessoa.inclusao = nova;
+      mensagem(caixa, 'Ficha salva. O professor já vê no painel e na chamada.', 'ok');
+      if (typeof aoSalvar === 'function') aoSalvar(nova);
+      setTimeout(fechar, 900);
+    } catch (e) { console.error(e); mensagem(caixa, 'Não foi possível salvar agora. Só o próprio atleta ou o responsável legal pode alterar esta ficha.', 'erro'); btn.disabled = false; }
+  });
 }

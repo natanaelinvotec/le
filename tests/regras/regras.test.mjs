@@ -74,6 +74,16 @@ test('autocadastro: só aluno Iniciante, sem acesso geral nem brasões', async (
   await assertSucceeds(setDoc(doc(db('novo1'), 'usuarios', 'novo1'), novo));
 });
 
+test('responsável legal atualiza SÓ a ficha de atenção e inclusão do dependente', async () => {
+  const ficha = { condicoes: ['TEA'], apoios: ['aviso-mudanca', 'som-baixo'], observacoes: 'avisar antes de mudar a atividade' };
+  await assertSucceeds(updateDoc(doc(db('mae'), 'usuarios', 'kid'), { inclusao: ficha }));
+  await assertFails(updateDoc(doc(db('mae'), 'usuarios', 'kid'), { inclusao: ficha, cordaoAtual: 'Mestre' }), 'junto com outro campo, não');
+  await assertFails(updateDoc(doc(db('mae'), 'usuarios', 'kid'), { nome: 'Outro nome' }), 'nada além da inclusão');
+  await assertFails(updateDoc(doc(db('estranho'), 'usuarios', 'kid'), { inclusao: ficha }), 'quem não é o responsável não grava');
+  await assertFails(updateDoc(doc(db('mae'), 'usuarios', 'nat'), { inclusao: ficha }), 'só do próprio dependente');
+  await assertSucceeds(updateDoc(doc(db('tay'), 'usuarios', 'kid'), { inclusao: { condicoes: ['TEA', 'TDAH'], apoios: [], observacoes: '' } }), 'o professor do núcleo ajusta no card Avaliar/Editar');
+});
+
 test('a pessoa não muda a própria graduação, idade nem total de brasões', async () => {
   await assertSucceeds(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { celular: '(67) 99999-0000' }));
   await assertFails(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { cordaoAtual: 'Mestre' }));

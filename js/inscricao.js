@@ -7,7 +7,7 @@ sem precisar de uma inscrição separada).
 */
 import { criarConta, listarNucleosAtivos, comprimirImagemDataUrl, arquivoParaDataUrlComprimido, registroConsentimento } from './firebase.js';
 import { sanitizeInput, gerarSlug } from './shared.js';
-import { CONDICOES, SEM_LIMITACOES, nomeDe, siglaDe, lacoSVG, lacosHTML, normalizarInclusao, garantirEstilos } from './inclusao.js?v=20261005';
+import { CONDICOES, SEM_LIMITACOES, nomeDe, siglaDe, lacoSVG, lacosHTML, normalizarInclusao, apoiosChecklistHTML, ligarChecklist, apoiosMarcados, garantirEstilos } from './inclusao.js?v=20261006';
 
 const steps = document.querySelectorAll('.form-step');
 const indicators = document.querySelectorAll('.step-indicator');
@@ -255,7 +255,10 @@ const inclusaoChips = document.getElementById('inclusaoChips');
 const inclusaoHidden = document.getElementById('inclusaoCondicoes');
 const wrapInclusaoObs = document.getElementById('wrapInclusaoObs');
 const fotoLacos = document.getElementById('fotoLacos');
+const inclusaoApoios = document.getElementById('inclusaoApoios');
 let condicoesEscolhidas = [];
+// Ficha de adaptação (o que ajuda na aula): checklist desenhado uma vez; os sugeridos acompanham as condições.
+if (inclusaoApoios) { inclusaoApoios.innerHTML = apoiosChecklistHTML({ condicoes: [] }); ligarChecklist(inclusaoApoios, () => condicoesEscolhidas); }
 if (inclusaoSelect) {
   CONDICOES.forEach((c) => { const o = document.createElement('option'); o.value = c.id; o.textContent = `${c.sigla} — ${c.nome}`; inclusaoSelect.appendChild(o); });
   const desenharInclusao = () => {
@@ -263,6 +266,7 @@ if (inclusaoSelect) {
     inclusaoChips.innerHTML = condicoesEscolhidas.map((id) => `<span class="laco-chip" data-nome="${siglaDe(id)} · ${nomeDe(id)}" title="${nomeDe(id)}">${lacoSVG(id, 20)}<b>${siglaDe(id)}</b><button type="button" data-tirar="${id}" aria-label="Tirar ${nomeDe(id)}">×</button></span>`).join('');
     if (fotoLacos) fotoLacos.innerHTML = condicoesEscolhidas.map((id) => `<span class="laco-chip" data-nome="${siglaDe(id)} · ${nomeDe(id)}" title="${nomeDe(id)}">${lacoSVG(id, 26)}</span>`).join('');
     wrapInclusaoObs.hidden = condicoesEscolhidas.length === 0;
+    if (inclusaoApoios && inclusaoApoios.atualizarSugeridos) inclusaoApoios.atualizarSugeridos();
     // Com uma condição marcada, o seletor volta a oferecer as outras; sem nenhuma, mostra "Sem limitações".
     inclusaoSelect.options[0].textContent = condicoesEscolhidas.length ? 'Adicionar outra condição…' : SEM_LIMITACOES;
     [...inclusaoSelect.options].forEach((o) => { o.disabled = !!o.value && condicoesEscolhidas.includes(o.value); });
@@ -333,7 +337,7 @@ form.addEventListener('submit', async (e) => {
       financeiro: { dataPagamento: data.dataPagamento, formaPagamento: data.formaPagamento },
       // Atenção e inclusão: lista vazia = "Sem limitações". Só o núcleo e a
       // administração leem (não entra no cartão público).
-      inclusao: normalizarInclusao({ condicoes: (() => { try { return JSON.parse(data.inclusaoCondicoes || '[]'); } catch (e) { return []; } })(), observacoes: data.inclusaoObs || '' }),
+      inclusao: normalizarInclusao({ condicoes: (() => { try { return JSON.parse(data.inclusaoCondicoes || '[]'); } catch (e) { return []; } })(), apoios: apoiosMarcados(inclusaoApoios), observacoes: data.inclusaoObs || '' }),
       usoImagem: data.usoImagem,
       // Aceite do termo e da política de privacidade (LGPD): quem aceitou e quando.
       consentimento: registroConsentimento(idadeAluno < 18 ? (inputResponsavel.value || data.emergenciaNome || data.nome) : data.nome, data.usoImagem),

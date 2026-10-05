@@ -996,3 +996,9 @@ select.input-padrao { appearance: none; -webkit-appearance: none; background-ima
 .rg-tile-laco svg { margin-bottom: -4px; }
 .rg-obs { max-width: 320px; font-size: 0.8rem; color: var(--text-muted); white-space: pre-wrap; }
 .rg-filtros .btn-mini svg { vertical-align: -3px; margin-right: 2px; }
+
+/* Chamada (Face ID): avisos de atenção e inclusão aparecem acima da lista de reconhecidos. */
+.faceid-avisos { display: flex; flex-direction: column; gap: 8px; }
+.faceid-avisos:empty { display: none; }
+.faceid-item .foto-com-lacos img { display: block; }
+.mod-inclusao-dicas .mat-link { margin-top: 4px; }

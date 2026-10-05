@@ -12,7 +12,7 @@ Fontes: perfisPublicos (contagem real de quem já tem cada brasão e ranking),
 usuarios (concessões manuais — campo brasoesManuais), config/brasoes. */
 import { db, observarSessao, buscar, listar, listarPorAcademia, atualizar, souFundador, collection, doc, getDocs, setDoc, updateDoc, deleteField, query, where, limit } from './firebase.js';
 import { escapeHTML, sanitizeInput } from './shared.js';
-import { BRASOES, SERIES, avaliar, textoMetrica, urlThumb, urlPng, ehManual, porId, podeConceder, ehPresidente } from './brasoes.js?v=20261002';
+import { BRASOES, SERIES, avaliar, textoMetrica, urlThumb, urlPng, ehManual, porId, podeConceder, ehPresidente } from './brasoes.js?v=20261006';
 
 const el = (id) => document.getElementById(id);
 let uid = null, perfil = null, config = {}, nucleos = [], pubs = [], usuarios = [];

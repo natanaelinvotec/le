@@ -7,7 +7,7 @@
 //   usuarios/{uid}  → nome, foto, cordão, graduações, núcleo, papéis, concessões
 //   presencas       → resumoPresencas (Face ID / painel)
 //   posts           → resumoRede (publicações, melhores momentos, curtidas)
-//   usuarios do núcleo que administra → resumoFormacao (alunos que graduou, núcleo completo)
+//   usuarios do núcleo que administra → resumoFormacao (alunos que graduou, núcleo completo, roda inclusiva)
 //   pagamentos      → resumoCompromisso (meses seguidos de mensalidade paga)
 //   certificados, carteirinha, seguidores, apresentação e assinatura → brasões 46–71
 import { avaliar, consolidar, resumirPresencas, porId, carteirinhaEmDia, beneficiariosDe } from './compartilhado/brasoes.js';
@@ -102,7 +102,13 @@ export async function calcularResumoFormacao(ctx, uid, academiaGerenciadaId) {
   const atletas = snap.docs.map((d) => d.data()).filter((x) => Array.isArray(x.papeis) && x.papeis.some((p) => ['aluno', 'instrutor', 'mestre'].includes(p)) && x.ativo !== false && x.statusAtual !== 'Inativo');
   const completo = (x) => !!(x.carteirinha && x.carteirinha.fotoAprovada === true) && /^\d{4}-\d{2}-\d{2}/.test(String(x.dataNasc || ''));
   const nucleoCompleto = atletas.length >= 3 && atletas.every(completo);
-  return { formados, nucleoCompleto, atletas: atletas.length, completos: atletas.filter(completo).length, calculadoEm: new Date().toISOString() };
+  // Roda Inclusiva (brasão 75): atleta ATIVO com alguma condição em usuarios.inclusao e cadastro há ≥ 180 dias.
+  // Só o TOTAL vai para o cartão público — quem é cada um fica no documento privado do atleta (LGPD).
+  const comInclusao = (x) => !!(x.inclusao && Array.isArray(x.inclusao.condicoes) && x.inclusao.condicoes.length);
+  const seisMeses = Date.now() - 180 * 86400000;
+  const atletasInclusao = atletas.filter(comInclusao).length;
+  const rodaInclusiva = atletas.some((x) => comInclusao(x) && x.criadoEm && new Date(x.criadoEm).getTime() <= seisMeses);
+  return { formados, nucleoCompleto, atletas: atletas.length, completos: atletas.filter(completo).length, atletasInclusao, rodaInclusiva, calculadoEm: new Date().toISOString() };
 }
 
 // Recalcula e grava o cartão público. `refazer` escolhe quais resumos buscar

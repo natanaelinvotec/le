@@ -42,9 +42,9 @@ export async function aoEscreverUsuario(ctx, ev) {
     }
     await sincronizarPerfil(ctx, uid, criado || pedidoDoApp ? { presencas: true, rede: true, formacao: true } : { formacao: gerenciadoMudou });
   }
-  // "Núcleo completo" (brasão 68) do responsável depende da ficha de cada aluno:
-  // foto da carteirinha aprovada, data de nascimento, ativo/inativo e o próprio núcleo.
-  if (!criado && mudouAlgum(antes, depois, ['carteirinha', 'dataNasc', 'ativo', 'statusAtual', 'academiaId'])) {
+  // "Núcleo completo" (68) e "Roda Inclusiva" (75) do responsável dependem da ficha de cada aluno:
+  // foto da carteirinha aprovada, data de nascimento, ativo/inativo, inclusão e o próprio núcleo.
+  if (!criado && mudouAlgum(antes, depois, ['carteirinha', 'dataNasc', 'ativo', 'statusAtual', 'academiaId', 'inclusao'])) {
     const nucleos = Array.from(new Set([antes.academiaId, depois.academiaId].filter(Boolean)));
     for (const nid of nucleos) {
       for (const g of await gestoresDoNucleo(ctx, nid)) {
