@@ -14,8 +14,8 @@ import {
   db, storage, doc, getDoc, setDoc, collection, getDocs, storageRef, uploadBytes, getDownloadURL,
   observarSessao, entrar, sair, buscar, recuperarSenha,
 } from './firebase.js';
-import { SITE_PADRAO } from './site-padrao.js';
-import { mesclar, url as urlSegura, urlLink, esc, hojeLocal } from './site-render.js';
+import { SITE_PADRAO } from './site-padrao.js?v=20261006';
+import { mesclar, url as urlSegura, urlLink, urlSite, esc, hojeLocal } from './site-render.js?v=20261006';
 import { CORDOES_ADULTO } from './escola.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -67,7 +67,10 @@ const SECOES = [
     { c: 'lista', r: 'Parceiros', t: 'lista', max: 12, nomeItem: 'Parceiro', resumo: 'nome', item: [
       { c: 'nome', r: 'Nome do parceiro' }, { c: 'logo', r: 'Logo (fundo transparente fica melhor)', t: 'foto', png: true },
       { c: 'frase', r: 'Frase de impacto' }, { c: 'destaque', r: 'Benefício em destaque (ex.: até 50%)' }, { c: 'beneficio', r: 'Complemento (ex.: de desconto em exames)' },
-      { c: 'como', r: 'Como usar', t: 'area' }, { c: 'whatsapp', r: 'WhatsApp do parceiro (opcional)', t: 'telefone' }, { c: 'link', r: 'Site ou Instagram (opcional)', t: 'link' }] }] },
+      { c: 'como', r: 'Como usar', t: 'area' },
+      { c: 'link', r: 'Site ou Instagram do parceiro (ex.: celulams.com.br)', t: 'link' }, { c: 'rotuloLink', r: 'Texto do botão do site (vazio = "Visitar" + endereço)' },
+      { c: 'whatsapp', r: 'WhatsApp de atendimento online (com DDD)', t: 'telefone' }, { c: 'rotuloWhats', r: 'Texto do botão do WhatsApp (vazio = "Atendimento online")' },
+      { c: 'mensagem', r: 'Mensagem que já vai escrita no WhatsApp (vazio = pedido de orçamento com o perfil Atleta)', t: 'area' }] }] },
   { id: 'rodape', r: 'Rodapé e contato', campos: [{ c: 'texto', r: 'Texto', t: 'area' }, { c: 'telefone', r: 'Telefone' }, { c: 'endereco', r: 'Endereço' },
     { c: 'instagram', r: 'Instagram (como aparece)' }, { c: 'instagramUrl', r: 'Link do Instagram', t: 'link' }, { c: 'facebook', r: 'Facebook (como aparece)' }, { c: 'facebookUrl', r: 'Link do Facebook', t: 'link' }] },
 ];
@@ -129,7 +132,7 @@ function campoHTML(def, caminho, valor) {
     }
     case 'data': return `<label class="campo" for="${id}"><span>${r}</span><input id="${id}" type="date" data-c="${esc(caminho)}" value="${esc(valor)}"></label>`;
     case 'telefone': return `<label class="campo" for="${id}"><span>${r}</span><input id="${id}" type="tel" inputmode="numeric" data-c="${esc(caminho)}" data-tipo="telefone" data-max="15" value="${esc(valor)}" placeholder="67 99999-9999"></label>`;
-    case 'link': return `<label class="campo" for="${id}"><span>${r}</span><input id="${id}" type="url" data-c="${esc(caminho)}" data-tipo="link" data-max="400" value="${esc(valor)}" placeholder="https://"></label>`;
+    case 'link': return `<label class="campo" for="${id}"><span>${r}</span><input id="${id}" type="url" data-c="${esc(caminho)}" data-tipo="link" data-max="400" value="${esc(valor)}" placeholder="https:// ou meusite.com.br"></label>`;
     case 'sim': return `<label class="campo sim" for="${id}"><input id="${id}" type="checkbox" data-c="${esc(caminho)}" data-tipo="sim"${valor ? ' checked' : ''}><span>${r}</span></label>`;
     case 'foto': {
       const u = urlSegura(valor);
@@ -209,6 +212,8 @@ document.addEventListener('input', (e) => {
   if (el.dataset.tipo === 'sim') v = el.checked;
   else if (el.dataset.tipo === 'telefone') v = el.value.replace(/\D/g, '').slice(0, 13);
   else v = limparTexto(el.value, Number(el.dataset.max) || 400);
+  // Link digitado sem https:// ("celulams.com.br") já é guardado completo.
+  if (el.dataset.tipo === 'link' && v && !urlLink(v) && urlSite(v)) v = urlSite(v);
   definir(cam, v);
   if (el.dataset.tipo === 'link') el.classList.toggle('invalido', !!v && !urlLink(v));
   // O nome do item na lista acompanha o que está sendo digitado.

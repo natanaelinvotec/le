@@ -9,8 +9,8 @@ import { observarSessao, db, doc, getDoc, setDoc, updateDoc, onSnapshot, enviarF
 import { ESCOLA, coresDoCordao } from './escola.js';
 import { qrSvg } from './qr.js';
 import { esc, situacao, textoValidade, dataBR, iniciais, linkVerificacao, cartaoHtml, prepararFoto, IC, ehAtleta, PARENTESCOS, LIMITE_POR_PARENTESCO, MAX_BENEFICIARIOS, deAtleta } from './carteirinha-comum.js';
-import { mesclar, cartaoParceiro } from './site-render.js';
-import { SITE_PADRAO } from './site-padrao.js';
+import { mesclar, cartaoParceiro } from './site-render.js?v=20261006';
+import { SITE_PADRAO } from './site-padrao.js?v=20261006';
 
 const pagina = document.getElementById('pagina');
 const camadas = document.getElementById('camadas');

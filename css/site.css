@@ -311,3 +311,6 @@ p{margin:0}
   .mestres{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media (max-width:380px){.hero h1{font-size:50px}}
+/* Botões do parceiro: site + atendimento online lado a lado, mesma altura; empilham no celular. */
+.parc-bts .bt{height:48px;flex:1 1 210px;justify-content:center;gap:8px}
+.parc-bt-site svg{color:var(--teal)}

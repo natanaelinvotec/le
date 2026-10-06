@@ -8,7 +8,7 @@ Segurança: TODO texto vindo do conteúdo passa por esc() e todo link/foto por
 url() — o painel é só do Admin, mas o site nunca confia no que está gravado. */
 
 import { ESCOLA, CORDOES_ADULTO } from './escola.js';
-import { SITE_PADRAO } from './site-padrao.js';
+import { SITE_PADRAO } from './site-padrao.js?v=20261006';
 
 // ---------- utilidades seguras ----------
 export const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -22,6 +22,14 @@ export function url(u) {
 }
 // Links para fora (Instagram, álbum, mapa): só https:// completo.
 export const urlLink = (u) => { const s = String(u ?? '').trim(); return /^https:\/\/[^\s"'<>\\]+$/i.test(s) ? s : ''; };
+// Site digitado sem o https:// (ex.: "celulams.com.br" ou "www.loja.com.br/x") vira link completo.
+// Qualquer outra coisa (javascript:, http:// sem TLS, espaços) continua recusada.
+export const urlSite = (u) => {
+  const s = String(u ?? '').trim();
+  if (urlLink(s)) return s;
+  return /^(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}(\/[^\s"'<>\\]*)?$/i.test(s) ? `https://${s}` : '';
+};
+const hostDe = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return ''; } };
 // "Hoje" no fuso de Campo Grande (evento às 19h não vira "passado" às 20h por causa do UTC).
 export function hojeLocal(d = new Date()) {
   try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Campo_Grande', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d); }
@@ -77,6 +85,7 @@ const I = {
   baixar: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/></svg>',
   menu: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>',
   fechar: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  globo: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>',
   mais: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>',
 };
 
@@ -290,9 +299,15 @@ function chamada(c, n) {
 }
 
 // Parceiros: um cartão por parceiro. Sozinho ele ocupa a largura toda.
+// Botões: site do parceiro (aceita "celulams.com.br" sem https) e atendimento
+// online pelo WhatsApp com a mensagem pronta (editável no painel, por parceiro).
+export const MENSAGEM_PARCEIRO = `Olá, sou do grupo de capoeira ${ESCOLA.nomeCurto} e gostaria de solicitar orçamento com o perfil Atleta!`;
 export function cartaoParceiro(p, extraClasse = '') {
-  const w = linkWhats(p.whatsapp, `Olá! Sou atleta do grupo ${ESCOLA.nomeCurto} e quero usar o desconto do perfil Atleta.`);
-  const l = urlLink(p.link);
+  const mensagem = String(p.mensagem || '').trim() || MENSAGEM_PARCEIRO;
+  const w = linkWhats(p.whatsapp, mensagem);
+  const l = urlSite(p.link);
+  const rotuloSite = String(p.rotuloLink || '').trim() || (hostDe(l) ? `Visitar ${hostDe(l)}` : 'Visitar o site');
+  const rotuloWhats = String(p.rotuloWhats || '').trim() || 'Atendimento online';
   const frase = String(p.frase || '');
   // A última palavra da frase ganha o destaque em itálico ("…começa no *movimento!*").
   const corte = frase.trim().lastIndexOf(' ');
@@ -302,9 +317,9 @@ export function cartaoParceiro(p, extraClasse = '') {
     <div class="parc-txt">
       <span class="parc-selo">${I.certo} Parceiro oficial · ${esc(p.nome)}</span>
       ${frase ? `<h3 class="parc-frase">${fraseHtml}</h3>` : ''}
-      ${p.destaque ? `<p class="parc-oferta"><b>${esc(p.destaque)}</b><span>${esc(p.beneficio)}</span></p>` : ''}
+      ${p.destaque || p.beneficio ? `<p class="parc-oferta">${p.destaque ? `<b>${esc(p.destaque)}</b>` : ''}${p.beneficio ? `<span>${esc(p.beneficio)}</span>` : ''}</p>` : ''}
       ${p.como ? `<p class="parc-como">${esc(p.como)}</p>` : ''}
-      ${w || l ? `<div class="parc-bts">${w ? `<a class="bt bt-verde" href="${esc(w)}" target="_blank" rel="noopener">${I.conversa} Chamar no WhatsApp</a>` : ''}${l ? `<a class="bt bt-claro" href="${esc(l)}" target="_blank" rel="noopener">Conhecer ${I.mais}</a>` : ''}</div>` : ''}
+      ${w || l ? `<div class="parc-bts">${l ? `<a class="bt bt-claro parc-bt-site" href="${esc(l)}" target="_blank" rel="noopener">${I.globo} ${esc(rotuloSite)}</a>` : ''}${w ? `<a class="bt bt-verde parc-bt-whats" href="${esc(w)}" target="_blank" rel="noopener" aria-label="${esc(`${rotuloWhats} pelo WhatsApp com ${p.nome || 'o parceiro'}`)}">${I.conversa} ${esc(rotuloWhats)}</a>` : ''}</div>` : ''}
     </div>
   </article>`;
 }

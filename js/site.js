@@ -11,7 +11,7 @@
 Modo prévia (gerenciar.html abre o site num iframe com ?previa=1): não lê o
 banco — desenha o rascunho que o painel manda por postMessage (mesma origem). */
 
-import { renderizarSite } from './site-render.js';
+import { renderizarSite } from './site-render.js?v=20261006';
 import { FIREBASE_CONFIG } from './escola.js';
 
 const CHAVE_CACHE = 'le.site.v1';
