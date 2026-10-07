@@ -12,7 +12,7 @@ Antes de cada publicação a versão no ar é copiada para siteConteudo/site-ant
 
 import {
   db, storage, doc, getDoc, setDoc, collection, getDocs, storageRef, uploadBytes, getDownloadURL,
-  observarSessao, entrar, sair, buscar, recuperarSenha,
+  observarSessao, entrar, sair, buscar, recuperarSenha, listar,
 } from './firebase.js';
 import { SITE_PADRAO } from './site-padrao.js?v=20261006';
 import { mesclar, url as urlSegura, urlLink, urlSite, esc, hojeLocal } from './site-render.js?v=20261006';
@@ -290,7 +290,7 @@ async function enviarFotoDoSite(arq, { larga, png, quadrada }) {
 // ---------- eventos do app ----------
 async function importarEventos() {
   try {
-    const snap = await getDocs(collection(db, 'eventos'));
+    const snap = { docs: (await listar('eventos')).map((e) => ({ data: () => e })) }; // só os eventos da própria escola
     const hoje = hojeLocal();
     const lista = rascunho.agenda.lista;
     const ja = new Set(lista.map((e) => `${(e.titulo || '').toLowerCase()}|${e.data}`));

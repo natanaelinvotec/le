@@ -7,7 +7,7 @@
    Regra de ouro: todo número vem de leitura real do Firestore; sem dado, "—". */
 import {
   db, collection, doc, query, where, orderBy, limit, getDocs, updateDoc, addDoc, deleteDoc, setDoc, arrayUnion,
-  listar, listarPagamentosDoNucleo, lancarPagamento, pedirAoServidor, getDoc,
+  listar, listarPagamentosDoNucleo, lancarPagamento, pedirAoServidor, getDoc, comMinhaEscola,
 } from './firebase.js';
 import { ESCOLA, CORDOES_ADULTO, prontidao, proximoCordao, coresDoCordao, META_PRONTIDAO, escadaDe } from './escola.js';
 import { situacao as situacaoCarteirinha, textoValidade } from './carteirinha-comum.js';
@@ -530,7 +530,7 @@ async function renderEventos() {
     ev.preventDefault(); const fd = new FormData(form);
     const dados = { nome: String(fd.get('nome') || '').trim(), data: fd.get('data'), hora: fd.get('hora') || '', academiaId: fd.get('academiaId') || null, local: String(fd.get('local') || '').trim(), descricao: String(fd.get('descricao') || '').trim(), criadoEm: new Date().toISOString(), criadoPor: C.sessao().uid };
     if (fd.get('taxa')) dados.taxa = Number(fd.get('taxa')) || 0;
-    try { await addDoc(collection(db, 'eventos'), dados); C.toast('Evento publicado — o grupo foi avisado.'); renderEventos(); } catch (e) { C.toast('Não foi possível publicar (permissão).', 'error'); }
+    try { await addDoc(collection(db, 'eventos'), await comMinhaEscola(dados)); C.toast('Evento publicado — o grupo foi avisado.'); renderEventos(); } catch (e) { C.toast('Não foi possível publicar (permissão).', 'error'); }
   });
   box.querySelectorAll('[data-exp-ev]').forEach((b) => b.addEventListener('click', () => {
     const i = eventos.findIndex((e) => e.id === b.dataset.expEv); const e = eventos[i];

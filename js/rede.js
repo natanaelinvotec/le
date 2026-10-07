@@ -29,6 +29,7 @@ import {
 db, storage, observarSessao, buscar, atualizar, listar, contar, presencasDoUsuario, souFundador, arquivoParaDataUrlComprimido,
 collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, limit, startAfter,
 arrayUnion, arrayRemove, increment, onSnapshot, storageRef, uploadString, uploadBytes, getDownloadURL, salvarFotoPerfil,
+consultaDaEscola, comMinhaEscola,
 } from './firebase.js';
 import { escapeHTML } from './shared.js';
 import { ESCOLA, CORDOES_ADULTO, CORDOES_KIDS, ORDEM_CORDOES, linkMapa as linkMapaEscola, proximoCordao as proximoCordaoEscola } from './escola.js';
@@ -296,7 +297,8 @@ window.scrollTo({ top: 0 });
 /* ===================== STORIES ===================== */
 async function carregarStories() {
 try {
-const snap = await getDocs(query(collection(db, 'stories'), where('expiraEm', '>', new Date().toISOString()), orderBy('expiraEm', 'asc'), limit(120)));
+const q = await consultaDaEscola('stories', where('expiraEm', '>', new Date().toISOString()), orderBy('expiraEm', 'asc'), limit(120));
+const snap = q ? await getDocs(q) : { docs: [] };
 stories = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((s) => s.midiaUrl);
 } catch (e) { console.warn('stories', e); stories = []; }
 }
@@ -358,11 +360,11 @@ try {
 const img = await comprimirAdaptativo(file, STORY_MAX_DIM, STORY_ALVO_KB);
 const url = await subirDataUrl(`rede/${uid}/story_${Date.now()}.jpg`, img.dataUrl);
 const agora = new Date();
-await addDoc(collection(db, 'stories'), {
+await addDoc(collection(db, 'stories'), await comMinhaEscola({
 autorUid: uid, autorNome: perfil.nome || '', autorFoto: /^https:/.test(perfil.fotoUrl || '') ? perfil.fotoUrl : '', autorCordao: perfil.cordaoAtual || '',
 nucleoId: comoNucleo ? meuNucleoGerenciado() : (perfil.academiaId || null), nucleoNome: comoNucleo ? (nucleoDe(meuNucleoGerenciado()) || {}).nome || '' : (perfil.academiaNome || ''),
 comoNucleo, midiaUrl: url, texto: texto.slice(0, 200), criadoEm: agora.toISOString(), expiraEm: new Date(agora.getTime() + 24 * 3600 * 1000).toISOString(),
-});
+}));
 toast(`Story publicado (${fmtKB(img.original)} → ${fmtKB(img.final)}). Some em 24h.`);
 await carregarStories(); if (rotaAtual === 'feed') renderFeed(null, el('vista'), true);
 } catch (e) { console.error(e); toast(explicarErro(e, 'o story')); }
@@ -524,7 +526,8 @@ await Promise.all(Array.from(new Set(novos.map((p) => p.autorUid))).map(pubDe));
 }
 async function carregarAvisos() {
 try {
-const snap = await getDocs(query(collection(db, 'avisos'), orderBy('criadoEm', 'desc'), limit(8)));
+const qAvisos = await consultaDaEscola('avisos', orderBy('criadoEm', 'desc'), limit(8));
+const snap = qAvisos ? await getDocs(qAvisos) : { docs: [] };
 const h = hoje0();
 avisos = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => {
 if (a.academiaId && a.academiaId !== perfil.academiaId && !gerencia(a.academiaId) && !ehModerador()) return false;

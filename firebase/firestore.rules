@@ -15,9 +15,14 @@ function ehInstrutor() { return logado() && 'instrutor' in meusPapeis(); }
 function souFundador() { return logado() && meuPerfil().get('acessoGeral', false) == true; }
 function minhaAcademiaGerenciada() { return meuPerfil().get('academiaGerenciadaId', null); }
 function mudou() { return request.resource.data.diff(resource.data).affectedKeys(); }
-// Multi-escola: a escola de quem está logado vem no login (custom claim gravado pelo servidor).
-// Login antigo, ainda sem o claim, é da escola nº 1 (todo mundo era da Liberdade antes da AtletaPay).
-function minhaEscola() { return request.auth.token.get('escolaId', 'liberdade'); }
+// Multi-escola: a escola de quem está logado vem no login (custom claim gravado pelo servidor
+// em functions/src/escolas.js). Login sem o claim ainda (conta recém-criada, nos primeiros
+// segundos) não é de escola nenhuma: não lê conteúdo de escola até o app renovar o login.
+function minhaEscola() { return request.auth.token.get('escolaId', ''); }
+// Conteúdo de escola (eventos, avisos, materiais, stories, campeonatos): sem .get()/padrão,
+// para o Firestore conseguir provar as consultas em lista feitas com where('escolaId', '==', …).
+function daMinhaEscola() { return resource.data.escolaId == minhaEscola(); }
+function novoDaMinhaEscola() { return request.resource.data.escolaId == minhaEscola(); }
 // escolaId é do SERVIDOR (functions/src/escolas.js deduz e corrige): o app nunca troca.
 function escolaInalterada() { return request.resource.data.get('escolaId', null) == resource.data.get('escolaId', null); }
 // .get(campo, padrão): cadastro antigo sem o campo não trava a gravação.
@@ -229,15 +234,18 @@ allow delete: if ehAdmin() || souFundador() ||
 }
 
 match /eventos/{id} {
-allow read: if logado();
-allow write: if ehAdmin() || souFundador();
+allow read: if logado() && (daMinhaEscola() || ehAdmin());
+allow create: if ehAdmin() || (souFundador() && novoDaMinhaEscola());
+allow update: if ehAdmin() || (souFundador() && daMinhaEscola() && escolaInalterada());
+allow delete: if ehAdmin() || (souFundador() && daMinhaEscola());
 }
-// Inscrição no evento ("Eu vou"): cada pessoa marca/desmarca só a si mesma.
+// Inscrição no evento ("Eu vou"): cada pessoa marca/desmarca só a si mesma, em evento da própria escola.
 match /eventos/{id}/confirmados/{uid} {
-allow read: if logado();
-allow create, update: if logado() && request.auth.uid == uid &&
+function eventoDaMinhaEscola() { return get(/databases/$(database)/documents/eventos/$(id)).data.escolaId == minhaEscola(); }
+allow read: if logado() && (eventoDaMinhaEscola() || ehAdmin());
+allow create, update: if logado() && request.auth.uid == uid && eventoDaMinhaEscola() &&
 request.resource.data.keys().hasOnly(['nome', 'em', 'academiaId', 'cordaoAtual', 'fotoUrl']);
-allow delete: if logado() && (request.auth.uid == uid || ehAdmin() || souFundador());
+allow delete: if logado() && ((request.auth.uid == uid && eventoDaMinhaEscola()) || ehAdmin() || (souFundador() && eventoDaMinhaEscola()));
 }
 
 // Campeonatos (interno e externo). Organiza: Admin, Fundador e o responsável do
@@ -246,28 +254,32 @@ allow delete: if logado() && (request.auth.uid == uid || ehAdmin() || souFundado
 // atletas fictícios da demonstração) e é o único que mexe nas chaves.
 match /campeonatos/{id} {
 function camp() { return resource.data; }
-function organizo(d) { return ehAdmin() || souFundador() || (ehGestor() && (d.get('academiaId', null) == null || d.academiaId == minhaAcademiaGerenciada() || d.get('organizadorUid', '') == request.auth.uid)); }
+// Organiza: Admin; ou, DENTRO da escola do campeonato, o Fundador e o responsável do núcleo organizador.
+function organizo(d) { return ehAdmin() || (d.get('escolaId', '') == minhaEscola() && (souFundador() || (ehGestor() && (d.get('academiaId', null) == null || d.academiaId == minhaAcademiaGerenciada() || d.get('organizadorUid', '') == request.auth.uid)))); }
 function statusOk(d) { return d.get('status', '') in ['inscricoes', 'categorias', 'chaves', 'andamento', 'encerrado']; }
-allow read: if logado();
+// Campeonato "entre escolas" (tipo externo): qualquer atleta logado vê e pode se inscrever.
+function aberto(d) { return d.get('tipo', 'interno') == 'externo'; }
+allow read: if logado() && (daMinhaEscola() || resource.data.tipo == 'externo' || ehAdmin());
 allow create: if ehGestor() && request.resource.data.organizadorUid == request.auth.uid && statusOk(request.resource.data) &&
 request.resource.data.nome is string && request.resource.data.nome.size() <= 80 &&
-(ehAdmin() || souFundador() || request.resource.data.get('academiaId', null) == minhaAcademiaGerenciada());
-allow update: if organizo(camp()) && statusOk(request.resource.data) &&
+(ehAdmin() || (novoDaMinhaEscola() && (souFundador() || request.resource.data.get('academiaId', null) == minhaAcademiaGerenciada())));
+allow update: if organizo(camp()) && statusOk(request.resource.data) && (ehAdmin() || escolaInalterada()) &&
 (camp().status != 'encerrado' || ehAdmin() || souFundador());
 allow delete: if organizo(camp());
 match /inscricoes/{uid} {
 function campPai() { return get(/databases/$(database)/documents/campeonatos/$(id)).data; }
 function camposInsc() { return request.resource.data.keys().hasOnly(['uid', 'nome', 'apelido', 'fotoUrl', 'cordao', 'academiaId', 'academiaNome', 'sexo', 'peso', 'idade', 'categoriaId', 'demo', 'em', 'por', 'pesagemOk']); }
-allow read: if logado();
-// O próprio atleta: só enquanto as inscrições estão abertas, com os próprios dados.
+function possoVer() { return campPai().get('escolaId', '') == minhaEscola() || aberto(campPai()) || ehAdmin(); }
+allow read: if logado() && possoVer();
+// O próprio atleta: só enquanto as inscrições estão abertas, com os próprios dados (da própria escola, ou campeonato entre escolas).
 allow create, update: if logado() && camposInsc() && (
-(request.auth.uid == uid && campPai().status == 'inscricoes' && request.resource.data.get('demo', false) == false) ||
+(request.auth.uid == uid && possoVer() && campPai().status == 'inscricoes' && request.resource.data.get('demo', false) == false) ||
 organizo(campPai()));
 allow delete: if logado() && ((request.auth.uid == uid && campPai().status == 'inscricoes') || organizo(campPai()));
 }
 match /chaves/{categoriaId} {
 function campPai() { return get(/databases/$(database)/documents/campeonatos/$(id)).data; }
-allow read: if logado();
+allow read: if logado() && (campPai().get('escolaId', '') == minhaEscola() || aberto(campPai()) || ehAdmin());
 allow write: if organizo(campPai()) && campPai().status != 'encerrado';
 }
 }
@@ -323,14 +335,17 @@ allow delete: if ehAdmin();
 }
 
 match /avisos/{id} {
-allow read: if logado();
-allow create: if ehAdmin() || souFundador() || (ehGestor() && request.resource.data.academiaId == minhaAcademiaGerenciada());
-allow update, delete: if ehAdmin() || souFundador();
+allow read: if logado() && (daMinhaEscola() || ehAdmin());
+allow create: if ehAdmin() || (novoDaMinhaEscola() && (souFundador() || (ehGestor() && request.resource.data.academiaId == minhaAcademiaGerenciada())));
+allow update: if ehAdmin() || (souFundador() && daMinhaEscola() && escolaInalterada());
+allow delete: if ehAdmin() || (souFundador() && daMinhaEscola());
 }
 
 match /materiais/{id} {
-allow read: if logado();
-allow write: if ehGestor();
+allow read: if logado() && (daMinhaEscola() || ehAdmin());
+allow create: if ehAdmin() || (ehGestor() && novoDaMinhaEscola());
+allow update: if ehAdmin() || (ehGestor() && daMinhaEscola() && escolaInalterada());
+allow delete: if ehAdmin() || (ehGestor() && daMinhaEscola());
 }
 
 match /materiaisFormacao/{id} {
@@ -477,8 +492,8 @@ post().autorUid == request.auth.uid ||
 // stories: foto + legenda por 24h. "Como núcleo" só o responsável do núcleo,
 // Admin ou Fundador.
 match /stories/{id} {
-allow read: if logado();
-allow create: if logado() &&
+allow read: if logado() && (daMinhaEscola() || ehAdmin());
+allow create: if logado() && novoDaMinhaEscola() &&
 request.resource.data.autorUid == request.auth.uid &&
 request.resource.data.midiaUrl is string &&
 request.resource.data.get('texto', '').size() <= 200 &&
@@ -486,8 +501,8 @@ request.resource.data.expiraEm is string && request.resource.data.criadoEm is st
 request.resource.data.expiraEm > request.resource.data.criadoEm &&
 (request.resource.data.get('comoNucleo', false) == false || ehAdmin() || souFundador() ||
 (ehGestor() && request.resource.data.nucleoId == minhaAcademiaGerenciada()));
-allow delete: if logado() && (resource.data.autorUid == request.auth.uid || ehAdmin() || souFundador() ||
-(ehGestor() && resource.data.nucleoId == minhaAcademiaGerenciada()));
+allow delete: if logado() && (resource.data.autorUid == request.auth.uid || ehAdmin() ||
+(daMinhaEscola() && (souFundador() || (ehGestor() && resource.data.nucleoId == minhaAcademiaGerenciada()))));
 }
 
 // conversas: direta (2 participantes; id = uids ordenados) ou grupo do núcleo.

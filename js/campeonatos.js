@@ -11,7 +11,7 @@ Quem organiza: Admin Master, Fundador e o responsável do núcleo que criou o
 campeonato (ou qualquer responsável, quando o campeonato é do grupo inteiro).
 Atletas se inscrevem (sexo e peso declarados) e acompanham as chaves. As
 regras (categorias, sorteio, avanço, pódio) estão em campeonato-motor.js. */
-import { observarSessao, db, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, limit, onSnapshot, listar, listarPorAcademia, souFundador } from './firebase.js';
+import { observarSessao, db, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, limit, onSnapshot, listar, listarPorAcademia, souFundador, minhaEscolaId, comMinhaEscola } from './firebase.js';
 import { ESCOLA, coresDoCordao, nomeBonito, ORDEM_CORDOES } from './escola.js';
 import { ehAtleta, iniciais, faixas } from './carteirinha-comum.js';
 import * as M from './campeonato-motor.js?v=20261002';
@@ -75,10 +75,20 @@ function barra(titulo, acoesHtml = '') { el('tituloBarra').textContent = titulo;
 function renderLista() {
   barra('Campeonatos', podeCriar() ? `<a class="bt bt-verde bt-sm" href="#novo"><i class="fas fa-plus"></i> Novo</a>` : '');
   if (!desligarLista) {
-    desligarLista = onSnapshot(query(collection(db, 'campeonatos'), limit(60)), (s) => {
-      campeonatos = s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => String(b.data || '').localeCompare(String(a.data || '')));
+    // Duas escutas: os campeonatos da MINHA escola e os "entre escolas" de qualquer escola (as regras só deixam isso).
+    desligarLista = () => {}; // marca como ligado enquanto descobre a escola
+    const partes = { minha: [], abertos: [] };
+    const juntar = () => {
+      const porId = new Map([...partes.abertos, ...partes.minha].map((c) => [c.id, c]));
+      campeonatos = [...porId.values()].sort((a, b) => String(b.data || '').localeCompare(String(a.data || '')));
       if (!location.hash || location.hash === '#') desenharLista();
-    }, (e) => { console.error(e); pagina.innerHTML = `<div class="vazio"><i class="fas fa-lock"></i><b>Sem acesso aos campeonatos</b><p>Entre com a sua conta de atleta ou do núcleo.</p></div>`; });
+    };
+    const semAcesso = (e) => { console.error(e); pagina.innerHTML = `<div class="vazio"><i class="fas fa-lock"></i><b>Sem acesso aos campeonatos</b><p>Entre com a sua conta de atleta ou do núcleo.</p></div>`; };
+    minhaEscolaId().then((escola) => {
+      const offs = [onSnapshot(query(collection(db, 'campeonatos'), where('tipo', '==', 'externo'), limit(60)), (s) => { partes.abertos = s.docs.map((d) => ({ id: d.id, ...d.data() })); juntar(); }, semAcesso)];
+      if (escola) offs.push(onSnapshot(query(collection(db, 'campeonatos'), where('escolaId', '==', escola), limit(60)), (s) => { partes.minha = s.docs.map((d) => ({ id: d.id, ...d.data() })); juntar(); }, semAcesso));
+      desligarLista = () => offs.forEach((f) => f());
+    });
   } else desenharLista();
 }
 function desenharLista() {
@@ -143,14 +153,14 @@ function renderNovo() {
       const pesos = pesosTxt.length ? pesosTxt.map((max, i) => ({ id: `p${i + 1}`, nome: nomesPeso[i] || `Faixa ${i + 1}`, max })).concat([{ id: `p${pesosTxt.length + 1}`, nome: nomesPeso[pesosTxt.length] || 'Acima', max: null }]) : [];
       const id = idNovo();
       const academiaId = ehAdmin() ? (el('fNucleo') ? el('fNucleo').value || null : null) : perfil.academiaGerenciadaId;
-      await setDoc(doc(db, 'campeonatos', id), {
+      await setDoc(doc(db, 'campeonatos', id), await comMinhaEscola({
         nome: el('fNome').value.trim().slice(0, 80), tipo: seg('fTipo'), data: el('fData').value, hora: el('fHora').value || '', local: el('fLocal').value.trim().slice(0, 80), cidade: el('fCidade').value.trim().slice(0, 60),
         descricao: el('fDesc').value.trim().slice(0, 600), regulamentoUrl: /^https:\/\//.test(el('fReg').value.trim()) ? el('fReg').value.trim() : '',
         academiaId, academiaNome: academiaId ? nomeNucleo(academiaId) : '', organizadorUid: uid, organizadorNome: perfil.nome || '',
         status: 'inscricoes', inscritosTotal: 0, lutasFeitas: 0, categorias: [],
         config: { sexos: seg('fSexos') === '1', idades: seg('fIdades') === '1' ? M.IDADES_PADRAO : null, pesos, gruposCordao: M.GRUPOS_CORDAO_PADRAO, minimoPorCategoria: Math.max(2, Math.min(8, Number(el('fMin').value) || 3)) },
         criadoEm: new Date().toISOString(), demo: false,
-      });
+      }));
       toast('Campeonato criado'); location.hash = `c/${encodeURIComponent(id)}`;
     } catch (er) { console.error(er); toast('Não deu para criar agora. Tente de novo.'); bt.disabled = false; }
   });
@@ -166,12 +176,12 @@ async function carregarDemo() {
     // Configuração enxuta para a demonstração encher as categorias: 2 faixas de peso, 2 grupos de cordão.
     const config = { sexos: true, idades: null, minimoPorCategoria: 3, pesos: [{ id: 'p1', nome: 'Leve', max: 75 }, { id: 'p2', nome: 'Pesado', max: null }], gruposCordao: [{ id: 'iniciantes', nome: 'Iniciante a Fugitivo', cordoes: ['Iniciante', 'Escravo', 'Fugitivo'] }, { id: 'graduados', nome: 'Quilombola em diante', cordoes: ['Quilombola', 'Vagante', 'Liberto', 'Instrutor', 'Professor', 'Mestre', 'Mestre/Presidente'] }] };
     const academiaId = ehAdmin() ? null : perfil.academiaGerenciadaId;
-    await setDoc(doc(db, 'campeonatos', id), {
+    await setDoc(doc(db, 'campeonatos', id), await comMinhaEscola({
       nome: 'Campeonato Interno Liberdade 2026 (demonstração)', tipo: 'interno', data: hojeIso(), hora: '09:00', local: 'Ginásio do núcleo', cidade: `${ESCOLA.cidade} / ${ESCOLA.uf}`,
       descricao: 'Dados fictícios para apresentação do módulo: 32 atletas, categorias por graduação, peso e sexo, chaves de eliminação simples. Pode ser apagado a qualquer momento.',
       regulamentoUrl: '', academiaId, academiaNome: academiaId ? nomeNucleo(academiaId) : '', organizadorUid: uid, organizadorNome: perfil.nome || '',
       status: 'inscricoes', inscritosTotal: atletas.length, lutasFeitas: 0, categorias: [], config, criadoEm: new Date().toISOString(), demo: true,
-    });
+    }));
     await Promise.all(atletas.map((a) => setDoc(doc(db, 'campeonatos', id, 'inscricoes', a.uid), { ...a, em: new Date().toISOString(), por: uid, pesagemOk: true })));
     toast('Demonstração carregada'); location.hash = `c/${encodeURIComponent(id)}`;
   } catch (e) { console.error(e); toast('Não deu para carregar a demonstração.'); if (bt) bt.disabled = false; }

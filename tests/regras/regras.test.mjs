@@ -12,7 +12,8 @@ import {
 const REGRAS = readFileSync(fileURLToPath(new URL('../../firebase/firestore.rules', import.meta.url)), 'utf8');
 const [host, port] = (process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080').split(':');
 let env;
-const db = (uid) => (uid ? env.authenticatedContext(uid).firestore() : env.unauthenticatedContext().firestore());
+// Todo login de teste é da escola nº 1 (como o servidor grava nos custom claims), salvo quando o teste diz outra.
+const db = (uid, claims = { escolaId: 'liberdade' }) => (uid ? env.authenticatedContext(uid, claims).firestore() : env.unauthenticatedContext().firestore());
 const AGORA = new Date().toISOString();
 
 before(async () => {
@@ -55,8 +56,18 @@ before(async () => {
     await setDoc(doc(d, 'certificados', 'CERT000001'), { numero: 'LE-CERT-2026-0001', nome: 'Natanael', cordao: 'Vagante', ativo: true });
     await setDoc(doc(d, 'certificadosDe', 'nat'), { itens: [{ codigo: 'CERT000001', cordao: 'Vagante' }] });
     await setDoc(doc(d, 'certificadosDe', 'kid'), { itens: [] });
-    await setDoc(doc(d, 'campeonatos', 'camp1'), { nome: 'Interno', status: 'inscricoes', academiaId: 'taynara', organizadorUid: 'tay', data: '2026-11-01' });
-    await setDoc(doc(d, 'campeonatos', 'campGrupo'), { nome: 'Do grupo', status: 'chaves', academiaId: null, organizadorUid: 'profeta', data: '2026-11-01' });
+    await setDoc(doc(d, 'campeonatos', 'camp1'), { nome: 'Interno', status: 'inscricoes', academiaId: 'taynara', organizadorUid: 'tay', data: '2026-11-01', escolaId: 'liberdade' });
+    await setDoc(doc(d, 'campeonatos', 'campGrupo'), { nome: 'Do grupo', status: 'chaves', academiaId: null, organizadorUid: 'profeta', data: '2026-11-01', escolaId: 'liberdade' });
+    // Conteúdo de outra escola (CT de Jiu-Jitsu) para provar o isolamento.
+    await setDoc(doc(d, 'eventos', 'evLib'), { nome: 'Batizado', data: '2026-11-20', escolaId: 'liberdade' });
+    await setDoc(doc(d, 'eventos', 'evGracie'), { nome: 'Graduação de faixas', data: '2026-11-21', escolaId: 'gracie-cg' });
+    await setDoc(doc(d, 'eventos/evGracie/confirmados/rafa'), { nome: 'Rafa', em: AGORA });
+    await setDoc(doc(d, 'avisos', 'avLib'), { titulo: 'Treino', criadoEm: AGORA, escolaId: 'liberdade' });
+    await setDoc(doc(d, 'avisos', 'avGracie'), { titulo: 'Oss', criadoEm: AGORA, escolaId: 'gracie-cg' });
+    await setDoc(doc(d, 'materiais', 'matGracie'), { titulo: 'Apostila', escolaId: 'gracie-cg' });
+    await setDoc(doc(d, 'stories', 'stGracie'), { autorUid: 'rafa', midiaUrl: 'x', criadoEm: AGORA, expiraEm: '2099-01-01T00:00:00.000Z', escolaId: 'gracie-cg' });
+    await setDoc(doc(d, 'campeonatos', 'campGracie'), { nome: 'Interno do CT', status: 'inscricoes', academiaId: 'gracie', organizadorUid: 'rafa', tipo: 'interno', escolaId: 'gracie-cg' });
+    await setDoc(doc(d, 'campeonatos', 'campAberto'), { nome: 'Open MS', status: 'inscricoes', academiaId: 'gracie', organizadorUid: 'rafa', tipo: 'externo', escolaId: 'gracie-cg' });
   });
 });
 after(async () => { if (env) await env.cleanup(); });
@@ -102,7 +113,7 @@ test('multi-escola: escolaId é do servidor; Fundador só mexe nos núcleos da p
   await assertFails(updateDoc(doc(db('tay'), 'usuarios', 'nat'), { escolaId: 'outra-escola' }), 'o professor não muda a escola do aluno');
   await assertFails(setDoc(doc(db('novo2'), 'usuarios', 'novo2'), { nome: 'Novo', papeis: ['aluno'], academiaId: 'taynara', academiaGerenciadaId: null, cordaoAtual: 'Iniciante', notas: {}, responsavelUid: null, statusAtual: 'Ativo', escolaId: 'outra-escola' }), 'inscrição não escolhe a escola (o servidor deduz pelo núcleo)');
   await assertSucceeds(updateDoc(doc(db('admin'), 'usuarios', 'nat'), { escolaId: 'liberdade' }), 'Admin pode');
-  // Fundador (login sem claim = escola nº 1): cria núcleo da Liberdade, não de outra escola.
+  // Fundador (login da escola nº 1): cria núcleo da Liberdade, não de outra escola.
   await assertSucceeds(setDoc(doc(db('profeta'), 'nucleos', 'novo-nucleo'), { nome: 'Núcleo Novo', escolaId: 'liberdade' }));
   await assertFails(setDoc(doc(db('profeta'), 'nucleos', 'nucleo-alheio'), { nome: 'Alheio', escolaId: 'gracie-cg' }));
   await assertFails(updateDoc(doc(db('profeta'), 'nucleos', 'novo-nucleo'), { escolaId: 'gracie-cg' }), 'não leva núcleo para outra escola');
@@ -355,9 +366,10 @@ test('campeonatos: atleta se inscreve só a si mesmo e só com inscrições aber
   await assertFails(updateDoc(doc(db('nat'), 'campeonatos', 'camp1'), { status: 'encerrado' }));
   await assertSucceeds(updateDoc(doc(db('tay'), 'campeonatos', 'camp1'), { status: 'categorias' }));
   await assertFails(updateDoc(doc(db('tay'), 'campeonatos', 'camp1'), { status: 'qualquer' }), 'status inválido');
-  await assertSucceeds(setDoc(doc(db('tay'), 'campeonatos', 'novo'), { nome: 'Novo', status: 'inscricoes', academiaId: 'taynara', organizadorUid: 'tay' }));
-  await assertFails(setDoc(doc(db('tay'), 'campeonatos', 'novo2'), { nome: 'Novo', status: 'inscricoes', academiaId: 'profeta', organizadorUid: 'tay' }), 'não cria para outro núcleo');
-  await assertFails(setDoc(doc(db('nat'), 'campeonatos', 'novo3'), { nome: 'Novo', status: 'inscricoes', academiaId: 'taynara', organizadorUid: 'nat' }), 'atleta não cria');
+  await assertSucceeds(setDoc(doc(db('tay'), 'campeonatos', 'novo'), { nome: 'Novo', status: 'inscricoes', academiaId: 'taynara', organizadorUid: 'tay', escolaId: 'liberdade' }));
+  await assertFails(setDoc(doc(db('tay'), 'campeonatos', 'novo1b'), { nome: 'Novo', status: 'inscricoes', academiaId: 'taynara', organizadorUid: 'tay', escolaId: 'gracie-cg' }), 'não cria na escola dos outros');
+  await assertFails(setDoc(doc(db('tay'), 'campeonatos', 'novo2'), { nome: 'Novo', status: 'inscricoes', academiaId: 'profeta', organizadorUid: 'tay', escolaId: 'liberdade' }), 'não cria para outro núcleo');
+  await assertFails(setDoc(doc(db('nat'), 'campeonatos', 'novo3'), { nome: 'Novo', status: 'inscricoes', academiaId: 'taynara', organizadorUid: 'nat', escolaId: 'liberdade' }), 'atleta não cria');
   await assertFails(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { competicoes: { titulos: 99 } }), 'competições só pelo servidor');
 });
 
@@ -384,4 +396,50 @@ test('AtletaPay: dono (sem usuarios/) cria slug + escola em rascunho, edita até
   await assertFails(updateDoc(doc(dono, 'escolas', 'dragao'), { assinatura: { status: 'ativa' } }), 'assinatura é do servidor/Admin');
   await assertSucceeds(updateDoc(doc(db('admin'), 'escolas', 'dragao'), { status: 'ativa', ativadaEm: agora }));
   await assertSucceeds(getDoc(doc(db('admin'), 'escolas', 'dragao')));
+});
+
+test('multi-escola (1c): cada escola só vê e escreve o próprio conteúdo; campeonato entre escolas é aberto', async () => {
+  const nat = db('nat'); const rafa = db('rafa', { escolaId: 'gracie-cg' }); const semEscola = db('nat', {});
+  // Leitura individual
+  await assertSucceeds(getDoc(doc(nat, 'eventos', 'evLib')));
+  await assertFails(getDoc(doc(nat, 'eventos', 'evGracie')), 'evento de outra escola');
+  await assertFails(getDoc(doc(nat, 'avisos', 'avGracie')));
+  await assertFails(getDoc(doc(nat, 'materiais', 'matGracie')));
+  await assertFails(getDoc(doc(nat, 'stories', 'stGracie')));
+  await assertFails(getDoc(doc(nat, 'campeonatos', 'campGracie')), 'campeonato interno de outra escola');
+  await assertSucceeds(getDoc(doc(nat, 'campeonatos', 'campAberto')), 'campeonato entre escolas é aberto');
+  await assertSucceeds(getDoc(doc(rafa, 'avisos', 'avGracie')));
+  await assertFails(getDoc(doc(semEscola, 'eventos', 'evLib')), 'login sem escola ainda não lê nada de escola');
+  // Listas: só com o filtro da própria escola
+  await assertSucceeds(getDocs(query(collection(nat, 'eventos'), where('escolaId', '==', 'liberdade'))));
+  await assertFails(getDocs(collection(nat, 'eventos')), 'lista sem filtro de escola');
+  await assertFails(getDocs(query(collection(nat, 'eventos'), where('escolaId', '==', 'gracie-cg'))));
+  await assertSucceeds(getDocs(query(collection(nat, 'avisos'), where('escolaId', '==', 'liberdade'), orderBy('criadoEm', 'desc'), limit(8))));
+  await assertSucceeds(getDocs(query(collection(nat, 'stories'), where('escolaId', '==', 'liberdade'), where('expiraEm', '>', AGORA), orderBy('expiraEm', 'asc'), limit(120))));
+  await assertSucceeds(getDocs(query(collection(nat, 'campeonatos'), where('tipo', '==', 'externo'), limit(60))));
+  await assertSucceeds(getDocs(query(collection(nat, 'campeonatos'), where('escolaId', '==', 'liberdade'), limit(60))));
+  await assertFails(getDocs(collection(nat, 'eventos/evGracie/confirmados')));
+  await assertSucceeds(getDocs(collection(rafa, 'eventos/evGracie/confirmados')));
+  // Escrita: o conteúdo nasce na escola de quem cria
+  await assertSucceeds(setDoc(doc(db('profeta'), 'eventos', 'ev2'), { nome: 'Roda', data: '2026-12-01', escolaId: 'liberdade' }));
+  await assertFails(setDoc(doc(db('profeta'), 'eventos', 'ev3'), { nome: 'Roda', data: '2026-12-01', escolaId: 'gracie-cg' }), 'Fundador não publica em outra escola');
+  await assertFails(updateDoc(doc(db('profeta'), 'eventos', 'evGracie'), { nome: 'Invadido' }));
+  await assertFails(updateDoc(doc(db('profeta'), 'eventos', 'evLib'), { escolaId: 'gracie-cg' }), 'não muda evento de escola');
+  await assertFails(setDoc(doc(db('nat'), 'eventos/evGracie/confirmados/nat'), { nome: 'Nat', em: AGORA }), 'não confirma em evento de outra escola');
+  await assertSucceeds(setDoc(doc(db('nat'), 'eventos/evLib/confirmados/nat'), { nome: 'Nat', em: AGORA }));
+  await assertSucceeds(addDoc(collection(db('tay'), 'materiais'), { titulo: 'Ladainhas', escolaId: 'liberdade' }));
+  await assertFails(addDoc(collection(db('tay'), 'materiais'), { titulo: 'X', escolaId: 'gracie-cg' }));
+  await assertFails(updateDoc(doc(db('tay'), 'materiais', 'matGracie'), { titulo: 'Apagado' }), 'professor de outra escola não edita');
+  await assertSucceeds(addDoc(collection(nat, 'stories'), { autorUid: 'nat', midiaUrl: 'https://x', texto: '', criadoEm: AGORA, expiraEm: '2099-01-01T00:00:00.000Z', escolaId: 'liberdade' }));
+  await assertFails(addDoc(collection(nat, 'stories'), { autorUid: 'nat', midiaUrl: 'https://x', texto: '', criadoEm: AGORA, expiraEm: '2099-01-01T00:00:00.000Z' }), 'story sem escola');
+  await assertSucceeds(addDoc(collection(db('tay'), 'avisos'), { titulo: 'Aula', academiaId: 'taynara', escolaId: 'liberdade', criadoEm: AGORA }));
+  await assertFails(addDoc(collection(db('tay'), 'avisos'), { titulo: 'Aula', academiaId: 'taynara', criadoEm: AGORA }), 'aviso sem escola');
+  // Campeonato entre escolas: atleta de outra escola se inscreve; no interno de outra escola, não.
+  const insc = { uid: 'nat', nome: 'Natanael', cordao: 'Quilombola', academiaId: 'taynara', sexo: 'M', peso: 70, idade: 30, em: AGORA };
+  await assertSucceeds(setDoc(doc(nat, 'campeonatos/campAberto/inscricoes/nat'), insc));
+  await assertFails(setDoc(doc(nat, 'campeonatos/campGracie/inscricoes/nat'), insc));
+  await assertFails(setDoc(doc(nat, 'campeonatos/campAberto/chaves/cat1'), { rodadas: [] }), 'não organiza campeonato de outra escola');
+  await assertFails(setDoc(doc(db('profeta'), 'campeonatos/campGracie/chaves/cat1'), { rodadas: [] }), 'Fundador não mexe em campeonato de outra escola');
+  // Admin da plataforma vê tudo
+  await assertSucceeds(getDocs(collection(db('admin'), 'eventos')));
 });

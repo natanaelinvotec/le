@@ -45,6 +45,41 @@ export const auth = initializeAuth(app, { persistence: [browserLocalPersistence,
 export const db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
 export const storage = getStorage(app);
 
+// ===== Multi-escola: a escola de quem está logado =====
+// Vem do próprio login (custom claim `escolaId`, gravado pelo servidor em
+// functions/src/escolas.js). As regras do banco usam o mesmo claim, então o app
+// grava e consulta conteúdo de escola SEMPRE com este valor. Conta recém-criada
+// ganha o claim alguns segundos depois do cadastro: esperamos e renovamos o login.
+const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+let escolaCache = { uid: null, p: null };
+async function lerClaimEscola(u) {
+  let t = await u.getIdTokenResult();
+  for (let i = 0; !t.claims.escolaId && i < 8; i++) { await espera(i < 3 ? 1500 : 4000); t = await u.getIdTokenResult(true); }
+  return typeof t.claims.escolaId === 'string' ? t.claims.escolaId : null;
+}
+export async function minhaEscolaId() {
+  if (typeof auth.authStateReady === 'function') await auth.authStateReady();
+  const u = auth.currentUser;
+  if (!u) return null;
+  if (escolaCache.uid !== u.uid || !escolaCache.p) escolaCache = { uid: u.uid, p: lerClaimEscola(u).catch(() => null) };
+  return escolaCache.p;
+}
+onAuthStateChanged(auth, (u) => { if (!u || u.uid !== escolaCache.uid) escolaCache = { uid: null, p: null }; });
+// Coleções de CONTEÚDO de escola: lista sempre filtrada pela escola; criação já leva escolaId.
+export const COLECOES_DA_ESCOLA = new Set(['eventos', 'avisos', 'materiais', 'stories', 'campeonatos']);
+export async function comMinhaEscola(dados) {
+  const e = await minhaEscolaId();
+  if (!e) throw new Error('Sua conta ainda está sendo preparada. Tente de novo em alguns segundos.');
+  return { ...dados, escolaId: e };
+}
+// Consulta de uma coleção de escola, já com where('escolaId', '==', minha escola) + filtros extras.
+// Sem escola (não logado / login ainda sem claim) devolve null: quem chama trata como "lista vazia".
+export async function consultaDaEscola(col, ...filtros) {
+  const e = await minhaEscolaId();
+  if (!e) return null;
+  return query(collection(db, col), where('escolaId', '==', e), ...filtros);
+}
+
 // App Check (reCAPTCHA Enterprise / "Fraud Defense"): só liga quando a chave do site
 // estiver em escola.js. O provedor TEM de ser o mesmo registrado no Console → App Check
 // (lá é Enterprise; com o provedor v3 clássico o servidor devolvia 400 e nunca emitia token).
@@ -234,7 +269,13 @@ export async function criarContaComoAdmin(email, senha, dados) {
 }
 
 // ===== Coleções genéricas =====
-export const listar = async (col) => (await getDocs(collection(db, col))).docs.map((d) => ({ id: d.id, ...d.data() }));
+export const listar = async (col) => {
+  if (COLECOES_DA_ESCOLA.has(col)) {
+    const q = await consultaDaEscola(col);
+    return q ? (await getDocs(q)).docs.map((d) => ({ id: d.id, ...d.data() })) : [];
+  }
+  return (await getDocs(collection(db, col))).docs.map((d) => ({ id: d.id, ...d.data() }));
+};
 // "Do aparelho primeiro": o que o Firestore já guardou da última visita, na hora
 // (0 leituras, sem esperar a internet). A tela pinta com isso e troca pelo dado
 // do servidor logo em seguida. Devolve [] quando ainda não há nada guardado.
@@ -262,12 +303,14 @@ export const contar = async (col, condicoes = []) => {
   const snap = await getCountFromServer(q);
   return snap.data().count;
 };
-export const salvar = (col, id, dados) => setDoc(doc(db, col, id), dados, { merge: true });
+// Coleção de escola: documento novo (ou antigo sem escola) recebe a escola de quem grava.
+export const salvar = async (col, id, dados) => setDoc(doc(db, col, id),
+  COLECOES_DA_ESCOLA.has(col) && dados && dados.escolaId === undefined ? await comMinhaEscola(dados) : dados, { merge: true });
 export const buscar = async (col, id) => {
   const s = await getDoc(doc(db, col, id));
   return s.exists() ? { id: s.id, ...s.data() } : null;
 };
-export const criar = (col, dados) => addDoc(collection(db, col), dados);
+export const criar = async (col, dados) => addDoc(collection(db, col), COLECOES_DA_ESCOLA.has(col) ? await comMinhaEscola(dados) : dados);
 export const atualizar = (col, id, dados) => updateDoc(doc(db, col, id), dados);
 export const remover = (col, id) => deleteDoc(doc(db, col, id));
 
@@ -330,13 +373,15 @@ export const transferenciasPendentesParaDestino = async (destinoId) =>
     where('tipo', '==', 'transferencia'), where('dadosPedido.destinoId', '==', destinoId), where('status', '==', 'pendente')))).docs);
 
 // ===== Avisos (notificações dentro do app) =====
-export const publicarAviso = (dados) =>
-  addDoc(collection(db, 'avisos'), { ...dados, criadoEm: new Date().toISOString() });
-export const listarAvisos = async (tamanho = 20) =>
-  (await getDocs(query(collection(db, 'avisos'), orderBy('criadoEm', 'desc'), limit(tamanho)))).docs.map((d) => ({ id: d.id, ...d.data() }));
+export const publicarAviso = async (dados) =>
+  addDoc(collection(db, 'avisos'), await comMinhaEscola({ ...dados, criadoEm: new Date().toISOString() }));
+export const listarAvisos = async (tamanho = 20) => {
+  const q = await consultaDaEscola('avisos', orderBy('criadoEm', 'desc'), limit(tamanho));
+  return q ? (await getDocs(q)).docs.map((d) => ({ id: d.id, ...d.data() })) : [];
+};
 
 // ===== Materiais gerais (visíveis a todo mundo logado) =====
-export const publicarMaterial = (dados) => addDoc(collection(db, 'materiais'), { ...dados, criadoEm: new Date().toISOString() });
+export const publicarMaterial = async (dados) => addDoc(collection(db, 'materiais'), await comMinhaEscola({ ...dados, criadoEm: new Date().toISOString() }));
 export const listarMateriais = () => listar('materiais');
 export const removerMaterial = (id) => deleteDoc(doc(db, 'materiais', id));
 export const excluirUsuarioPermanente = (id) => deleteDoc(doc(db, 'usuarios', id));
