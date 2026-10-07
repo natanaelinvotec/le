@@ -1,4 +1,5 @@
 // Escolas (multi-escola / AtletaPay) — fundação no servidor.
+import { escadaLimpa } from './compartilhado/modalidades.js';
 //
 // Regra de ouro: quem diz a que escola um registro pertence é o SERVIDOR.
 // O app nunca precisa gravar `escolaId`; esta camada deduz pelo vínculo real
@@ -257,6 +258,8 @@ export function escolaPublica(id, e) {
     lider: TEXTO(e.lider, 30),
     pecaGraduacao: TEXTO(e.pecaGraduacao, 20),
     graduacoes: Array.isArray(e.graduacoes) ? e.graduacoes.filter((g) => typeof g === 'string').slice(0, 30).map((g) => g.slice(0, 40)) : [],
+    escada: escadaLimpa(e.escada), // faixas/cordões com cores e graus (gravada na ativação)
+    nucleoSede: (e.ativacao && e.ativacao.status === 'ok' && TEXTO(e.ativacao.nucleoId, 60)) || null,
     cidade: TEXTO(e.cidade, 60),
     uf: TEXTO(e.uf, 2),
     endereco: TEXTO(e.endereco, 140),

@@ -291,3 +291,49 @@ input[type=range] { width: 100%; accent-color: var(--laranja); height: 34px; }
 .toast { position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); transform: translate(-50%, 20px); z-index: 90; padding: 12px 18px; border-radius: 14px; background: var(--ink); color: #fff; font-weight: 800; font-size: .88rem; box-shadow: 0 20px 40px -20px #000; opacity: 0; pointer-events: none; transition: opacity .3s, transform .45s var(--ease); max-width: calc(100vw - 32px); }
 .toast.on { opacity: 1; transform: translate(-50%, 0); }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } html { scroll-behavior: auto; } }
+
+/* ===== Mega painel (master.html) — equipe AtletaPay ===== */
+.selo-master { margin-left: 12px; padding: 4px 10px; border-radius: 999px; font: 700 .7rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink); background: var(--ciano); }
+.master { padding-bottom: 56px; }
+.master-barra { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-top: -40px; padding: 10px; border-radius: var(--raio); background: #fff; border: 1px solid var(--borda); }
+.abas { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+.abas::-webkit-scrollbar { display: none; }
+.aba { flex: none; display: inline-flex; gap: 8px; align-items: center; min-height: 40px; padding: 0 14px; border-radius: 11px; border: 1.5px solid transparent; background: transparent; font-weight: 800; font-size: .86rem; color: var(--texto-2); transition: background .25s var(--ease), color .25s var(--ease); }
+.aba .mono { font-size: .75rem; padding: 2px 7px; border-radius: 999px; background: var(--areia); color: var(--texto-2); }
+.aba:hover { background: var(--areia); }
+.aba[aria-selected="true"] { background: var(--ink); color: #fff; }
+.aba[aria-selected="true"] .mono { background: var(--laranja); color: #fff; }
+.aba:focus-visible, .busca:focus-visible { outline: 3px solid var(--ciano); outline-offset: 2px; }
+.busca { flex: 1 1 220px; max-width: 340px; min-height: 40px; padding: 0 14px; border-radius: 11px; border: 1.5px solid var(--borda); background: var(--areia); }
+.lista-escolas { display: grid; gap: 14px; margin-top: 14px; }
+.escola-card { display: grid; gap: 14px; animation: subir .5s var(--ease) both; }
+@keyframes subir { from { opacity: .4; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.ec-topo { display: grid; grid-template-columns: 56px 1fr auto; gap: 14px; align-items: center; }
+.ec-logo { width: 56px; height: 56px; border-radius: 16px; overflow: hidden; display: grid; place-items: center; background: var(--indigo); color: #fff; font: 700 1rem var(--display); }
+.ec-logo img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.ec-titulo h3 { margin: 0 0 4px; font-size: 1.12rem; }
+.ec-titulo p { margin: 0; color: var(--texto-2); font-size: .86rem; overflow-wrap: anywhere; }
+.cartao .status.pausada { background: #ECEEF4; color: var(--texto-2); }
+.ok-caixa.espera { background: #EAF6FB; color: var(--ciano-escuro); border-color: #BDE6F2; }
+.ec-corpo { display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px; }
+.ec-corpo .kv dd { margin: 0; overflow-wrap: anywhere; }
+.ec-corpo .kv dt { color: var(--texto-3); font-weight: 700; }
+.miniaturas { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+.miniaturas a { flex: none; width: 72px; height: 72px; border-radius: 12px; overflow: hidden; border: 1px solid var(--borda); transition: transform .3s var(--ease); }
+.miniaturas a:hover { transform: translateY(-2px); }
+.miniaturas img { width: 100%; height: 100%; object-fit: cover; }
+.miniaturas .mais { flex: none; display: grid; place-items: center; width: 72px; height: 72px; border-radius: 12px; background: var(--areia); font: 700 .9rem var(--mono); color: var(--texto-2); }
+.ec-acoes { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 12px; border-top: 1px solid var(--borda); }
+.bt.perigo { color: #8A1C1C; margin-left: auto; }
+.bt.perigo:hover { border-color: #C62828; }
+.cartao.vazio { display: grid; place-items: center; gap: 6px; padding: 48px 20px; text-align: center; color: var(--texto-2); }
+.cartao.vazio i { font-size: 1.6rem; color: var(--texto-3); }
+@media (max-width: 720px) {
+  .ec-topo { grid-template-columns: 48px 1fr; }
+  .ec-topo .status { grid-column: 1 / -1; justify-self: start; }
+  .ec-logo { width: 48px; height: 48px; }
+  .ec-corpo { grid-template-columns: 1fr; }
+  .busca { max-width: none; }
+  .bt.perigo { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .escola-card { animation: none; } }

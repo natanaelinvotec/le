@@ -26,7 +26,7 @@ const HOSTS = {
 // Hosts da plataforma: a escola vem do 1º pedaço do caminho (atletapay.com.br/<slug>/...).
 const HOSTS_PLATAFORMA = ['atletapay.com.br', 'atletapay.web.app', 'atletapay.firebaseapp.com'];
 // Pedaços de caminho que são páginas da plataforma, não escolas (mesma ideia de RESERVADOS).
-const ROTAS = new Set(['cadastro', 'painel', 'privacidade', 'termos', 'index', 'css', 'js', 'img', 'assets', 'fotos', 'global', 'rede', 'escolas', 'inscricao', 'entrar', 'sair', 'login', 'admin', 'app']);
+const ROTAS = new Set(['cadastro', 'painel', 'privacidade', 'termos', 'index', 'css', 'js', 'img', 'assets', 'fotos', 'global', 'rede', 'escolas', 'inscricao', 'entrar', 'sair', 'login', 'admin', 'app', 'master']);
 
 const host = () => String(location.hostname || '').toLowerCase().replace(/^www\./, '');
 

@@ -21,6 +21,7 @@ import { processarLembretes } from './src/certificado.js';
 import { processarAniversarios } from './src/aniversarios.js';
 import { aoEscreverCampeonato } from './src/campeonatos.js';
 import { comEscola, aoEscreverEscola } from './src/escolas.js';
+import { aoAtivarEscola } from './src/ativacao.js';
 
 // Região: a mesma do banco (o GitHub Actions descobre e grava em .env como REGIAO).
 setGlobalOptions({ region: process.env.REGIAO || 'southamerica-east1', maxInstances: 5, memory: '256MiB' });
@@ -71,7 +72,12 @@ export const notificacaoEscrita = onDocumentWrittenWithAuthContext('notificacoes
 export const apresentacaoEscrita = onDocumentWrittenWithAuthContext('apresentacoes/{uid}', seguro('apresentacao', (e) => G.aoEscreverApresentacaoOuAssinatura(ctxBase(), ev(e))));
 export const assinaturaEscrita = onDocumentWrittenWithAuthContext('assinaturas/{uid}', seguro('assinatura', (e) => G.aoEscreverApresentacaoOuAssinatura(ctxBase(), ev(e))));
 // Campeonato encerrado → brasões de competição, post do pódio e parabéns.
-export const escolaEscrita = onDocumentWrittenWithAuthContext('escolas/{id}', seguro('escola', (e) => aoEscreverEscola(ctxBase(), ev(e))));
+// Cartão público + domínio; e, quando a escola passa a 'ativa', a ativação automática (sede, Fundador, graduações).
+export const escolaEscrita = onDocumentWrittenWithAuthContext('escolas/{id}', seguro('escola', async (e) => {
+  const ctx = ctxBase(); const evento = ev(e);
+  await aoEscreverEscola(ctx, evento);
+  await aoAtivarEscola(ctx, evento);
+}));
 export const campeonatoEscrito = onDocumentWrittenWithAuthContext('campeonatos/{id}', seguro('campeonato', (e) => comEscola('campeonatos', aoEscreverCampeonato)(ctxBase(), ev(e))));
 
 // Todo dia às 3h (horário de Campo Grande): limpeza + brasões que dependem do tempo.

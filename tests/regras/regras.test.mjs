@@ -513,3 +513,19 @@ test('multi-escola (1c partes 2 e 3): Rede e poderes do Fundador ficam dentro da
   await assertSucceeds(getDoc(doc(db('admin'), 'presencas', 'presGracie')));
   await assertSucceeds(getDocs(collection(db('admin'), 'usuarios')));
 });
+
+test('ativação (etapa 2): dono não se ativa nem mexe na escada; só o Admin ativa; graus são travados', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'escolas', 'ct-teste'), { nome: 'CT Teste', slug: 'ct-teste', donoUid: 'dono1', status: 'fila', plano: 'nucleo' });
+  });
+  const dono = db('dono1', {});
+  await assertFails(updateDoc(doc(dono, 'escolas', 'ct-teste'), { status: 'ativa' }), 'dono não se ativa');
+  await assertFails(updateDoc(doc(dono, 'escolas', 'ct-teste'), { ativacao: { status: 'pedido' } }), 'dono não pede ativação');
+  await assertFails(updateDoc(doc(dono, 'escolas', 'ct-teste'), { escada: { adulto: [{ nome: 'Preta' }] } }), 'escada é da AtletaPay/servidor');
+  await assertSucceeds(updateDoc(doc(dono, 'escolas', 'ct-teste'), { modelo: 'tatame' }), 'o resto do cadastro continua dele');
+  await assertSucceeds(updateDoc(doc(db('admin'), 'escolas', 'ct-teste'), { status: 'ativa' }), 'Admin ativa');
+  await assertSucceeds(getDocs(collection(db('admin'), 'escolas')), 'Mega painel lista as escolas');
+  await assertFails(getDocs(collection(db('profeta'), 'escolas')), 'Fundador de escola não lista as escolas da plataforma');
+  await assertFails(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { grausAtual: 4 }), 'ninguém se dá grau');
+  await assertSucceeds(getDocs(query(collection(db(null), 'nucleos'), where('escolaId', '==', 'gracie-cg'), where('ativo', '==', true))), 'inscrição (sem login) lista os núcleos da escola do link');
+});

@@ -60,7 +60,7 @@ function brasoesManuaisInalterados() { return request.resource.data.get('brasoes
 function camposTravadosDoProprio() {
 return ['cordaoAtual', 'historicoGraduacoes', 'instrutorUid', 'responsavelUid', 'idade', 'dataNasc',
 'statusAtual', 'brasoesTotal', 'eventosConfirmados', 'cardsCompartilhados', 'origemTransferenciaDireta', 'academiaAnteriorId',
-'carteirinha', 'isentoMensalidade', 'competicoes', 'escolaId'];
+'carteirinha', 'isentoMensalidade', 'competicoes', 'escolaId', 'grausAtual'];
 }
 
 match /usuarios/{uid} {
@@ -79,7 +79,7 @@ allow create: if ehAdmin() || (
 request.auth.uid == uid &&
 request.resource.data.papeis == ['aluno'] &&
 !request.resource.data.keys().hasAny(['acessoGeral', 'brasoesAdmin', 'brasoesManuais', 'brasoesBloqueados', 'eventosConfirmados', 'cardsCompartilhados', 'instrutorUid',
-'historicoGraduacoes', 'brasoesTotal', 'origemTransferenciaDireta', 'academiaAnteriorId', 'carteirinha', 'isentoMensalidade', 'competicoes', 'escolaId']) &&
+'historicoGraduacoes', 'brasoesTotal', 'origemTransferenciaDireta', 'academiaAnteriorId', 'carteirinha', 'isentoMensalidade', 'competicoes', 'escolaId', 'grausAtual']) &&
 request.resource.data.get('academiaGerenciadaId', null) == null &&
 request.resource.data.get('cordaoAtual', 'Iniciante') == 'Iniciante' &&
 request.resource.data.get('notas', {}) == {} &&
@@ -333,7 +333,7 @@ slugLivre(id);
 // (dono() vem primeiro: o dono da escola não tem usuarios/{uid}, e ehAdmin() falharia ao ler o perfil.)
 allow update: if (dono() && request.resource.data.donoUid == resource.data.donoUid && request.resource.data.slug == resource.data.slug &&
 request.resource.data.status in ['rascunho', 'fila'] && planoOk(request.resource.data.plano) &&
-!mudou().hasAny(['assinatura', 'ativadaEm', 'ativadaPor', 'escolaId', 'projeto', 'dominio'])) || ehAdmin();
+!mudou().hasAny(['assinatura', 'ativadaEm', 'ativadaPor', 'escolaId', 'projeto', 'dominio', 'ativacao', 'escada'])) || ehAdmin();
 allow delete: if ehAdmin();
 }
 // Cartão público de cada escola ativa e índice de domínios próprios: só o

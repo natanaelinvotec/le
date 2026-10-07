@@ -9,6 +9,8 @@ const el = (id) => document.getElementById(id);
 const pagina = el('pagina');
 let toastTimer = null;
 function toast(msg) { const t = el('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), 3000); }
+// Onde o app das escolas está publicado hoje (mesmo valor de master.js). Vira atletapay.com.br/<escola> depois.
+const APP_URL = 'https://capoeira-liberdade.web.app';
 const dataBR = (iso) => (iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : '—');
 let usuario = null; let escola = null; let desligar = null;
 
@@ -52,13 +54,14 @@ function render() {
   ];
   pagina.innerHTML = `
     <section class="cab-painel"><div class="wrap"><div><span class="eyebrow" style="color:var(--laranja-claro)">${esc(mod.nome)} · ${esc(e.cidade || '')}${e.uf ? ` / ${esc(e.uf)}` : ''}</span><h1 style="font-size:clamp(1.6rem,3.6vw,2.6rem);margin-top:8px">${esc(e.nome)}</h1><p class="sub" style="margin-top:8px;color:var(--texto-inv-2)">${esc(url)}</p></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">${ativa ? `<a class="bt bt-laranja" href="${esc(url)}/admin.html">Abrir o painel da escola <i class="fas fa-arrow-up-right-from-square"></i></a>` : '<span class="bt bt-vidro" style="cursor:default"><i class="fas fa-hourglass-half"></i> Ativação em andamento</span>'}</div></div></section>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${ativa && e.ativacao && e.ativacao.status === 'ok' ? `<a class="bt bt-laranja" href="${APP_URL}/login.html">Abrir o painel da escola <i class="fas fa-arrow-up-right-from-square"></i></a>` : '<span class="bt bt-vidro" style="cursor:default"><i class="fas fa-hourglass-half"></i> Ativação em andamento</span>'}</div></div></section>
     <div class="wrap">
       <div class="cartoes">
         ${nova ? '<div class="ok-caixa" style="grid-column:1/-1"><i class="fas fa-check"></i> Escola criada! Recebemos tudo. A ativação é feita pela equipe da AtletaPay e você recebe um e-mail quando o site e o app estiverem no ar.</div>' : ''}
         <article class="cartao"><h3>Situação</h3><span class="status ${ativa ? 'ok' : ''}">${ativa ? '<i class="fas fa-circle-check"></i> Ativa' : e.status === 'fila' ? '<i class="fas fa-clock"></i> Na fila de ativação' : esc(e.status)}</span>
           <ul class="checklist" style="margin-top:14px">${checks.map(([t, ok]) => `<li class="${ok ? 'feito' : ''}"><i class="fas fa-check"></i><span>${esc(t)}</span></li>`).join('')}</ul>
           ${!ativa ? `<p class="sub" style="font-size:.85rem;margin-top:12px">Enquanto a ativação acontece, complete o que falta aqui. Teste grátis até <b>${dataBR(e.trialAte)}</b>.</p>` : ''}</article>
+        ${ativa && e.ativacao && e.ativacao.status === 'ok' ? `<article class="cartao" style="grid-column:1/-1"><h3>Link de inscrição dos alunos</h3><p class="sub" style="font-size:.9rem;margin-bottom:12px">Mande este link no grupo da turma: cada aluno faz a ficha (com foto, responsável dos menores e termos) e já entra no seu núcleo.</p><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><code class="mono" style="padding:10px 12px;border-radius:10px;background:var(--areia);overflow-wrap:anywhere">${esc(`${APP_URL}/inscricao.html?escola=${e.id}`)}</code><button type="button" class="bt bt-branco bt-sm" id="btCopiarLink"><i class="fas fa-link"></i> Copiar</button></div><p class="sub" style="font-size:.85rem;margin-top:10px">Para entrar no painel, use o mesmo e-mail e senha da AtletaPay.</p></article>` : ''}
         <article class="cartao"><h3>Plano</h3><dl class="kv"><dt>Plano</dt><dd>${esc(plano.nome)} — ${plano.mensal ? `${brl(plano.mensal)}/mês` : 'sem mensalidade'}</dd><dt>Split</dt><dd>${brl(plano.split)} por aluno pago</dd><dt>Alunos</dt><dd>${plano.ate ? `até ${plano.ate} ativos` : 'ilimitados'}</dd><dt>Teste grátis</dt><dd>até ${dataBR(e.trialAte)}</dd></dl><p class="sub" style="font-size:.85rem;margin-top:12px">Para mudar de plano ou cadastrar o pagamento, fale com <a href="mailto:contato@atletapay.com.br">contato@atletapay.com.br</a> — em breve isso fica aqui mesmo.</p></article>
         <article class="cartao"><h3>Dados da escola</h3><dl class="kv"><dt>Nome curto</dt><dd>${esc(e.nomeCurto || '')}</dd><dt>Modalidade</dt><dd>${esc(mod.nome)}</dd><dt>Graduações</dt><dd>${esc((e.graduacoes || []).join(' › '))}</dd><dt>Responsável</dt><dd>${esc((e.responsavel && e.responsavel.nome) || e.donoNome || '')}${e.responsavel && e.responsavel.graduacao ? ` · ${esc(e.responsavel.graduacao)}` : ''}</dd>${e.endereco ? `<dt>Local de treino</dt><dd>${esc(e.endereco)}</dd>` : ''}${e.instagram ? `<dt>Instagram</dt><dd>${esc(e.instagram)}</dd>` : ''}<dt>Contato</dt><dd>${esc(e.donoEmail || '')}${e.donoCelular ? ` · ${esc(e.donoCelular)}` : ''}</dd></dl></article>
         <article class="cartao"><h3>Endereço do site</h3><dl class="kv"><dt>Endereço</dt><dd>${esc(url.replace('https://', ''))}</dd></dl><p class="sub" style="font-size:.85rem;margin-top:12px">${e.dominio ? 'Domínio próprio ligado pela AtletaPay.' : `Quer usar um domínio próprio (www.suaescola.com.br)? <a href="mailto:contato@atletapay.com.br?subject=${encodeURIComponent(`Domínio próprio — ${e.slug}`)}">Fale com o suporte da AtletaPay</a>: nós ligamos o domínio e o HTTPS para você.`}</p></article>
@@ -68,6 +71,8 @@ function render() {
       <p class="sub" style="font-size:.8rem;margin:24px 0 48px;color:var(--texto-3)">Escola criada em ${dataBR(e.criadoEm)}${e.enviadoEm ? ` · enviada para ativação em ${dataBR(e.enviadoEm)}` : ''}. Para excluir a conta e os dados, escreva para contato@atletapay.com.br (LGPD).</p>
     </div>`;
   desenharFotos();
+  const btLink = el('btCopiarLink');
+  if (btLink) btLink.addEventListener('click', async () => { try { await navigator.clipboard.writeText(`${APP_URL}/inscricao.html?escola=${e.id}`); toast('Link copiado'); } catch (er) { toast('Copie o link acima.'); } });
   el('modelos').addEventListener('click', async (ev) => { const b = ev.target.closest('[data-modelo]'); if (!b) return; try { await updateDoc(doc(db, 'escolas', e.id), { modelo: b.dataset.modelo, atualizadoEm: new Date().toISOString() }); toast('Modelo atualizado'); } catch (er) { toast(erroAmigavel(er)); } });
 }
 function desenharFotos() {

@@ -7,6 +7,14 @@ sem precisar de uma inscrição separada).
 */
 import { criarConta, listarNucleosAtivos, comprimirImagemDataUrl, arquivoParaDataUrlComprimido, registroConsentimento } from './firebase.js';
 import { sanitizeInput, gerarSlug } from './shared.js';
+import { escolaIdDoEndereco, carregarEscola, aplicarCores, ESCOLA_PADRAO } from './escola-atual.js';
+import { MODALIDADES } from './modalidades.js';
+
+// Multi-escola: o link de inscrição de cada escola é inscricao.html?escola=<id> (o
+// Mega painel e o painel do dono mostram o link). Sem ?escola, é a escola do endereço
+// (liberdadeeexpressao.com.br → Liberdade). Núcleos, nome nos termos e logo seguem a escola.
+const ESCOLA_ID = escolaIdDoEndereco() || ESCOLA_PADRAO;
+let escolaCfg = null;
 import { CONDICOES, SEM_LIMITACOES, nomeDe, siglaDe, lacoSVG, lacosHTML, normalizarInclusao, apoiosChecklistHTML, ligarChecklist, apoiosMarcados, garantirEstilos } from './inclusao.js?v=20261006';
 
 const steps = document.querySelectorAll('.form-step');
@@ -66,7 +74,7 @@ btnPrev.addEventListener('click', () => {
 const selectNucleo = document.getElementById('localTreinoSelect');
 (async function popularNucleos() {
   try {
-    const nucleos = await listarNucleosAtivos();
+    const nucleos = (await listarNucleosAtivos(ESCOLA_ID)).sort((a, b) => Number(!!b.sede) - Number(!!a.sede) || String(a.nome || '').localeCompare(String(b.nome || '')));
     nucleos.forEach((n) => {
       const existente = Array.from(selectNucleo.options).find((o) => o.value === n.id);
       if (existente) {
@@ -78,11 +86,42 @@ const selectNucleo = document.getElementById('localTreinoSelect');
         selectNucleo.appendChild(opt);
       }
     });
+    if (nucleos.length === 1) selectNucleo.value = nucleos[0].id; // escola com uma sede só: já vem escolhida
   } catch (e) {
     // Mantém a lista fixa que já está no HTML - a inscrição continua funcionando.
     console.warn('Não foi possível carregar núcleos do Firestore, usando lista padrão.', e);
   }
 })();
+
+// Identidade da escola do link (só quando não é a Liberdade: a página já nasce com a dela).
+if (ESCOLA_ID !== ESCOLA_PADRAO) {
+  carregarEscola(ESCOLA_ID).then((cfg) => {
+    escolaCfg = cfg;
+    if (!cfg.ativa) {
+      document.querySelector('.container').innerHTML = '<div class="form-step active" style="text-align:center;padding:32px 12px"><h2>Inscrição indisponível</h2><p>Este link de inscrição não pertence a uma escola ativa. Confira o link com o seu professor.</p></div>';
+      return;
+    }
+    marcarEscola(cfg);
+  }).catch((e) => console.warn('identidade da escola', e));
+}
+function marcarEscola(cfg) {
+  const mod = MODALIDADES[cfg.modalidade] || MODALIDADES.outra;
+  const nome = cfg.nome || cfg.nomeCurto || 'a escola'; const curto = cfg.nomeCurto || nome;
+  const arte = mod.nome; const arteMin = arte.toLowerCase(); const peca = (cfg.escada && cfg.escada.peca) || mod.peca || 'graduação';
+  const trocas = [
+    [/Grupo de Capoeira Liberdade e Expressão/g, nome], [/Capoeira Liberdade e Expressão/g, nome], [/Liberdade e Expressão/g, curto],
+    [/Capoeira Liberdade/g, curto], [/\bcapoeira\b/g, arteMin], [/\bCapoeira\b/g, arte], [/\bcordão\b/g, peca],
+  ];
+  const andar = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  const textos = []; while (andar.nextNode()) textos.push(andar.currentNode);
+  textos.forEach((t) => { let v = t.nodeValue; trocas.forEach(([re, por]) => { v = v.replace(re, por); }); if (v !== t.nodeValue) t.nodeValue = v; });
+  document.querySelectorAll('img[alt]').forEach((i) => { i.alt = i.alt.replace(/Capoeira/g, arte); });
+  // Uniforme é de cada escola: o professor orienta.
+  document.querySelectorAll('li').forEach((li) => { if (/calça branca/i.test(li.textContent)) li.innerHTML = '<strong>Uniforme:</strong> o da escola — o professor orienta na primeira aula.'; });
+  const logo = document.querySelector('.header img'); if (logo && /^https:\/\//.test(cfg.logo || '')) { logo.src = cfg.logo; logo.alt = `Logo ${nome}`; }
+  document.title = `Inscrição - ${nome}`;
+  aplicarCores(cfg);
+}
 
 const inputDataNasc = document.getElementById('dataNasc');
 const inputIdade = document.getElementById('campoIdade');
@@ -340,7 +379,7 @@ form.addEventListener('submit', async (e) => {
       inclusao: normalizarInclusao({ condicoes: (() => { try { return JSON.parse(data.inclusaoCondicoes || '[]'); } catch (e) { return []; } })(), apoios: apoiosMarcados(inclusaoApoios), observacoes: data.inclusaoObs || '' }),
       usoImagem: data.usoImagem,
       // Aceite do termo e da política de privacidade (LGPD): quem aceitou e quando.
-      consentimento: registroConsentimento(idadeAluno < 18 ? (inputResponsavel.value || data.emergenciaNome || data.nome) : data.nome, data.usoImagem),
+      consentimento: registroConsentimento(idadeAluno < 18 ? (inputResponsavel.value || data.emergenciaNome || data.nome) : data.nome, data.usoImagem, { id: ESCOLA_ID, nome: (escolaCfg && escolaCfg.nome) || '' }),
       responsavelContato: idadeAluno < 18 ? {
         nome: data.emergenciaNome || '', telefone: data.emergenciaTel || '',
         parentesco: data.parentesco || '', email: (data.emailResponsavel || '').trim().toLowerCase(),

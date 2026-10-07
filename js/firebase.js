@@ -235,9 +235,11 @@ export async function criarConta(email, senha, dados, fotoDataUrl = '') {
 }
 
 // Registro do aceite do termo (LGPD) — também usado quando o termo muda de versão.
-export const registroConsentimento = (aceitoPor, usoImagem) => ({
+// escola: { id, nome } de QUEM recebeu o aceite (multi-escola: o termo cita a escola do link de inscrição).
+export const registroConsentimento = (aceitoPor, usoImagem, escola = null) => ({
   versaoTermo: ESCOLA.versaoTermo, aceitoEm: new Date().toISOString(), aceitoPor: String(aceitoPor || '').slice(0, 120),
   usoImagem: String(usoImagem || ''), navegador: String(navigator.userAgent || '').slice(0, 160),
+  ...(escola && escola.id ? { escolaTermo: String(escola.id).slice(0, 40), escolaTermoNome: String(escola.nome || '').slice(0, 120) } : {}),
 });
 
 // Pedido ao servidor (só Admin): grava em comandos/ e espera a resposta.
@@ -342,10 +344,10 @@ export const historicoAvaliacoes = async (uid) =>
   (await getDocs(query(collection(db, 'usuarios', uid, 'avaliacoes'), orderBy('criadoEm', 'desc')))).docs.map((d) => d.data());
 
 // ===== Núcleos/academias (leitura pública p/ aparecer na inscrição) =====
-// Logado: só os núcleos da própria escola. Sem login (inscrição): todos os ativos — a
-// inscrição por escola (atletapay.com.br/<escola>) entra na etapa 2.
-export const listarNucleosAtivos = async () =>
-  (await getDocs(query(collection(db, 'nucleos'), ...(await ondeEscola()), where('ativo', '==', true)))).docs.map((d) => ({ id: d.id, ...d.data() }));
+// Logado: só os núcleos da própria escola. Na inscrição (sem login), a escola vem do endereço.
+// escolaId: a escola do link de inscrição (inscricao.html?escola=<id>); sem ele, a do login.
+export const listarNucleosAtivos = async (escolaId = null) =>
+  (await getDocs(query(collection(db, 'nucleos'), ...(escolaId ? [where('escolaId', '==', escolaId)] : await ondeEscola()), where('ativo', '==', true)))).docs.map((d) => ({ id: d.id, ...d.data() }));
 
 // ===== Solicitações (mestre/professor → admin; e aluno → mestre/admin no
 // caso de vínculo de parentesco) =====

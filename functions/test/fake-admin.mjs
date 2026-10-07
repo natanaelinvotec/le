@@ -81,6 +81,16 @@ export function criarDb(inicial = {}) {
     async runTransaction(fn) {
       return fn({ get: (ref) => ref.get(), set: (ref, d, o) => ref.set(d, o), update: (ref, d) => ref.update(d), delete: (ref) => ref.delete() });
     },
+    // Lote (batch) simplificado: aplica tudo no commit, na ordem.
+    batch() {
+      const fila = [];
+      return {
+        set: (ref, d, o) => { fila.push(() => ref.set(d, o)); },
+        update: (ref, d) => { fila.push(() => ref.update(d)); },
+        delete: (ref) => { fila.push(() => ref.delete()); },
+        async commit() { for (const f of fila) await f(); },
+      };
+    },
     collectionGroup: (nome) => consulta((c) => { const p = c.split('/'); return p.length % 2 === 0 && p[p.length - 2] === nome; }),
   };
   const lerCol = (col) => Object.fromEntries(Array.from(docs.entries()).filter(([c]) => c.startsWith(`${col}/`) && c.split('/').length === col.split('/').length + 1).map(([c, d]) => [c.split('/').pop(), d]));

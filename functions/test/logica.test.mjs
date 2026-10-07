@@ -864,3 +864,84 @@ test('multi-escola: cartão público da escola só quando ativa, sem dados do do
   assert.equal(f.ler('dominios/ctgracie.com.br'), undefined);
   assert.equal(escolaPublica('x', null), null);
 });
+
+/* ===================== ativação de escola (etapa 2) ===================== */
+import { ativarEscola, aoAtivarEscola, precisaAtivar, nucleoSedeDe } from '../src/ativacao.js';
+import * as MOD from '../src/compartilhado/modalidades.js';
+import { readFileSync as lerArquivo } from 'node:fs';
+
+test('modalidades: o arquivo do app e o do servidor são idênticos', () => {
+  const app = lerArquivo(new URL('../../js/modalidades.js', import.meta.url), 'utf8');
+  const srv = lerArquivo(new URL('../src/compartilhado/modalidades.js', import.meta.url), 'utf8');
+  assert.equal(app, srv, 'mudou um, copie para o outro');
+});
+
+test('modalidades: escada do Jiu-Jitsu com graus, infantil até 15 anos e graduação do responsável pelo texto', () => {
+  const e = MOD.escadaPadrao('jiujitsu');
+  assert.deepEqual(e.adulto.slice(0, 5).map((g) => g.nome), ['Branca', 'Azul', 'Roxa', 'Marrom', 'Preta']);
+  assert.equal(e.adulto.find((g) => g.nome === 'Preta').graus, 6);
+  assert.equal(e.kids.length, 13);
+  assert.equal(MOD.graduacaoInicial(e, 9), 'Branca');
+  assert.equal(MOD.listaDa(e, 9), e.kids);
+  assert.equal(MOD.listaDa(e, 16), e.adulto);
+  assert.deepEqual(MOD.graduacaoDoTexto(e, 'Faixa preta 3º grau'), { nome: 'Preta', graus: 3 });
+  assert.deepEqual(MOD.graduacaoDoTexto(e, 'faixa marrom'), { nome: 'Marrom', graus: 0 });
+  assert.equal(MOD.rotuloGraduacao('Azul', 2), 'Azul · 2º grau');
+  // Modalidade sem escada própria usa a lista que o dono confirmou no cadastro
+  assert.deepEqual(MOD.escadaPadrao('xyz', ['A', 'B']).adulto.map((g) => g.nome), ['Iniciante', 'Intermediário', 'Avançado']);
+  assert.equal(MOD.escadaLimpa({ adulto: [] }), null);
+  assert.equal(MOD.escadaLimpa({ adulto: [{ nome: 'X', cor: 'javascript:1' }] }).adulto[0].cor[0], '#C8CED6', 'cor inválida vira neutra');
+});
+
+test('ativação: escola ativada ganha sede, Fundador da própria escola e escada; não repete; reativar não recria', async () => {
+  const escola = {
+    nome: 'CT Gracie Campo Grande', nomeCurto: 'CT Gracie', slug: 'gracie-cg', modalidade: 'jiujitsu', cidade: 'Campo Grande', uf: 'MS',
+    donoUid: 'rafa', donoNome: 'Rafael', donoEmail: 'Rafa@CT.com', responsavel: { nome: 'Rafael Gracie', graduacao: 'Faixa preta 2º grau' },
+    status: 'ativa', plano: 'nucleo', graduacoes: ['Branca', 'Azul', 'Roxa', 'Marrom', 'Preta'],
+  };
+  const { f, ctx, auth } = ctxDe(base({ escolas: { 'gracie-cg': escola } }));
+  auth.usuarios.set('rafa', { uid: 'rafa', customClaims: {} });
+  assert.equal(precisaAtivar('gracie-cg', { ...escola, status: 'fila' }, escola), true);
+  assert.equal(precisaAtivar('liberdade', { status: 'fila' }, { status: 'ativa' }), false, 'a escola nº 1 não passa por aqui');
+  const r = await aoAtivarEscola(ctx, { params: { id: 'gracie-cg' }, antes: { ...escola, status: 'fila' }, depois: escola, authId: 'admin' });
+  assert.equal(r.ok, true);
+  const sede = f.ler(`nucleos/${nucleoSedeDe('gracie-cg')}`);
+  assert.equal(sede.escolaId, 'gracie-cg'); assert.equal(sede.professorUid, 'rafa'); assert.equal(sede.ativo, true);
+  const u = f.ler('usuarios/rafa');
+  assert.deepEqual(u.papeis, ['aluno', 'mestre']);
+  assert.equal(u.acessoGeral, true); assert.equal(u.escolaId, 'gracie-cg');
+  assert.equal(u.academiaGerenciadaId, 'gracie-cg-sede'); assert.equal(u.cordaoAtual, 'Preta'); assert.equal(u.grausAtual, 2);
+  assert.equal(u.email, 'rafa@ct.com');
+  const e = f.ler('escolas/gracie-cg');
+  assert.equal(e.ativacao.status, 'ok'); assert.equal(e.ativacao.porUid, 'admin'); assert.equal(e.escada.modalidade, 'jiujitsu');
+  assert.ok(Object.values(f.lerCol('auditoria')).some((a) => a.escolaId === 'gracie-cg' && a.acao === 'ativou a escola'));
+  assert.equal(notifs(f, 'rafa').length, 1);
+  // A gravação da ativação dispara o gatilho de novo: não ativa duas vezes.
+  assert.equal(await aoAtivarEscola(ctx, { params: { id: 'gracie-cg' }, antes: escola, depois: e }), null);
+  // Pausar e reativar: nada é recriado.
+  assert.equal(precisaAtivar('gracie-cg', { ...e, status: 'pausada' }, e), false);
+  // Login do dono: o gatilho de usuarios grava escola e papéis no claim.
+  await comEscola('usuarios', null)(ctx, { params: { uid: 'rafa' }, antes: null, depois: f.ler('usuarios/rafa') });
+  assert.deepEqual(auth.usuarios.get('rafa').customClaims, { escolaId: 'gracie-cg', papeis: ['aluno', 'mestre'], gestorDe: 'gracie-cg-sede', acessoGeral: true });
+});
+
+test('ativação: dono que já é aluno de outra escola não é misturado; sem dono, erro claro; "Tentar de novo" roda', async () => {
+  const escola = { nome: 'CT X', slug: 'ct-x', modalidade: 'jiujitsu', donoUid: 'nat', status: 'ativa' };
+  const { f, ctx } = ctxDe(base({ escolas: { 'ct-x': escola, 'sem-dono': { nome: 'Sem dono', status: 'ativa' } } }));
+  f.db.doc('usuarios/nat').update({ escolaId: 'liberdade' });
+  const r = await ativarEscola(ctx, 'ct-x', escola);
+  assert.equal(r.ok, false);
+  assert.match(f.ler('escolas/ct-x').ativacao.erro, /outra|liberdade/);
+  assert.equal(f.ler('usuarios/nat').academiaId, 'taynara', 'cadastro da Liberdade intacto');
+  assert.equal(f.ler('nucleos/ct-x-sede'), undefined);
+  assert.equal((await ativarEscola(ctx, 'sem-dono', { nome: 'Sem dono', status: 'ativa' })).ok, false);
+  assert.equal(precisaAtivar('ct-x', escola, { ...escola, ativacao: { status: 'pedido' } }), true, 'Admin pediu nova tentativa');
+  assert.equal(precisaAtivar('ct-x', escola, { ...escola, ativacao: { status: 'erro' } }), false, 'erro não fica tentando sozinho');
+});
+
+test('cartão público da escola leva a escada e a sede', async () => {
+  const e = { nome: 'CT', slug: 'ct', status: 'ativa', escada: MOD.escadaPadrao('jiujitsu'), ativacao: { status: 'ok', nucleoId: 'ct-sede' } };
+  const pub = escolaPublica('ct', e);
+  assert.equal(pub.escada.adulto[0].nome, 'Branca');
+  assert.equal(pub.nucleoSede, 'ct-sede');
+});
