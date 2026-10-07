@@ -1,7 +1,7 @@
 /* lgpd.js — direitos do titular (LGPD) direto no app:
    - baixar uma cópia dos próprios dados (arquivo .json);
    - pedir a exclusão da conta (o Admin Master confirma no painel e o servidor apaga). */
-import { db, collection, doc, getDoc, getDocs, query, where, limit, addDoc } from './firebase.js';
+import { db, collection, doc, getDoc, getDocs, query, where, limit, addDoc, talvezComEscola } from './firebase.js';
 
 const limpar = (v) => {
   if (v && typeof v.toDate === 'function') return v.toDate().toISOString();
@@ -36,9 +36,9 @@ export async function exportarMeusDados(uid) {
 export async function pedirExclusaoDaConta(uid, nome, academiaId, motivo = '') {
   const ja = await getDocs(query(collection(db, 'solicitacoes'), where('solicitanteUid', '==', uid), limit(50)));
   if (ja.docs.some((d) => d.data().tipo === 'exclusao_conta' && d.data().status === 'pendente')) return { jaExistia: true };
-  await addDoc(collection(db, 'solicitacoes'), {
+  await addDoc(collection(db, 'solicitacoes'), await talvezComEscola({
     tipo: 'exclusao_conta', solicitanteUid: uid, solicitanteNome: nome || '', academiaId: academiaId || null,
     dadosPedido: { motivo: String(motivo || '').slice(0, 300) }, status: 'pendente', criadoEm: new Date().toISOString(),
-  });
+  }));
   return { jaExistia: false };
 }

@@ -25,6 +25,22 @@ function daMinhaEscola() { return resource.data.escolaId == minhaEscola(); }
 function novoDaMinhaEscola() { return request.resource.data.escolaId == minhaEscola(); }
 // escolaId é do SERVIDOR (functions/src/escolas.js deduz e corrige): o app nunca troca.
 function escolaInalterada() { return request.resource.data.get('escolaId', null) == resource.data.get('escolaId', null); }
+// Fundador (acessoGeral = dono da escola): os poderes valem só DENTRO da própria escola.
+// e = escolaId do registro. Em regra usada por consulta em lista, passe resource.data.escolaId
+// direto (sem .get()/padrão), para o Firestore provar pelo where('escolaId', '==', …).
+function fundadorDa(e) { return souFundador() && e == minhaEscola(); }
+// Escola de um cadastro / de um núcleo (para registros que só guardam o uid ou o núcleo).
+function escolaDoUsuario(u) { return get(/databases/$(database)/documents/usuarios/$(u)).data.get('escolaId', ''); }
+function escolaDoNucleo(n) { return get(/databases/$(database)/documents/nucleos/$(n)).data.get('escolaId', 'liberdade'); }
+// Núcleo citado num registro novo (post, pedido): vazio, apagado ou da minha escola. O servidor
+// deduz a escola pelo núcleo — sem isto, citar o núcleo de outra escola "mudaria" o registro de escola.
+function nucleoDaMinhaEscolaOuNenhum(n) {
+return n == null || n == '' || !exists(/databases/$(database)/documents/nucleos/$(n)) || escolaDoNucleo(n) == minhaEscola();
+}
+// Documento novo: se o app mandou a escola, tem que ser a de quem grava (quando falta, o servidor completa).
+function escolaNovaOk() { return request.resource.data.get('escolaId', minhaEscola()) == minhaEscola(); }
+// config/* (brasões, presidente…) ainda é da escola nº 1; vira por escola na ativação (etapa 2).
+function fundadorDaEscolaPadrao() { return fundadorDa('liberdade'); }
 // .get(campo, padrão): cadastro antigo sem o campo não trava a gravação.
 function papeisInalterados() { return request.resource.data.get('papeis', null) == resource.data.get('papeis', null); }
 function academiaInalterada() { return request.resource.data.get('academiaId', null) == resource.data.get('academiaId', null); }
@@ -51,7 +67,7 @@ match /usuarios/{uid} {
 allow read: if logado() && (
 request.auth.uid == uid ||
 ehAdmin() ||
-souFundador() ||
+fundadorDa(resource.data.escolaId) ||
 (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada()) ||
 (ehInstrutor() && resource.data.instrutorUid == request.auth.uid) ||
 resource.data.responsavelUid == request.auth.uid
@@ -71,11 +87,11 @@ request.resource.data.get('responsavelUid', null) == null &&
 request.resource.data.get('statusAtual', 'Ativo') == 'Ativo'
 );
 
-// souFundador(): o Mestre Profeta aplica transferências aprovadas em qualquer núcleo.
+// Fundador: aplica transferências aprovadas em qualquer núcleo DA PRÓPRIA ESCOLA.
 // "Aceitar transferência": o gestor do núcleo de DESTINO move um aluno PARA o
 // próprio núcleo sem mexer em papéis, notas, acesso geral nem núcleo administrado.
 allow update: if ehAdmin() || (escolaInalterada() && (
-(souFundador() && brasoesAdminInalterados()) ||
+(fundadorDa(resource.data.get('escolaId', '')) && brasoesAdminInalterados()) ||
 (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada() && academiaInalterada() && papeisInalterados() && acessoGeralInalterado() && brasoesAdminInalterados()) ||
 (ehGestor() && request.resource.data.academiaId == minhaAcademiaGerenciada() && papeisInalterados() && academiaGerenciadaInalterada() && notasInalteradas() && acessoGeralInalterado() && brasoesAdminInalterados() && brasoesManuaisInalterados()) ||
 (souInstrutorDoAluno() && academiaInalterada() && papeisInalterados() && academiaGerenciadaInalterada() && acessoGeralInalterado() && brasoesAdminInalterados() && brasoesManuaisInalterados()
@@ -95,7 +111,7 @@ return get(/databases/$(database)/documents/usuarios/$(uid)).data.academiaId == 
 function souInstrutorDesteAluno() {
 return ehInstrutor() && get(/databases/$(database)/documents/usuarios/$(uid)).data.instrutorUid == request.auth.uid;
 }
-allow read: if logado() && (request.auth.uid == uid || ehAdmin() || souFundador() || (ehGestor() && alunoDoMeuNucleo()) || souInstrutorDesteAluno());
+allow read: if logado() && (request.auth.uid == uid || ehAdmin() || fundadorDa(escolaDoUsuario(uid)) || (ehGestor() && alunoDoMeuNucleo()) || souInstrutorDesteAluno());
 allow create: if ehAdmin() || (ehGestor() && alunoDoMeuNucleo()) || souInstrutorDesteAluno();
 }
 
@@ -129,7 +145,7 @@ allow update, delete: if false;
 
 // Registro de auditoria (quem fez o quê). Só o servidor grava; ninguém edita.
 match /auditoria/{id} {
-allow read: if ehAdmin() || souFundador();
+allow read: if ehAdmin() || fundadorDa(resource.data.escolaId);
 allow write: if false;
 }
 
@@ -143,7 +159,7 @@ return meuPerfil().get('cordaoAtual', '') in ['Instrutor', 'Professor', 'Mestre'
 }
 function podeEditar() {
 return 'admin' in meuPerfil().get('papeis', [])
-|| meuPerfil().get('acessoGeral', false) == true
+|| (meuPerfil().get('acessoGeral', false) == true && perfilDela().get('escolaId', '') == minhaEscola())
 || (request.auth.uid == uid && podeTerVideo())
 || ('mestre' in meuPerfil().get('papeis', [])
     && meuPerfil().get('academiaGerenciadaId', null) != null
@@ -175,7 +191,7 @@ match /presencas/{id} {
 allow read: if logado() && (
 resource.data.uid == request.auth.uid ||
 ehAdmin() ||
-souFundador() ||
+fundadorDa(resource.data.escolaId) ||
 (ehGestor() && resource.data.nucleoId == minhaAcademiaGerenciada()) ||
 (ehGestor() && resource.data.nucleoVisitadoId == minhaAcademiaGerenciada())
 );
@@ -189,13 +205,13 @@ request.resource.data.origem in ['faceid', 'manual', 'faceid-foto'] &&
 request.resource.data.entradaEm is timestamp &&
 request.resource.data.entradaEm > request.time - duration.value(8, 'd') &&
 request.resource.data.entradaEm < request.time + duration.value(10, 'm'))) &&
-request.resource.data.registradoPor == request.auth.uid && (
-ehAdmin() || souFundador() ||
+request.resource.data.registradoPor == request.auth.uid && escolaNovaOk() && (
+ehAdmin() || fundadorDa(escolaDoNucleo(request.resource.data.nucleoId)) ||
 (ehGestor() && request.resource.data.nucleoId == minhaAcademiaGerenciada())
 );
 allow update: if logado() &&
 resource.data.uid == request.auth.uid &&
-request.resource.data.uid == resource.data.uid &&
+request.resource.data.uid == resource.data.uid && escolaInalterada() &&
 request.resource.data.nucleoId == resource.data.nucleoId &&
 request.resource.data.entradaEm == resource.data.entradaEm;
 allow delete: if ehAdmin();
@@ -204,21 +220,23 @@ allow delete: if ehAdmin();
 match /solicitacoes/{id} {
 // Leitura: quem pediu, Admin, Fundador e o responsável do núcleo envolvido
 // (origem ou destino de uma transferência).
-allow read: if (logado() && resource.data.solicitanteUid == request.auth.uid) || ehAdmin() || souFundador() || (ehGestor() && (
+allow read: if (logado() && resource.data.solicitanteUid == request.auth.uid) || ehAdmin() || fundadorDa(resource.data.escolaId) || (ehGestor() && (
 resource.data.academiaId == minhaAcademiaGerenciada() ||
 resource.data.dadosPedido.destinoId == minhaAcademiaGerenciada()
 ));
 // Gestor pede mensalidade/evento/transferência para o próprio núcleo.
 // Qualquer pessoa pede a EXCLUSÃO DA PRÓPRIA CONTA (LGPD).
-allow create: if (ehGestor() &&
+allow create: if escolaNovaOk() && ((ehGestor() &&
 request.resource.data.solicitanteUid == request.auth.uid &&
 request.resource.data.academiaId == minhaAcademiaGerenciada() &&
 request.resource.data.status == 'pendente') || (
 logado() &&
 request.resource.data.tipo == 'exclusao_conta' &&
 request.resource.data.solicitanteUid == request.auth.uid &&
-request.resource.data.status == 'pendente');
-allow update: if ehAdmin() || souFundador() || (
+// núcleo informado tem que ser da escola de quem pede (o servidor deduz a escola por ele)
+nucleoDaMinhaEscolaOuNenhum(request.resource.data.get('academiaId', null)) &&
+request.resource.data.status == 'pendente'));
+allow update: if ehAdmin() || (fundadorDa(resource.data.get('escolaId', '')) && escolaInalterada()) || (
 ehGestor() &&
 resource.data.academiaId == minhaAcademiaGerenciada() &&
 resource.data.tipo in ['vinculo_familia', 'transferencia'] &&
@@ -229,7 +247,7 @@ resource.data.tipo == 'transferencia' &&
 resource.data.dadosPedido.destinoId == minhaAcademiaGerenciada() &&
 mudou().hasOnly(['status'])
 );
-allow delete: if ehAdmin() || souFundador() ||
+allow delete: if ehAdmin() || fundadorDa(resource.data.get('escolaId', '')) ||
 (logado() && resource.data.solicitanteUid == request.auth.uid && resource.data.status == 'pendente');
 }
 
@@ -355,9 +373,10 @@ allow write: if ehAdmin();
 
 // Pagamentos manuais — restritos ao próprio núcleo de quem lança; Admin vê tudo.
 match /pagamentos/{id} {
-allow read: if logado() && (resource.data.alunoId == request.auth.uid || ehAdmin() || souFundador() || (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada()));
-allow create: if ehAdmin() || (ehGestor() && request.resource.data.academiaId == minhaAcademiaGerenciada());
-allow update, delete: if ehAdmin() || (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada());
+allow read: if logado() && (resource.data.alunoId == request.auth.uid || ehAdmin() || fundadorDa(resource.data.escolaId) || (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada()));
+allow create: if ehAdmin() || (ehGestor() && escolaNovaOk() && request.resource.data.academiaId == minhaAcademiaGerenciada());
+allow update: if ehAdmin() || (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada() && escolaInalterada());
+allow delete: if ehAdmin() || (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada());
 }
 
 match /despesasAdministrativas/{id} {
@@ -398,12 +417,16 @@ request.resource.data.get('apelido', '').size() <= 30 &&
 request.resource.data.get('cidade', '').size() <= 60 &&
 request.resource.data.get('funcoes', []).size() <= 6;
 }
-allow read: if logado();
+// Multi-escola: cada escola só enxerga os cartões da própria escola (a aba Global,
+// quando existir, terá o próprio recorte). A pessoa sempre lê o próprio cartão.
+// Cartão que não existe: responde "não existe" em vez de "sem permissão".
+allow get: if logado() && (resource == null || request.auth.uid == uid);
+allow read: if logado() && (daMinhaEscola() || ehAdmin());
 allow create: if logado() && request.auth.uid == uid && request.resource.data.keys().hasOnly(camposDoDono()) && tamanhosOk();
 allow update: if logado() && (
 (request.auth.uid == uid && mudou().hasOnly(camposDoDono()) && tamanhosOk()) ||
 (souResponsavelLegal() && mudou().hasOnly(['privado', 'seguidores', 'pedidosSeguir', 'atualizadoEm'])) ||
-(mudou().hasOnly(['seguidores', 'pedidosSeguir']) &&
+(daMinhaEscola() && mudou().hasOnly(['seguidores', 'pedidosSeguir']) &&
 (!('seguidores' in mudou()) || soMeuUidEm('seguidores')) &&
 (!('pedidosSeguir' in mudou()) || soMeuUidEm('pedidosSeguir')))
 );
@@ -414,10 +437,12 @@ allow delete: if ehAdmin();
 // "publico" = pode aparecer para toda a rede (não ocultado e revisão ok). Quem
 // não é o autor/moderador só consegue LER posts com publico == true — assim um
 // post ocultado ou uma foto de menor aguardando revisão não vaza nem pela API.
+// Multi-escola: "publico" vale DENTRO da escola do post (o feed consulta com
+// where('escolaId', '==', minha escola) + where('publico', '==', true)).
 match /posts/{id} {
 function pp(u) { return get(/databases/$(database)/documents/perfisPublicos/$(u)).data; }
 function moderaEstePost() {
-return ehAdmin() || souFundador() ||
+return ehAdmin() || fundadorDa(resource.data.get('escolaId', '')) ||
 (ehGestor() && (resource.data.autorAcademiaId == minhaAcademiaGerenciada() || resource.data.nucleoId == minhaAcademiaGerenciada()));
 }
 function publicoCoerente(ocultoNovo, revisaoNova) {
@@ -426,13 +451,15 @@ return request.resource.data.publico == (ocultoNovo == false && revisaoNova == '
 // Post apagado: responde "não existe" em vez de "sem permissão".
 allow get: if logado() && resource == null;
 allow read: if logado() && (
-resource.data.publico == true ||
+(resource.data.publico == true && daMinhaEscola()) ||
 resource.data.autorUid == request.auth.uid ||
-ehAdmin() || souFundador() ||
+ehAdmin() || fundadorDa(resource.data.escolaId) ||
 (ehGestor() && (resource.data.autorAcademiaId == minhaAcademiaGerenciada() || resource.data.nucleoId == minhaAcademiaGerenciada()))
 );
 allow create: if logado() &&
-request.resource.data.autorUid == request.auth.uid &&
+request.resource.data.autorUid == request.auth.uid && escolaNovaOk() &&
+// O núcleo marcado no post é da escola de quem publica (o servidor deduz a escola pelo núcleo).
+nucleoDaMinhaEscolaOuNenhum(request.resource.data.get('nucleoId', null)) &&
 request.resource.data.texto is string && request.resource.data.texto.size() <= 800 &&
 request.resource.data.get('midias', []).size() <= 4 &&
 request.resource.data.get('tipo', 'post') in ['post', 'aviso'] &&
@@ -448,6 +475,7 @@ publicoCoerente(false, request.resource.data.revisao) &&
 // "Publicar como o núcleo": só o responsável, sempre no núcleo que administra.
 (request.resource.data.get('comoNucleo', false) == false ||
 (minhaAcademiaGerenciada() != null && request.resource.data.nucleoId == minhaAcademiaGerenciada() && (ehGestor() || ehAdmin() || souFundador())));
+// (aviso do Fundador: o post já nasce na escola dele — escolaNovaOk() acima.)
 allow update: if logado() && (
 // Autor: só edita texto, marcações e o selo de melhor momento.
 (resource.data.autorUid == request.auth.uid &&
@@ -472,8 +500,8 @@ allow delete: if logado() && resource.data.autorUid == request.auth.uid;
 match /comentarios/{cid} {
 function post() { return get(/databases/$(database)/documents/posts/$(id)).data; }
 function vejoOPost() {
-return post().get('publico', false) == true || post().autorUid == request.auth.uid ||
-ehAdmin() || souFundador() ||
+return (post().get('publico', false) == true && post().get('escolaId', '') == minhaEscola()) || post().autorUid == request.auth.uid ||
+ehAdmin() || fundadorDa(post().get('escolaId', '')) ||
 (ehGestor() && (post().get('autorAcademiaId', '') == minhaAcademiaGerenciada() || post().get('nucleoId', '') == minhaAcademiaGerenciada()));
 }
 allow read: if logado() && vejoOPost();
@@ -482,7 +510,7 @@ request.resource.data.keys().hasOnly(['autorUid', 'autorNome', 'autorFoto', 'tex
 request.resource.data.texto is string && request.resource.data.texto.size() <= 400 &&
 request.resource.data.get('mencoes', []).size() <= 10;
 allow delete: if logado() && (
-resource.data.autorUid == request.auth.uid || ehAdmin() || souFundador() ||
+resource.data.autorUid == request.auth.uid || ehAdmin() || fundadorDa(post().get('escolaId', '')) ||
 post().autorUid == request.auth.uid ||
 (ehGestor() && post().get('autorAcademiaId', '') == minhaAcademiaGerenciada())
 );
@@ -520,7 +548,8 @@ function membroDoGrupo() { return resource.data.tipo == 'grupo' && resource.data
 function gestorDoGrupo() { return resource.data.tipo == 'grupo' && ehGestor() && resource.data.nucleoId == minhaAcademiaGerenciada(); }
 function responsavelLegal() { return request.auth.uid in resource.data.responsaveisIds; }
 function podeEscrever() { return logado() && (participo() || membroDoGrupo() || gestorDoGrupo()); }
-function podeLer() { return podeEscrever() || (logado() && (ehAdmin() || souFundador() || responsavelLegal())); }
+// Fundador: só conversas da própria escola (o servidor grava escolaId ao criar a conversa).
+function podeLer() { return podeEscrever() || (logado() && (ehAdmin() || fundadorDa(resource.data.escolaId) || responsavelLegal())); }
 function outroNaDireta() {
 return request.resource.data.participantes[0] == request.auth.uid ? request.resource.data.participantes[1] : request.resource.data.participantes[0];
 }
@@ -529,25 +558,25 @@ return (pp(request.auth.uid).get('menor', false) == false && pp(outroNaDireta())
 pp(request.auth.uid).get('academiaId', '') == pp(outroNaDireta()).get('academiaId', '-') ||
 (ehGestor() && pp(outroNaDireta()).get('academiaId', '') == minhaAcademiaGerenciada()) ||
 pp(outroNaDireta()).get('academiaGerenciadaId', '') == pp(request.auth.uid).get('academiaId', '-') ||
-ehAdmin() || souFundador();
+ehAdmin() || fundadorDa(pp(outroNaDireta()).get('escolaId', ''));
 }
 // Conferir se uma conversa AINDA NÃO existe (antes de criar) não revela nada.
 allow get: if (logado() && resource == null) || podeLer();
 allow list: if podeLer();
-allow create: if logado() && !request.resource.data.keys().hasAny(['responsaveisIds']) && (
+allow create: if logado() && !request.resource.data.keys().hasAny(['responsaveisIds']) && escolaNovaOk() && (
 (request.resource.data.tipo == 'direta' &&
 request.resource.data.participantes.size() == 2 &&
 request.auth.uid in request.resource.data.participantes &&
 diretaPermitida()) ||
 (request.resource.data.tipo == 'grupo' &&
-(ehAdmin() || souFundador() || (ehGestor() && request.resource.data.nucleoId == minhaAcademiaGerenciada())))
+(ehAdmin() || fundadorDa(escolaDoNucleo(request.resource.data.nucleoId)) || (ehGestor() && request.resource.data.nucleoId == minhaAcademiaGerenciada())))
 );
-allow update: if podeEscrever() &&
+allow update: if podeEscrever() && escolaInalterada() &&
 request.resource.data.tipo == resource.data.tipo &&
 request.resource.data.get('nucleoId', '') == resource.data.get('nucleoId', '') &&
 request.resource.data.get('responsaveisIds', null) == resource.data.get('responsaveisIds', null) &&
 (resource.data.tipo == 'grupo' || request.resource.data.participantes == resource.data.participantes);
-allow delete: if ehAdmin() || souFundador();
+allow delete: if ehAdmin() || fundadorDa(resource.data.get('escolaId', ''));
 match /mensagens/{mid} {
 function conversa() { return get(/databases/$(database)/documents/conversas/$(id)).data; }
 function escreveNaConversa() {
@@ -559,12 +588,12 @@ request.auth.uid in conversa().participantes ||
 }
 function leConversa() {
 return escreveNaConversa() || (logado() && (
-request.auth.uid in conversa().get('responsaveisIds', []) || ehAdmin() || souFundador()));
+request.auth.uid in conversa().get('responsaveisIds', []) || ehAdmin() || fundadorDa(conversa().get('escolaId', ''))));
 }
 allow read: if leConversa();
 allow create: if escreveNaConversa() && request.resource.data.autorUid == request.auth.uid &&
 request.resource.data.get('texto', '').size() <= 1000;
-allow delete: if logado() && (resource.data.autorUid == request.auth.uid || ehAdmin() || souFundador() ||
+allow delete: if logado() && (resource.data.autorUid == request.auth.uid || ehAdmin() || fundadorDa(conversa().get('escolaId', '')) ||
 (conversa().tipo == 'grupo' && ehGestor() && conversa().nucleoId == minhaAcademiaGerenciada()));
 }
 }
@@ -575,7 +604,7 @@ allow delete: if logado() && (resource.data.autorUid == request.auth.uid || ehAd
 // config/migracoes é do servidor (marca as migrações já feitas).
 match /config/{id} {
 allow read: if logado();
-allow write: if id != 'migracoes' && (ehAdmin() || (souFundador() && (
+allow write: if id != 'migracoes' && (ehAdmin() || (fundadorDaEscolaPadrao() && (
 id != 'brasoes' || resource == null ||
 resource.data.get('presidenteUid', null) == null ||
 request.resource.data.get('presidenteUid', null) == resource.data.get('presidenteUid', null))));
@@ -585,10 +614,12 @@ request.resource.data.get('presidenteUid', null) == resource.data.get('president
 // Admin, Fundador ou o responsável do núcleo do autor do post.
 match /denuncias/{id} {
 allow create: if logado() && request.resource.data.denuncianteUid == request.auth.uid &&
-request.resource.data.get('motivo', '').size() <= 300 &&
+request.resource.data.get('motivo', '').size() <= 300 && escolaNovaOk() &&
 request.resource.data.status == 'aberta';
-allow read, update: if ehAdmin() || souFundador() ||
+allow read: if ehAdmin() || fundadorDa(resource.data.escolaId) ||
 (ehGestor() && resource.data.autorPostAcademiaId == minhaAcademiaGerenciada());
+allow update: if ehAdmin() || ((fundadorDa(resource.data.get('escolaId', '')) ||
+(ehGestor() && resource.data.autorPostAcademiaId == minhaAcademiaGerenciada())) && escolaInalterada());
 allow delete: if ehAdmin();
 }
 
@@ -609,13 +640,15 @@ function atleta() { return get(/databases/$(database)/documents/usuarios/$(uid))
 function souDonoOuResponsavel() { return logado() && (request.auth.uid == uid || atleta().get('responsavelUid', null) == request.auth.uid); }
 // Quem confere a foto é o NÚCLEO (responsável do núcleo, Admin ou Fundador).
 function cuidoDoAtleta() {
-return ehAdmin() || souFundador() ||
+return ehAdmin() || fundadorDa(atleta().get('escolaId', '')) ||
 (ehGestor() && atleta().get('academiaId', null) == minhaAcademiaGerenciada());
 }
-function nucleoCerto() { return request.resource.data.academiaId == atleta().get('academiaId', null); }
+// escolaId: o servidor grava (mesma escola do atleta); o app pode mandar, mas só a certa.
+function nucleoCerto() { return request.resource.data.academiaId == atleta().get('academiaId', null) &&
+request.resource.data.get('escolaId', atleta().get('escolaId', '')) == atleta().get('escolaId', ''); }
 function fotoValida() {
 return request.resource.data.keys().hasOnly(['url', 'caminho', 'status', 'academiaId', 'alunoNome', 'enviadoPorUid', 'enviadoPorNome', 'enviadoEm',
-'motivo', 'avaliadoPorUid', 'avaliadoPorNome', 'avaliadoEm']) &&
+'motivo', 'avaliadoPorUid', 'avaliadoPorNome', 'avaliadoEm', 'escolaId']) &&
 request.resource.data.caminho is string && request.resource.data.caminho.matches('carteirinha/' + uid + '/[A-Za-z0-9_.-]+') &&
 request.resource.data.url is string && request.resource.data.url.size() < 1500 &&
 // o link tem que ser do MESMO arquivo de "caminho" (o núcleo aprova o que vê)
@@ -624,7 +657,7 @@ request.resource.data.enviadoPorUid == request.auth.uid && nucleoCerto() &&
 request.resource.data.get('alunoNome', '').size() <= 120;
 }
 allow get: if souDonoOuResponsavel() || cuidoDoAtleta();
-allow list: if ehAdmin() || souFundador() || (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada());
+allow list: if ehAdmin() || fundadorDa(resource.data.escolaId) || (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada());
 allow create, update: if
 // atleta ou responsável legal envia: sempre "pendente"
 (souDonoOuResponsavel() && fotoValida() && request.resource.data.status == 'pendente') ||
@@ -638,7 +671,7 @@ request.resource.data.status in ['aprovada', 'recusada'] && request.resource.dat
 request.resource.data.get('motivo', '').size() <= 200) ||
 // núcleo pede a foto (notificação para o atleta e o responsável)
 (cuidoDoAtleta() && request.resource.data.status == 'solicitada' && nucleoCerto() &&
-request.resource.data.keys().hasOnly(['status', 'academiaId', 'alunoNome', 'solicitadoPorUid', 'solicitadoPorNome', 'solicitadoEm']) &&
+request.resource.data.keys().hasOnly(['status', 'academiaId', 'alunoNome', 'solicitadoPorUid', 'solicitadoPorNome', 'solicitadoEm', 'escolaId']) &&
 request.resource.data.solicitadoPorUid == request.auth.uid &&
 (resource == null || resource.data.status != 'pendente'));
 allow delete: if ehAdmin();
@@ -651,7 +684,7 @@ match /beneficiarios/{uid} {
 function atletaB() { return get(/databases/$(database)/documents/usuarios/$(uid)).data; }
 function cuidaDosBeneficiarios() {
 return logado() && (request.auth.uid == uid || atletaB().get('responsavelUid', null) == request.auth.uid ||
-ehAdmin() || souFundador() || (ehGestor() && atletaB().get('academiaId', null) == minhaAcademiaGerenciada()));
+ehAdmin() || fundadorDa(atletaB().get('escolaId', '')) || (ehGestor() && atletaB().get('academiaId', null) == minhaAcademiaGerenciada()));
 }
 allow read, delete: if cuidaDosBeneficiarios();
 allow create, update: if cuidaDosBeneficiarios() &&
@@ -683,7 +716,7 @@ allow delete: if logado() && (ehAdmin() || request.auth.uid == uid);
 match /certificadosDe/{uid} {
 function atletaC() { return get(/databases/$(database)/documents/usuarios/$(uid)).data; }
 allow read: if logado() && (request.auth.uid == uid || atletaC().get('responsavelUid', null) == request.auth.uid ||
-ehAdmin() || souFundador() || (ehGestor() && minhaAcademiaGerenciada() != null && atletaC().get('academiaId', null) == minhaAcademiaGerenciada()));
+ehAdmin() || fundadorDa(atletaC().get('escolaId', '')) || (ehGestor() && minhaAcademiaGerenciada() != null && atletaC().get('academiaId', null) == minhaAcademiaGerenciada()));
 allow write: if false;
 }
 

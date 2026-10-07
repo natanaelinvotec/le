@@ -35,8 +35,15 @@ export const ESCOLA_LIBERDADE = {
 export const COLECOES_COM_ESCOLA = ['usuarios', 'nucleos', 'presencas', 'posts', 'avisos', 'eventos', 'solicitacoes', 'pagamentos', 'campeonatos', 'denuncias'];
 // A migração etiqueta também estas (sem gatilho próprio; o app novo já grava certo).
 export const COLECOES_SO_MIGRACAO = ['stories', 'materiais', 'perfisPublicos'];
+// 1c (parte 3): também ganham escola — o Fundador passa a ver só a própria escola nelas.
+// auditoria: o servidor já grava com escola; conversas e fotos de carteirinha: gatilho comEscola.
+export const COLECOES_1C = ['auditoria', 'conversas', 'fotosCarteirinha'];
+// Coleções em que o app grava escolaId e as regras garantem que é a escola de quem grava
+// (claim do login). Nelas o servidor só COMPLETA quando falta — não troca o que veio.
+// usuarios e nucleos ficam de fora: a escola deles é sempre a que o servidor deduz.
+const ESCOLA_DEDUZIDA_SEMPRE = new Set(['usuarios', 'nucleos']);
 
-const CAMPOS_USUARIO = ['uid', 'autorUid', 'alunoId', 'solicitanteUid', 'organizadorUid', 'criadoPor', 'registradoPor'];
+const CAMPOS_USUARIO = ['uid', 'autorUid', 'alunoId', 'solicitanteUid', 'organizadorUid', 'criadoPor', 'registradoPor', 'denuncianteUid', 'quemUid'];
 
 function cache(ctx) { if (!ctx._escolas) ctx._escolas = { nucleo: new Map(), usuario: new Map() }; return ctx._escolas; }
 
@@ -73,7 +80,10 @@ export async function escolaDe(ctx, colecao, d, docId = null) {
   }
   const pelaSede = (await escolaDoNucleo(ctx, d.nucleoId)) || (await escolaDoNucleo(ctx, d.academiaId));
   if (pelaSede) return pelaSede;
-  if (colecao === 'perfisPublicos' && docId) { const e = await escolaDoUsuario(ctx, docId); if (e) return e; }
+  if (['perfisPublicos', 'fotosCarteirinha'].includes(colecao) && docId) { const e = await escolaDoUsuario(ctx, docId); if (e) return e; }
+  if (colecao === 'conversas' && Array.isArray(d.participantes)) {
+    for (const u of d.participantes) { const e = await escolaDoUsuario(ctx, u); if (e) return e; }
+  }
   for (const k of CAMPOS_USUARIO) {
     const e = await escolaDoUsuario(ctx, d[k]);
     if (e) return e;
@@ -85,6 +95,7 @@ export async function escolaDe(ctx, colecao, d, docId = null) {
 // Devolve a escola gravada, ou null se não precisou mexer.
 export async function etiquetarEscola(ctx, colecao, id, depois) {
   if (!depois) return null;
+  if (depois.escolaId && !ESCOLA_DEDUZIDA_SEMPRE.has(colecao)) return null;
   const certa = await escolaDe(ctx, colecao, depois, id);
   if (!certa || depois.escolaId === certa) return null;
   if (depois.escolaId && depois.escolaId !== certa) (ctx.log || console).warn('escolaId corrigido', colecao, id, depois.escolaId, '→', certa);
@@ -177,6 +188,13 @@ export async function migrarEscolaId(ctx) {
   for (const col of ['nucleos', 'usuarios', ...COLECOES_COM_ESCOLA.filter((c) => !['nucleos', 'usuarios'].includes(c)), ...COLECOES_SO_MIGRACAO]) {
     r[col] = await emLotes(ctx.db.collection(col).orderBy('__name__'), async (d) => etiquetarEscola(ctx, col, d.id, d.data()));
   }
+  return r;
+}
+
+// 1c (parte 3): etiqueta auditoria, conversas e fotos de carteirinha que ainda não têm escola.
+export async function migrarEscolaId1c(ctx) {
+  const r = {};
+  for (const col of COLECOES_1C) r[col] = await emLotes(ctx.db.collection(col).orderBy('__name__'), async (d) => etiquetarEscola(ctx, col, d.id, d.data()));
   return r;
 }
 

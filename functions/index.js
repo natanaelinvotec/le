@@ -52,7 +52,7 @@ export const usuarioEscrito = onDocumentWrittenWithAuthContext('usuarios/{uid}',
 export const presencaEscrita = onDocumentWrittenWithAuthContext('presencas/{id}', seguro('presenca', (e) => comEscola('presencas', G.aoEscreverPresenca)(ctxBase(), ev(e))));
 export const postEscrito = onDocumentWrittenWithAuthContext({ document: 'posts/{id}', memory: '512MiB' }, seguro('post', (e) => comEscola('posts', G.aoEscreverPost)(ctxBase(), ev(e))));
 export const comentarioCriado = onDocumentCreated('posts/{postId}/comentarios/{cid}', seguro('comentario', (e) => G.aoCriarComentario(ctxBase(), evCriado(e))));
-export const conversaCriada = onDocumentCreated('conversas/{id}', seguro('conversa', (e) => G.aoCriarConversa(ctxBase(), evCriado(e))));
+export const conversaCriada = onDocumentCreated('conversas/{id}', seguro('conversa', (e) => comEscola('conversas', G.aoCriarConversa)(ctxBase(), evCriado(e))));
 export const mensagemCriada = onDocumentCreated('conversas/{id}/mensagens/{mid}', seguro('mensagem', (e) => G.aoCriarMensagem(ctxBase(), evCriado(e))));
 export const perfilPublicoAtualizado = onDocumentUpdated('perfisPublicos/{uid}', seguro('seguir', (e) => G.aoAtualizarPerfilPublico(ctxBase(), evAtualizado(e))));
 export const avisoEscrito = onDocumentWrittenWithAuthContext('avisos/{id}', seguro('aviso', (e) => comEscola('avisos', G.aoEscreverAviso)(ctxBase(), ev(e))));
@@ -61,7 +61,7 @@ export const denunciaCriada = onDocumentCreated('denuncias/{id}', seguro('denunc
 export const solicitacaoEscrita = onDocumentWrittenWithAuthContext('solicitacoes/{id}', seguro('solicitacao', (e) => comEscola('solicitacoes', G.aoEscreverSolicitacao)(ctxBase(), ev(e))));
 export const pagamentoEscrito = onDocumentWrittenWithAuthContext('pagamentos/{id}', seguro('pagamento', (e) => comEscola('pagamentos', G.aoEscreverPagamento)(ctxBase(), ev(e))));
 export const nucleoEscrito = onDocumentWrittenWithAuthContext('nucleos/{id}', seguro('nucleo', (e) => comEscola('nucleos', G.aoEscreverNucleo)(ctxBase(), ev(e))));
-export const fotoCarteirinhaEscrita = onDocumentWrittenWithAuthContext('fotosCarteirinha/{uid}', seguro('fotoCarteirinha', (e) => aoEscreverFotoCarteirinha(ctxBase(), ev(e))));
+export const fotoCarteirinhaEscrita = onDocumentWrittenWithAuthContext('fotosCarteirinha/{uid}', seguro('fotoCarteirinha', (e) => comEscola('fotosCarteirinha', aoEscreverFotoCarteirinha)(ctxBase(), ev(e))));
 // Pai, mãe, irmãos e avós do atleta: o servidor gera/remove o código de cada um.
 export const beneficiariosEscritos = onDocumentWrittenWithAuthContext('beneficiarios/{uid}', seguro('beneficiarios', (e) => sincronizarCarteirinha(ctxBase(), e.params.uid)));
 export const configEscrita = onDocumentWrittenWithAuthContext('config/{id}', seguro('config', (e) => G.aoEscreverConfig(ctxBase(), ev(e))));

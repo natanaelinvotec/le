@@ -5,7 +5,7 @@ import { sincronizarCarteirinha, apagarCarteirinha, temCarteirinha } from './car
 import { apagarCertificados, conferirCertificados, cancelarCertificado, cancelarAcimaDe, idAvisoCordao, alinharAoCordaoAtual } from './certificado.js';
 import { notificar, gestoresDoNucleo } from './notificar.js';
 import { responsaveisDe, apagarSubcolecao, apagarArquivosDoStorage } from './gatilhos.js';
-import { migrarEscolaId, migrarClaims, migrarEscolasPublicas } from './escolas.js';
+import { migrarEscolaId, migrarClaims, migrarEscolasPublicas, migrarEscolaId1c, ESCOLA_PADRAO } from './escolas.js';
 
 const DIA = 86400000;
 
@@ -135,6 +135,8 @@ export const MIGRACOES = [
   ['m8_escola_id', migrarEscolaId],
   // Cartão público de cada escola ativa (escolasPublicas) + domínios próprios (dominios/{host}).
   ['m10_escolas_publicas', migrarEscolasPublicas],
+  // 1c parte 3: auditoria, conversas e fotos de carteirinha ganham escola (o Fundador vê só a dele).
+  ['m11_escola_id_1c', migrarEscolaId1c],
   // Login de cada pessoa com escola e papéis (custom claims). Por último: se faltar permissão, só ela fica pendente.
   ['m9_claims_escola', migrarClaims],
 ];
@@ -199,6 +201,7 @@ export async function excluirConta(ctx, uid, { porUid = null, porNome = '' } = {
   const pend = await ctx.db.collection('solicitacoes').where('solicitanteUid', '==', uid).limit(50).get();
   for (const d of pend.docs) { if (d.data().tipo === 'exclusao_conta') await d.ref.update({ status: 'concluida', concluidaEm: new Date().toISOString() }); }
   await ctx.db.collection('auditoria').add({
+    escolaId: (su.exists && su.data().escolaId) || ESCOLA_PADRAO,
     quando: new Date().toISOString(), quemUid: porUid, quemNome: porNome, colecao: 'usuarios', docId: uid, alvoNome: nome,
     acao: 'excluiu a conta', campos: [], resumo: `${porNome || 'Admin'} excluiu a conta de ${nome || uid} (LGPD)`, antes: null, depois: r,
   });
@@ -274,6 +277,7 @@ export async function desfazerGraduacao(ctx, c, { porUid = null, porNome = '' } 
     link: 'admin.html',
   });
   await ctx.db.collection('auditoria').add({
+    escolaId: u.escolaId || ESCOLA_PADRAO,
     quando: new Date().toISOString(), quemUid: porUid, quemNome: porNome, colecao: 'usuarios', docId: uid, alvoNome: u.nome || '',
     acao: 'desfez a graduação', campos: ['cordaoAtual', 'historicoGraduacoes'],
     resumo: `${porNome || 'Admin'} desfez a graduação de ${u.nome || uid}: ${cordao} → volta para ${anterior}${motivo ? ` (${motivo})` : ''}`,

@@ -16,7 +16,7 @@ notificação; se não compartilhar, o servidor manda um lembrete depois
 
   verificarCelebracoes(uid, perfil)      → mostra o que ainda não foi festejado
   abrirFesta(festa, { uid, perfil })     → abre a festa / o compartilhamento */
-import { db, storage, storageRef, uploadString, getDownloadURL, collection, query, where, limit, getDocs, getDoc, doc, updateDoc, addDoc } from './firebase.js';
+import { db, storage, storageRef, uploadString, getDownloadURL, collection, query, where, limit, getDocs, getDoc, doc, updateDoc, addDoc, talvezComEscola } from './firebase.js';
 import { ESCOLA, coresDoCordao, nomeBonito } from './escola.js';
 import { porId as brasaoPorId, urlPng } from './brasoes.js';
 import { gerarCardStory, compartilharImagem, linkWhatsApp, baixarImagem } from './card-story.js';
@@ -284,14 +284,14 @@ export async function postarNaRede({ uid, perfil, blob, texto }) {
   // Menor publicando imagem: passa pela revisão do núcleo (mesma regra da Rede).
   const revisao = pub.menor ? 'pendente' : 'ok';
   const t = String(texto || '').slice(0, 800);
-  await addDoc(collection(db, 'posts'), {
+  await addDoc(collection(db, 'posts'), await talvezComEscola({
     autorUid: uid, autorNome: (perfil && perfil.nome) || pub.nome || '', autorFoto: /^https:/.test((perfil && perfil.fotoUrl) || '') ? perfil.fotoUrl : '',
     autorAcademiaId: (perfil && perfil.academiaId) || null, autorAcademiaNome: (perfil && perfil.academiaNome) || '', autorCordao: pub.cordaoAtual || '',
     autorMenor: !!pub.menor, texto: t, fotoUrl: url, midias: [{ url, tipo: 'imagem', w, h }],
     tipo: 'post', melhorMomento: false, nucleoId: (perfil && perfil.academiaId) || null, nucleoNome: (perfil && perfil.academiaNome) || '',
     marcados: [], visibilidade: 'rede', hashtags: Array.from(new Set((t.match(/#[\p{L}\p{N}_]+/gu) || []).map((x) => x.slice(1).toLowerCase()))).slice(0, 10),
     revisao, oculto: false, publico: revisao === 'ok', criadoEm: new Date().toISOString(), curtidas: [], comentariosCount: 0,
-  });
+  }));
   return revisao;
 }
 

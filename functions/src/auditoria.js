@@ -2,6 +2,8 @@
 // que importam. Gravado só pelo servidor em auditoria/{id}; o Admin e o
 // Fundador leem na aba "Auditoria" do painel. Ninguém edita nem apaga pelo app.
 
+import { escolaDe, ESCOLA_PADRAO } from './escolas.js';
+
 // Campos acompanhados por coleção (o resto é ruído: foto, descritor facial…).
 export const CAMPOS_AUDITADOS = {
   usuarios: ['nome', 'email', 'papeis', 'academiaId', 'academiaGerenciadaId', 'cordaoAtual', 'notas', 'brasoesAdmin', 'brasoesManuais',
@@ -55,7 +57,11 @@ export async function registrar(ctx, ev) {
   let quemNome = '';
   if (authId) { try { const s = await ctx.db.doc(`usuarios/${authId}`).get(); quemNome = s.exists ? (s.data().nome || '') : ''; } catch (e) { /* ok */ } }
   const alvoNome = (depois && (depois.nome || depois.alunoNome || depois.titulo || depois.autorNome)) || (antes && (antes.nome || antes.alunoNome || antes.titulo || antes.autorNome)) || '';
+  // Escola do registro (multi-escola): o Fundador só lê a auditoria da própria escola.
+  let escolaId = (depois && depois.escolaId) || (antes && antes.escolaId) || null;
+  if (!escolaId && colecao !== 'config') { try { escolaId = await escolaDe(ctx, colecao, depois || antes, docId); } catch (e) { escolaId = null; } }
   const registro = {
+    escolaId: escolaId || ESCOLA_PADRAO,
     quando: new Date().toISOString(),
     quemUid: authId || null,
     quemNome,

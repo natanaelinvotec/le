@@ -65,7 +65,8 @@ test('concessão do Admin vira brasão + notificação; Presidente não se conce
   assert.ok(pub.brasoes['cem-presencas'] && pub.brasoes['cem-presencas'].admin);
   assert.equal(pub.brasoes['mestre-fundador'], undefined, 'Presidente travado');
   const n = notifs(f, 'nat'); assert.equal(n.length, 1); assert.equal(n[0].tipo, 'brasao');
-  const aud = Object.values(f.lerCol('auditoria')); assert.equal(aud.length, 1); assert.deepEqual(aud[0].campos, ['brasoesAdmin']); assert.equal(aud[0].quemNome, 'Admin Master');
+  const aud = Object.values(f.lerCol('auditoria'));
+  assert.ok(aud.every((a) => a.escolaId === 'liberdade'), 'auditoria leva a escola (o Fundador lê só a dele)'); assert.equal(aud.length, 1); assert.deepEqual(aud[0].campos, ['brasoesAdmin']); assert.equal(aud[0].quemNome, 'Admin Master');
   // revogar: o brasão SAI do mapa (antes o merge deixava ele lá)
   const semConcessao = { ...depois, brasoesAdmin: {} };
   await f.db.doc('usuarios/nat').set(semConcessao);
@@ -803,10 +804,18 @@ test('multi-escola: dado novo herda a escola do núcleo; escola falsa é corrigi
   // Presença no núcleo do CT e post do aluno: herdam a escola certa.
   f.db.doc('presencas/x').set({ uid: 'rafa', nucleoId: 'gracie' });
   await comEscola('presencas', contar)(ctx, { params: { id: 'x' }, antes: null, depois: f.ler('presencas/x') });
-  f.db.doc('posts/y').set({ autorUid: 'rafa', texto: 'Oss!', escolaId: 'liberdade' });
+  f.db.doc('posts/y').set({ autorUid: 'rafa', texto: 'Oss!' });
   await comEscola('posts', contar)(ctx, { params: { id: 'y' }, antes: null, depois: f.ler('posts/y') });
   assert.equal(f.ler('presencas/x').escolaId, 'gracie-cg');
   assert.equal(f.ler('posts/y').escolaId, 'gracie-cg');
+  // Post que o app já gravou com a escola (as regras garantem que é a de quem publica): o servidor não troca.
+  f.db.doc('posts/w').set({ autorUid: 'rafa', texto: 'Oss!', nucleoId: 'gracie', escolaId: 'gracie-cg' });
+  await comEscola('posts', contar)(ctx, { params: { id: 'w' }, antes: null, depois: f.ler('posts/w') });
+  assert.equal(f.ler('posts/w').escolaId, 'gracie-cg');
+  // Conversa direta (sem núcleo): escola de quem participa.
+  f.db.doc('conversas/c1').set({ tipo: 'direta', participantes: ['rafa', 'outro'] });
+  await comEscola('conversas', contar)(ctx, { params: { id: 'c1' }, antes: null, depois: f.ler('conversas/c1') });
+  assert.equal(f.ler('conversas/c1').escolaId, 'gracie-cg');
   // Post da Liberdade continua da Liberdade.
   f.db.doc('posts/z').set({ autorUid: 'nat', texto: 'Iê!' });
   await comEscola('posts', contar)(ctx, { params: { id: 'z' }, antes: null, depois: f.ler('posts/z') });

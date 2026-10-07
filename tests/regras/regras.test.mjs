@@ -29,7 +29,10 @@ before(async () => {
       mae: { nome: 'Mãe', papeis: ['aluno'], academiaId: 'taynara', academiaGerenciadaId: null, idade: 40, notas: {} },
       estranho: { nome: 'Estranho', papeis: ['aluno'], academiaId: 'profeta', academiaGerenciadaId: null, idade: 25, notas: {} },
     };
-    for (const [id, v] of Object.entries(u)) await setDoc(doc(d, 'usuarios', id), v);
+    // Como o servidor deixa depois da migração m8: todo cadastro com a escola.
+    for (const [id, v] of Object.entries(u)) await setDoc(doc(d, 'usuarios', id), { ...v, escolaId: 'liberdade' });
+    await setDoc(doc(d, 'usuarios', 'rafa'), { nome: 'Rafa', papeis: ['aluno', 'mestre'], academiaId: 'gracie', academiaGerenciadaId: 'gracie', acessoGeral: true, escolaId: 'gracie-cg', notas: {} });
+    for (const [id, e] of [['taynara', 'liberdade'], ['profeta', 'liberdade'], ['gracie', 'gracie-cg']]) await setDoc(doc(d, 'nucleos', id), { nome: id, ativo: true, escolaId: e });
     const pp = {
       nat: { nome: 'Natanael', cordaoAtual: 'Quilombola', academiaId: 'taynara', menor: false, seguidores: [], pedidosSeguir: [], brasoes: {} },
       kid: { nome: 'Kid', cordaoAtual: 'Iniciante', academiaId: 'taynara', menor: true, privado: true, seguidores: [], pedidosSeguir: [] },
@@ -37,18 +40,19 @@ before(async () => {
       estranho: { nome: 'Estranho', cordaoAtual: 'Iniciante', academiaId: 'profeta', menor: false, seguidores: [] },
       mae: { nome: 'Mãe', cordaoAtual: 'Iniciante', academiaId: 'taynara', menor: false, seguidores: [] },
     };
-    for (const [id, v] of Object.entries(pp)) await setDoc(doc(d, 'perfisPublicos', id), v);
-    const base = { texto: 't', midias: [], tipo: 'post', curtidas: [], comentariosCount: 0, criadoEm: AGORA };
+    for (const [id, v] of Object.entries(pp)) await setDoc(doc(d, 'perfisPublicos', id), { ...v, escolaId: 'liberdade' });
+    await setDoc(doc(d, 'perfisPublicos', 'rafa'), { nome: 'Rafa', cordaoAtual: 'Faixa preta', academiaId: 'gracie', menor: false, seguidores: [], pedidosSeguir: [], escolaId: 'gracie-cg' });
+    const base = { texto: 't', midias: [], tipo: 'post', curtidas: [], comentariosCount: 0, criadoEm: AGORA, escolaId: 'liberdade' };
     await setDoc(doc(d, 'posts', 'pub'), { ...base, autorUid: 'tay', autorAcademiaId: 'profeta', revisao: 'ok', publico: true, oculto: false });
     await setDoc(doc(d, 'posts', 'escondido'), { ...base, autorUid: 'nat', autorAcademiaId: 'taynara', revisao: 'ok', publico: false, oculto: true });
     await setDoc(doc(d, 'posts', 'pend'), { ...base, autorUid: 'kid', autorAcademiaId: 'taynara', nucleoId: 'taynara', revisao: 'pendente', publico: false, oculto: false, midias: [{ url: 'x', tipo: 'imagem' }] });
     await setDoc(doc(d, 'posts/pub/comentarios/c1'), { autorUid: 'nat', texto: 'oi', criadoEm: AGORA });
     await setDoc(doc(d, 'posts/escondido/comentarios/c1'), { autorUid: 'tay', texto: 'oi', criadoEm: AGORA });
-    await setDoc(doc(d, 'conversas', 'kid__tay'), { tipo: 'direta', participantes: ['kid', 'tay'], nucleosIds: ['taynara', 'profeta'], envolveMenor: true, responsaveisIds: ['mae'] });
+    await setDoc(doc(d, 'conversas', 'kid__tay'), { tipo: 'direta', participantes: ['kid', 'tay'], nucleosIds: ['taynara', 'profeta'], envolveMenor: true, responsaveisIds: ['mae'], escolaId: 'liberdade' });
     await setDoc(doc(d, 'conversas/kid__tay/mensagens/m1'), { autorUid: 'tay', texto: 'oi', criadoEm: AGORA });
-    await setDoc(doc(d, 'conversas', 'estranho__nat'), { tipo: 'direta', participantes: ['estranho', 'nat'], nucleosIds: ['profeta', 'taynara'], envolveMenor: false, responsaveisIds: [] });
+    await setDoc(doc(d, 'conversas', 'estranho__nat'), { tipo: 'direta', participantes: ['estranho', 'nat'], nucleosIds: ['profeta', 'taynara'], envolveMenor: false, responsaveisIds: [], escolaId: 'liberdade' });
     await setDoc(doc(d, 'notificacoes/nat/itens/n1'), { titulo: 'oi', lida: false, criadoEm: AGORA });
-    await setDoc(doc(d, 'auditoria', 'a1'), { resumo: 'x' });
+    await setDoc(doc(d, 'auditoria', 'a1'), { resumo: 'x', escolaId: 'liberdade' });
     await setDoc(doc(d, 'admins', 'antigo'), { senhaHash: 'abc' });
     await setDoc(doc(d, 'siteConteudo', 'landing'), { titulo: 'site' });
     await setDoc(doc(d, 'carteirinhas', 'ABCDEFGH23'), { nome: 'Natanael', cordao: 'Quilombola', ativo: true, controle: 'livre', validaAte: null });
@@ -68,6 +72,18 @@ before(async () => {
     await setDoc(doc(d, 'stories', 'stGracie'), { autorUid: 'rafa', midiaUrl: 'x', criadoEm: AGORA, expiraEm: '2099-01-01T00:00:00.000Z', escolaId: 'gracie-cg' });
     await setDoc(doc(d, 'campeonatos', 'campGracie'), { nome: 'Interno do CT', status: 'inscricoes', academiaId: 'gracie', organizadorUid: 'rafa', tipo: 'interno', escolaId: 'gracie-cg' });
     await setDoc(doc(d, 'campeonatos', 'campAberto'), { nome: 'Open MS', status: 'inscricoes', academiaId: 'gracie', organizadorUid: 'rafa', tipo: 'externo', escolaId: 'gracie-cg' });
+    // Rede e gestão da outra escola (1c partes 2 e 3).
+    await setDoc(doc(d, 'posts', 'postGracie'), { ...base, autorUid: 'rafa', autorAcademiaId: 'gracie', nucleoId: 'gracie', revisao: 'ok', publico: true, oculto: false, escolaId: 'gracie-cg' });
+    await setDoc(doc(d, 'posts/postGracie/comentarios/c1'), { autorUid: 'rafa', texto: 'Oss', criadoEm: AGORA });
+    await setDoc(doc(d, 'presencas', 'presGracie'), { uid: 'rafa', nucleoId: 'gracie', origem: 'manual', registradoPor: 'rafa', escolaId: 'gracie-cg' });
+    await setDoc(doc(d, 'pagamentos', 'pagGracie'), { alunoId: 'rafa', academiaId: 'gracie', valor: 150, escolaId: 'gracie-cg' });
+    await setDoc(doc(d, 'solicitacoes', 'solGracie'), { tipo: 'mensalidade', academiaId: 'gracie', solicitanteUid: 'rafa', status: 'pendente', escolaId: 'gracie-cg' });
+    await setDoc(doc(d, 'denuncias', 'denGracie'), { denuncianteUid: 'rafa', motivo: 'x', status: 'aberta', autorPostAcademiaId: 'gracie', escolaId: 'gracie-cg' });
+    await setDoc(doc(d, 'auditoria', 'audGracie'), { resumo: 'y', escolaId: 'gracie-cg' });
+    await setDoc(doc(d, 'conversas', 'outro__rafa'), { tipo: 'direta', participantes: ['outro', 'rafa'], responsaveisIds: [], escolaId: 'gracie-cg' });
+    await setDoc(doc(d, 'fotosCarteirinha', 'rafa'), { status: 'pendente', academiaId: 'gracie', escolaId: 'gracie-cg' });
+    await setDoc(doc(d, 'beneficiarios', 'rafa'), { lista: [] });
+    await setDoc(doc(d, 'usuarios/rafa/avaliacoes/a1'), { nota: 5 });
   });
 });
 after(async () => { if (env) await env.cleanup(); });
@@ -158,7 +174,8 @@ test('post ocultado ou em revisão não vaza pela API', async () => {
   await assertSucceeds(getDoc(doc(db('nat'), 'posts', 'escondido')));
   await assertSucceeds(getDoc(doc(db('tay'), 'posts', 'pend')));
   await assertSucceeds(getDoc(doc(db('admin'), 'posts', 'escondido')));
-  await assertSucceeds(getDocs(query(collection(db('estranho'), 'posts'), where('publico', '==', true), orderBy('criadoEm', 'desc'), limit(20))));
+  await assertSucceeds(getDocs(query(collection(db('estranho'), 'posts'), where('escolaId', '==', 'liberdade'), where('publico', '==', true), orderBy('criadoEm', 'desc'), limit(20))));
+  await assertFails(getDocs(query(collection(db('estranho'), 'posts'), where('publico', '==', true), orderBy('criadoEm', 'desc'), limit(20))), 'feed sem o filtro da escola');
   await assertFails(getDocs(query(collection(db('estranho'), 'posts'), orderBy('criadoEm', 'desc'), limit(20))));
   await assertSucceeds(getDocs(query(collection(db('nat'), 'posts'), where('autorUid', '==', 'nat'))));
   await assertSucceeds(getDocs(query(collection(db('tay'), 'posts'), where('revisao', '==', 'pendente'), where('autorAcademiaId', '==', 'taynara'))));
@@ -294,7 +311,7 @@ test('carteirinha: foto de documento — atleta/responsável enviam pendente; n�
   // Lista do núcleo (aprovação): só o responsável do núcleo filtrando pelo próprio núcleo.
   await assertSucceeds(getDocs(query(collection(db('tay'), 'fotosCarteirinha'), where('academiaId', '==', 'taynara'), where('status', '==', 'pendente'))));
   await assertFails(getDocs(query(collection(db('nat'), 'fotosCarteirinha'), where('academiaId', '==', 'taynara'))));
-  await assertSucceeds(getDocs(query(collection(db('profeta'), 'fotosCarteirinha'), where('academiaId', '==', 'taynara'))));
+  await assertSucceeds(getDocs(query(collection(db('profeta'), 'fotosCarteirinha'), where('escolaId', '==', 'liberdade'), where('academiaId', '==', 'taynara'))));
   // O atleta não aprova a própria foto; o núcleo aprova.
   await assertFails(updateDoc(doc(db('nat'), 'fotosCarteirinha', 'nat'), { status: 'aprovada', avaliadoPorUid: 'nat', avaliadoEm: AGORA }));
   await assertFails(updateDoc(doc(db('tay'), 'fotosCarteirinha', 'nat'), { status: 'aprovada', avaliadoPorUid: 'tay', caminho: 'carteirinha/nat/2.jpg' }));
@@ -442,4 +459,57 @@ test('multi-escola (1c): cada escola só vê e escreve o próprio conteúdo; cam
   await assertFails(setDoc(doc(db('profeta'), 'campeonatos/campGracie/chaves/cat1'), { rodadas: [] }), 'Fundador não mexe em campeonato de outra escola');
   // Admin da plataforma vê tudo
   await assertSucceeds(getDocs(collection(db('admin'), 'eventos')));
+});
+
+test('multi-escola (1c partes 2 e 3): Rede e poderes do Fundador ficam dentro da própria escola', async () => {
+  const profeta = db('profeta'); const nat = db('nat'); const rafa = db('rafa', { escolaId: 'gracie-cg' });
+  const L = where('escolaId', '==', 'liberdade');
+  // Rede: post "público" vale só dentro da escola; cartões idem
+  await assertFails(getDoc(doc(nat, 'posts', 'postGracie')), 'post público de outra escola');
+  await assertSucceeds(getDoc(doc(rafa, 'posts', 'postGracie')));
+  await assertFails(getDocs(collection(nat, 'posts/postGracie/comentarios')), 'comentários de post de outra escola');
+  await assertFails(addDoc(collection(nat, 'posts/postGracie/comentarios'), { autorUid: 'nat', texto: 'oi', criadoEm: AGORA }));
+  await assertFails(getDocs(query(collection(nat, 'posts'), where('escolaId', '==', 'gracie-cg'), where('publico', '==', true))));
+  await assertFails(getDoc(doc(nat, 'perfisPublicos', 'rafa')), 'cartão de outra escola');
+  await assertSucceeds(getDoc(doc(nat, 'perfisPublicos', 'tay')));
+  await assertSucceeds(getDoc(doc(nat, 'perfisPublicos', 'ninguem')), 'cartão que não existe: "não existe"');
+  await assertSucceeds(getDocs(query(collection(nat, 'perfisPublicos'), L, where('nomeBusca', '>=', 'na'), where('nomeBusca', '<=', 'na'), limit(6))));
+  await assertFails(getDocs(query(collection(nat, 'perfisPublicos'), where('nomeBusca', '>=', 'ra'), limit(6))), 'busca sem filtro de escola');
+  await assertFails(updateDoc(doc(nat, 'perfisPublicos', 'rafa'), { seguidores: arrayUnion('nat') }), 'não segue gente de outra escola (por enquanto)');
+  // Publicar: escola e núcleo têm que ser os de quem publica
+  const p = { autorUid: 'nat', texto: 'treino', midias: [], tipo: 'post', curtidas: [], comentariosCount: 0, criadoEm: AGORA, oculto: false, revisao: 'ok', publico: true };
+  await assertSucceeds(addDoc(collection(nat, 'posts'), { ...p, escolaId: 'liberdade', nucleoId: 'taynara' }));
+  await assertFails(addDoc(collection(nat, 'posts'), { ...p, escolaId: 'gracie-cg' }), 'post em outra escola');
+  await assertFails(addDoc(collection(nat, 'posts'), { ...p, nucleoId: 'gracie' }), 'post marcado no núcleo de outra escola');
+  await assertFails(addDoc(collection(nat, 'denuncias'), { denuncianteUid: 'nat', motivo: 'x', status: 'aberta', escolaId: 'gracie-cg' }));
+  await assertFails(addDoc(collection(nat, 'solicitacoes'), { tipo: 'exclusao_conta', solicitanteUid: 'nat', academiaId: 'gracie', status: 'pendente' }), 'pedido apontando núcleo de outra escola');
+  // Fundador da Liberdade: lê e mexe só na Liberdade
+  await assertSucceeds(getDocs(query(collection(profeta, 'usuarios'), L)));
+  await assertFails(getDocs(collection(profeta, 'usuarios')), 'lista sem filtro de escola');
+  await assertFails(getDoc(doc(profeta, 'usuarios', 'rafa')), 'cadastro de outra escola');
+  await assertFails(updateDoc(doc(profeta, 'usuarios', 'rafa'), { nome: 'Invadido' }));
+  await assertFails(getDocs(collection(profeta, 'usuarios/rafa/avaliacoes')));
+  for (const [col, id] of [['presencas', 'presGracie'], ['pagamentos', 'pagGracie'], ['solicitacoes', 'solGracie'], ['denuncias', 'denGracie'], ['auditoria', 'audGracie'], ['conversas', 'outro__rafa'], ['fotosCarteirinha', 'rafa'], ['beneficiarios', 'rafa'], ['posts', 'postGracie']]) {
+    await assertFails(getDoc(doc(profeta, col, id)), `${col} de outra escola`);
+  }
+  for (const col of ['presencas', 'pagamentos', 'solicitacoes', 'denuncias', 'auditoria', 'fotosCarteirinha']) {
+    await assertSucceeds(getDocs(query(collection(profeta, col), L, limit(10))), `${col}: lista da própria escola`);
+    await assertFails(getDocs(query(collection(profeta, col), limit(10))), `${col}: lista sem filtro`);
+  }
+  await assertSucceeds(getDocs(query(collection(profeta, 'auditoria'), L, orderBy('quando', 'desc'), limit(200))));
+  await assertSucceeds(getDocs(query(collection(profeta, 'posts'), L, where('revisao', '==', 'pendente'), limit(60))), 'moderação da própria escola');
+  await assertFails(updateDoc(doc(profeta, 'solicitacoes', 'solGracie'), { status: 'aprovado' }));
+  await assertFails(deleteDoc(doc(profeta, 'conversas', 'outro__rafa')));
+  await assertFails(setDoc(doc(profeta, 'presencas', 'pInv'), { uid: 'rafa', nucleoId: 'gracie', origem: 'manual', registradoPor: 'profeta', entradaEm: new Date() }), 'presença em núcleo de outra escola');
+  await assertSucceeds(setDoc(doc(profeta, 'presencas', 'pOk'), { uid: 'nat', nucleoId: 'taynara', origem: 'manual', registradoPor: 'profeta', entradaEm: new Date(), escolaId: 'liberdade' }));
+  await assertFails(setDoc(doc(profeta, 'conversas', 'nucleo_gracie'), { tipo: 'grupo', nucleoId: 'gracie', participantes: ['profeta'] }), 'grupo de núcleo de outra escola');
+  // Fundador da outra escola (CT): mesmos poderes, só na escola dele
+  await assertSucceeds(getDoc(doc(rafa, 'presencas', 'presGracie')));
+  await assertFails(getDocs(query(collection(rafa, 'usuarios'), L)), 'CT não lista cadastros da Liberdade');
+  await assertFails(getDoc(doc(rafa, 'usuarios', 'nat')));
+  await assertFails(setDoc(doc(rafa, 'config', 'brasoes'), { ativos: [] }), 'config ainda é da escola nº 1');
+  await assertSucceeds(setDoc(doc(profeta, 'config', 'textos'), { x: 1 }));
+  // Dado ainda sem escola (antes da migração m11) não aparece para o Fundador; o Admin vê tudo
+  await assertSucceeds(getDoc(doc(db('admin'), 'presencas', 'presGracie')));
+  await assertSucceeds(getDocs(collection(db('admin'), 'usuarios')));
 });

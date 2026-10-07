@@ -72,6 +72,22 @@ export async function comMinhaEscola(dados) {
   if (!e) throw new Error('Sua conta ainda está sendo preparada. Tente de novo em alguns segundos.');
   return { ...dados, escolaId: e };
 }
+// Coleções de GESTÃO e da Rede (1c partes 2 e 3): as regras só deixam o Fundador (e a Rede)
+// ver a PRÓPRIA escola, então toda lista "do grupo todo" sai filtrada pela escola de quem
+// está logado. O professor responsável já é isolado pelo núcleo — o filtro a mais não muda nada para ele.
+export const COLECOES_GESTAO = new Set(['usuarios', 'presencas', 'solicitacoes', 'pagamentos', 'nucleos', 'perfisPublicos', 'posts',
+  'denuncias', 'auditoria', 'conversas', 'fotosCarteirinha']);
+const temEscola = (col) => COLECOES_DA_ESCOLA.has(col) || COLECOES_GESTAO.has(col);
+// [where('escolaId', '==', minha escola)] — ou [] sem login/sem claim (aí vale o comportamento antigo).
+export async function ondeEscola() {
+  const e = await minhaEscolaId();
+  return e ? [where('escolaId', '==', e)] : [];
+}
+// Registro novo da Rede/gestão: leva a escola quando já se sabe (sem travar a gravação se ainda não).
+export async function talvezComEscola(dados) {
+  const e = await minhaEscolaId().catch(() => null);
+  return e && dados && dados.escolaId === undefined ? { ...dados, escolaId: e } : dados;
+}
 // Consulta de uma coleção de escola, já com where('escolaId', '==', minha escola) + filtros extras.
 // Sem escola (não logado / login ainda sem claim) devolve null: quem chama trata como "lista vazia".
 export async function consultaDaEscola(col, ...filtros) {
@@ -274,24 +290,28 @@ export const listar = async (col) => {
     const q = await consultaDaEscola(col);
     return q ? (await getDocs(q)).docs.map((d) => ({ id: d.id, ...d.data() })) : [];
   }
-  return (await getDocs(collection(db, col))).docs.map((d) => ({ id: d.id, ...d.data() }));
+  const fe = COLECOES_GESTAO.has(col) ? await ondeEscola() : [];
+  return (await getDocs(fe.length ? query(collection(db, col), ...fe) : collection(db, col))).docs.map((d) => ({ id: d.id, ...d.data() }));
 };
 // "Do aparelho primeiro": o que o Firestore já guardou da última visita, na hora
 // (0 leituras, sem esperar a internet). A tela pinta com isso e troca pelo dado
 // do servidor logo em seguida. Devolve [] quando ainda não há nada guardado.
 export const listarDoCache = async (col, academiaId = null) => {
   try {
-    const q = academiaId ? query(collection(db, col), where('academiaId', '==', academiaId)) : collection(db, col);
+    const fe = temEscola(col) ? await ondeEscola() : [];
+    const filtros = [...fe, ...(academiaId ? [where('academiaId', '==', academiaId)] : [])];
+    const q = filtros.length ? query(collection(db, col), ...filtros) : collection(db, col);
     return (await getDocsFromCache(q)).docs.map((d) => ({ id: d.id, ...d.data() }));
   } catch (e) { return []; }
 };
 // Consulta simples por igualdade (provável pelas regras quando o campo é o
 // mesmo que a regra confere — ex.: instrutorUid == uid do instrutor logado).
 export const listarOnde = async (col, campo, valor) =>
-  (await getDocs(query(collection(db, col), where(campo, '==', valor)))).docs.map((d) => ({ id: d.id, ...d.data() }));
+  (await getDocs(query(collection(db, col), ...(temEscola(col) ? await ondeEscola() : []), where(campo, '==', valor)))).docs.map((d) => ({ id: d.id, ...d.data() }));
 export const listarPorAcademia = async (col, academiaId, tamanho = 50, cursor = null) => {
-  let q = query(collection(db, col), where('academiaId', '==', academiaId), limit(tamanho));
-  if (cursor) q = query(collection(db, col), where('academiaId', '==', academiaId), startAfter(cursor), limit(tamanho));
+  const fe = temEscola(col) ? await ondeEscola() : [];
+  let q = query(collection(db, col), ...fe, where('academiaId', '==', academiaId), limit(tamanho));
+  if (cursor) q = query(collection(db, col), ...fe, where('academiaId', '==', academiaId), startAfter(cursor), limit(tamanho));
   const snap = await getDocs(q);
   return { itens: snap.docs.map((d) => ({ id: d.id, ...d.data() })), ultimoDoc: snap.docs[snap.docs.length - 1] || null };
 };
@@ -299,7 +319,8 @@ export const listarPorAcademia = async (col, academiaId, tamanho = 50, cursor = 
 // economia de leituras nos relatórios do painel).
 export const contar = async (col, condicoes = []) => {
   let q = collection(db, col);
-  if (condicoes.length) q = query(q, ...condicoes.map(([campo, op, valor]) => where(campo, op, valor)));
+  const fe = temEscola(col) ? await ondeEscola() : [];
+  if (condicoes.length || fe.length) q = query(q, ...fe, ...condicoes.map(([campo, op, valor]) => where(campo, op, valor)));
   const snap = await getCountFromServer(q);
   return snap.data().count;
 };
@@ -321,13 +342,15 @@ export const historicoAvaliacoes = async (uid) =>
   (await getDocs(query(collection(db, 'usuarios', uid, 'avaliacoes'), orderBy('criadoEm', 'desc')))).docs.map((d) => d.data());
 
 // ===== Núcleos/academias (leitura pública p/ aparecer na inscrição) =====
+// Logado: só os núcleos da própria escola. Sem login (inscrição): todos os ativos — a
+// inscrição por escola (atletapay.com.br/<escola>) entra na etapa 2.
 export const listarNucleosAtivos = async () =>
-  (await getDocs(query(collection(db, 'nucleos'), where('ativo', '==', true)))).docs.map((d) => ({ id: d.id, ...d.data() }));
+  (await getDocs(query(collection(db, 'nucleos'), ...(await ondeEscola()), where('ativo', '==', true)))).docs.map((d) => ({ id: d.id, ...d.data() }));
 
 // ===== Solicitações (mestre/professor → admin; e aluno → mestre/admin no
 // caso de vínculo de parentesco) =====
-export const criarSolicitacao = (dados) =>
-  addDoc(collection(db, 'solicitacoes'), { ...dados, status: 'pendente', criadoEm: new Date().toISOString() });
+export const criarSolicitacao = async (dados) =>
+  addDoc(collection(db, 'solicitacoes'), await talvezComEscola({ ...dados, status: 'pendente', criadoEm: new Date().toISOString() }));
 // Sem orderBy nas consultas de solicitações: "where + orderBy em outro campo"
 // exige um índice composto no Firestore, e sem ele a consulta inteira falha
 // ("The query requires an index") — era isso que derrubava a aba de
@@ -343,7 +366,7 @@ export const minhasSolicitacoes = async (uid) =>
 // Solicitações pendentes de um núcleo (usado pelo mestre/professor para
 // aprovar vínculos de parentesco dos próprios alunos, sem precisar do admin).
 export const solicitacoesPendentesDoNucleo = async (academiaId) =>
-  ordenarPorCriadoEmDesc((await getDocs(query(collection(db, 'solicitacoes'),
+  ordenarPorCriadoEmDesc((await getDocs(query(collection(db, 'solicitacoes'), ...(await ondeEscola()),
     where('academiaId', '==', academiaId), where('status', '==', 'pendente')))).docs);
 
 // Vínculo de parentesco entre dois cadastros de aluno já existentes (ex.: mãe
@@ -369,7 +392,7 @@ export async function aprovarVinculoFamilia(alunoUid, alunoRelacionadoUid) {
 // (bloco solicitacoes): o professor de DESTINO não é o solicitante nem o
 // gestor do núcleo de origem, então sem ela a consulta é negada.
 export const transferenciasPendentesParaDestino = async (destinoId) =>
-  ordenarPorCriadoEmDesc((await getDocs(query(collection(db, 'solicitacoes'),
+  ordenarPorCriadoEmDesc((await getDocs(query(collection(db, 'solicitacoes'), ...(await ondeEscola()),
     where('tipo', '==', 'transferencia'), where('dadosPedido.destinoId', '==', destinoId), where('status', '==', 'pendente')))).docs);
 
 // ===== Avisos (notificações dentro do app) =====
@@ -395,11 +418,11 @@ export const listarMateriaisFormacao = () => listar('materiaisFormacao');
 export const removerMaterialFormacao = (id) => deleteDoc(doc(db, 'materiaisFormacao', id));
 
 // ===== Financeiro manual (sem API de pagamento) =====
-export const lancarPagamento = (dados) => addDoc(collection(db, 'pagamentos'), { ...dados, criadoEm: new Date().toISOString() });
+export const lancarPagamento = async (dados) => addDoc(collection(db, 'pagamentos'), await talvezComEscola({ ...dados, criadoEm: new Date().toISOString() }));
 export const pagamentosDoAluno = async (alunoId) =>
-  (await getDocs(query(collection(db, 'pagamentos'), where('alunoId', '==', alunoId)))).docs.map((d) => ({ id: d.id, ...d.data() }));
+  (await getDocs(query(collection(db, 'pagamentos'), ...(await ondeEscola()), where('alunoId', '==', alunoId)))).docs.map((d) => ({ id: d.id, ...d.data() }));
 export const listarPagamentosDoNucleo = async (academiaId) =>
-  (await getDocs(query(collection(db, 'pagamentos'), where('academiaId', '==', academiaId)))).docs.map((d) => ({ id: d.id, ...d.data() }));
+  (await getDocs(query(collection(db, 'pagamentos'), ...(await ondeEscola()), where('academiaId', '==', academiaId)))).docs.map((d) => ({ id: d.id, ...d.data() }));
 export const marcarPagamento = (id, pago) => updateDoc(doc(db, 'pagamentos', id), { pago, pagoEm: pago ? new Date().toISOString() : null });
 export const removerPagamento = (id) => deleteDoc(doc(db, 'pagamentos', id));
 
@@ -441,7 +464,7 @@ export function calcularEstrelaViva(academiaGerenciadaId, todosUsuarios) {
 // dentro do próprio grupo — mostrados como card cinza "transferido ou
 // inativo" no roster de origem, sem contar pra estrela.
 export const listarTransferidosDoNucleo = async (academiaGerenciadaId) => {
-  const snap = await getDocs(query(collection(db, 'usuarios'), where('academiaAnteriorId', '==', academiaGerenciadaId)));
+  const snap = await getDocs(query(collection(db, 'usuarios'), ...(await ondeEscola()), where('academiaAnteriorId', '==', academiaGerenciadaId)));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((u) => u.academiaId !== academiaGerenciadaId);
 };
 
@@ -490,7 +513,7 @@ export const marcarRateioPago = (id, pago) => updateDoc(doc(db, 'rateios', id), 
 
 // ===== Presenças (check-in por proximidade) =====
 export const presencasDoUsuario = async (uid, max = 200) => {
-  const snap = await getDocs(query(collection(db, 'presencas'), where('uid', '==', uid), limit(max)));
+  const snap = await getDocs(query(collection(db, 'presencas'), ...(await ondeEscola()), where('uid', '==', uid), limit(max)));
   const itens = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   itens.sort((a, b) => (b.entradaEm?.toMillis?.() || 0) - (a.entradaEm?.toMillis?.() || 0));
   return itens;
@@ -500,12 +523,12 @@ export const presencasDoUsuario = async (uid, max = 200) => {
 // pelo Face ID em visita) — a presença fica gravada no núcleo de origem dele
 // (nucleoId) com nucleoVisitadoId apontando pra cá.
 export const presencasVisitantesDoNucleo = async (nucleoId, max = 100) => {
-  const snap = await getDocs(query(collection(db, 'presencas'), where('nucleoVisitadoId', '==', nucleoId), limit(max)));
+  const snap = await getDocs(query(collection(db, 'presencas'), ...(await ondeEscola()), where('nucleoVisitadoId', '==', nucleoId), limit(max)));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => p.nucleoId !== nucleoId);
 };
 
 export const presencasDoNucleo = async (nucleoId, max = 300) => {
-  const snap = await getDocs(query(collection(db, 'presencas'), where('nucleoId', '==', nucleoId), limit(max)));
+  const snap = await getDocs(query(collection(db, 'presencas'), ...(await ondeEscola()), where('nucleoId', '==', nucleoId), limit(max)));
   const itens = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   itens.sort((a, b) => (b.entradaEm?.toMillis?.() || 0) - (a.entradaEm?.toMillis?.() || 0));
   return itens;

@@ -7,7 +7,7 @@
    Regra de ouro: todo número vem de leitura real do Firestore; sem dado, "—". */
 import {
   db, collection, doc, query, where, orderBy, limit, getDocs, updateDoc, addDoc, deleteDoc, setDoc, arrayUnion,
-  listar, listarPagamentosDoNucleo, lancarPagamento, pedirAoServidor, getDoc, comMinhaEscola,
+  listar, listarPagamentosDoNucleo, lancarPagamento, pedirAoServidor, getDoc, comMinhaEscola, ondeEscola,
 } from './firebase.js';
 import { ESCOLA, CORDOES_ADULTO, prontidao, proximoCordao, coresDoCordao, META_PRONTIDAO, escadaDe } from './escola.js';
 import { situacao as situacaoCarteirinha, textoValidade } from './carteirinha-comum.js';
@@ -117,7 +117,7 @@ async function presencasPeriodo(nid, dias) {
     const k = `${id}:${dias}`;
     if (cachePres.has(k)) return cachePres.get(k);
     try {
-      const s = await getDocs(query(collection(db, 'presencas'), where('nucleoId', '==', id), where('entradaEm', '>=', desde), limit(3000)));
+      const s = await getDocs(query(collection(db, 'presencas'), where('nucleoId', '==', id), ...(await ondeEscola()), where('entradaEm', '>=', desde), limit(3000)));
       const itens = s.docs.map((d) => ({ id: d.id, ...d.data() })); cachePres.set(k, itens); return itens;
     } catch (e) { console.warn('presenças', id, e && e.message); return []; }
   }));
@@ -558,7 +558,7 @@ async function renderAuditoria() {
   const box = el('gsAuditoria'); if (!box) return;
   box.innerHTML = '<div class="card-padrao"><p><i class="fas fa-spinner fa-spin"></i> Carregando…</p></div>';
   let itens = [];
-  try { itens = (await getDocs(query(collection(db, 'auditoria'), orderBy('quando', 'desc'), limit(200)))).docs.map((d) => ({ id: d.id, ...d.data() })); }
+  try { itens = (await getDocs(query(collection(db, 'auditoria'), ...(await ondeEscola()), orderBy('quando', 'desc'), limit(200)))).docs.map((d) => ({ id: d.id, ...d.data() })); }
   catch (e) { box.innerHTML = '<div class="empty-state"><i class="fas fa-lock"></i>Auditoria indisponível (só Admin Master e Fundador, e depois que as funções do servidor forem publicadas).</div>'; return; }
   const ICONE = { usuarios: 'fa-user', posts: 'fa-image', pagamentos: 'fa-sack-dollar', nucleos: 'fa-building', config: 'fa-sliders', solicitacoes: 'fa-clipboard-check', presencas: 'fa-location-dot', eventos: 'fa-calendar', avisos: 'fa-bullhorn' };
   const desenhar = (filtro) => {
@@ -578,7 +578,7 @@ async function renderAuditoria() {
 async function renderLGPD() {
   const box = el('gsLGPD'); if (!box) return;
   let pedidos = [];
-  try { pedidos = (await getDocs(query(collection(db, 'solicitacoes'), where('tipo', '==', 'exclusao_conta'), limit(100)))).docs.map((d) => ({ id: d.id, ...d.data() })); } catch (e) { pedidos = []; }
+  try { pedidos = (await getDocs(query(collection(db, 'solicitacoes'), ...(await ondeEscola()), where('tipo', '==', 'exclusao_conta'), limit(100)))).docs.map((d) => ({ id: d.id, ...d.data() })); } catch (e) { pedidos = []; }
   pedidos.sort((a, b) => String(b.criadoEm).localeCompare(String(a.criadoEm)));
   const pend = pedidos.filter((p) => p.status === 'pendente');
   box.innerHTML = `

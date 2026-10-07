@@ -29,7 +29,7 @@ import {
 db, storage, observarSessao, buscar, atualizar, listar, contar, presencasDoUsuario, souFundador, arquivoParaDataUrlComprimido,
 collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, limit, startAfter,
 arrayUnion, arrayRemove, increment, onSnapshot, storageRef, uploadString, uploadBytes, getDownloadURL, salvarFotoPerfil,
-consultaDaEscola, comMinhaEscola,
+consultaDaEscola, comMinhaEscola, ondeEscola, talvezComEscola,
 } from './firebase.js';
 import { escapeHTML } from './shared.js';
 import { ESCOLA, CORDOES_ADULTO, CORDOES_KIDS, ORDEM_CORDOES, linkMapa as linkMapaEscola, proximoCordao as proximoCordaoEscola } from './escola.js';
@@ -147,7 +147,7 @@ try { const s = await getDoc(doc(db, 'perfisPublicos', alvoUid)); const v = s.ex
 catch (e) { return null; }
 }
 async function pubsDeNucleo(academiaId, max = 60) {
-const snap = await getDocs(query(collection(db, 'perfisPublicos'), where('academiaId', '==', academiaId), limit(max)));
+const snap = await getDocs(query(collection(db, 'perfisPublicos'), ...(await ondeEscola()), where('academiaId', '==', academiaId), limit(max)));
 const lista = snap.docs.map((d) => ({ id: d.id, ...d.data() })); lista.forEach((p) => pubCache.set(p.id, p)); return lista;
 }
 const nucleoDe = (id) => nucleos.find((n) => n.id === id) || null;
@@ -504,7 +504,8 @@ return true;
 // primeira página entram também os meus 10 mais recentes (inclusive os que
 // estão em revisão ou ocultados, com o aviso).
 async function carregarPosts(mais = false) {
-const filtro = [where('publico', '==', true), orderBy('criadoEm', 'desc')];
+// Multi-escola: o feed é da escola de quem está logado (índice escolaId + publico + criadoEm).
+const filtro = [...(await ondeEscola()), where('publico', '==', true), orderBy('criadoEm', 'desc')];
 let q = query(collection(db, 'posts'), ...filtro, limit(PAGINA));
 if (mais && ultimoDoc) q = query(collection(db, 'posts'), ...filtro, startAfter(ultimoDoc), limit(PAGINA));
 // Públicos e "os meus" saem juntos (antes um esperava o outro).
@@ -619,7 +620,7 @@ if (m === 'fechar') return;
 const rot = (MOTIVOS_DENUNCIA.find((x) => x.id === m) || {}).rotulo || 'Outro';
 const extra = m === 'outro' ? (prompt('Conte em poucas palavras o que aconteceu:') || '') : '';
 try {
-await addDoc(collection(db, 'denuncias'), { ...alvo, denuncianteUid: uid, denuncianteNome: perfil.nome || '', motivoId: m, motivo: `${rot}${extra ? `: ${extra}` : ''}`.slice(0, 300), criadoEm: new Date().toISOString(), status: 'aberta' });
+await addDoc(collection(db, 'denuncias'), await talvezComEscola({ ...alvo, denuncianteUid: uid, denuncianteNome: perfil.nome || '', motivoId: m, motivo: `${rot}${extra ? `: ${extra}` : ''}`.slice(0, 300), criadoEm: new Date().toISOString(), status: 'aberta' }));
 toast('Denúncia enviada. Obrigado por cuidar da rede.');
 } catch (e) { toast('Não foi possível enviar a denúncia.'); }
 });
@@ -638,7 +639,7 @@ if (!m) { fechar(); return; }
 const termo = m[2].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/_/g, ' ');
 timer = setTimeout(async () => {
 let pessoas = [];
-try { pessoas = (await getDocs(query(collection(db, 'perfisPublicos'), where('nomeBusca', '>=', termo), where('nomeBusca', '<=', termo + '\uf8ff'), limit(6)))).docs.map((d) => ({ id: d.id, ...d.data() })).filter((x) => x.id !== uid); } catch (e) { pessoas = []; }
+try { pessoas = (await getDocs(query(collection(db, 'perfisPublicos'), ...(await ondeEscola()), where('nomeBusca', '>=', termo), where('nomeBusca', '<=', termo + '\uf8ff'), limit(6)))).docs.map((d) => ({ id: d.id, ...d.data() })).filter((x) => x.id !== uid); } catch (e) { pessoas = []; }
 fechar(); if (!pessoas.length) return;
 caixa = document.createElement('div'); caixa.className = 'mencao-sugestoes'; caixa.setAttribute('role', 'listbox');
 caixa.innerHTML = pessoas.map((x) => `<button type="button" role="option" data-uid="${escapeHTML(x.id)}">${avatarHTML(x, 'mini')}<span><b>${escapeHTML(x.nome)}</b><small>${escapeHTML([x.cordaoAtual, nomeCurtoNucleo(x.academiaNome)].filter(Boolean).join(' · '))}</small></span></button>`).join('');
@@ -773,7 +774,7 @@ document.body.appendChild(f); return f;
 /* ===================== PERFIL DO ATLETA ===================== */
 let perfilAba = 'momentos';
 async function postsDoAutor(alvoUid) {
-const filtros = [where('autorUid', '==', alvoUid)];
+const filtros = [...(await ondeEscola()), where('autorUid', '==', alvoUid)];
 if (alvoUid !== uid && !ehModerador()) filtros.push(where('publico', '==', true));
 const snap = await getDocs(query(collection(db, 'posts'), ...filtros, limit(90)));
 return snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm));
@@ -1066,7 +1067,7 @@ const n = nucleoDe(id) || await buscar('nucleos', id);
 if (!n) { vista.innerHTML = '<div class="vazio"><i class="fas fa-people-group"></i><b>Núcleo não encontrado</b></div>'; return; }
 el('tituloTopo').textContent = n.nome;
 const [snapPosts, atletas, prof] = await Promise.all([
-getDocs(query(collection(db, 'posts'), where('nucleoId', '==', id), ...(gerencia(id) || ehModerador() ? [] : [where('publico', '==', true)]), limit(90))),
+getDocs(query(collection(db, 'posts'), ...(await ondeEscola()), where('nucleoId', '==', id), ...(gerencia(id) || ehModerador() ? [] : [where('publico', '==', true)]), limit(90))),
 pubsDeNucleo(id, 80), n.professorUid ? pubDe(n.professorUid) : Promise.resolve(null),
 ]);
 const aprNucleo = n.professorUid ? await apresentacaoDe(n.professorUid) : null;
@@ -1126,7 +1127,7 @@ const box = el('resultadoBusca'); const q = termo.toLowerCase().normalize('NFD')
 if (!q) { box.innerHTML = ''; return; }
 if (q.startsWith('#')) { ir(`tag/${q.slice(1)}`); return; }
 const nucs = nucleos.filter((n) => String(n.nome).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').includes(q));
-let pessoas = []; try { pessoas = (await getDocs(query(collection(db, 'perfisPublicos'), where('nomeBusca', '>=', q), where('nomeBusca', '<=', q + ''), limit(12)))).docs.map((d) => ({ id: d.id, ...d.data() })); } catch (e) { /* ok */ }
+let pessoas = []; try { pessoas = (await getDocs(query(collection(db, 'perfisPublicos'), ...(await ondeEscola()), where('nomeBusca', '>=', q), where('nomeBusca', '<=', q + ''), limit(12)))).docs.map((d) => ({ id: d.id, ...d.data() })); } catch (e) { /* ok */ }
 box.innerHTML = `<div class="card">${nucs.map((n) => `<div class="pessoa"><span class="avatar" style="border-radius:12px;background:${corAvatar(n.id)}"><i class="fas fa-people-group"></i></span><button type="button" class="q" data-nucleo="${escapeHTML(n.id)}"><b>${escapeHTML(n.nome)}</b><small>núcleo</small></button></div>`).join('')}${pessoas.map((p) => `<div class="pessoa">${anelHTML(p)}<button type="button" class="q" data-perfil="${p.id}"><b>${escapeHTML(p.nome)}</b><small>${[p.cordaoAtual, nomeCurtoNucleo(p.academiaNome)].filter(Boolean).map(escapeHTML).join(' · ')}</small></button></div>`).join('') || (nucs.length ? '' : '<p class="contador" style="padding:6px">Ninguém encontrado.</p>')}</div>`;
 }
 }
@@ -1317,7 +1318,7 @@ criadoEm: new Date().toISOString(), curtidas: [], comentariosCount: 0,
 ...(composicao.eventoId ? { eventoId: composicao.eventoId, eventoNome: composicao.eventoNome } : {}),
 ...(comoNucleo ? { comoNucleo: true } : {}),
 };
-await addDoc(collection(db, 'posts'), docPost);
+await addDoc(collection(db, 'posts'), await talvezComEscola(docPost));
 posts = []; ultimoDoc = null; filtroFeed = 'rede';
 toast(precisaRevisao ? 'Publicado! O responsável do núcleo vai revisar as fotos.' : ESCOLA.frasePublicado);
 ir('feed');
@@ -1335,11 +1336,11 @@ const id = chaveDireta(uid, pub.id);
 try {
 const s = await getDoc(doc(db, 'conversas', id));
 if (!s.exists()) {
-await setDoc(doc(db, 'conversas', id), {
+await setDoc(doc(db, 'conversas', id), await talvezComEscola({
 tipo: 'direta', participantes: [uid, pub.id], nomes: { [uid]: perfil.nome || '', [pub.id]: pub.nome || '' }, fotos: { [uid]: perfil.fotoUrl || '', [pub.id]: pub.fotoUrl || '' },
 nucleosIds: Array.from(new Set([perfil.academiaId, pub.academiaId].filter(Boolean))), envolveMenor: !!(souMenor() || pub.menor),
 criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString(), ultimaMsg: '', ultimoAutor: null,
-});
+}));
 }
 ir(`mensagens/${id}`);
 } catch (e) { console.error(e); toast(pub.menor || souMenor() ? 'Conversa não permitida: menores só falam com o próprio núcleo.' : 'Não foi possível abrir a conversa (regras do Firestore).'); }
@@ -1361,7 +1362,7 @@ return Array.from(mapa.values()).sort((a, b) => new Date(b.atualizadoEm || 0) - 
 async function garantirGrupoDoNucleo() {
 if (!ehGestor()) return;
 const nid = meuNucleoGerenciado(); const id = `nucleo_${nid}`;
-try { const s = await getDoc(doc(db, 'conversas', id)); if (!s.exists()) await setDoc(doc(db, 'conversas', id), { tipo: 'grupo', nucleoId: nid, nome: (nucleoDe(nid) || {}).nome || 'Meu núcleo', participantes: [uid], nucleosIds: [nid], criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString(), ultimaMsg: 'Grupo do núcleo criado', ultimoAutor: uid }); } catch (e) { /* ok */ }
+try { const s = await getDoc(doc(db, 'conversas', id)); if (!s.exists()) await setDoc(doc(db, 'conversas', id), await talvezComEscola({ tipo: 'grupo', nucleoId: nid, nome: (nucleoDe(nid) || {}).nome || 'Meu núcleo', participantes: [uid], nucleosIds: [nid], criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString(), ultimaMsg: 'Grupo do núcleo criado', ultimoAutor: uid })); } catch (e) { /* ok */ }
 }
 const acompanho = (c) => c.tipo === 'direta' && !(c.participantes || []).includes(uid) && (c.responsaveisIds || []).includes(uid);
 function nomeConversa(c) { if (c.tipo === 'grupo') return c.nome || 'Grupo'; if (acompanho(c)) return (c.participantes || []).map((u) => String((c.nomes || {})[u] || '').split(' ')[0]).join(' e '); const outro = (c.participantes || []).find((p) => p !== uid) || uid; return (c.nomes || {})[outro] || 'Conversa'; }
@@ -1380,7 +1381,7 @@ vista.querySelectorAll('[data-conv]').forEach((b) => b.addEventListener('click',
 let timer = null;
 el('buscaConv').addEventListener('input', (e) => { clearTimeout(timer); timer = setTimeout(async () => {
 const q = e.target.value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim(); const box = el('resConv'); if (!q) { box.innerHTML = ''; return; }
-try { const pessoas = (await getDocs(query(collection(db, 'perfisPublicos'), where('nomeBusca', '>=', q), where('nomeBusca', '<=', q + ''), limit(10)))).docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => p.id !== uid);
+try { const pessoas = (await getDocs(query(collection(db, 'perfisPublicos'), ...(await ondeEscola()), where('nomeBusca', '>=', q), where('nomeBusca', '<=', q + ''), limit(10)))).docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => p.id !== uid);
 box.innerHTML = `<div class="card">${pessoas.map((p) => `<div class="pessoa">${anelHTML(p)}<button type="button" class="q" data-abrir-direta="${p.id}"><b>${escapeHTML(p.nome)}</b><small>${[p.cordaoAtual, nomeCurtoNucleo(p.academiaNome)].filter(Boolean).map(escapeHTML).join(' · ')}</small></button><i class="far fa-comment" style="color:var(--teal)"></i></div>`).join('') || '<p class="contador" style="padding:6px">Ninguém encontrado.</p>'}</div>`;
 box.querySelectorAll('[data-abrir-direta]').forEach((b) => b.addEventListener('click', () => abrirDireta(pessoas.find((p) => p.id === b.dataset.abrirDireta))));
 } catch (err) { /* ok */ }
@@ -1426,11 +1427,12 @@ if (!(ehModerador() || ehGestor())) { ir('feed'); return; }
 el('tituloTopo').textContent = 'Moderação';
 const pegar = async (q) => { try { return (await getDocs(q)).docs.map((d) => ({ id: d.id, ...d.data() })); } catch (e) { console.warn('moderação', e && e.message); return []; } };
 const col = collection(db, 'posts');
+const fe = await ondeEscola(); // Fundador: só a própria escola (as regras exigem o filtro)
 let pendentes = []; let ocultos = []; let denuncias = [];
 if (ehModerador()) {
-pendentes = await pegar(query(col, where('revisao', '==', 'pendente'), limit(60)));
-if (ehAdmin()) ocultos = await pegar(query(col, where('oculto', '==', true), limit(40)));
-denuncias = await pegar(query(collection(db, 'denuncias'), where('status', '==', 'aberta'), limit(60)));
+pendentes = await pegar(query(col, ...fe, where('revisao', '==', 'pendente'), limit(60)));
+if (ehAdmin()) ocultos = await pegar(query(col, ...fe, where('oculto', '==', true), limit(40)));
+denuncias = await pegar(query(collection(db, 'denuncias'), ...fe, where('status', '==', 'aberta'), limit(60)));
 } else {
 const mid = meuNucleoGerenciado();
 const [a, b] = await Promise.all([pegar(query(col, where('revisao', '==', 'pendente'), where('autorAcademiaId', '==', mid), limit(60))), pegar(query(col, where('revisao', '==', 'pendente'), where('nucleoId', '==', mid), limit(60)))]);
@@ -1509,7 +1511,7 @@ async function renderAlbum(id, vista) {
 let ev = null; try { ev = await buscar('eventos', id); } catch (e) { ev = null; }
 el('tituloTopo').textContent = ev ? `Álbum · ${ev.nome || 'evento'}` : 'Álbum';
 const pegar = async (q) => { try { return (await getDocs(q)).docs.map((d) => ({ id: d.id, ...d.data() })); } catch (e) { return []; } };
-const [pub, meus] = await Promise.all([pegar(query(collection(db, 'posts'), where('eventoId', '==', id), where('publico', '==', true), limit(120))), pegar(query(collection(db, 'posts'), where('eventoId', '==', id), where('autorUid', '==', uid), limit(40)))]);
+const [pub, meus] = await Promise.all([pegar(query(collection(db, 'posts'), ...(await ondeEscola()), where('eventoId', '==', id), where('publico', '==', true), limit(120))), pegar(query(collection(db, 'posts'), where('eventoId', '==', id), where('autorUid', '==', uid), limit(40)))]);
 const m = new Map(); pub.concat(meus).forEach((p) => m.set(p.id, p));
 const lista = Array.from(m.values()).filter((p) => midiasDe(p).length).sort((a, b) => String(b.criadoEm).localeCompare(String(a.criadoEm)));
 guardarAvulsos(lista);

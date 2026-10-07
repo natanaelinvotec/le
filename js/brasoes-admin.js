@@ -10,7 +10,7 @@ Quem entra: Admin Master, Fundador (acessoGeral) e responsáveis de núcleo
 - Presidente do Grupo: ninguém concede — travado em config.presidenteUid.
 Fontes: perfisPublicos (contagem real de quem já tem cada brasão e ranking),
 usuarios (concessões manuais — campo brasoesManuais), config/brasoes. */
-import { db, observarSessao, buscar, listar, listarPorAcademia, atualizar, souFundador, collection, doc, getDocs, setDoc, updateDoc, deleteField, query, where, limit } from './firebase.js';
+import { db, observarSessao, buscar, listar, listarPorAcademia, atualizar, souFundador, collection, doc, getDocs, setDoc, updateDoc, deleteField, query, where, limit, ondeEscola } from './firebase.js';
 import { escapeHTML, sanitizeInput } from './shared.js';
 import { BRASOES, SERIES, avaliar, textoMetrica, urlThumb, urlPng, ehManual, porId, podeConceder, ehPresidente } from './brasoes.js?v=20261006';
 
@@ -36,7 +36,7 @@ if (ehModerador()) {
 [pubs, usuarios] = await Promise.all([listar('perfisPublicos').catch(() => []), listar('usuarios').catch(() => [])]);
 } else {
 const [ps, us] = await Promise.all([
-getDocs(query(collection(db, 'perfisPublicos'), where('academiaId', '==', meuNucleo()), limit(300))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch(() => []),
+ondeEscola().then((fe) => getDocs(query(collection(db, 'perfisPublicos'), ...fe, where('academiaId', '==', meuNucleo()), limit(300)))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch(() => []),
 listarPorAcademia('usuarios', meuNucleo(), 300).then((r) => r.itens).catch(() => []),
 ]);
 pubs = ps; usuarios = us;

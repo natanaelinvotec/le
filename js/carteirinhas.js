@@ -8,7 +8,7 @@ aqui é só a tela. Ações:
   • enviar a foto pelo atleta (já entra aprovada);
   • marcar bolsista (carteirinha sem vencimento) e emitir as que faltam. */
 import {
-  observarSessao, db, storage, storageRef, getDownloadURL, doc, getDoc, getDocs, setDoc, updateDoc, collection, query, where, limit, enviarFoto,
+  observarSessao, db, storage, storageRef, getDownloadURL, doc, getDoc, getDocs, setDoc, updateDoc, collection, query, where, limit, enviarFoto, ondeEscola,
 } from './firebase.js';
 import { coresDoCordao } from './escola.js';
 import { esc, situacao, textoValidade, iniciais, faixas, linkVerificacao, prepararFoto, ehAtleta } from './carteirinha-comum.js';
@@ -64,12 +64,14 @@ observarSessao(async (user) => {
 
 async function carregar() {
   pagina.innerHTML = '<div class="carregando"><span class="giro" aria-hidden="true"></span><p>Carregando os atletas…</p></div>';
+  // Fundador: as regras só liberam a própria escola — por isso o filtro de escola em todas.
+  const fe = await ondeEscola();
   const [su, sf, sg] = await Promise.all([
-    getDocs(query(collection(db, 'usuarios'), where('academiaId', '==', nucleoId), limit(600))),
-    getDocs(query(collection(db, 'fotosCarteirinha'), where('academiaId', '==', nucleoId), limit(600))),
+    getDocs(query(collection(db, 'usuarios'), ...fe, where('academiaId', '==', nucleoId), limit(600))),
+    getDocs(query(collection(db, 'fotosCarteirinha'), ...fe, where('academiaId', '==', nucleoId), limit(600))),
     // Admin/Fundador: o mestre/professor que ADMINISTRA este núcleo também aparece
     // (ele treina em outro núcleo, mas a carteirinha dele é gerida daqui também).
-    podeEscolherNucleo ? getDocs(query(collection(db, 'usuarios'), where('academiaGerenciadaId', '==', nucleoId), limit(20))) : Promise.resolve({ docs: [] }),
+    podeEscolherNucleo ? getDocs(query(collection(db, 'usuarios'), ...fe, where('academiaGerenciadaId', '==', nucleoId), limit(20))) : Promise.resolve({ docs: [] }),
   ]);
   const vistos = new Set();
   // Todo mundo que treina tem carteirinha: aluno, instrutor, professor e mestre.
