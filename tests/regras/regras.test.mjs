@@ -84,6 +84,18 @@ test('responsável legal atualiza SÓ a ficha de atenção e inclusão do depend
   await assertSucceeds(updateDoc(doc(db('tay'), 'usuarios', 'kid'), { inclusao: { condicoes: ['TEA', 'TDAH'], apoios: [], observacoes: '' } }), 'o professor do núcleo ajusta no card Avaliar/Editar');
 });
 
+test('presença pela foto da turma: só o responsável do núcleo, até 7 dias atrás, nunca no futuro', async () => {
+  const DIA = 86400000;
+  const base = { uid: 'nat', alunoNome: 'Natanael', nucleoId: 'taynara', confirmadoAos30: true, origem: 'faceid-foto', registradoPor: 'tay' };
+  await assertSucceeds(setDoc(doc(db('tay'), 'presencas', 'ft1'), { ...base, entradaEm: new Date(), confirmadoEm: new Date() }));
+  await assertSucceeds(setDoc(doc(db('tay'), 'presencas', 'ft2'), { ...base, entradaEm: new Date(Date.now() - 6 * DIA), confirmadoEm: new Date() }), 'treino da semana passada');
+  await assertFails(setDoc(doc(db('tay'), 'presencas', 'ft3'), { ...base, entradaEm: new Date(Date.now() - 9 * DIA), confirmadoEm: new Date() }), 'mais de 8 dias, não');
+  await assertFails(setDoc(doc(db('tay'), 'presencas', 'ft4'), { ...base, entradaEm: new Date(Date.now() + 2 * DIA), confirmadoEm: new Date() }), 'no futuro, não');
+  await assertFails(setDoc(doc(db('tay'), 'presencas', 'ft5'), { ...base, entradaEm: AGORA, confirmadoEm: new Date() }), 'data como texto, não');
+  await assertFails(setDoc(doc(db('estranho'), 'presencas', 'ft6'), { ...base, registradoPor: 'estranho', entradaEm: new Date(), confirmadoEm: new Date() }), 'aluno comum não lança presença');
+  await assertFails(setDoc(doc(db('tay'), 'presencas', 'ft7'), { ...base, origem: 'foto', entradaEm: new Date(), confirmadoEm: new Date() }), 'origem desconhecida, não');
+});
+
 test('a pessoa não muda a própria graduação, idade nem total de brasões', async () => {
   await assertSucceeds(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { celular: '(67) 99999-0000' }));
   await assertFails(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { cordaoAtual: 'Mestre' }));

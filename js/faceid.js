@@ -20,6 +20,19 @@ Decisões importantes:
   e pode ser marcado manualmente — nunca é "chutado".
 - Registra uma presença por aluno por sessão de câmera, e nunca duas no mesmo
   dia pro mesmo núcleo (confere o histórico já carregado quando ele existe).
+
+Chamada pela FOTO DA TURMA (fim do treino), na mesma aba Presenças:
+- O professor envia (ou tira) a foto de formação da turma. A foto é lida só no
+  navegador — não é enviada nem gravada; só as presenças confirmadas vão ao banco.
+- Detecta todos os rostos (SSD MobileNet, melhor em foto de grupo; se não
+  carregar, o detector leve), compara com os descritores dos alunos do núcleo e
+  faz a atribuição 1-para-1 (o mesmo aluno nunca é marcado em dois rostos).
+- Mostra a lista para o professor CONFERIR: miniatura do rosto recortado da foto
+  ao lado da foto de cadastro, nome e semelhança. Seguros vêm marcados; parecidos
+  vêm desmarcados com "confira"; rosto não reconhecido ganha um seletor para
+  escolher o aluno. Alunos que não aparecem na foto podem ser marcados também.
+- Só ao tocar em "Confirmar presenças" grava presencas/{id} com origem
+  'faceid-foto' (as regras aceitam até 7 dias para trás, para a foto do treino de ontem).
 */
 
 import { CONDICOES, lacosHTML, apoiosHTML, normalizarInclusao, temInclusao, garantirEstilos as estilosInclusao } from './inclusao.js?v=20261006';
@@ -43,6 +56,8 @@ let registradosNaSessao = new Map(); // uid -> Date
 let contexto = null;
 let deps = null;
 let ocupado = false;
+let rostos = [];                     // [{ aluno, descritor }] — mesmos dados do matcher, para a foto da turma
+let alvoStatus = 'faceidStatus';     // a foto da turma escreve no próprio status
 
 function el(id) { return document.getElementById(id); }
 
@@ -54,7 +69,7 @@ return `${s.length}:${h}`;
 }
 
 function status(texto, erro = false) {
-const st = el('faceidStatus');
+const st = el(alvoStatus);
 if (!st) return;
 st.classList.toggle('erro', !!erro);
 st.innerHTML = `<i class="fas ${erro ? 'fa-triangle-exclamation' : 'fa-face-smile'}"></i> ${texto}`;
@@ -113,6 +128,7 @@ semRosto.push({ aluno: a, motivo: 'foto não pôde ser lida' });
 }
 }
 rotulos = {};
+rostos = comRosto;
 comRosto.forEach(({ aluno }) => { rotulos[aluno.id] = aluno; });
 matcher = comRosto.length
 ? new faceapi.FaceMatcher(comRosto.map(({ aluno, descritor }) => new faceapi.LabeledFaceDescriptors(aluno.id, [descritor])), LIMIAR_DISTANCIA)
@@ -126,13 +142,16 @@ enrol.innerHTML = `<span class="kpi-valor mono">${comRosto.length}/${alunos.leng
 return comRosto.length;
 }
 
-function jaRegistradoHoje(uid) {
-if (registradosNaSessao.has(uid)) return true;
-const hoje = new Date().toDateString();
+// Já tem presença neste dia (padrão: hoje)? Confere a sessão da câmera e o
+// histórico recente do núcleo já carregado (contexto.presencasHoje, ~200 últimas).
+function jaRegistradoHoje(uid, dia = new Date()) {
+const alvo = dia.toDateString();
+const daSessao = registradosNaSessao.get(uid);
+if (daSessao && daSessao.toDateString() === alvo) return true;
 return (contexto.presencasHoje || []).some((p) => {
 if (p.uid !== uid) return false;
 const d = p.entradaEm && p.entradaEm.toDate ? p.entradaEm.toDate() : new Date(p.entradaEm);
-return d.toDateString() === hoje;
+return d.toDateString() === alvo;
 });
 }
 
@@ -156,7 +175,7 @@ const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '
 lista.insertAdjacentHTML('afterbegin', `
 <div class="faceid-item">
 <span class="foto-com-lacos"><img src="${deps.escapeHTML(aluno.fotoUrl || 'https://via.placeholder.com/34')}" alt="">${lacosHTML(aluno.inclusao, { px: 16 })}</span>
-<div><strong>${deps.escapeHTML(aluno.nome || 'Aluno')}</strong><small>${hora} · ${origem === 'faceid' ? 'reconhecido pela câmera' : 'marcado manualmente'}</small></div>
+<div><strong>${deps.escapeHTML(aluno.nome || 'Aluno')}</strong><small>${hora} · ${origem === 'faceid' ? 'reconhecido pela câmera' : origem === 'faceid-foto' ? 'foto da turma, conferido' : 'marcado manualmente'}</small></div>
 <span class="pill pill-aprovado"><i class="fas fa-check"></i></span>
 </div>`);
 }
@@ -186,7 +205,10 @@ while (caixa.children.length > 3) caixa.lastElementChild.remove();
 setTimeout(() => { if (aviso.isConnected) { aviso.style.transition = 'opacity .6s'; aviso.style.opacity = '0'; setTimeout(() => aviso.remove(), 650); } }, 45000);
 }
 
-async function registrarPresenca(aluno, origem) {
+// opts: { em: Date da presença (padrão agora), silencioso: sem toast/aviso por aluno (foto da turma) }
+async function registrarPresenca(aluno, origem, opts = {}) {
+const em = opts.em instanceof Date ? opts.em : new Date();
+if (opts.silencioso && jaRegistradoHoje(aluno.id, em)) return false;
 if (jaRegistradoHoje(aluno.id)) {
 deps.toast(`${aluno.nome || 'Aluno'} já tem presença registrada hoje neste núcleo.`);
 if (!registradosNaSessao.has(aluno.id)) avisarInclusao(aluno); // presença veio de outro aparelho: ainda assim avisa o professor
@@ -200,15 +222,17 @@ await deps.criar('presencas', {
 uid: aluno.id,
 alunoNome: aluno.nome || '',
 nucleoId,
-entradaEm: agora,
+entradaEm: em,
 confirmadoAos30: true,           // presença 100% confirmada no ato: o reconhecimento facial É a confirmação
 confirmadoEm: agora,
-origem,                          // 'faceid' | 'manual'
+origem,                          // 'faceid' | 'manual' | 'faceid-foto' (foto da turma conferida pelo professor)
 registradoPor: contexto.registradoPor,
 registradoPorNome: contexto.registradoPorNome,
 });
-registradosNaSessao.set(aluno.id, agora);
+registradosNaSessao.set(aluno.id, em);
+(contexto.presencasHoje = contexto.presencasHoje || []).push({ uid: aluno.id, entradaEm: em });
 adicionarNaLista(aluno, origem);
+if (opts.silencioso) return true;
 avisarInclusao(aluno);
 deps.toast(`Presença de ${aluno.nome || 'aluno'} registrada!`);
 if (deps.aoRegistrar) deps.aoRegistrar();
@@ -364,6 +388,11 @@ enrol.innerHTML = `<span class="kpi-valor mono">${(contexto.alunos || []).length
 }
 const lista = el('faceidLista');
 if (lista) lista.innerHTML = '<p class="cascata-vazio">Ninguém reconhecido ainda.</p>';
+// Núcleo mudou: a foto analisada era de outra turma.
+rostos = []; matcher = null;
+if (el('fotoTurmaCard')) limparFotoTurma();
+const subFoto = el('fotoTurmaSub');
+if (subFoto) subFoto.textContent = contexto.nucleoNome ? `Núcleo: ${contexto.nucleoNome}. Envie a foto de formação do fim do treino: o app acha cada rosto, você confere e confirma.` : 'Selecione um núcleo para usar a chamada pela foto.';
 }
 
 // Liga os botões. `dependencias`: { obterContexto, criar, toast, escapeHTML, aoRegistrar }
@@ -385,4 +414,274 @@ catch (e) { console.error(e); deps.toast('Não foi possível registrar a presen�
 finally { btnManual.disabled = false; }
 });
 window.addEventListener('beforeunload', pararFaceId);
+configurarFotoTurma();
+}
+
+/* ======================================================================
+   CHAMADA PELA FOTO DA TURMA (fim do treino)
+   ====================================================================== */
+const FOTO_MAX_LADO = 1600;          // a foto é reduzida antes de analisar (rápido e suficiente para rostos de ~40 px)
+const FOTO_LIMIAR_SEGURO = 0.5;      // até aqui: vem marcado
+const FOTO_LIMIAR_CONFERIR = 0.58;   // entre os dois: aparece desmarcado com "confira"
+const FOTO_DIAS_ATRAS = 7;           // as regras aceitam até 8 dias; a tela oferece 7
+let ssdPronto = null;                // null = não tentou; true/false = carregou ou não
+let foto = null;                     // { canvas, faces: [{ box, thumb, uid, dist, escolha }], ausentes: Set }
+
+function hojeISO(d = new Date()) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+function diaEscolhido() {
+const v = (el('fotoTurmaDia') || {}).value || hojeISO();
+const hoje = hojeISO();
+if (v === hoje) return new Date();                 // treino de hoje: hora real do registro
+const [a, m, d] = v.split('-').map(Number);
+return new Date(a, m - 1, d, 19, 0, 0);            // dia anterior: fixa 19h (horário típico de treino)
+}
+
+async function carregarDetectorDeGrupo() {
+if (ssdPronto !== null) return ssdPronto;
+try { await faceapi.nets.ssdMobilenetv1.loadFromUri(MODELOS_URL); ssdPronto = true; }
+catch (e) { console.warn('SSD indisponível, usando o detector leve', e); ssdPronto = false; }
+return ssdPronto;
+}
+function opcoesGrupo() {
+return ssdPronto ? new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4, maxResults: 80 })
+: new faceapi.TinyFaceDetectorOptions({ inputSize: 800, scoreThreshold: 0.35 });
+}
+
+// Lê o arquivo, respeita a orientação da câmera (EXIF) e reduz para FOTO_MAX_LADO.
+async function arquivoParaCanvas(arquivo) {
+let fonte;
+try { fonte = await createImageBitmap(arquivo, { imageOrientation: 'from-image' }); }
+catch (e) { const u = URL.createObjectURL(arquivo); try { fonte = await carregarImagem(u); } finally { setTimeout(() => URL.revokeObjectURL(u), 5000); } }
+const w0 = fonte.width; const h0 = fonte.height;
+const k = Math.min(1, FOTO_MAX_LADO / Math.max(w0, h0));
+const c = document.createElement('canvas');
+c.width = Math.round(w0 * k); c.height = Math.round(h0 * k);
+c.getContext('2d').drawImage(fonte, 0, 0, c.width, c.height);
+if (fonte.close) fonte.close();
+return c;
+}
+
+// Recorte quadrado do rosto (com folga) para a miniatura de conferência.
+function recorte(canvas, box, lado = 112) {
+const folga = Math.max(box.width, box.height) * 0.35;
+const tam = Math.max(box.width, box.height) + folga * 2;
+const cx = box.x + box.width / 2; const cy = box.y + box.height / 2;
+const t = document.createElement('canvas'); t.width = lado; t.height = lado;
+t.getContext('2d').drawImage(canvas, cx - tam / 2, cy - tam / 2, tam, tam, 0, 0, lado, lado);
+return t.toDataURL('image/jpeg', 0.82);
+}
+
+// Atribuição 1-para-1: todos os pares (rosto, aluno) abaixo do limiar, do mais parecido
+// para o menos; cada rosto e cada aluno entram uma vez só.
+function atribuir(descritores) {
+const pares = [];
+descritores.forEach((d, i) => rostos.forEach(({ aluno, descritor }) => {
+const dist = faceapi.euclideanDistance(d, descritor);
+if (dist < FOTO_LIMIAR_CONFERIR) pares.push({ i, uid: aluno.id, dist });
+}));
+pares.sort((a, b) => a.dist - b.dist);
+const usadosRosto = new Set(); const usadosAluno = new Set(); const res = {};
+for (const p of pares) {
+if (usadosRosto.has(p.i) || usadosAluno.has(p.uid)) continue;
+usadosRosto.add(p.i); usadosAluno.add(p.uid); res[p.i] = p;
+}
+return res;
+}
+
+function statusFoto(texto, erro = false) { alvoStatus = 'fotoTurmaStatus'; status(texto, erro); alvoStatus = 'faceidStatus'; }
+
+async function analisarFotoTurma(arquivo) {
+if (!arquivo || !deps) return;
+if (!/^image\//.test(arquivo.type || 'image/')) { statusFoto('Escolha um arquivo de imagem (JPG ou PNG).', true); return; }
+const card = el('fotoTurmaCard');
+card.classList.add('ft-ocupado');
+el('fotoTurmaConfirmar').disabled = true;
+try {
+const ctx = await deps.obterContexto();
+if (!ctx || !ctx.alunos || !ctx.alunos.length) { statusFoto('Selecione um núcleo com alunos antes de enviar a foto.', true); return; }
+contexto = ctx;
+statusFoto('Abrindo a foto...');
+const canvas = await arquivoParaCanvas(arquivo);
+alvoStatus = 'fotoTurmaStatus';
+try {
+await carregarBiblioteca();
+await carregarDetectorDeGrupo();
+await prepararRostos(); // descritores já salvos no cadastro: só lê fotos novas ou trocadas
+} finally { alvoStatus = 'faceidStatus'; }
+statusFoto('Procurando os rostos na foto...');
+const det = await faceapi.detectAllFaces(canvas, opcoesGrupo()).withFaceLandmarks(true).withFaceDescriptors();
+if (!det.length) { foto = null; desenharFoto(canvas, []); renderListaFoto(); statusFoto('Nenhum rosto encontrado. Tente uma foto mais próxima, de frente e com boa luz.', true); return; }
+const ordem = det.map((d, i) => ({ d, i })).sort((a, b) => (Math.abs(a.d.detection.box.y - b.d.detection.box.y) > a.d.detection.box.height * 0.6 ? a.d.detection.box.y - b.d.detection.box.y : a.d.detection.box.x - b.d.detection.box.x));
+const dets = ordem.map((o) => o.d); // de cima para baixo, da esquerda para a direita (como se lê a foto)
+const atrib = atribuir(dets.map((d) => d.descriptor));
+const dia = diaEscolhido();
+foto = {
+canvas,
+faces: dets.map((d, i) => {
+const a = atrib[i];
+const ja = a ? jaRegistradoHoje(a.uid, dia) : false;
+return { box: d.detection.box, thumb: recorte(canvas, d.detection.box), uid: a ? a.uid : '', dist: a ? a.dist : null, escolha: a && a.dist < FOTO_LIMIAR_SEGURO && !ja };
+}),
+extras: new Set(),
+};
+desenharFoto(canvas, foto.faces);
+renderListaFoto();
+const rec = foto.faces.filter((f) => f.uid).length;
+statusFoto(`${det.length} rosto${det.length > 1 ? 's' : ''} na foto · ${rec} reconhecido${rec === 1 ? '' : 's'}. Confira a lista e confirme.`);
+} catch (e) {
+console.error(e);
+statusFoto('Não foi possível analisar a foto agora. Tente de novo ou use a marcação manual.', true);
+} finally {
+card.classList.remove('ft-ocupado');
+}
+}
+
+// Foto com as caixas numeradas (verde = reconhecido, âmbar = confira, branco = sem nome).
+function desenharFoto(canvas, faces, destaque = -1) {
+const palco = el('fotoTurmaPalco');
+if (!palco) return;
+let tela = palco.querySelector('canvas');
+if (!tela) { palco.innerHTML = ''; tela = document.createElement('canvas'); palco.appendChild(tela); }
+tela.width = canvas.width; tela.height = canvas.height;
+const g = tela.getContext('2d');
+g.drawImage(canvas, 0, 0);
+const esp = Math.max(2, Math.round(canvas.width / 400));
+faces.forEach((f, i) => {
+const { x, y, width: w, height: h } = f.box;
+const cor = !f.uid ? '#FFFFFF' : (f.dist < FOTO_LIMIAR_SEGURO ? '#00E676' : '#FFB300');
+g.lineWidth = i === destaque ? esp * 2.2 : esp; g.strokeStyle = cor;
+if (i === destaque) { g.fillStyle = 'rgba(0,230,118,.18)'; g.fillRect(x, y, w, h); }
+g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, Math.min(w, h) * 0.18); else g.rect(x, y, w, h); g.stroke();
+const r = Math.max(11, Math.round(w * 0.2));
+g.fillStyle = cor; g.beginPath(); g.arc(x + w / 2, y - r * 0.4, r, 0, Math.PI * 2); g.fill();
+g.fillStyle = '#002D72'; g.font = `800 ${Math.round(r * 1.15)}px Manrope, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+g.fillText(String(i + 1), x + w / 2, y - r * 0.4 + 1);
+});
+palco.classList.add('com-foto');
+}
+
+function nomeDeUid(uid) { const a = (contexto.alunos || []).find((x) => x.id === uid); return a ? a.nome || 'Aluno' : ''; }
+
+function renderListaFoto() {
+const lista = el('fotoTurmaLista'); const aus = el('fotoTurmaAusentes'); const btn = el('fotoTurmaConfirmar');
+if (!lista) return;
+if (!foto) { lista.innerHTML = '<p class="cascata-vazio">Envie a foto da turma para ver a lista.</p>'; if (aus) aus.innerHTML = ''; btn.disabled = true; btn.querySelector('span').textContent = 'Confirmar presenças'; return; }
+const dia = diaEscolhido();
+const esc = deps.escapeHTML;
+const usados = new Set(foto.faces.map((f) => f.uid).filter(Boolean));
+const alunosOrd = (contexto.alunos || []).slice().sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
+lista.innerHTML = foto.faces.map((f, i) => {
+const a = f.uid ? (contexto.alunos || []).find((x) => x.id === f.uid) : null;
+const ja = a ? jaRegistradoHoje(a.id, dia) : false;
+const conf = f.dist == null ? 0 : Math.max(0, Math.round((1 - f.dist) * 100));
+const nivel = !a ? 'novo' : (f.dist < FOTO_LIMIAR_SEGURO ? 'ok' : 'confira');
+const fotoCad = a ? ((a.carteirinha && a.carteirinha.fotoUrl) || a.fotoUrl || '') : '';
+return `<div class="ft-linha ft-${nivel}${ja ? ' ft-ja' : ''}" data-i="${i}">
+<label class="ft-check" title="${ja ? 'Já tem presença neste dia' : 'Marcar presença'}"><input type="checkbox" data-ft-i="${i}" ${f.escolha ? 'checked' : ''} ${!a || ja ? 'disabled' : ''} aria-label="Marcar presença do rosto ${i + 1}"></label>
+<span class="ft-num">${i + 1}</span>
+<img class="ft-rosto" src="${f.thumb}" alt="Rosto ${i + 1} recortado da foto">
+<i class="fas fa-arrow-right-long ft-seta" aria-hidden="true"></i>
+${a ? `<span class="foto-com-lacos"><img class="ft-cad" src="${esc(fotoCad || 'assets/logo-liberdade.png')}" alt="Foto de cadastro de ${esc(a.nome || 'aluno')}">${lacosHTML(a.inclusao, { px: 16 })}</span>` : '<span class="ft-cad ft-cad-vazio"><i class="fas fa-question"></i></span>'}
+<div class="ft-info">
+${a ? `<strong>${esc(a.nome || 'Aluno')}</strong><small>${esc(a.cordaoAtual || 'Iniciante')} · ${f.manual ? 'escolhido por você' : `${conf}% de semelhança`}</small>` : '<strong>Não reconhecido</strong><small>Escolha quem é, ou deixe em branco</small>'}
+<select class="ft-trocar input-padrao" data-ft-sel="${i}" aria-label="Quem é o rosto ${i + 1}?"><option value="">${a ? 'Trocar pessoa…' : 'Quem é?'}</option>${alunosOrd.filter((x) => x.id === f.uid || !usados.has(x.id)).map((x) => `<option value="${esc(x.id)}" ${x.id === f.uid ? 'selected' : ''}>${esc(x.nome || 'Aluno')}</option>`).join('')}<option value="__nenhum">Não é aluno do núcleo</option></select>
+</div>
+<span class="pill ${ja ? 'pill-aprovado' : nivel === 'ok' ? 'pill-aprovado' : nivel === 'confira' ? 'pill-pendente' : 'pill-neutro'}">${ja ? 'Já presente' : f.manual ? 'Conferido' : nivel === 'ok' ? 'Reconhecido' : nivel === 'confira' ? 'Confira' : 'Sem nome'}</span>
+</div>`;
+}).join('');
+// Quem não apareceu na foto (saiu antes, estava atrás de alguém): dá para marcar também.
+const fora = alunosOrd.filter((a) => !usados.has(a.id));
+if (aus) {
+aus.innerHTML = fora.length ? `<details${foto.extras.size ? ' open' : ''}><summary>Não aparecem na foto (${fora.length}) — marcar quem treinou e saiu antes</summary><div class="ft-ausentes">${fora.map((a) => { const ja = jaRegistradoHoje(a.id, dia); return `<label class="ft-aus${ja ? ' ft-ja' : ''}"><input type="checkbox" data-ft-extra="${esc(a.id)}" ${foto.extras.has(a.id) ? 'checked' : ''} ${ja ? 'disabled' : ''}><img src="${esc((a.carteirinha && a.carteirinha.fotoUrl) || a.fotoUrl || 'assets/logo-liberdade.png')}" alt=""><span>${esc(a.nome || 'Aluno')}${ja ? ' <em>já presente</em>' : ''}</span></label>`; }).join('')}</div></details>` : '';
+}
+atualizarBotaoFoto();
+}
+
+function selecionadosFoto() {
+if (!foto) return [];
+const dia = diaEscolhido();
+const ids = foto.faces.filter((f) => f.uid && f.escolha).map((f) => f.uid).concat([...foto.extras]);
+return [...new Set(ids)].filter((uid) => !jaRegistradoHoje(uid, dia)).map((uid) => (contexto.alunos || []).find((a) => a.id === uid)).filter(Boolean);
+}
+function atualizarBotaoFoto() {
+const btn = el('fotoTurmaConfirmar'); if (!btn) return;
+const n = selecionadosFoto().length;
+btn.disabled = n === 0;
+btn.querySelector('span').textContent = n ? `Confirmar ${n} presença${n > 1 ? 's' : ''}` : 'Confirmar presenças';
+}
+
+async function confirmarFotoTurma() {
+const alvos = selecionadosFoto();
+if (!alvos.length) return;
+const dia = diaEscolhido();
+const btn = el('fotoTurmaConfirmar'); btn.disabled = true;
+let ok = 0; const falhas = [];
+for (const a of alvos) {
+try { if (await registrarPresenca(a, 'faceid-foto', { em: dia, silencioso: true })) ok += 1; }
+catch (e) { console.error(e); falhas.push(a.nome || 'aluno'); }
+}
+if (deps.aoRegistrar) deps.aoRegistrar();
+foto.faces.forEach((f) => { f.escolha = false; }); foto.extras.clear();
+renderListaFoto();
+const quando = hojeISO(dia) === hojeISO() ? 'hoje' : dia.toLocaleDateString('pt-BR');
+statusFoto(falhas.length ? `${ok} presença(s) gravada(s) para ${quando}; falhou: ${falhas.join(', ')}.` : `${ok} presença${ok === 1 ? '' : 's'} gravada${ok === 1 ? '' : 's'} para ${quando}. A foto não foi guardada.`, !!falhas.length);
+deps.toast(falhas.length ? `${ok} gravada(s), ${falhas.length} com erro.` : `${ok} presença${ok === 1 ? '' : 's'} confirmada${ok === 1 ? '' : 's'} pela foto da turma!`, falhas.length ? 'error' : 'success');
+}
+
+function limparFotoTurma() {
+foto = null;
+const palco = el('fotoTurmaPalco');
+if (palco) { palco.classList.remove('com-foto'); palco.innerHTML = '<div class="ft-vazio"><i class="fas fa-people-group"></i><span>A foto aparece aqui com cada rosto numerado.</span></div>'; }
+renderListaFoto();
+}
+
+function configurarFotoTurma() {
+const card = el('fotoTurmaCard');
+if (!card) return;
+const dia = el('fotoTurmaDia');
+if (dia) {
+const hoje = new Date(); const min = new Date(); min.setDate(hoje.getDate() - FOTO_DIAS_ATRAS);
+dia.value = hojeISO(hoje); dia.max = hojeISO(hoje); dia.min = hojeISO(min);
+dia.addEventListener('change', () => {
+if (!dia.value || dia.value > dia.max || dia.value < dia.min) dia.value = hojeISO();
+if (foto) { const d = diaEscolhido(); foto.faces.forEach((f) => { if (f.uid && jaRegistradoHoje(f.uid, d)) f.escolha = false; }); renderListaFoto(); }
+});
+}
+['fotoTurmaArquivo', 'fotoTurmaCamera'].forEach((id) => {
+const inp = el(id); if (!inp) return;
+inp.addEventListener('change', () => { const f = inp.files && inp.files[0]; inp.value = ''; if (f) analisarFotoTurma(f); });
+});
+// Arrastar a foto para o palco (computador).
+const palco = el('fotoTurmaPalco');
+if (palco) {
+palco.addEventListener('dragover', (e) => { e.preventDefault(); palco.classList.add('arrastando'); });
+palco.addEventListener('dragleave', () => palco.classList.remove('arrastando'));
+palco.addEventListener('drop', (e) => { e.preventDefault(); palco.classList.remove('arrastando'); const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) analisarFotoTurma(f); });
+}
+const lista = el('fotoTurmaLista');
+lista.addEventListener('change', (e) => {
+const cb = e.target.closest('[data-ft-i]'); const sel = e.target.closest('[data-ft-sel]');
+if (!foto) return;
+if (cb) { foto.faces[Number(cb.dataset.ftI)].escolha = cb.checked; atualizarBotaoFoto(); }
+if (sel) {
+const f = foto.faces[Number(sel.dataset.ftSel)];
+if (sel.value === '__nenhum') { f.uid = ''; f.dist = null; f.escolha = false; f.manual = false; }
+else if (sel.value) {
+f.uid = sel.value; f.escolha = !jaRegistradoHoje(sel.value, diaEscolhido());
+f.dist = 0; f.manual = true; // escolhido pelo professor: conta como conferido
+foto.extras.delete(sel.value);
+}
+desenharFoto(foto.canvas, foto.faces);
+renderListaFoto();
+}
+});
+// Passar o mouse/focar numa linha acende o rosto na foto.
+const acender = (e) => { const l = e.target.closest('.ft-linha'); if (foto && l) desenharFoto(foto.canvas, foto.faces, Number(l.dataset.i)); };
+lista.addEventListener('mouseover', acender); lista.addEventListener('focusin', acender);
+lista.addEventListener('mouseleave', () => { if (foto) desenharFoto(foto.canvas, foto.faces); });
+const aus = el('fotoTurmaAusentes');
+if (aus) aus.addEventListener('change', (e) => { const cb = e.target.closest('[data-ft-extra]'); if (!cb || !foto) return; if (cb.checked) foto.extras.add(cb.dataset.ftExtra); else foto.extras.delete(cb.dataset.ftExtra); atualizarBotaoFoto(); });
+el('fotoTurmaConfirmar').addEventListener('click', confirmarFotoTurma);
+const limpar = el('fotoTurmaLimpar'); if (limpar) limpar.addEventListener('click', limparFotoTurma);
+limparFotoTurma();
 }

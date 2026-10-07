@@ -26,7 +26,7 @@ lancarPagamento, listarPagamentosDoNucleo, marcarPagamento,
 lancarDespesaComRateio, todosRateios, marcarRateioPago,
   presencasDoNucleo, presencasVisitantesDoNucleo, salvarFotoPerfil,
 } from './firebase.js';
-import { iniciarGestao, abrirTela as abrirTelaGestao, renderRelatoriosGerais, exportarExcel, exportarPDF } from './gestao.js?v=20261005';
+import { iniciarGestao, abrirTela as abrirTelaGestao, renderRelatoriosGerais, exportarExcel, exportarPDF } from './gestao.js?v=20261007';
 import { iniciarAniversarios, renderAniversarios, lembrete48h } from './aniversarios.js?v=20261001';
 import { CONDICOES, lacosHTML, lacoSVG, normalizarInclusao, temInclusao, resumoInclusao, apoiosChecklistHTML, ligarChecklist, apoiosMarcados, materiaisHTML, garantirEstilos as estilosInclusao } from './inclusao.js?v=20261006';
 estilosInclusao();
@@ -36,7 +36,7 @@ import { ligarContador, abrirCentral, ouvirPushComAppAberto } from './notificaco
 import { apresentacaoDe, migrarApresentacao, tocarApresentacao, tocarAoEntrar, gerenciarApresentacao, abrirMinhaConta, abrirTrocaSenha, definirAutor, podeTerApresentacao, formatarCelular, celularValido, celularDe } from './conta.js?v=20261006';
 import { escapeHTML, sanitizeInput, debounce, gerarSlug } from './shared.js';
 import { BRASOES, porId as brasaoPorId, urlThumb as brasaoThumb, ehManual as brasaoManual } from './brasoes.js?v=20261006';
-import { configurarFaceId, atualizarContextoFaceId, pararFaceId } from './faceid.js';
+import { configurarFaceId, atualizarContextoFaceId, pararFaceId } from './faceid.js?v=20261007';
 import { ESCOLA, ORDEM_CORDOES as ORDEM_ESCOLA, CORDOES_ADULTO as ADULTO_ESCOLA, CORDOES_KIDS as KIDS_ESCOLA, CRITERIOS as CRITERIOS_ESCOLA, linkMapa as linkMapaEscola } from './escola.js';
 
 let sessaoAtual = null; // { uid, nome, email, papeis, academiaId, academiaGerenciadaId, ... }

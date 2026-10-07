@@ -1002,3 +1002,56 @@ select.input-padrao { appearance: none; -webkit-appearance: none; background-ima
 .faceid-avisos:empty { display: none; }
 .faceid-item .foto-com-lacos img { display: block; }
 .mod-inclusao-dicas .mat-link { margin-top: 4px; }
+
+/* ---------------------------------------------------------------- CHAMADA PELA FOTO DA TURMA */
+.ft-acoes { align-items: flex-end; }
+.ft-dia { display: flex; flex-direction: column; gap: 4px; font-size: 0.72rem; font-weight: 700; color: var(--text-muted); }
+.ft-dia input { height: 40px; padding: 0 10px; min-width: 150px; }
+.ft-botao { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; width: auto; }
+.ft-so-celular { display: none; }
+@media (hover: none) and (pointer: coarse) { .ft-so-celular { display: inline-flex; } }
+.ft-palco { position: relative; align-self: start; border-radius: var(--radius-lg); overflow: hidden; background: var(--navy-deep); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-navy); transition: box-shadow .3s var(--ease-standard), outline-color .3s; outline: 3px dashed transparent; outline-offset: -10px; }
+.ft-palco.arrastando { outline-color: var(--accent-green); }
+.ft-palco canvas { display: block; width: 100%; height: auto; }
+.ft-vazio { display: flex; flex-direction: column; align-items: center; gap: 10px; color: rgba(255,255,255,.72); font-size: .86rem; text-align: center; padding: 30px; }
+.ft-vazio i { font-size: 2.2rem; color: var(--accent-green); }
+.ft-status { position: static; margin-bottom: 10px; max-width: 100%; background: var(--navy-deep); }
+.ft-card.ft-ocupado .ft-status i { animation: ftGira 1s linear infinite; }
+@keyframes ftGira { to { transform: rotate(360deg); } }
+.ft-legenda { display: flex; gap: 12px; flex-wrap: wrap; font-size: .7rem; color: var(--text-muted); font-weight: 700; margin-bottom: 8px; }
+.ft-legenda i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.ft-lista { display: flex; flex-direction: column; gap: 8px; max-height: 540px; overflow-y: auto; padding-right: 2px; }
+.ft-linha { display: grid; grid-template-columns: auto auto 52px auto 44px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--card-bg); transition: border-color .2s, background .2s, transform .35s cubic-bezier(.16,1,.3,1); }
+.ft-linha:hover, .ft-linha:focus-within { border-color: var(--primary-teal); transform: translateX(2px); }
+.ft-linha.ft-confira { border-color: rgba(255,179,0,.55); background: rgba(255,179,0,.06); }
+.ft-linha.ft-novo { border-style: dashed; }
+.ft-linha.ft-ja { opacity: .65; }
+.ft-check input { width: 18px; height: 18px; accent-color: var(--primary-teal); cursor: pointer; }
+.ft-num { font-family: var(--font-display); font-weight: 800; font-size: .78rem; color: var(--primary-blue); min-width: 18px; text-align: center; }
+.ft-rosto { width: 52px; height: 52px; border-radius: 12px; object-fit: cover; box-shadow: 0 0 0 2px var(--card-bg), 0 0 0 3px var(--border-color); }
+.ft-seta { color: var(--text-soft); font-size: .8rem; }
+.ft-cad { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; display: inline-flex; align-items: center; justify-content: center; background: var(--teal-soft); color: var(--primary-teal); }
+.ft-ok .ft-cad { box-shadow: 0 0 0 2px var(--card-bg), 0 0 0 4px var(--accent-green); }
+.ft-info { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.ft-info strong { font-size: .86rem; line-height: 1.2; overflow-wrap: anywhere; }
+.ft-info small { font-size: .7rem; color: var(--text-muted); }
+.ft-trocar { height: 30px; padding: 0 8px; font-size: .72rem; max-width: 200px; }
+.ft-linha .pill { font-size: .66rem; white-space: nowrap; }
+.pill-neutro { background: var(--bg-app); color: var(--text-muted); }
+.ft-ausentes { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; margin-top: 8px; }
+#fotoTurmaAusentes details { margin-top: 12px; }
+#fotoTurmaAusentes summary { cursor: pointer; font-size: .78rem; font-weight: 700; color: var(--primary-blue); }
+.ft-aus { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 10px; font-size: .76rem; cursor: pointer; background: var(--card-bg); }
+.ft-aus img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
+.ft-aus em { color: var(--text-soft); font-style: normal; font-size: .68rem; }
+.ft-rodape { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border-color); flex-wrap: wrap; }
+.ft-rodape .btn-detalhes { width: auto; }
+.ft-privacidade { display: block; margin-top: 10px; font-size: .7rem; color: var(--text-soft); line-height: 1.4; }
+@media (max-width: 600px) {
+  .ft-linha { grid-template-columns: auto 46px 40px minmax(0, 1fr); grid-template-areas: "c r f i" "c r f p"; }
+  .ft-linha .ft-num, .ft-linha .ft-seta { display: none; }
+  .ft-check { grid-area: c; } .ft-rosto { grid-area: r; width: 46px; height: 46px; } .ft-linha > .foto-com-lacos, .ft-linha > .ft-cad { grid-area: f; } .ft-info { grid-area: i; } .ft-linha .pill { grid-area: p; justify-self: start; }
+  .ft-trocar { max-width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .ft-linha, .ft-card.ft-ocupado .ft-status i { transition: none; animation: none; } }
+.ft-palco:not(.com-foto) { min-height: 260px; }

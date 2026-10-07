@@ -47,7 +47,7 @@ export async function registrar(ctx, ev) {
   // Escritas do próprio servidor (sincronização, migração) não entram.
   if (authType && authType !== 'app_user') return null;
   let acao; let campos;
-  if (!antes && depois) { if (!AUDITA_CRIACAO.has(colecao) && !(colecao === 'presencas' && depois.origem === 'manual')) return null; acao = 'criou'; campos = Object.keys(depois); }
+  if (!antes && depois) { if (!AUDITA_CRIACAO.has(colecao) && !(colecao === 'presencas' && ['manual', 'faceid-foto'].includes(depois.origem))) return null; acao = 'criou'; campos = Object.keys(depois); }
   else if (antes && !depois) { acao = 'apagou'; campos = Object.keys(antes); }
   else { acao = 'alterou'; campos = camposMudados(colecao, antes, depois); if (!campos.length) return null; }
   const lista = CAMPOS_AUDITADOS[colecao];

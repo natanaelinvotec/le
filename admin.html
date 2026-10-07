@@ -510,6 +510,39 @@ pra não recalcular a cada aula. -->
 </div>
 </div>
 
+<!-- Chamada pela FOTO DA TURMA (fim do treino): o professor envia a foto de
+formação, o app acha os rostos e sugere quem é; o professor confere (miniatura
+do rosto x foto de cadastro) e confirma. A foto é lida só no navegador e não é
+enviada nem guardada — só as presenças confirmadas (origem 'faceid-foto'). -->
+<div class="card-padrao faceid-card ft-card" id="fotoTurmaCard">
+<div class="faceid-topo">
+<div>
+<span class="eyebrow">Fim do treino</span>
+<h3><i class="fas fa-people-group"></i> Chamada pela foto da turma</h3>
+<p id="fotoTurmaSub">Envie a foto de formação do fim do treino: o app acha cada rosto, você confere e confirma.</p>
+</div>
+<div class="faceid-acoes ft-acoes">
+<label class="ft-dia" for="fotoTurmaDia"><span>Dia do treino</span><input type="date" id="fotoTurmaDia" class="input-padrao"></label>
+<label class="btn-detalhes ft-botao" for="fotoTurmaArquivo"><i class="fas fa-image"></i> Enviar foto<input type="file" id="fotoTurmaArquivo" accept="image/*" hidden></label>
+<label class="btn-detalhes btn-soft ft-botao ft-so-celular" for="fotoTurmaCamera"><i class="fas fa-camera"></i> Tirar agora<input type="file" id="fotoTurmaCamera" accept="image/*" capture="environment" hidden></label>
+</div>
+</div>
+<div class="faceid-corpo ft-corpo">
+<div class="ft-palco" id="fotoTurmaPalco" aria-label="Foto da turma com os rostos numerados"></div>
+<div class="faceid-lateral">
+<div class="faceid-status ft-status" id="fotoTurmaStatus" role="status" aria-live="polite"><i class="fas fa-face-smile"></i> Pronto para a foto da turma</div>
+<div class="ft-legenda"><span><i style="background:#00E676"></i>reconhecido</span><span><i style="background:#FFB300"></i>confira</span><span><i style="background:#fff;border:1px solid #C9DAD6"></i>sem nome</span></div>
+<div class="ft-lista" id="fotoTurmaLista"></div>
+<div id="fotoTurmaAusentes"></div>
+<div class="ft-rodape">
+<button type="button" class="btn-mini" id="fotoTurmaLimpar"><i class="fas fa-rotate-left"></i> Outra foto</button>
+<button type="button" class="btn-detalhes" id="fotoTurmaConfirmar" disabled><i class="fas fa-check-double"></i> <span>Confirmar presenças</span></button>
+</div>
+<small class="ft-privacidade"><i class="fas fa-lock"></i> A foto é lida só neste aparelho e não é enviada nem guardada. Só as presenças que você confirmar são gravadas.</small>
+</div>
+</div>
+</div>
+
 <div class="secao-titulo"><h3>Resumo do núcleo</h3></div>
 <div class="card-padrao" id="presencaResumoCard"><p>Carregando...</p></div>
 <div class="lista-simples" id="listaPresencas"></div>

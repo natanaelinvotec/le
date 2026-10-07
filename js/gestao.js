@@ -87,7 +87,7 @@ const EXPORTS = {
     return {
       titulo: 'Presenças (90 dias)', sub: nid ? nomeNucleo(nid) : 'Grupo todo',
       colunas: [{ chave: 'data', titulo: 'Data' }, { chave: 'hora', titulo: 'Hora' }, { chave: 'aluno', titulo: 'Aluno' }, { chave: 'nucleo', titulo: 'Núcleo' }, { chave: 'visitou', titulo: 'Treinou em' }, { chave: 'origem', titulo: 'Registro' }],
-      linhas: itens.sort((a, b) => dataDe(b.entradaEm) - dataDe(a.entradaEm)).map((p) => ({ data: dataDe(p.entradaEm).toLocaleDateString('pt-BR'), hora: dataDe(p.entradaEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), aluno: nomes.get(p.uid) || p.nome || p.uid, nucleo: nomeNucleo(p.nucleoId), visitou: p.nucleoVisitadoId && p.nucleoVisitadoId !== p.nucleoId ? nomeNucleo(p.nucleoVisitadoId) : '', origem: p.origem === 'faceid' ? 'Face ID' : 'Manual' })),
+      linhas: itens.sort((a, b) => dataDe(b.entradaEm) - dataDe(a.entradaEm)).map((p) => ({ data: dataDe(p.entradaEm).toLocaleDateString('pt-BR'), hora: dataDe(p.entradaEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), aluno: nomes.get(p.uid) || p.nome || p.uid, nucleo: nomeNucleo(p.nucleoId), visitou: p.nucleoVisitadoId && p.nucleoVisitadoId !== p.nucleoId ? nomeNucleo(p.nucleoVisitadoId) : '', origem: p.origem === 'faceid' ? 'Face ID' : p.origem === 'faceid-foto' ? 'Foto da turma' : 'Manual' })),
     };
   },
   financeiro: async (nid) => {

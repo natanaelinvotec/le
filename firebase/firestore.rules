@@ -164,10 +164,16 @@ souFundador() ||
 (ehGestor() && resource.data.nucleoId == minhaAcademiaGerenciada()) ||
 (ehGestor() && resource.data.nucleoVisitadoId == minhaAcademiaGerenciada())
 );
-// Presença só é criada pelo RESPONSÁVEL do núcleo (Face ID ou marcação manual),
-// pelo Fundador ou pelo Admin — já nasce confirmada.
+// Presença só é criada pelo RESPONSÁVEL do núcleo (Face ID, foto da turma ou
+// marcação manual), pelo Fundador ou pelo Admin — já nasce confirmada.
+// Foto da turma ('faceid-foto'): o professor pode lançar o treino de até 7 dias
+// atrás (foto de ontem), nunca no futuro.
 allow create: if logado() &&
-request.resource.data.origem in ['faceid', 'manual'] &&
+request.resource.data.origem in ['faceid', 'manual', 'faceid-foto'] &&
+(request.resource.data.origem != 'faceid-foto' || (
+request.resource.data.entradaEm is timestamp &&
+request.resource.data.entradaEm > request.time - duration.value(8, 'd') &&
+request.resource.data.entradaEm < request.time + duration.value(10, 'm'))) &&
 request.resource.data.registradoPor == request.auth.uid && (
 ehAdmin() || souFundador() ||
 (ehGestor() && request.resource.data.nucleoId == minhaAcademiaGerenciada())
