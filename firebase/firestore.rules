@@ -15,6 +15,11 @@ function ehInstrutor() { return logado() && 'instrutor' in meusPapeis(); }
 function souFundador() { return logado() && meuPerfil().get('acessoGeral', false) == true; }
 function minhaAcademiaGerenciada() { return meuPerfil().get('academiaGerenciadaId', null); }
 function mudou() { return request.resource.data.diff(resource.data).affectedKeys(); }
+// Multi-escola: a escola de quem está logado vem no login (custom claim gravado pelo servidor).
+// Login antigo, ainda sem o claim, é da escola nº 1 (todo mundo era da Liberdade antes da AtletaPay).
+function minhaEscola() { return request.auth.token.get('escolaId', 'liberdade'); }
+// escolaId é do SERVIDOR (functions/src/escolas.js deduz e corrige): o app nunca troca.
+function escolaInalterada() { return request.resource.data.get('escolaId', null) == resource.data.get('escolaId', null); }
 // .get(campo, padrão): cadastro antigo sem o campo não trava a gravação.
 function papeisInalterados() { return request.resource.data.get('papeis', null) == resource.data.get('papeis', null); }
 function academiaInalterada() { return request.resource.data.get('academiaId', null) == resource.data.get('academiaId', null); }
@@ -34,7 +39,7 @@ function brasoesManuaisInalterados() { return request.resource.data.get('brasoes
 function camposTravadosDoProprio() {
 return ['cordaoAtual', 'historicoGraduacoes', 'instrutorUid', 'responsavelUid', 'idade', 'dataNasc',
 'statusAtual', 'brasoesTotal', 'eventosConfirmados', 'cardsCompartilhados', 'origemTransferenciaDireta', 'academiaAnteriorId',
-'carteirinha', 'isentoMensalidade', 'competicoes'];
+'carteirinha', 'isentoMensalidade', 'competicoes', 'escolaId'];
 }
 
 match /usuarios/{uid} {
@@ -53,7 +58,7 @@ allow create: if ehAdmin() || (
 request.auth.uid == uid &&
 request.resource.data.papeis == ['aluno'] &&
 !request.resource.data.keys().hasAny(['acessoGeral', 'brasoesAdmin', 'brasoesManuais', 'brasoesBloqueados', 'eventosConfirmados', 'cardsCompartilhados', 'instrutorUid',
-'historicoGraduacoes', 'brasoesTotal', 'origemTransferenciaDireta', 'academiaAnteriorId', 'carteirinha', 'isentoMensalidade', 'competicoes']) &&
+'historicoGraduacoes', 'brasoesTotal', 'origemTransferenciaDireta', 'academiaAnteriorId', 'carteirinha', 'isentoMensalidade', 'competicoes', 'escolaId']) &&
 request.resource.data.get('academiaGerenciadaId', null) == null &&
 request.resource.data.get('cordaoAtual', 'Iniciante') == 'Iniciante' &&
 request.resource.data.get('notas', {}) == {} &&
@@ -64,7 +69,8 @@ request.resource.data.get('statusAtual', 'Ativo') == 'Ativo'
 // souFundador(): o Mestre Profeta aplica transferências aprovadas em qualquer núcleo.
 // "Aceitar transferência": o gestor do núcleo de DESTINO move um aluno PARA o
 // próprio núcleo sem mexer em papéis, notas, acesso geral nem núcleo administrado.
-allow update: if ehAdmin() || (souFundador() && brasoesAdminInalterados()) ||
+allow update: if ehAdmin() || (escolaInalterada() && (
+(souFundador() && brasoesAdminInalterados()) ||
 (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada() && academiaInalterada() && papeisInalterados() && acessoGeralInalterado() && brasoesAdminInalterados()) ||
 (ehGestor() && request.resource.data.academiaId == minhaAcademiaGerenciada() && papeisInalterados() && academiaGerenciadaInalterada() && notasInalteradas() && acessoGeralInalterado() && brasoesAdminInalterados() && brasoesManuaisInalterados()) ||
 (souInstrutorDoAluno() && academiaInalterada() && papeisInalterados() && academiaGerenciadaInalterada() && acessoGeralInalterado() && brasoesAdminInalterados() && brasoesManuaisInalterados()
@@ -72,7 +78,7 @@ allow update: if ehAdmin() || (souFundador() && brasoesAdminInalterados()) ||
 (request.auth.uid == uid && papeisInalterados() && academiaInalterada() && academiaGerenciadaInalterada() && notasInalteradas() && acessoGeralInalterado() && brasoesAdminInalterados() && brasoesManuaisInalterados()
 && !mudou().hasAny(camposTravadosDoProprio())) ||
 // Responsável legal: só a ficha de atenção e inclusão do dependente (condições, apoios, orientações) — nada mais.
-(resource.data.responsavelUid == request.auth.uid && mudou().hasOnly(['inclusao']));
+(resource.data.responsavelUid == request.auth.uid && mudou().hasOnly(['inclusao']))));
 
 allow delete: if ehAdmin();
 }
@@ -151,7 +157,11 @@ allow delete: if request.auth != null && podeEditar();
 
 match /nucleos/{id} {
 allow read: if true;
-allow write: if ehAdmin() || souFundador();
+// O Fundador cuida dos núcleos da PRÓPRIA escola e não muda a escola de um núcleo
+// (os alunos herdam a escola pelo núcleo). Ligar núcleo a outra escola: só o Admin.
+allow create: if ehAdmin() || (souFundador() && request.resource.data.get('escolaId', minhaEscola()) == minhaEscola());
+allow update: if ehAdmin() || (souFundador() && resource.data.get('escolaId', minhaEscola()) == minhaEscola() && escolaInalterada());
+allow delete: if ehAdmin() || (souFundador() && resource.data.get('escolaId', minhaEscola()) == minhaEscola());
 }
 
 match /presencas/{id} {

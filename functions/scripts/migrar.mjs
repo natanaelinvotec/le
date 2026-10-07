@@ -4,6 +4,7 @@
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
+import { getAuth } from 'firebase-admin/auth';
 import { executarMigracoes } from '../src/rotinas.js';
 
 process.env.TZ = 'America/Campo_Grande';
@@ -11,7 +12,7 @@ const projeto = process.env.PROJETO || 'capoeira-liberdade';
 const bucket = process.env.BUCKET || `${projeto}.firebasestorage.app`;
 initializeApp({ projectId: projeto, storageBucket: bucket });
 
-const ctx = { db: getFirestore(), bucket: getStorage().bucket(), messaging: null, vision: null, log: console, silencioso: true };
+const ctx = { db: getFirestore(), bucket: getStorage().bucket(), auth: getAuth(), messaging: null, vision: null, log: console, silencioso: true };
 const forcar = process.argv.includes('--forcar');
 const r = await executarMigracoes(ctx, { forcar });
 console.log('Migrações:', JSON.stringify(r, null, 2));

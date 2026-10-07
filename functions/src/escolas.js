@@ -1,0 +1,218 @@
+// Escolas (multi-escola / AtletaPay) — fundação no servidor.
+//
+// Regra de ouro: quem diz a que escola um registro pertence é o SERVIDOR.
+// O app nunca precisa gravar `escolaId`; esta camada deduz pelo vínculo real
+// (núcleo do registro → escola do núcleo; senão, a escola de quem escreveu) e
+// corrige o campo se alguém tentar gravar outra escola. Assim:
+//   1. todo dado novo já nasce etiquetado, sem mexer em cada tela do app;
+//   2. a migração m8 etiqueta o que já existe (a Liberdade vira a escola nº 1);
+//   3. o login de cada pessoa leva a escola e os papéis (custom claims), para
+//      as regras do banco isolarem as escolas sem ler o perfil a cada acesso.
+// As regras só passam a EXIGIR `escolaId` depois que tudo estiver etiquetado
+// (fase "contrato"); até lá o app atual continua funcionando igual.
+
+export const ESCOLA_PADRAO = 'liberdade';
+
+// Dados da escola nº 1 (a mesma identidade de js/escola.js). Só usados para
+// criar escolas/liberdade se ainda não existir — depois o Mega painel edita.
+export const ESCOLA_LIBERDADE = {
+  nome: 'Capoeira Liberdade e Expressão',
+  nomeCurto: 'Liberdade e Expressão',
+  slug: ESCOLA_PADRAO,
+  modalidade: 'capoeira',
+  lider: 'Mestre',
+  pecaGraduacao: 'cordão',
+  cidade: 'Campo Grande',
+  uf: 'MS',
+  dominio: 'liberdadeeexpressao.com.br',
+  status: 'ativa',
+  plano: 'federacao',
+  origem: 'fundadora',
+};
+
+// Coleções que recebem escolaId automaticamente (as que têm gatilho no servidor).
+// conversas fica de fora de propósito: a aba Global vai permitir conversa entre escolas.
+export const COLECOES_COM_ESCOLA = ['usuarios', 'nucleos', 'presencas', 'posts', 'avisos', 'eventos', 'solicitacoes', 'pagamentos', 'campeonatos', 'denuncias'];
+// A migração etiqueta também estas (sem gatilho próprio; o app novo já grava certo).
+export const COLECOES_SO_MIGRACAO = ['stories', 'materiais', 'perfisPublicos'];
+
+const CAMPOS_USUARIO = ['uid', 'autorUid', 'alunoId', 'solicitanteUid', 'organizadorUid', 'criadoPor', 'registradoPor'];
+
+function cache(ctx) { if (!ctx._escolas) ctx._escolas = { nucleo: new Map(), usuario: new Map() }; return ctx._escolas; }
+
+export async function escolaDoNucleo(ctx, nucleoId) {
+  if (!nucleoId) return null;
+  const c = cache(ctx).nucleo;
+  if (c.has(nucleoId)) return c.get(nucleoId);
+  const s = await ctx.db.doc(`nucleos/${nucleoId}`).get();
+  const id = s.exists ? (s.data().escolaId || ESCOLA_PADRAO) : null;
+  c.set(nucleoId, id);
+  return id;
+}
+
+export async function escolaDoUsuario(ctx, uid) {
+  if (!uid) return null;
+  const c = cache(ctx).usuario;
+  if (c.has(uid)) return c.get(uid);
+  const s = await ctx.db.doc(`usuarios/${uid}`).get();
+  let id = null;
+  if (s.exists) { const u = s.data(); id = u.escolaId || (await escolaDoNucleo(ctx, u.academiaId)) || ESCOLA_PADRAO; }
+  c.set(uid, id);
+  return id;
+}
+
+// A escola "verdadeira" de um registro, pelo vínculo que ele tem.
+export async function escolaDe(ctx, colecao, d, docId = null) {
+  if (!d) return null;
+  if (colecao === 'nucleos') return d.escolaId || ESCOLA_PADRAO; // núcleo: definido na ativação da escola (servidor)
+  if (colecao === 'usuarios') {
+    const pelaAcademia = await escolaDoNucleo(ctx, d.academiaId);
+    if (pelaAcademia) return pelaAcademia;
+    const peloNucleoGerenciado = await escolaDoNucleo(ctx, d.academiaGerenciadaId);
+    return peloNucleoGerenciado || d.escolaId || ESCOLA_PADRAO;
+  }
+  const pelaSede = (await escolaDoNucleo(ctx, d.nucleoId)) || (await escolaDoNucleo(ctx, d.academiaId));
+  if (pelaSede) return pelaSede;
+  if (colecao === 'perfisPublicos' && docId) { const e = await escolaDoUsuario(ctx, docId); if (e) return e; }
+  for (const k of CAMPOS_USUARIO) {
+    const e = await escolaDoUsuario(ctx, d[k]);
+    if (e) return e;
+  }
+  return ESCOLA_PADRAO;
+}
+
+// Etiqueta (ou corrige) o escolaId de um documento recém-escrito.
+// Devolve a escola gravada, ou null se não precisou mexer.
+export async function etiquetarEscola(ctx, colecao, id, depois) {
+  if (!depois) return null;
+  const certa = await escolaDe(ctx, colecao, depois, id);
+  if (!certa || depois.escolaId === certa) return null;
+  if (depois.escolaId && depois.escolaId !== certa) (ctx.log || console).warn('escolaId corrigido', colecao, id, depois.escolaId, '→', certa);
+  await ctx.db.doc(`${colecao}/${id}`).update({ escolaId: certa });
+  if (colecao === 'usuarios') cache(ctx).usuario.set(id, certa);
+  return certa;
+}
+
+// Escrita que mudou SÓ o escolaId (a nossa própria etiqueta): os gatilhos de
+// negócio ignoram — senão um post recém-criado notificaria duas vezes.
+export function soMudouEscola(antes, depois) {
+  if (!antes || !depois) return false;
+  const chaves = new Set([...Object.keys(antes), ...Object.keys(depois)]);
+  let mudouEscola = false;
+  for (const k of chaves) {
+    if (JSON.stringify(antes[k]) === JSON.stringify(depois[k])) continue;
+    if (k === 'escolaId') { mudouEscola = true; continue; }
+    return false;
+  }
+  return mudouEscola;
+}
+
+// ---------- Login com a escola e os papéis (custom claims) ----------
+// As regras do banco vão ler request.auth.token.escolaId / .papeis em vez de
+// abrir usuarios/{uid} a cada leitura (mais rápido e mais barato com milhares de escolas).
+export function claimsDe(u) {
+  if (!u) return null;
+  const papeis = Array.isArray(u.papeis) ? u.papeis.filter((p) => typeof p === 'string').slice(0, 8) : [];
+  return {
+    escolaId: u.escolaId || ESCOLA_PADRAO,
+    papeis,
+    gestorDe: u.academiaGerenciadaId || null,
+    acessoGeral: u.acessoGeral === true,
+  };
+}
+
+export async function sincronizarClaims(ctx, uid, u) {
+  if (!ctx.auth || !uid) return false;
+  let atuais = {};
+  try { atuais = (await ctx.auth.getUser(uid)).customClaims || {}; }
+  catch (e) { if (e && e.code === 'auth/user-not-found') return false; throw e; }
+  const novos = claimsDe(u);
+  if (!novos) {
+    // Cadastro apagado: tira o que é nosso e mantém o resto.
+    const { escolaId, papeis, gestorDe, acessoGeral, ...resto } = atuais; // eslint-disable-line no-unused-vars
+    if (Object.keys(resto).length === Object.keys(atuais).length) return false;
+    await ctx.auth.setCustomUserClaims(uid, resto);
+    return true;
+  }
+  const iguais = ['escolaId', 'papeis', 'gestorDe', 'acessoGeral'].every((k) => JSON.stringify(atuais[k] ?? null) === JSON.stringify(novos[k] ?? null));
+  if (iguais) return false;
+  await ctx.auth.setCustomUserClaims(uid, { ...atuais, ...novos });
+  return true;
+}
+
+// ---------- Migração: a Liberdade vira a escola nº 1 ----------
+export async function garantirEscolaFundadora(ctx) {
+  const ref = ctx.db.doc(`escolas/${ESCOLA_PADRAO}`);
+  const s = await ref.get();
+  if (s.exists) return false;
+  const slug = await ctx.db.doc(`escolasSlugs/${ESCOLA_PADRAO}`).get();
+  if (slug.exists && slug.data().escolaId !== ESCOLA_PADRAO) throw new Error(`O endereço "${ESCOLA_PADRAO}" já foi reservado por outra escola.`);
+  const agora = new Date().toISOString();
+  await ref.set({ ...ESCOLA_LIBERDADE, donoUid: null, criadoEm: agora, atualizadoEm: agora, ativadaEm: agora, ativadaPor: 'migracao' });
+  await ctx.db.doc(`escolasSlugs/${ESCOLA_PADRAO}`).set({ escolaId: ESCOLA_PADRAO, donoUid: null, criadoEm: agora });
+  return true;
+}
+
+async function emLotes(consulta, fn, tamanho = 300) {
+  let ultimo = null; let total = 0;
+  for (;;) {
+    let q = consulta.limit(tamanho);
+    if (ultimo) q = q.startAfter(ultimo);
+    const s = await q.get();
+    if (s.empty) break;
+    for (let i = 0; i < s.docs.length; i += 25) {
+      const r = await Promise.all(s.docs.slice(i, i + 25).map(fn));
+      total += r.filter(Boolean).length;
+    }
+    ultimo = s.docs[s.docs.length - 1];
+    if (s.size < tamanho) break;
+  }
+  return total;
+}
+
+// Etiqueta TUDO o que ainda não tem escola. Idempotente: rodar de novo só corrige o que faltar.
+export async function migrarEscolaId(ctx) {
+  const r = { escolaCriada: await garantirEscolaFundadora(ctx) };
+  // Núcleos primeiro: as outras coleções deduzem a escola por eles.
+  for (const col of ['nucleos', 'usuarios', ...COLECOES_COM_ESCOLA.filter((c) => !['nucleos', 'usuarios'].includes(c)), ...COLECOES_SO_MIGRACAO]) {
+    r[col] = await emLotes(ctx.db.collection(col).orderBy('__name__'), async (d) => etiquetarEscola(ctx, col, d.id, d.data()));
+  }
+  return r;
+}
+
+// Logins de todo mundo com escola e papéis.
+// Sem permissão de Admin do Authentication, falha de propósito (a migração
+// não fica marcada como feita e roda de novo pelo botão "Migrar" do painel).
+export async function migrarClaims(ctx) {
+  if (!ctx.auth) throw new Error('Migração de logins precisa do Firebase Authentication (ctx.auth).');
+  let semPermissao = null;
+  const n = await emLotes(ctx.db.collection('usuarios').orderBy('__name__'), async (d) => sincronizarClaims(ctx, d.id, d.data()).catch((e) => {
+    if (/permission|PERMISSION_DENIED|insufficient/i.test(String((e && (e.code || e.message)) || ''))) semPermissao = e;
+    (ctx.log || console).warn('claims', d.id, e && e.message);
+    return false;
+  }));
+  if (semPermissao) throw new Error(`Sem permissão para gravar os logins: ${semPermissao.message || semPermissao.code}`);
+  return n;
+}
+
+// ---------- Gatilho com escola ----------
+// Embrulha um gatilho de negócio: etiqueta/corrige a escola do documento,
+// atualiza o login (custom claims) quando é um cadastro, e não repete o
+// gatilho quando a única mudança foi a nossa etiqueta.
+const CAMPOS_DOS_CLAIMS = ['papeis', 'academiaId', 'academiaGerenciadaId', 'acessoGeral', 'escolaId'];
+export function comEscola(colecao, handler) {
+  return async (ctx, ev) => {
+    const id = ev.params && Object.values(ev.params)[0];
+    let e = ev;
+    if (e.depois && id) {
+      const nova = await etiquetarEscola(ctx, colecao, id, e.depois);
+      if (nova) e = { ...e, depois: { ...e.depois, escolaId: nova } };
+    }
+    if (colecao === 'usuarios' && id) {
+      const mudouLogin = !e.antes || !e.depois || CAMPOS_DOS_CLAIMS.some((k) => JSON.stringify(e.antes[k] ?? null) !== JSON.stringify(e.depois[k] ?? null));
+      if (mudouLogin) await sincronizarClaims(ctx, id, e.depois).catch((err) => (ctx.log || console).warn('claims', id, err && err.message));
+    }
+    if (soMudouEscola(e.antes, e.depois)) return null;
+    return handler ? handler(ctx, e) : null;
+  };
+}

@@ -5,6 +5,7 @@ import { sincronizarCarteirinha, apagarCarteirinha, temCarteirinha } from './car
 import { apagarCertificados, conferirCertificados, cancelarCertificado, cancelarAcimaDe, idAvisoCordao, alinharAoCordaoAtual } from './certificado.js';
 import { notificar, gestoresDoNucleo } from './notificar.js';
 import { responsaveisDe, apagarSubcolecao, apagarArquivosDoStorage } from './gatilhos.js';
+import { migrarEscolaId, migrarClaims } from './escolas.js';
 
 const DIA = 86400000;
 
@@ -130,6 +131,10 @@ export const MIGRACOES = [
   ['m5_certificados_completos', migrarCertificados],
   ['m6_cordoes_que_voltaram', migrarCordoesQueVoltaram],
   ['m7_brasoes_46_71', migrarBrasoes46a71],
+  // Multi-escola (AtletaPay): a Liberdade vira a escola nº 1 e todo dado ganha escolaId.
+  ['m8_escola_id', migrarEscolaId],
+  // Login de cada pessoa com escola e papéis (custom claims). Por último: se faltar permissão, só ela fica pendente.
+  ['m9_claims_escola', migrarClaims],
 ];
 
 // forcar: roda de novo mesmo as já marcadas (ex.: "Recalcular tudo" no painel).

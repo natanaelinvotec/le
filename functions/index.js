@@ -20,6 +20,7 @@ import { aoEscreverFotoCarteirinha, sincronizarCarteirinha } from './src/carteir
 import { processarLembretes } from './src/certificado.js';
 import { processarAniversarios } from './src/aniversarios.js';
 import { aoEscreverCampeonato } from './src/campeonatos.js';
+import { comEscola } from './src/escolas.js';
 
 // Região: a mesma do banco (o GitHub Actions descobre e grava em .env como REGIAO).
 setGlobalOptions({ region: process.env.REGIAO || 'southamerica-east1', maxInstances: 5, memory: '256MiB' });
@@ -47,19 +48,19 @@ const evCriado = (e) => ({ params: e.params, antes: null, depois: e.data ? e.dat
 const evAtualizado = (e) => ({ params: e.params, antes: e.data.before.data(), depois: e.data.after.data(), authId: null, authType: null });
 const seguro = (nome, fn) => async (e) => { try { await fn(e); } catch (err) { console.error(nome, err); } };
 
-export const usuarioEscrito = onDocumentWrittenWithAuthContext('usuarios/{uid}', seguro('usuario', (e) => G.aoEscreverUsuario(ctxBase(), ev(e))));
-export const presencaEscrita = onDocumentWrittenWithAuthContext('presencas/{id}', seguro('presenca', (e) => G.aoEscreverPresenca(ctxBase(), ev(e))));
-export const postEscrito = onDocumentWrittenWithAuthContext({ document: 'posts/{id}', memory: '512MiB' }, seguro('post', (e) => G.aoEscreverPost(ctxBase(), ev(e))));
+export const usuarioEscrito = onDocumentWrittenWithAuthContext('usuarios/{uid}', seguro('usuario', (e) => comEscola('usuarios', G.aoEscreverUsuario)(ctxBase(), ev(e))));
+export const presencaEscrita = onDocumentWrittenWithAuthContext('presencas/{id}', seguro('presenca', (e) => comEscola('presencas', G.aoEscreverPresenca)(ctxBase(), ev(e))));
+export const postEscrito = onDocumentWrittenWithAuthContext({ document: 'posts/{id}', memory: '512MiB' }, seguro('post', (e) => comEscola('posts', G.aoEscreverPost)(ctxBase(), ev(e))));
 export const comentarioCriado = onDocumentCreated('posts/{postId}/comentarios/{cid}', seguro('comentario', (e) => G.aoCriarComentario(ctxBase(), evCriado(e))));
 export const conversaCriada = onDocumentCreated('conversas/{id}', seguro('conversa', (e) => G.aoCriarConversa(ctxBase(), evCriado(e))));
 export const mensagemCriada = onDocumentCreated('conversas/{id}/mensagens/{mid}', seguro('mensagem', (e) => G.aoCriarMensagem(ctxBase(), evCriado(e))));
 export const perfilPublicoAtualizado = onDocumentUpdated('perfisPublicos/{uid}', seguro('seguir', (e) => G.aoAtualizarPerfilPublico(ctxBase(), evAtualizado(e))));
-export const avisoEscrito = onDocumentWrittenWithAuthContext('avisos/{id}', seguro('aviso', (e) => G.aoEscreverAviso(ctxBase(), ev(e))));
-export const eventoEscrito = onDocumentWrittenWithAuthContext('eventos/{id}', seguro('evento', (e) => G.aoEscreverEvento(ctxBase(), ev(e))));
-export const denunciaCriada = onDocumentCreated('denuncias/{id}', seguro('denuncia', (e) => G.aoCriarDenuncia(ctxBase(), evCriado(e))));
-export const solicitacaoEscrita = onDocumentWrittenWithAuthContext('solicitacoes/{id}', seguro('solicitacao', (e) => G.aoEscreverSolicitacao(ctxBase(), ev(e))));
-export const pagamentoEscrito = onDocumentWrittenWithAuthContext('pagamentos/{id}', seguro('pagamento', (e) => G.aoEscreverPagamento(ctxBase(), ev(e))));
-export const nucleoEscrito = onDocumentWrittenWithAuthContext('nucleos/{id}', seguro('nucleo', (e) => G.aoEscreverNucleo(ctxBase(), ev(e))));
+export const avisoEscrito = onDocumentWrittenWithAuthContext('avisos/{id}', seguro('aviso', (e) => comEscola('avisos', G.aoEscreverAviso)(ctxBase(), ev(e))));
+export const eventoEscrito = onDocumentWrittenWithAuthContext('eventos/{id}', seguro('evento', (e) => comEscola('eventos', G.aoEscreverEvento)(ctxBase(), ev(e))));
+export const denunciaCriada = onDocumentCreated('denuncias/{id}', seguro('denuncia', (e) => comEscola('denuncias', G.aoCriarDenuncia)(ctxBase(), evCriado(e))));
+export const solicitacaoEscrita = onDocumentWrittenWithAuthContext('solicitacoes/{id}', seguro('solicitacao', (e) => comEscola('solicitacoes', G.aoEscreverSolicitacao)(ctxBase(), ev(e))));
+export const pagamentoEscrito = onDocumentWrittenWithAuthContext('pagamentos/{id}', seguro('pagamento', (e) => comEscola('pagamentos', G.aoEscreverPagamento)(ctxBase(), ev(e))));
+export const nucleoEscrito = onDocumentWrittenWithAuthContext('nucleos/{id}', seguro('nucleo', (e) => comEscola('nucleos', G.aoEscreverNucleo)(ctxBase(), ev(e))));
 export const fotoCarteirinhaEscrita = onDocumentWrittenWithAuthContext('fotosCarteirinha/{uid}', seguro('fotoCarteirinha', (e) => aoEscreverFotoCarteirinha(ctxBase(), ev(e))));
 // Pai, mãe, irmãos e avós do atleta: o servidor gera/remove o código de cada um.
 export const beneficiariosEscritos = onDocumentWrittenWithAuthContext('beneficiarios/{uid}', seguro('beneficiarios', (e) => sincronizarCarteirinha(ctxBase(), e.params.uid)));
@@ -70,7 +71,7 @@ export const notificacaoEscrita = onDocumentWrittenWithAuthContext('notificacoes
 export const apresentacaoEscrita = onDocumentWrittenWithAuthContext('apresentacoes/{uid}', seguro('apresentacao', (e) => G.aoEscreverApresentacaoOuAssinatura(ctxBase(), ev(e))));
 export const assinaturaEscrita = onDocumentWrittenWithAuthContext('assinaturas/{uid}', seguro('assinatura', (e) => G.aoEscreverApresentacaoOuAssinatura(ctxBase(), ev(e))));
 // Campeonato encerrado → brasões de competição, post do pódio e parabéns.
-export const campeonatoEscrito = onDocumentWrittenWithAuthContext('campeonatos/{id}', seguro('campeonato', (e) => aoEscreverCampeonato(ctxBase(), ev(e))));
+export const campeonatoEscrito = onDocumentWrittenWithAuthContext('campeonatos/{id}', seguro('campeonato', (e) => comEscola('campeonatos', aoEscreverCampeonato)(ctxBase(), ev(e))));
 
 // Todo dia às 3h (horário de Campo Grande): limpeza + brasões que dependem do tempo.
 export const rotinaDaMadrugada = onSchedule({ schedule: 'every day 03:00', timeZone: 'America/Campo_Grande', timeoutSeconds: 540, memory: '512MiB' }, async () => {

@@ -11,6 +11,7 @@
 //   pagamentos      → resumoCompromisso (meses seguidos de mensalidade paga)
 //   certificados, carteirinha, seguidores, apresentação e assinatura → brasões 46–71
 import { avaliar, consolidar, resumirPresencas, porId, carteirinhaEmDia, beneficiariosDe } from './compartilhado/brasoes.js';
+import { ESCOLA_PADRAO } from './escolas.js';
 import { prontidao } from './compartilhado/escola.js';
 import { notificar } from './notificar.js';
 
@@ -155,6 +156,7 @@ export async function sincronizarPerfil(ctx, uid, refazer = {}) {
     cordaoAtual: u.cordaoAtual || 'Iniciante',
     idade: menor ? (Number(u.idade) || 0) : null, // idade só escolhe a escada kids; adulto não expõe
     menor,
+    escolaId: u.escolaId || ESCOLA_PADRAO, // rede da escola x aba Global
     academiaId: u.academiaId || null,
     academiaNome: u.academiaNome || '',
     academiaGerenciadaId: u.academiaGerenciadaId || null,

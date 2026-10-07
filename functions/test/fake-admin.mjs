@@ -111,3 +111,15 @@ export function criarBucket() {
     async deleteFiles({ prefix }) { apagados.push(`${prefix}*`); },
   };
 }
+
+// Authentication em memória: só o que src/ usa (claims e exclusão).
+export function criarAuth(uids = []) {
+  const usuarios = new Map(uids.map((u) => [u, { uid: u, customClaims: {} }]));
+  const naoAchou = () => { const e = new Error('user not found'); e.code = 'auth/user-not-found'; return e; };
+  return {
+    usuarios,
+    async getUser(uid) { if (!usuarios.has(uid)) throw naoAchou(); return structuredClone(usuarios.get(uid)); },
+    async setCustomUserClaims(uid, c) { if (!usuarios.has(uid)) throw naoAchou(); usuarios.get(uid).customClaims = structuredClone(c || {}); },
+    async deleteUser(uid) { if (!usuarios.delete(uid)) throw naoAchou(); },
+  };
+}

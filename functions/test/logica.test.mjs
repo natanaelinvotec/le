@@ -1,7 +1,7 @@
 // Testes da lógica das Cloud Functions (sem Firebase de verdade): node --test test/
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { criarDb, criarMessaging, criarBucket } from './fake-admin.mjs';
+import { criarDb, criarMessaging, criarBucket, criarAuth } from './fake-admin.mjs';
 import { sincronizarPerfil } from '../src/perfil.js';
 import * as G from '../src/gatilhos.js';
 import { registrar } from '../src/auditoria.js';
@@ -29,7 +29,8 @@ function base(extra = {}) {
 function ctxDe(inicial) {
   const f = criarDb(inicial);
   const messaging = criarMessaging(); const bucket = criarBucket();
-  return { f, ctx: { db: f.db, messaging, bucket, vision: null, log: { warn() {} } }, messaging, bucket };
+  const auth = criarAuth(Object.keys((inicial && inicial.usuarios) || {}));
+  return { f, ctx: { db: f.db, messaging, bucket, auth, vision: null, log: { warn() {} } }, messaging, bucket, auth };
 }
 const notifs = (f, uid) => Object.values(f.lerCol(`notificacoes/${uid}/itens`));
 
@@ -768,4 +769,66 @@ test('campeonato encerrado: competições do atleta real, brasões Competidor/P�
   assert.deepEqual(f.ler('perfisPublicos/nat').resumoCompeticoes, { participacoes: 1, podios: 1, titulos: 1 });
   await sincronizarPerfil(ctx, 'kid');
   const bk = f.ler('perfisPublicos/kid').brasoes; assert.ok(bk['competidor'] && bk['subiu-ao-podio'] && !bk['campeao']);
+});
+
+/* ===================== multi-escola (AtletaPay) ===================== */
+import { comEscola, migrarEscolaId, soMudouEscola, claimsDe, ESCOLA_PADRAO } from '../src/escolas.js';
+
+test('multi-escola: migração cria a escola Liberdade, etiqueta tudo e grava escola + papéis no login', async () => {
+  const { f, ctx, auth } = ctxDe(base({ presencas: { p1: { uid: 'nat', nucleoId: 'taynara', entradaEm: new Date().toISOString() } }, posts: { a: { autorUid: 'kid', texto: 'oi' } } }));
+  const r = await executarMigracoes(ctx, { somente: ['m8_escola_id', 'm9_claims_escola'] });
+  assert.equal(r.m8_escola_id.escolaCriada, true);
+  assert.equal(f.ler('escolas/liberdade').status, 'ativa');
+  assert.equal(f.ler('escolasSlugs/liberdade').escolaId, 'liberdade');
+  for (const c of ['nucleos/taynara', 'usuarios/nat', 'usuarios/admin', 'presencas/p1', 'posts/a']) assert.equal(f.ler(c).escolaId, ESCOLA_PADRAO, c);
+  assert.deepEqual(auth.usuarios.get('tay').customClaims, { escolaId: 'liberdade', papeis: ['aluno', 'mestre'], gestorDe: 'taynara', acessoGeral: false });
+  assert.equal(auth.usuarios.get('profeta').customClaims.acessoGeral, true);
+  const r2 = await executarMigracoes(ctx, { somente: ['m8_escola_id'] });
+  assert.equal(r2.m8_escola_id, 'já feita');
+});
+
+test('multi-escola: dado novo herda a escola do núcleo; escola falsa é corrigida; a etiqueta não repete o gatilho', async () => {
+  const { f, ctx, auth } = ctxDe(base({ nucleos: { gracie: { nome: 'CT Gracie', escolaId: 'gracie-cg', professorUid: 'rafa' }, taynara: { nome: 'Academia Professora Taynara', professorUid: 'tay', escolaId: 'liberdade' } } }));
+  auth.usuarios.set('rafa', { uid: 'rafa', customClaims: {} });
+  let chamadas = 0; const contar = async () => { chamadas += 1; };
+  // Aluno se inscreve no núcleo do CT de Jiu-Jitsu tentando gravar outra escola: o servidor corrige.
+  f.db.doc('usuarios/rafa').set({ nome: 'Rafa', papeis: ['aluno'], academiaId: 'gracie', escolaId: 'liberdade' });
+  await comEscola('usuarios', contar)(ctx, { params: { uid: 'rafa' }, antes: null, depois: f.ler('usuarios/rafa') });
+  assert.equal(f.ler('usuarios/rafa').escolaId, 'gracie-cg');
+  assert.equal(auth.usuarios.get('rafa').customClaims.escolaId, 'gracie-cg');
+  assert.equal(chamadas, 1);
+  // A escrita da etiqueta dispara o gatilho de novo: não pode rodar o negócio duas vezes.
+  await comEscola('usuarios', contar)(ctx, { params: { uid: 'rafa' }, antes: { nome: 'Rafa', papeis: ['aluno'], academiaId: 'gracie', escolaId: 'liberdade' }, depois: f.ler('usuarios/rafa') });
+  assert.equal(chamadas, 1);
+  // Presença no núcleo do CT e post do aluno: herdam a escola certa.
+  f.db.doc('presencas/x').set({ uid: 'rafa', nucleoId: 'gracie' });
+  await comEscola('presencas', contar)(ctx, { params: { id: 'x' }, antes: null, depois: f.ler('presencas/x') });
+  f.db.doc('posts/y').set({ autorUid: 'rafa', texto: 'Oss!', escolaId: 'liberdade' });
+  await comEscola('posts', contar)(ctx, { params: { id: 'y' }, antes: null, depois: f.ler('posts/y') });
+  assert.equal(f.ler('presencas/x').escolaId, 'gracie-cg');
+  assert.equal(f.ler('posts/y').escolaId, 'gracie-cg');
+  // Post da Liberdade continua da Liberdade.
+  f.db.doc('posts/z').set({ autorUid: 'nat', texto: 'Iê!' });
+  await comEscola('posts', contar)(ctx, { params: { id: 'z' }, antes: null, depois: f.ler('posts/z') });
+  assert.equal(f.ler('posts/z').escolaId, 'liberdade');
+  // Virou professor do CT: o login acompanha.
+  const antes = f.ler('usuarios/rafa');
+  f.db.doc('usuarios/rafa').update({ papeis: ['aluno', 'mestre'], academiaGerenciadaId: 'gracie' });
+  await comEscola('usuarios', contar)(ctx, { params: { uid: 'rafa' }, antes, depois: f.ler('usuarios/rafa') });
+  assert.deepEqual(auth.usuarios.get('rafa').customClaims, { escolaId: 'gracie-cg', papeis: ['aluno', 'mestre'], gestorDe: 'gracie', acessoGeral: false });
+});
+
+test('multi-escola: soMudouEscola e claimsDe', () => {
+  assert.equal(soMudouEscola({ a: 1 }, { a: 1, escolaId: 'x' }), true);
+  assert.equal(soMudouEscola({ a: 1 }, { a: 2, escolaId: 'x' }), false);
+  assert.equal(soMudouEscola(null, { a: 1 }), false);
+  assert.equal(soMudouEscola({ a: 1 }, { a: 1 }), false);
+  assert.deepEqual(claimsDe({ papeis: ['aluno', 1, 'admin'] }), { escolaId: 'liberdade', papeis: ['aluno', 'admin'], gestorDe: null, acessoGeral: false });
+});
+
+test('multi-escola: cartão público leva a escola', async () => {
+  const { f, ctx } = ctxDe(base());
+  f.db.doc('usuarios/nat').update({ escolaId: 'liberdade' });
+  await sincronizarPerfil(ctx, 'nat');
+  assert.equal(f.ler('perfisPublicos/nat').escolaId, 'liberdade');
 });

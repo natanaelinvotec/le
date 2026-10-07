@@ -96,6 +96,23 @@ test('presença pela foto da turma: só o responsável do núcleo, até 7 dias a
   await assertFails(setDoc(doc(db('tay'), 'presencas', 'ft7'), { ...base, origem: 'foto', entradaEm: new Date(), confirmadoEm: new Date() }), 'origem desconhecida, não');
 });
 
+test('multi-escola: escolaId é do servidor; Fundador só mexe nos núcleos da própria escola', async () => {
+  // Ninguém (além do Admin) troca a escola de um cadastro — nem o próprio, nem o professor.
+  await assertFails(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { escolaId: 'outra-escola' }), 'a pessoa não troca de escola sozinha');
+  await assertFails(updateDoc(doc(db('tay'), 'usuarios', 'nat'), { escolaId: 'outra-escola' }), 'o professor não muda a escola do aluno');
+  await assertFails(setDoc(doc(db('novo2'), 'usuarios', 'novo2'), { nome: 'Novo', papeis: ['aluno'], academiaId: 'taynara', academiaGerenciadaId: null, cordaoAtual: 'Iniciante', notas: {}, responsavelUid: null, statusAtual: 'Ativo', escolaId: 'outra-escola' }), 'inscrição não escolhe a escola (o servidor deduz pelo núcleo)');
+  await assertSucceeds(updateDoc(doc(db('admin'), 'usuarios', 'nat'), { escolaId: 'liberdade' }), 'Admin pode');
+  // Fundador (login sem claim = escola nº 1): cria núcleo da Liberdade, não de outra escola.
+  await assertSucceeds(setDoc(doc(db('profeta'), 'nucleos', 'novo-nucleo'), { nome: 'Núcleo Novo', escolaId: 'liberdade' }));
+  await assertFails(setDoc(doc(db('profeta'), 'nucleos', 'nucleo-alheio'), { nome: 'Alheio', escolaId: 'gracie-cg' }));
+  await assertFails(updateDoc(doc(db('profeta'), 'nucleos', 'novo-nucleo'), { escolaId: 'gracie-cg' }), 'não leva núcleo para outra escola');
+  await assertSucceeds(updateDoc(doc(db('profeta'), 'nucleos', 'novo-nucleo'), { nome: 'Núcleo Novo (Centro)' }));
+  // Fundador de OUTRA escola (claim) não mexe em núcleo da Liberdade.
+  const outro = env.authenticatedContext('profeta', { escolaId: 'gracie-cg' }).firestore();
+  await assertFails(updateDoc(doc(outro, 'nucleos', 'novo-nucleo'), { nome: 'Invadido' }));
+  await assertSucceeds(setDoc(doc(db('admin'), 'nucleos', 'gracie'), { nome: 'CT Gracie', escolaId: 'gracie-cg' }), 'Admin liga núcleo a qualquer escola');
+});
+
 test('a pessoa não muda a própria graduação, idade nem total de brasões', async () => {
   await assertSucceeds(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { celular: '(67) 99999-0000' }));
   await assertFails(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { cordaoAtual: 'Mestre' }));
