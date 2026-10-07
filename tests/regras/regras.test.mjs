@@ -111,6 +111,12 @@ test('multi-escola: escolaId é do servidor; Fundador só mexe nos núcleos da p
   const outro = env.authenticatedContext('profeta', { escolaId: 'gracie-cg' }).firestore();
   await assertFails(updateDoc(doc(outro, 'nucleos', 'novo-nucleo'), { nome: 'Invadido' }));
   await assertSucceeds(setDoc(doc(db('admin'), 'nucleos', 'gracie'), { nome: 'CT Gracie', escolaId: 'gracie-cg' }), 'Admin liga núcleo a qualquer escola');
+  // Cartão público da escola e domínios: todo mundo lê, só o servidor escreve (nem o Admin pelo app).
+  await assertSucceeds(getDoc(doc(db(null), 'escolasPublicas', 'liberdade')));
+  await assertFails(setDoc(doc(db('admin'), 'escolasPublicas', 'liberdade'), { nome: 'X' }));
+  await assertSucceeds(getDoc(doc(db(null), 'dominios', 'liberdadeeexpressao.com.br')));
+  await assertFails(getDocs(collection(db('admin'), 'dominios')), 'ninguém lista os domínios');
+  await assertFails(setDoc(doc(db('profeta'), 'dominios', 'x.com'), { escolaId: 'liberdade' }));
 });
 
 test('a pessoa não muda a própria graduação, idade nem total de brasões', async () => {

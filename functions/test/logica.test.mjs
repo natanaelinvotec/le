@@ -772,7 +772,7 @@ test('campeonato encerrado: competições do atleta real, brasões Competidor/P�
 });
 
 /* ===================== multi-escola (AtletaPay) ===================== */
-import { comEscola, migrarEscolaId, soMudouEscola, claimsDe, ESCOLA_PADRAO } from '../src/escolas.js';
+import { comEscola, migrarEscolaId, soMudouEscola, claimsDe, ESCOLA_PADRAO, aoEscreverEscola, escolaPublica } from '../src/escolas.js';
 
 test('multi-escola: migração cria a escola Liberdade, etiqueta tudo e grava escola + papéis no login', async () => {
   const { f, ctx, auth } = ctxDe(base({ presencas: { p1: { uid: 'nat', nucleoId: 'taynara', entradaEm: new Date().toISOString() } }, posts: { a: { autorUid: 'kid', texto: 'oi' } } }));
@@ -831,4 +831,27 @@ test('multi-escola: cartão público leva a escola', async () => {
   f.db.doc('usuarios/nat').update({ escolaId: 'liberdade' });
   await sincronizarPerfil(ctx, 'nat');
   assert.equal(f.ler('perfisPublicos/nat').escolaId, 'liberdade');
+});
+
+test('multi-escola: cartão público da escola só quando ativa, sem dados do dono; domínio próprio indexado', async () => {
+  const { f, ctx } = ctxDe(base());
+  const escola = { nome: 'CT Gracie Campo Grande', nomeCurto: 'CT Gracie', slug: 'gracie-cg', modalidade: 'jiujitsu', lider: 'Professor', pecaGraduacao: 'faixa',
+    graduacoes: ['Branca', 'Azul', 'Roxa', 'Marrom', 'Preta'], donoUid: 'rafa', donoEmail: 'rafa@ct.com', donoCelular: '67999990000', plano: 'nucleo',
+    fotos: { logo: ['https://x/logo.png'], treino: ['https://x/1.jpg', 'javascript:alert(1)'] }, status: 'fila', assinatura: { status: 'teste' } };
+  f.db.doc('escolas/gracie-cg').set(escola);
+  await aoEscreverEscola(ctx, { params: { id: 'gracie-cg' }, antes: null, depois: escola });
+  assert.equal(f.ler('escolasPublicas/gracie-cg'), undefined, 'na fila: sem cartão público');
+  const ativa = { ...escola, status: 'ativa', dominio: 'https://www.ctgracie.com.br/' };
+  await aoEscreverEscola(ctx, { params: { id: 'gracie-cg' }, antes: escola, depois: ativa });
+  const pub = f.ler('escolasPublicas/gracie-cg');
+  assert.equal(pub.nome, 'CT Gracie Campo Grande'); assert.equal(pub.pecaGraduacao, 'faixa'); assert.equal(pub.logo, 'https://x/logo.png');
+  assert.deepEqual(pub.fotos.treino, ['https://x/1.jpg'], 'só link https');
+  for (const k of ['donoUid', 'donoEmail', 'donoCelular', 'plano', 'assinatura']) assert.equal(pub[k], undefined, `${k} não vaza`);
+  assert.equal(f.ler('dominios/ctgracie.com.br').escolaId, 'gracie-cg');
+  // Pausou: o cartão some e o domínio solta.
+  const pausada = { ...ativa, status: 'pausada' };
+  await aoEscreverEscola(ctx, { params: { id: 'gracie-cg' }, antes: ativa, depois: pausada });
+  assert.equal(f.ler('escolasPublicas/gracie-cg'), undefined);
+  assert.equal(f.ler('dominios/ctgracie.com.br'), undefined);
+  assert.equal(escolaPublica('x', null), null);
 });

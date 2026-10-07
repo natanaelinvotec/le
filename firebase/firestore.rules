@@ -306,6 +306,16 @@ request.resource.data.status in ['rascunho', 'fila'] && planoOk(request.resource
 !mudou().hasAny(['assinatura', 'ativadaEm', 'ativadaPor', 'escolaId', 'projeto', 'dominio'])) || ehAdmin();
 allow delete: if ehAdmin();
 }
+// Cartão público de cada escola ativa e índice de domínios próprios: só o
+// servidor escreve (functions/src/escolas.js); qualquer visitante lê (site, inscrição, app).
+match /escolasPublicas/{id} {
+allow read: if true;
+allow write: if false;
+}
+match /dominios/{host} {
+allow get: if true;
+allow list, write: if false;
+}
 match /donos/{uid} {
 allow read: if (logado() && request.auth.uid == uid) || ehAdmin();
 allow create, update: if logado() && request.auth.uid == uid && request.resource.data.keys().hasOnly(['nome', 'email', 'celular', 'escolaId', 'criadoEm', 'atualizadoEm', 'origem']);

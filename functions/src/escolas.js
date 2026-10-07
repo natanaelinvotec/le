@@ -216,3 +216,64 @@ export function comEscola(colecao, handler) {
     return handler ? handler(ctx, e) : null;
   };
 }
+
+// ---------- Cartão público da escola (escolasPublicas/{id}) ----------
+// escolas/{id} tem dados do dono, plano e cobrança (só dono e Admin leem).
+// O app, o site e a inscrição precisam só da identidade: o servidor copia,
+// campo a campo, para escolasPublicas/{id} (leitura pública) enquanto a escola
+// estiver ATIVA. Pausada/cancelada: o cartão some e o app volta ao padrão.
+// dominios/{host} → { escolaId }: o app descobre a escola pelo endereço.
+const TEXTO = (v, max = 120) => (typeof v === 'string' ? v.slice(0, max) : '');
+const URLS = (v, max = 20) => (Array.isArray(v) ? v.filter((u) => typeof u === 'string' && /^https:\/\//.test(u)).slice(0, max) : []);
+export const normalizarDominio = (h) => String(h || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '');
+
+export function escolaPublica(id, e) {
+  if (!e || e.status !== 'ativa') return null;
+  const f = e.fotos || {};
+  return {
+    id,
+    slug: TEXTO(e.slug || id, 30),
+    nome: TEXTO(e.nome, 80),
+    nomeCurto: TEXTO(e.nomeCurto, 30),
+    modalidade: TEXTO(e.modalidade, 30) || 'capoeira',
+    lider: TEXTO(e.lider, 30),
+    pecaGraduacao: TEXTO(e.pecaGraduacao, 20),
+    graduacoes: Array.isArray(e.graduacoes) ? e.graduacoes.filter((g) => typeof g === 'string').slice(0, 30).map((g) => g.slice(0, 40)) : [],
+    cidade: TEXTO(e.cidade, 60),
+    uf: TEXTO(e.uf, 2),
+    endereco: TEXTO(e.endereco, 140),
+    instagram: TEXTO(e.instagram, 60),
+    responsavel: e.responsavel ? { nome: TEXTO(e.responsavel.nome, 80), graduacao: TEXTO(e.responsavel.graduacao, 60) } : null,
+    modelo: TEXTO(e.modelo, 20),
+    dominio: normalizarDominio(e.dominio) || null,
+    logo: URLS(f.logo, 1)[0] || null,
+    fotoLider: URLS(f.lider, 1)[0] || null,
+    fotos: { equipe: URLS(f.equipe, 1), treino: URLS(f.treino, 20), fachada: URLS(f.fachada, 1) },
+    cores: e.cores && typeof e.cores === 'object' ? Object.fromEntries(Object.entries(e.cores).filter(([k, v]) => /^[a-z]{2,12}$/.test(k) && /^#[0-9a-f]{6}$/i.test(String(v))).slice(0, 6)) : null,
+    status: 'ativa',
+    atualizadoEm: new Date().toISOString(),
+  };
+}
+
+export async function aoEscreverEscola(ctx, ev) {
+  const id = ev.params.id;
+  const pub = escolaPublica(id, ev.depois);
+  const dominioAntes = normalizarDominio(ev.antes && ev.antes.dominio);
+  const dominioDepois = pub ? pub.dominio : null;
+  if (pub) await ctx.db.doc(`escolasPublicas/${id}`).set(pub);
+  else await ctx.db.doc(`escolasPublicas/${id}`).delete().catch(() => {});
+  if (dominioAntes && dominioAntes !== dominioDepois) {
+    const s = await ctx.db.doc(`dominios/${dominioAntes}`).get();
+    if (s.exists && s.data().escolaId === id) await ctx.db.doc(`dominios/${dominioAntes}`).delete();
+  }
+  if (dominioDepois) {
+    const s = await ctx.db.doc(`dominios/${dominioDepois}`).get();
+    if (s.exists && s.data().escolaId !== id) (ctx.log || console).warn('domínio já ligado a outra escola', dominioDepois, s.data().escolaId);
+    else await ctx.db.doc(`dominios/${dominioDepois}`).set({ escolaId: id, atualizadoEm: new Date().toISOString() });
+  }
+  return pub;
+}
+
+export async function migrarEscolasPublicas(ctx) {
+  return emLotes(ctx.db.collection('escolas').orderBy('__name__'), async (d) => !!(await aoEscreverEscola(ctx, { params: { id: d.id }, antes: null, depois: d.data() })));
+}
