@@ -265,12 +265,13 @@ allow write: if organizo(campPai()) && campPai().status != 'encerrado';
 // AtletaPay (atletapay.com.br): escolas que se cadastram sozinhas. O dono é a
 // conta que criou; a escola nasce 'rascunho', vira 'fila' quando o assistente
 // termina e só a AtletaPay (Admin) a torna 'ativa'. escolasSlugs garante o
-// subdomínio único (o id É o slug: criar duas vezes falha sozinho).
-// Nomes reservados: subdomínios da própria plataforma (mesma lista de
+// endereço único atletapay.com.br/<slug> (o id É o slug: criar duas vezes falha sozinho).
+// Nomes reservados: rotas e páginas da própria plataforma (mesma lista de
 // atletapay/js/catalogo.js — a regra garante que ninguém pule o formulário).
 function slugLivre(s) {
 return s.matches('^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$') &&
-!(s in ['www', 'app', 'api', 'admin', 'painel', 'master', 'suporte', 'ajuda', 'blog', 'docs', 'mail', 'email', 'ftp', 'cdn', 'static', 'assets', 'atletapay', 'redbull', 'teste', 'demo', 'login', 'conta', 'pagamentos', 'pix']);
+!(s in ['www', 'app', 'api', 'admin', 'painel', 'master', 'suporte', 'ajuda', 'blog', 'docs', 'mail', 'email', 'ftp', 'cdn', 'static', 'assets', 'atletapay', 'redbull', 'teste', 'demo', 'login', 'conta', 'pagamentos', 'pix',
+'cadastro', 'privacidade', 'termos', 'index', 'css', 'js', 'img', 'fotos', 'sitemap', 'robots', 'favicon', 'sobre', 'contato', 'planos', 'precos', 'global', 'rede', 'escolas', 'inscricao', 'entrar', 'sair']);
 }
 match /escolasSlugs/{slug} {
 allow get: if logado();
@@ -292,7 +293,7 @@ slugLivre(id);
 // (dono() vem primeiro: o dono da escola não tem usuarios/{uid}, e ehAdmin() falharia ao ler o perfil.)
 allow update: if (dono() && request.resource.data.donoUid == resource.data.donoUid && request.resource.data.slug == resource.data.slug &&
 request.resource.data.status in ['rascunho', 'fila'] && planoOk(request.resource.data.plano) &&
-!mudou().hasAny(['assinatura', 'ativadaEm', 'ativadaPor', 'escolaId', 'projeto'])) || ehAdmin();
+!mudou().hasAny(['assinatura', 'ativadaEm', 'ativadaPor', 'escolaId', 'projeto', 'dominio'])) || ehAdmin();
 allow delete: if ehAdmin();
 }
 match /donos/{uid} {

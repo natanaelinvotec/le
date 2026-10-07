@@ -220,6 +220,10 @@ input[type=range] { width: 100%; accent-color: var(--laranja); height: 34px; }
 .campo .prefixo { display: flex; align-items: center; border: 1.5px solid var(--borda); border-radius: 12px; background: #fff; overflow: hidden; }
 .campo .prefixo input { border: 0; flex: 1; min-width: 0; }
 .campo .prefixo span { padding: 0 14px; color: var(--texto-3); font-weight: 700; font-size: .9rem; white-space: nowrap; background: var(--areia); align-self: stretch; display: grid; place-items: center; }
+.campo .prefixo-antes span { padding: 0 2px 0 14px; background: transparent; color: var(--texto-2); }
+.campo .prefixo-antes input { padding-left: 0; border: 0; border-radius: 0; box-shadow: none; background: transparent; outline: none; }
+.campo .prefixo-antes:focus-within { border-color: var(--laranja); box-shadow: 0 0 0 3px rgba(255,122,26,.18); }
+@media (max-width: 420px) { .campo .prefixo-antes span { font-size: .8rem; padding-left: 10px; } }
 .opcoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .opcao { display: grid; gap: 6px; padding: 14px; border-radius: 14px; background: #fff; border: 1.5px solid var(--borda); text-align: left; transition: border-color .3s, transform .4s var(--ease), box-shadow .4s var(--ease); }
 .opcao:hover { transform: translateY(-2px); }
@@ -242,6 +246,9 @@ input[type=range] { width: 100%; accent-color: var(--laranja); height: 34px; }
 .foto-item b { display: block; font-size: .95rem; }
 .foto-item small { display: block; color: var(--texto-3); font-size: .78rem; line-height: 1.4; margin-top: 2px; }
 .foto-item input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.foto-item.parcial { border-style: solid; border-color: #F59E0B; }
+.foto-item .foto-bts { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+.foto-item .progresso-foto { color: var(--laranja); font-weight: 700; }
 .plano-mini { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 16px 18px; border-radius: 16px; background: #fff; border: 1.5px solid var(--borda); }
 .plano-mini[aria-pressed="true"] { border-color: var(--laranja); box-shadow: 0 0 0 3px rgba(255,122,26,.2); }
 .plano-mini b { font-family: var(--display); font-weight: 600; }
@@ -260,7 +267,8 @@ input[type=range] { width: 100%; accent-color: var(--laranja); height: 34px; }
   .etapa i { width: 28px; height: 28px; font-size: .72rem; }
   .heroi .wrap, .simulador, .demo, .rodape .wrap { grid-template-columns: 1fr; }
   .foto-item { grid-template-columns: 72px 1fr; }
-  .foto-item .bt { grid-column: 1 / -1; }
+  .foto-item .bt, .foto-item .foto-bts { grid-column: 1 / -1; }
+  .foto-item .foto-bts { flex-direction: row; }
 }
 
 /* ----- painel da escola ----- */

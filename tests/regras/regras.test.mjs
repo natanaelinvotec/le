@@ -345,6 +345,7 @@ test('AtletaPay: dono (sem usuarios/) cria slug + escola em rascunho, edita até
   await assertFails(setDoc(doc(db('estranho'), 'donos', 'dono1'), { nome: 'x' }), 'só o próprio');
   await assertSucceeds(setDoc(doc(dono, 'escolasSlugs', 'dragao'), { escolaId: 'dragao', donoUid: 'dono1', criadoEm: agora }));
   await assertFails(setDoc(doc(dono, 'escolasSlugs', 'www'), { escolaId: 'www', donoUid: 'dono1', criadoEm: agora }), 'slug curto/reservado pelo formato');
+  await assertFails(setDoc(doc(dono, 'escolasSlugs', 'cadastro'), { escolaId: 'cadastro', donoUid: 'dono1', criadoEm: agora }), 'atletapay.com.br/cadastro é página da plataforma');
   const escola = { nome: 'Dragão', nomeCurto: 'Dragão', slug: 'dragao', donoUid: 'dono1', status: 'rascunho', plano: 'nucleo', modalidade: 'jiujitsu', cidade: 'Campo Grande', uf: 'MS', criadoEm: agora, fotos: {} };
   await assertSucceeds(setDoc(doc(dono, 'escolas', 'dragao'), escola));
   await assertFails(setDoc(doc(dono, 'escolas', 'outra'), { ...escola, slug: 'dragao' }), 'id tem de ser o slug');

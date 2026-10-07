@@ -7,7 +7,7 @@ libera o upload das fotos para escolas/{slug}/... no Storage — e vira 'fila'
 na etapa 5. escolasSlugs/{slug} garante que dois donos não peguem o mesmo
 subdomínio. donos/{uid} aponta a conta para a escola. */
 import { db, doc, getDoc, setDoc, updateDoc, writeBatch, observarSessao, criarConta, entrar, recuperarSenha, sair, erroAmigavel, comprimir, enviarImagem } from './firebase.js?v=20261002';
-import { PLANOS, porId, MODALIDADES, modalidadePorId, MODELOS, FOTOS, TRIAL_DIAS, brl, slugDe, slugValido, RESERVADOS } from './catalogo.js?v=20261002';
+import { PLANOS, porId, MODALIDADES, modalidadePorId, MODELOS, FOTOS, TRIAL_DIAS, brl, slugDe, slugValido, RESERVADOS, minimoDe, fotosFaltando, juntarFotos, contagemFotos } from './catalogo.js?v=20261007';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const el = (id) => document.getElementById(id);
@@ -35,7 +35,7 @@ observarSessao(async (u) => {
         if (e.exists()) {
           escolaDoc = { id: e.id, ...e.data() };
           if (escolaDoc.status !== 'rascunho') { location.replace('painel.html'); return; }
-          r.escolaId = escolaDoc.id; r.escola = { nome: escolaDoc.nome, nomeCurto: escolaDoc.nomeCurto, modalidade: escolaDoc.modalidade, cidade: escolaDoc.cidade, uf: escolaDoc.uf, slug: escolaDoc.slug };
+          r.escolaId = escolaDoc.id; r.escola = { nome: escolaDoc.nome, nomeCurto: escolaDoc.nomeCurto, modalidade: escolaDoc.modalidade, cidade: escolaDoc.cidade, uf: escolaDoc.uf, slug: escolaDoc.slug, endereco: escolaDoc.endereco || '', responsavel: escolaDoc.responsavel || null, instagram: escolaDoc.instagram || '' };
           r.plano = escolaDoc.plano || r.plano; r.fotos = escolaDoc.fotos || r.fotos; r.modelo = escolaDoc.modelo || r.modelo;
           if (r.etapa < 2) r.etapa = 2;
         }
@@ -108,12 +108,16 @@ function passoEscola() {
     <form class="form" id="f">
       <div class="erro-caixa" id="erro" hidden></div>
       <div class="linha">
-        <div class="campo" style="grid-column:1/-1"><label for="eNome">Nome da escola ou grupo</label><input id="eNome" required maxlength="80" placeholder="Ex.: Academia Dragão de Ferro" value="${esc(e.nome || '')}"></div>
+        <div class="campo" style="grid-column:1/-1"><label for="eNome">Nome da escola, academia ou centro de treinamento</label><input id="eNome" required maxlength="80" placeholder="Ex.: CT Dragão de Ferro Jiu-Jitsu" value="${esc(e.nome || '')}"></div>
         <div class="campo"><label for="eCurto">Nome curto (aparece no app)</label><input id="eCurto" required maxlength="30" placeholder="Ex.: Dragão de Ferro" value="${esc(e.nomeCurto || '')}"></div>
         <div class="campo"><label for="eCidade">Cidade</label><input id="eCidade" required maxlength="60" value="${esc(e.cidade || '')}"></div>
         <div class="campo"><label for="eUf">Estado</label><select id="eUf" required><option value="">UF</option>${UFS.map((u) => `<option ${u === (e.uf || 'MS') ? 'selected' : ''}>${u}</option>`).join('')}</select></div>
+        <div class="campo" style="grid-column:1/-1"><label for="eEndereco">Endereço do local de treino</label><input id="eEndereco" required maxlength="140" autocomplete="street-address" placeholder="Rua, número, bairro" value="${esc(e.endereco || '')}"><small class="ajuda">Vai para o site com o botão "Como chegar".</small></div>
+        <div class="campo"><label for="eRespNome">Responsável técnico</label><input id="eRespNome" required maxlength="80" autocomplete="name" value="${esc((e.responsavel && e.responsavel.nome) || (usuario && usuario.displayName) || (r.conta && r.conta.nome) || '')}"></div>
+        <div class="campo"><label for="eRespGrad">Graduação / título do responsável</label><input id="eRespGrad" required maxlength="60" placeholder="Ex.: Faixa-preta 3º grau" value="${esc((e.responsavel && e.responsavel.graduacao) || '')}"></div>
+        <div class="campo"><label for="eInsta">Instagram da academia (opcional)</label><input id="eInsta" maxlength="60" placeholder="@suaacademia" value="${esc(e.instagram || '')}"></div>
         <div class="campo" style="grid-column:1/-1"><label>Arte marcial</label><div class="opcoes" id="modalidades">${MODALIDADES.map((m) => `<button type="button" class="opcao" data-mod="${m.id}" aria-pressed="${m.id === (e.modalidade || 'capoeira')}"><b>${esc(m.nome)}</b><small>${esc(m.lider)} · ${m.graduacoes.length} ${esc(m.peca)}s</small><span class="grads">${m.graduacoes.map(() => '<i></i>').join('')}</span></button>`).join('')}</div><small class="ajuda">A escada de graduações vem pronta para a modalidade e pode ser editada no painel.</small></div>
-        <div class="campo" style="grid-column:1/-1"><label for="eSlug">Endereço da escola na AtletaPay</label><div class="prefixo"><input id="eSlug" required maxlength="30" ${travado ? 'readonly' : ''} value="${esc(e.slug || '')}" placeholder="dragaodeferro"><span>.atletapay.com.br</span></div><small class="ajuda" id="slugAjuda">${travado ? 'Endereço reservado para a sua escola.' : 'Letras, números e hífen. Verificamos a disponibilidade enquanto você digita.'}</small></div>
+        <div class="campo" style="grid-column:1/-1"><label for="eSlug">Endereço da escola na AtletaPay</label><div class="prefixo prefixo-antes"><span>atletapay.com.br/</span><input id="eSlug" required maxlength="30" ${travado ? 'readonly' : ''} value="${esc(e.slug || '')}" placeholder="dragaodeferro"></div><small class="ajuda" id="slugAjuda">${travado ? 'Endereço reservado para a sua escola.' : 'Letras, números e hífen. Verificamos a disponibilidade enquanto você digita. Quer usar um domínio próprio (www.suaescola.com.br)? Depois da ativação, fale com o suporte da AtletaPay.'}</small></div>
       </div>
       <div class="acoes"><button type="button" class="bt bt-branco" id="btVoltar"><i class="fas fa-arrow-left"></i> Voltar</button><span class="espaco"></span><button type="submit" class="bt bt-laranja" id="btOk">Continuar <i class="fas fa-arrow-right"></i></button></div>
     </form>`;
@@ -126,7 +130,7 @@ function passoEscola() {
     if (!s) { ajuda.className = 'ajuda'; ajuda.textContent = 'Letras, números e hífen.'; return; }
     if (!slugValido(s)) { ajuda.className = 'ajuda erro'; ajuda.textContent = RESERVADOS.includes(s) ? 'Esse endereço é reservado.' : 'Use de 3 a 30 caracteres, começando e terminando com letra ou número.'; return; }
     ajuda.className = 'ajuda'; ajuda.textContent = 'Verificando…';
-    try { const d = await getDoc(doc(db, 'escolasSlugs', s)); if (d.exists()) { ajuda.className = 'ajuda erro'; ajuda.textContent = `${s}.atletapay.com.br já está em uso.`; } else { slugOk = true; ajuda.className = 'ajuda ok'; ajuda.textContent = `${s}.atletapay.com.br está disponível!`; } } catch (er) { ajuda.className = 'ajuda erro'; ajuda.textContent = 'Não deu para verificar agora.'; }
+    try { const d = await getDoc(doc(db, 'escolasSlugs', s)); if (d.exists()) { ajuda.className = 'ajuda erro'; ajuda.textContent = `atletapay.com.br/${s} já está em uso.`; } else { slugOk = true; ajuda.className = 'ajuda ok'; ajuda.textContent = `atletapay.com.br/${s} está disponível!`; } } catch (er) { ajuda.className = 'ajuda erro'; ajuda.textContent = 'Não deu para verificar agora.'; }
   };
   if (!travado) {
     inp.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(conferir, 450); });
@@ -137,7 +141,10 @@ function passoEscola() {
   el('btVoltar').addEventListener('click', () => ir(0));
   el('f').addEventListener('submit', async (ev) => {
     ev.preventDefault(); erro(''); const bt = el('btOk'); bt.disabled = true;
-    const dados = { nome: el('eNome').value.trim().slice(0, 80), nomeCurto: el('eCurto').value.trim().slice(0, 30), cidade: el('eCidade').value.trim().slice(0, 60), uf: el('eUf').value, modalidade, slug: slugDe(inp.value) };
+    const limpo = (id, max) => el(id).value.replace(/[<>]/g, '').trim().slice(0, max);
+    const insta = limpo('eInsta', 60).replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/^@?/, '').replace(/[^\w.]/g, '');
+    const dados = { nome: limpo('eNome', 80), nomeCurto: limpo('eCurto', 30), cidade: limpo('eCidade', 60), uf: el('eUf').value, modalidade, slug: slugDe(inp.value),
+      endereco: limpo('eEndereco', 140), responsavel: { nome: limpo('eRespNome', 80), graduacao: limpo('eRespGrad', 60) }, instagram: insta ? `@${insta}` : '' };
     try {
       if (!usuario) throw new Error('Entre na sua conta para continuar.');
       if (!travado) {
@@ -150,7 +157,7 @@ function passoEscola() {
         await b.commit();
         r.escolaId = dados.slug;
       } else {
-        await updateDoc(doc(db, 'escolas', r.escolaId), { nome: dados.nome, nomeCurto: dados.nomeCurto, cidade: dados.cidade, uf: dados.uf, modalidade, graduacoes: modalidadePorId(modalidade).graduacoes, lider: modalidadePorId(modalidade).lider, pecaGraduacao: modalidadePorId(modalidade).peca, atualizadoEm: new Date().toISOString() });
+        await updateDoc(doc(db, 'escolas', r.escolaId), { nome: dados.nome, nomeCurto: dados.nomeCurto, cidade: dados.cidade, uf: dados.uf, endereco: dados.endereco, responsavel: dados.responsavel, instagram: dados.instagram, modalidade, graduacoes: modalidadePorId(modalidade).graduacoes, lider: modalidadePorId(modalidade).lider, pecaGraduacao: modalidadePorId(modalidade).peca, atualizadoEm: new Date().toISOString() });
       }
       r.escola = dados; ir(2);
     } catch (er) { console.error(er); erro(/already-exists|ALREADY_EXISTS/.test(String(er.code || er.message)) ? 'Esse endereço acabou de ser reservado por outra escola. Escolha outro.' : erroAmigavel(er)); bt.disabled = false; }
@@ -174,37 +181,45 @@ function passoPlano() {
 
 /* ---------- 4 · fotos ---------- */
 function passoFotos() {
-  const lista = () => FOTOS.map((f) => { const tem = (r.fotos[f.id] || []).length; return `
-    <div class="foto-item${tem ? ' ok' : ''}" id="fi_${f.id}">
-      <div class="previa">${(r.fotos[f.id] || []).slice(0, 3).map((u) => `<img src="${esc(u)}" alt="">`).join('')}</div>
-      <div><b>${esc(f.nome)}${f.obrigatoria ? ' <span style="color:var(--laranja)">*</span>' : ''}</b><small>${esc(f.dica)}${f.max > 1 ? ` Até ${f.max}.` : ''}${tem ? ` <strong style="color:#0B8F5B">${tem} enviada${tem > 1 ? 's' : ''}.</strong>` : ''}</small></div>
-      <label class="bt bt-branco bt-sm" style="position:relative;overflow:hidden"><i class="fas fa-upload"></i> ${tem ? 'Trocar' : 'Enviar'}<input type="file" accept="image/*" ${f.max > 1 ? 'multiple' : ''} data-foto="${f.id}" data-max="${f.max}"></label>
+  const lista = () => FOTOS.map((f) => { const tem = (r.fotos[f.id] || []).length; const ok = tem >= Math.max(1, minimoDe(f)); const cheio = f.max > 1 && tem >= f.max; return `
+    <div class="foto-item${ok ? ' ok' : ''}${tem && !ok ? ' parcial' : ''}" id="fi_${f.id}">
+      <div class="previa">${(r.fotos[f.id] || []).slice(-3).map((u) => `<img src="${esc(u)}" alt="">`).join('')}</div>
+      <div><b>${esc(f.nome)}${f.obrigatoria ? ' <span style="color:var(--laranja)">*</span>' : ''}</b><small>${esc(f.dica)}${tem || minimoDe(f) > 1 ? ` <strong style="color:${ok ? '#0B8F5B' : '#C2410C'}">${esc(contagemFotos(f, tem))}</strong>` : ''}</small><small class="progresso-foto" hidden></small></div>
+      <div class="foto-bts"><label class="bt bt-branco bt-sm" style="position:relative;overflow:hidden${cheio ? ';opacity:.5;pointer-events:none' : ''}"><i class="fas fa-upload"></i> ${f.max > 1 ? (tem ? 'Adicionar' : 'Enviar') : (tem ? 'Trocar' : 'Enviar')}<input type="file" accept="image/*" ${f.max > 1 ? 'multiple' : ''} data-foto="${f.id}" ${cheio ? 'disabled' : ''}></label>${f.max > 1 && tem ? `<button type="button" class="bt bt-branco bt-sm" data-limpar="${f.id}" title="Apagar todas e enviar de novo"><i class="fas fa-rotate-left"></i> Recomeçar</button>` : ''}</div>
     </div>`; }).join('');
   el('passo').innerHTML = `
     <span class="eyebrow">Etapa 4 de 5</span>
     <h2 style="margin-top:10px">Logo e fotos</h2>
-    <p class="sub" style="margin-top:8px">Com elas montamos o site, o ícone do app, a capa da Rede e a página do mestre. Pode pular e enviar depois pelo painel.</p>
+    <p class="sub" style="margin-top:8px">Com elas montamos o site, o ícone do app, a capa da Rede e a página do responsável. Precisamos do logo, da sua foto e de pelo menos 10 fotos de membros, treinos e eventos. Pode completar depois pelo painel.</p>
     <div class="form"><div class="erro-caixa" id="erro" hidden></div><div class="fotos" id="fotos">${lista()}</div>
       <div class="acoes"><button type="button" class="bt bt-branco" id="btVoltar"><i class="fas fa-arrow-left"></i> Voltar</button><span class="espaco"></span><button type="button" class="bt bt-branco" id="btPular">Enviar depois</button><button type="button" class="bt bt-laranja" id="btOk">Continuar <i class="fas fa-arrow-right"></i></button></div>
     </div>`;
   el('fotos').addEventListener('change', async (ev) => {
     const inp = ev.target.closest('input[type=file]'); if (!inp || !inp.files.length) return;
-    const id = inp.dataset.foto; const max = Number(inp.dataset.max) || 1; const arquivos = Array.from(inp.files).slice(0, max);
-    const item = el(`fi_${id}`); item.style.opacity = '.6'; erro('');
+    const id = inp.dataset.foto; const def = FOTOS.find((x) => x.id === id);
+    const espaco = def.max > 1 ? def.max - (r.fotos[id] || []).length : 1;
+    const arquivos = Array.from(inp.files).filter((f) => /^image\//.test(f.type)).slice(0, Math.max(0, espaco));
+    const item = el(`fi_${id}`); const prog = item.querySelector('.progresso-foto'); item.style.opacity = '.7'; erro('');
     try {
       const urls = [];
       for (let i = 0; i < arquivos.length; i++) {
-        const f = arquivos[i]; if (!/^image\//.test(f.type)) continue;
-        const dataUrl = await comprimir(f, id === 'logo' ? 1024 : 1600, id === 'logo' ? 1 : 0.86);
+        prog.hidden = false; prog.textContent = `Enviando ${i + 1} de ${arquivos.length}…`;
+        const dataUrl = await comprimir(arquivos[i], id === 'logo' ? 1024 : 1600, id === 'logo' ? 1 : 0.86);
         const ext = /png/.test(dataUrl.slice(0, 20)) ? 'png' : 'jpg';
-        urls.push(await enviarImagem(`escolas/${r.escolaId}/onboarding/${id}-${i + 1}-${Date.now().toString(36)}.${ext}`, dataUrl));
+        urls.push(await enviarImagem(`escolas/${r.escolaId}/onboarding/${id}-${Date.now().toString(36)}-${i + 1}.${ext}`, dataUrl));
       }
-      if (urls.length) { r.fotos[id] = urls; await updateDoc(doc(db, 'escolas', r.escolaId), { [`fotos.${id}`]: urls, atualizadoEm: new Date().toISOString() }); salvarRascunho(); el('fotos').innerHTML = lista(); toast(`${esc(FOTOS.find((x) => x.id === id).nome)}: enviado!`); }
-    } catch (er) { console.error(er); erro(erroAmigavel(er)); item.style.opacity = '1'; }
+      if (urls.length) { r.fotos[id] = juntarFotos(def, r.fotos[id], urls); await updateDoc(doc(db, 'escolas', r.escolaId), { [`fotos.${id}`]: r.fotos[id], atualizadoEm: new Date().toISOString() }); salvarRascunho(); el('fotos').innerHTML = lista(); toast(`${def.nome}: ${urls.length} enviada${urls.length > 1 ? 's' : ''}!`); }
+      if (Array.from(inp.files).length > arquivos.length) toast(`Limite de ${def.max} fotos: as demais ficaram de fora.`);
+    } catch (er) { console.error(er); erro(erroAmigavel(er)); item.style.opacity = '1'; prog.hidden = true; }
+  });
+  el('fotos').addEventListener('click', async (ev) => {
+    const b = ev.target.closest('[data-limpar]'); if (!b) return;
+    if (!confirm('Apagar todas as fotos desse item e enviar de novo?')) return;
+    try { r.fotos[b.dataset.limpar] = []; await updateDoc(doc(db, 'escolas', r.escolaId), { [`fotos.${b.dataset.limpar}`]: [], atualizadoEm: new Date().toISOString() }); salvarRascunho(); el('fotos').innerHTML = lista(); } catch (er) { erro(erroAmigavel(er)); }
   });
   el('btVoltar').addEventListener('click', () => ir(2));
   el('btPular').addEventListener('click', () => ir(4));
-  el('btOk').addEventListener('click', () => { const faltam = FOTOS.filter((f) => f.obrigatoria && !(r.fotos[f.id] || []).length); if (faltam.length) { erro(`Para o site ficar pronto precisamos de: ${faltam.map((f) => f.nome).join(' e ')}. Pode enviar depois pelo painel, clicando em "Enviar depois".`); return; } ir(4); });
+  el('btOk').addEventListener('click', () => { const faltam = fotosFaltando(r.fotos); if (faltam.length) { erro(`Para o site ficar pronto falta: ${faltam.map((f) => `${f.nome}${minimoDe(f) > 1 ? ` (${(r.fotos[f.id] || []).length} de ${minimoDe(f)})` : ''}`).join(' · ')}. Pode completar depois pelo painel, clicando em "Enviar depois".`); return; } ir(4); });
 }
 
 /* ---------- 5 · modelo ---------- */

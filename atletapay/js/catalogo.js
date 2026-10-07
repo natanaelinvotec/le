@@ -41,13 +41,28 @@ export const modeloPorId = (id) => MODELOS.find((m) => m.id === id) || MODELOS[0
 // Fotos que o onboarding pede (o que cada uma vira no site e no app).
 export const FOTOS = [
   { id: 'logo', nome: 'Logo', dica: 'PNG com fundo transparente, quadrado. Vira ícone do app e marca do site.', obrigatoria: true, max: 1 },
-  { id: 'lider', nome: 'Foto do mestre / professor', dica: 'Retrato, de frente, fundo limpo. Aparece em "Sobre" e no perfil do responsável.', obrigatoria: true, max: 1 },
+  { id: 'lider', nome: 'Foto do responsável (mestre, professor, sensei)', dica: 'Retrato, de frente, fundo limpo. Aparece em "Sobre" e no perfil do responsável.', obrigatoria: true, max: 1 },
   { id: 'equipe', nome: 'Foto da equipe', dica: 'Turma reunida, horizontal. Vira capa da Rede.', obrigatoria: false, max: 1 },
-  { id: 'treino', nome: 'Fotos de treino', dica: 'De 3 a 6 fotos, horizontais. Montam a galeria e o herói do site.', obrigatoria: false, max: 6 },
+  { id: 'treino', nome: 'Fotos dos membros, treinos e eventos', dica: 'Turma, treinos, graduações, campeonatos e eventos. Mínimo de 10, até 20 — montam o herói, a galeria do site e a capa da Rede. Pode enviar aos poucos.', obrigatoria: true, min: 10, max: 20 },
   { id: 'fachada', nome: 'Fachada ou local', dica: 'Onde a turma treina. Entra em "Horários e núcleos" com o mapa.', obrigatoria: false, max: 1 },
 ];
 
+// Quantas fotos cada item pede (obrigatória sem "min" = 1) e o que ainda falta.
+export const minimoDe = (f) => (f.obrigatoria ? (f.min || 1) : 0);
+export const fotosFaltando = (fotos) => FOTOS.filter((f) => ((fotos && fotos[f.id]) || []).length < minimoDe(f));
+// Envio de várias: soma às que já estão (até o máximo); de uma só: troca.
+export const juntarFotos = (f, atuais, novas) => (f.max > 1 ? [...(atuais || []), ...novas].slice(0, f.max) : novas.slice(0, 1));
+export function contagemFotos(f, n) {
+  if (f.max <= 1) return n ? 'Enviada.' : '';
+  const min = minimoDe(f);
+  if (min && n < min) return `${n} de ${min} (mínimo) · faltam ${min - n}.`;
+  return `${n} de até ${f.max} enviadas.`;
+}
+
 // Subdomínio: letras, números e hífen; 3–30; sem reservados.
-export const RESERVADOS = ['www', 'app', 'api', 'admin', 'painel', 'master', 'suporte', 'ajuda', 'blog', 'docs', 'mail', 'email', 'ftp', 'cdn', 'static', 'assets', 'atletapay', 'redbull', 'teste', 'demo', 'login', 'conta', 'pagamentos', 'pix'];
+// O endereço é atletapay.com.br/<slug>: as páginas e pastas do próprio site também ficam reservadas.
+// Mudou aqui? Mude também slugLivre() em firebase/firestore.rules.
+export const RESERVADOS = ['www', 'app', 'api', 'admin', 'painel', 'master', 'suporte', 'ajuda', 'blog', 'docs', 'mail', 'email', 'ftp', 'cdn', 'static', 'assets', 'atletapay', 'redbull', 'teste', 'demo', 'login', 'conta', 'pagamentos', 'pix',
+  'cadastro', 'privacidade', 'termos', 'index', 'css', 'js', 'img', 'fotos', 'sitemap', 'robots', 'favicon', 'sobre', 'contato', 'planos', 'precos', 'global', 'rede', 'escolas', 'inscricao', 'entrar', 'sair'];
 export const slugDe = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/&/g, 'e').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 30);
 export const slugValido = (s) => /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])$/.test(s) && !RESERVADOS.includes(s);

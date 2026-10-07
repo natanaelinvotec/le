@@ -2,7 +2,7 @@
 Mostra a situação (rascunho → fila → ativa), o checklist, os dados e o plano;
 deixa trocar o modelo e completar fotos. Sem escola: manda para o cadastro. */
 import { db, doc, getDoc, updateDoc, onSnapshot, observarSessao, entrar, recuperarSenha, sair, erroAmigavel, comprimir, enviarImagem } from './firebase.js?v=20261002';
-import { porId, modalidadePorId, MODELOS, modeloPorId, FOTOS, brl } from './catalogo.js?v=20261002';
+import { porId, modalidadePorId, MODELOS, modeloPorId, FOTOS, brl, minimoDe, fotosFaltando, juntarFotos, contagemFotos } from './catalogo.js?v=20261007';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const el = (id) => document.getElementById(id);
@@ -36,15 +36,16 @@ function renderLogin() {
 
 function render() {
   const e = escola; const plano = porId(e.plano); const mod = modalidadePorId(e.modalidade); const modelo = e.modelo ? modeloPorId(e.modelo) : null;
-  const fotosOk = FOTOS.filter((f) => (e.fotos && e.fotos[f.id] || []).length).length;
-  const obrigOk = FOTOS.filter((f) => f.obrigatoria).every((f) => (e.fotos && e.fotos[f.id] || []).length);
+  const faltando = fotosFaltando(e.fotos);
+  const obrigOk = !faltando.length;
+  const totalFotos = FOTOS.reduce((s, f) => s + ((e.fotos && e.fotos[f.id]) || []).length, 0);
   const ativa = e.status === 'ativa';
   const nova = new URLSearchParams(location.search).get('nova') === '1';
-  const url = `https://${e.slug}.atletapay.com.br`;
+  const url = e.dominio ? `https://${e.dominio}` : `https://atletapay.com.br/${e.slug}`; // domínio próprio: ligado pelo suporte (campo dominio, só o Admin grava)
   const checks = [
     ['Conta criada e escola cadastrada', true],
     ['Plano escolhido', !!e.plano],
-    [`Logo e foto do mestre enviados (${fotosOk}/${FOTOS.length} fotos)`, obrigOk],
+    [obrigOk ? `Logo, foto do responsável e galeria completos (${totalFotos} fotos)` : `Fotos: falta ${faltando.map((f) => (minimoDe(f) > 1 ? `${f.nome.toLowerCase()} (${((e.fotos && e.fotos[f.id]) || []).length} de ${minimoDe(f)})` : f.nome.toLowerCase())).join(', ')}`, obrigOk],
     ['Modelo do site escolhido', !!e.modelo],
     ['Ativação pela AtletaPay (site, app e painel no ar)', ativa],
     ['Pagamento cadastrado (depois do período de teste)', e.assinatura && e.assinatura.status === 'ativa'],
@@ -59,8 +60,9 @@ function render() {
           <ul class="checklist" style="margin-top:14px">${checks.map(([t, ok]) => `<li class="${ok ? 'feito' : ''}"><i class="fas fa-check"></i><span>${esc(t)}</span></li>`).join('')}</ul>
           ${!ativa ? `<p class="sub" style="font-size:.85rem;margin-top:12px">Enquanto a ativação acontece, complete o que falta aqui. Teste grátis até <b>${dataBR(e.trialAte)}</b>.</p>` : ''}</article>
         <article class="cartao"><h3>Plano</h3><dl class="kv"><dt>Plano</dt><dd>${esc(plano.nome)} — ${plano.mensal ? `${brl(plano.mensal)}/mês` : 'sem mensalidade'}</dd><dt>Split</dt><dd>${brl(plano.split)} por aluno pago</dd><dt>Alunos</dt><dd>${plano.ate ? `até ${plano.ate} ativos` : 'ilimitados'}</dd><dt>Teste grátis</dt><dd>até ${dataBR(e.trialAte)}</dd></dl><p class="sub" style="font-size:.85rem;margin-top:12px">Para mudar de plano ou cadastrar o pagamento, fale com <a href="mailto:contato@atletapay.com.br">contato@atletapay.com.br</a> — em breve isso fica aqui mesmo.</p></article>
-        <article class="cartao"><h3>Dados da escola</h3><dl class="kv"><dt>Nome curto</dt><dd>${esc(e.nomeCurto || '')}</dd><dt>Modalidade</dt><dd>${esc(mod.nome)}</dd><dt>Graduações</dt><dd>${esc((e.graduacoes || []).join(' › '))}</dd><dt>Responsável</dt><dd>${esc(e.donoNome || '')}</dd><dt>Contato</dt><dd>${esc(e.donoEmail || '')}${e.donoCelular ? ` · ${esc(e.donoCelular)}` : ''}</dd></dl></article>
-        <article class="cartao" style="grid-column:1/-1"><h3>Logo e fotos</h3><p class="sub" style="font-size:.9rem;margin-bottom:12px">Trocar ou completar. As fotos obrigatórias (logo e mestre) destravam a montagem do site.</p><div class="fotos" id="fotos"></div></article>
+        <article class="cartao"><h3>Dados da escola</h3><dl class="kv"><dt>Nome curto</dt><dd>${esc(e.nomeCurto || '')}</dd><dt>Modalidade</dt><dd>${esc(mod.nome)}</dd><dt>Graduações</dt><dd>${esc((e.graduacoes || []).join(' › '))}</dd><dt>Responsável</dt><dd>${esc((e.responsavel && e.responsavel.nome) || e.donoNome || '')}${e.responsavel && e.responsavel.graduacao ? ` · ${esc(e.responsavel.graduacao)}` : ''}</dd>${e.endereco ? `<dt>Local de treino</dt><dd>${esc(e.endereco)}</dd>` : ''}${e.instagram ? `<dt>Instagram</dt><dd>${esc(e.instagram)}</dd>` : ''}<dt>Contato</dt><dd>${esc(e.donoEmail || '')}${e.donoCelular ? ` · ${esc(e.donoCelular)}` : ''}</dd></dl></article>
+        <article class="cartao"><h3>Endereço do site</h3><dl class="kv"><dt>Endereço</dt><dd>${esc(url.replace('https://', ''))}</dd></dl><p class="sub" style="font-size:.85rem;margin-top:12px">${e.dominio ? 'Domínio próprio ligado pela AtletaPay.' : `Quer usar um domínio próprio (www.suaescola.com.br)? <a href="mailto:contato@atletapay.com.br?subject=${encodeURIComponent(`Domínio próprio — ${e.slug}`)}">Fale com o suporte da AtletaPay</a>: nós ligamos o domínio e o HTTPS para você.`}</p></article>
+        <article class="cartao" style="grid-column:1/-1"><h3>Logo e fotos</h3><p class="sub" style="font-size:.9rem;margin-bottom:12px">Trocar ou completar. Logo, foto do responsável e pelo menos 10 fotos de membros, treinos e eventos destravam a montagem do site.</p><div class="fotos" id="fotos"></div></article>
         <article class="cartao" style="grid-column:1/-1"><h3>Modelo do site</h3><p class="sub" style="font-size:.9rem;margin-bottom:12px">Atual: <b>${modelo ? esc(modelo.nome) : 'não escolhido'}</b>. Trocar é um clique; o conteúdo continua o mesmo.</p><div class="opcoes" id="modelos">${MODELOS.map((m) => `<button type="button" class="opcao" data-modelo="${m.id}" aria-pressed="${m.id === e.modelo}"><span class="cores">${m.cores.map((c) => `<i style="background:${c}"></i>`).join('')}</span><b>${esc(m.nome)}</b><small>${esc(m.para)}</small></button>`).join('')}</div></article>
       </div>
       <p class="sub" style="font-size:.8rem;margin:24px 0 48px;color:var(--texto-3)">Escola criada em ${dataBR(e.criadoEm)}${e.enviadoEm ? ` · enviada para ativação em ${dataBR(e.enviadoEm)}` : ''}. Para excluir a conta e os dados, escreva para contato@atletapay.com.br (LGPD).</p>
@@ -70,15 +72,22 @@ function render() {
 }
 function desenharFotos() {
   const e = escola;
-  el('fotos').innerHTML = FOTOS.map((f) => { const urls = (e.fotos && e.fotos[f.id]) || []; return `<div class="foto-item${urls.length ? ' ok' : ''}"><div class="previa">${urls.slice(0, 3).map((u) => `<img src="${esc(u)}" alt="">`).join('')}</div><div><b>${esc(f.nome)}${f.obrigatoria ? ' <span style="color:var(--laranja)">*</span>' : ''}</b><small>${esc(f.dica)}</small></div><label class="bt bt-branco bt-sm" style="position:relative;overflow:hidden"><i class="fas fa-upload"></i> ${urls.length ? 'Trocar' : 'Enviar'}<input type="file" accept="image/*" ${f.max > 1 ? 'multiple' : ''} data-foto="${f.id}" data-max="${f.max}"></label></div>`; }).join('');
+  el('fotos').innerHTML = FOTOS.map((f) => { const urls = (e.fotos && e.fotos[f.id]) || []; const ok = urls.length >= Math.max(1, minimoDe(f)); const cheio = f.max > 1 && urls.length >= f.max; return `<div class="foto-item${ok ? ' ok' : ''}${urls.length && !ok ? ' parcial' : ''}"><div class="previa">${urls.slice(-3).map((u) => `<img src="${esc(u)}" alt="">`).join('')}</div><div><b>${esc(f.nome)}${f.obrigatoria ? ' <span style="color:var(--laranja)">*</span>' : ''}</b><small>${esc(f.dica)}${urls.length || minimoDe(f) > 1 ? ` <strong style="color:${ok ? '#0B8F5B' : '#C2410C'}">${esc(contagemFotos(f, urls.length))}</strong>` : ''}</small></div><div class="foto-bts"><label class="bt bt-branco bt-sm" style="position:relative;overflow:hidden${cheio ? ';opacity:.5;pointer-events:none' : ''}"><i class="fas fa-upload"></i> ${f.max > 1 ? (urls.length ? 'Adicionar' : 'Enviar') : (urls.length ? 'Trocar' : 'Enviar')}<input type="file" accept="image/*" ${f.max > 1 ? 'multiple' : ''} data-foto="${f.id}" ${cheio ? 'disabled' : ''}></label>${f.max > 1 && urls.length ? `<button type="button" class="bt bt-branco bt-sm" data-limpar="${f.id}"><i class="fas fa-rotate-left"></i> Recomeçar</button>` : ''}</div></div>`; }).join('');
   el('fotos').onchange = async (ev) => {
     const inp = ev.target.closest('input[type=file]'); if (!inp || !inp.files.length) return;
-    const id = inp.dataset.foto; const max = Number(inp.dataset.max) || 1;
+    const id = inp.dataset.foto; const def = FOTOS.find((x) => x.id === id);
+    const atuais = (e.fotos && e.fotos[id]) || [];
+    const espaco = def.max > 1 ? def.max - atuais.length : 1;
     try {
       const urls = [];
-      const arquivos = Array.from(inp.files).slice(0, max);
-      for (let i = 0; i < arquivos.length; i++) { const dataUrl = await comprimir(arquivos[i], id === 'logo' ? 1024 : 1600, id === 'logo' ? 1 : 0.86); const ext = /png/.test(dataUrl.slice(0, 20)) ? 'png' : 'jpg'; urls.push(await enviarImagem(`escolas/${e.id}/onboarding/${id}-${i + 1}-${Date.now().toString(36)}.${ext}`, dataUrl)); }
-      if (urls.length) { await updateDoc(doc(db, 'escolas', e.id), { [`fotos.${id}`]: urls, atualizadoEm: new Date().toISOString() }); toast('Enviado!'); }
+      const arquivos = Array.from(inp.files).filter((f) => /^image\//.test(f.type)).slice(0, Math.max(0, espaco));
+      for (let i = 0; i < arquivos.length; i++) { toast(`Enviando ${i + 1} de ${arquivos.length}…`); const dataUrl = await comprimir(arquivos[i], id === 'logo' ? 1024 : 1600, id === 'logo' ? 1 : 0.86); const ext = /png/.test(dataUrl.slice(0, 20)) ? 'png' : 'jpg'; urls.push(await enviarImagem(`escolas/${e.id}/onboarding/${id}-${Date.now().toString(36)}-${i + 1}.${ext}`, dataUrl)); }
+      if (urls.length) { await updateDoc(doc(db, 'escolas', e.id), { [`fotos.${id}`]: juntarFotos(def, atuais, urls), atualizadoEm: new Date().toISOString() }); toast(`${urls.length} enviada${urls.length > 1 ? 's' : ''}!`); }
     } catch (er) { console.error(er); toast(erroAmigavel(er)); }
+  };
+  el('fotos').onclick = async (ev) => {
+    const b = ev.target.closest('[data-limpar]'); if (!b) return;
+    if (!confirm('Apagar todas as fotos desse item e enviar de novo?')) return;
+    try { await updateDoc(doc(db, 'escolas', e.id), { [`fotos.${b.dataset.limpar}`]: [], atualizadoEm: new Date().toISOString() }); } catch (er) { toast(erroAmigavel(er)); }
   };
 }

@@ -1,5 +1,5 @@
 /* site.js — vitrine: planos, simulador, menu e os números do placar. Sem Firebase. */
-import { PLANOS, planoPara, brl } from './catalogo.js?v=20261002';
+import { PLANOS, planoPara, brl } from './catalogo.js?v=20261007';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const el = (id) => document.getElementById(id);
