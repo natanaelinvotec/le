@@ -48,8 +48,21 @@ service firebase.storage {
                     && (request.auth.uid == uid || souAdminOuFundadorDe(uid) || gerenciaNucleoDe(uid));
     }
 
-    // AtletaPay: logo e fotos de cada escola cadastrada em atletapay.com.br.
-    // Leitura pública (viram o site da escola); grava só o dono da escola.
+    // AtletaPay (08/10): logo e fotos do cadastro e do painel da escola vão para a pasta
+    // do próprio dono, onboarding/<uid>/<escola>/. A regra confere só o login (sem
+    // firestore.get): o upload não depende da leitura cruzada Storage → Firestore, que
+    // negava o envio com storage/unauthorized. Quem é dono de qual escola continua
+    // garantido no Firestore: só o dono grava as URLs em escolas/{id}.fotos.
+    match /onboarding/{uid}/{escolaId}/{arquivo} {
+      allow get: if true;
+      allow list: if false;
+      allow create, update: if request.auth != null && request.auth.uid == uid && imagem(6)
+                            && escolaId.matches('^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$');
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Pasta antiga (cadastros até 08/10): os links continuam abrindo; o dono ainda pode
+    // gravar/apagar se a leitura cruzada estiver liberada no projeto.
     match /escolas/{escolaId}/{resto=**} {
       allow read: if true;
       allow write: if request.auth != null && imagem(6)

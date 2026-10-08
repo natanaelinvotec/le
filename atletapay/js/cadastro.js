@@ -6,7 +6,7 @@ gravada em escolas/{slug} já na etapa 2 (status 'rascunho') — é isso que
 libera o upload das fotos para escolas/{slug}/... no Storage — e vira 'fila'
 na etapa 5. escolasSlugs/{slug} garante que dois donos não peguem o mesmo
 subdomínio. donos/{uid} aponta a conta para a escola. */
-import { db, doc, getDoc, setDoc, updateDoc, writeBatch, observarSessao, criarConta, entrar, recuperarSenha, sair, erroAmigavel, comprimir, enviarImagem } from './firebase.js?v=20261009';
+import { db, doc, getDoc, setDoc, updateDoc, writeBatch, observarSessao, criarConta, entrar, recuperarSenha, sair, erroAmigavel, comprimir, enviarImagem } from './firebase.js?v=20261010';
 import { PLANO, MODALIDADES, modalidadePorId, MODELOS, FOTOS, TRIAL_DIAS, brl, slugDe, slugValido, RESERVADOS, minimoDe, fotosFaltando, juntarFotos, contagemFotos } from './catalogo.js?v=20261010';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -27,8 +27,9 @@ observarSessao(async (u) => {
   usuario = u;
   if (u) {
     // Já tem escola? Vai para o painel. Tem rascunho gravado? Retoma.
+    let conferido = false; escolaDoc = null;
     try {
-      const d = await getDoc(doc(db, 'donos', u.uid));
+      const d = await getDoc(doc(db, 'donos', u.uid)); conferido = true;
       if (d.exists() && d.data().escolaId) {
         const e = await getDoc(doc(db, 'escolas', d.data().escolaId));
         if (e.exists()) {
@@ -40,6 +41,11 @@ observarSessao(async (u) => {
         }
       }
     } catch (e) { console.warn(e); }
+    // Rascunho guardado no navegador de OUTRA conta (trocou de login no meio do cadastro):
+    // a escola não é desta pessoa, então volta para a etapa "A escola" sem ela.
+    if (conferido && r.escolaId && (!escolaDoc || escolaDoc.id !== r.escolaId)) {
+      r.escolaId = null; r.escola = null; r.fotos = {}; r.modelo = null; if (r.etapa > 1) r.etapa = 1;
+    }
     if (r.etapa < 1) r.etapa = 1;
   } else if (r.etapa > 0 && !r.escolaId) r.etapa = 0;
   salvarRascunho(); render();
@@ -212,7 +218,7 @@ function passoFotos() {
         prog.hidden = false; prog.textContent = `Enviando ${i + 1} de ${arquivos.length}…`;
         const dataUrl = await comprimir(arquivos[i], id === 'logo' ? 1024 : 1600, id === 'logo' ? 1 : 0.86);
         const ext = /png/.test(dataUrl.slice(0, 20)) ? 'png' : 'jpg';
-        urls.push(await enviarImagem(`escolas/${r.escolaId}/onboarding/${id}-${Date.now().toString(36)}-${i + 1}.${ext}`, dataUrl));
+        urls.push(await enviarImagem(`onboarding/${usuario.uid}/${r.escolaId}/${id}-${Date.now().toString(36)}-${i + 1}.${ext}`, dataUrl));
       }
       if (urls.length) { r.fotos[id] = juntarFotos(def, r.fotos[id], urls); await updateDoc(doc(db, 'escolas', r.escolaId), { [`fotos.${id}`]: r.fotos[id], atualizadoEm: new Date().toISOString() }); salvarRascunho(); el('fotos').innerHTML = lista(); toast(`${def.nome}: ${urls.length} enviada${urls.length > 1 ? 's' : ''}!`); }
       if (Array.from(inp.files).length > arquivos.length) toast(`Limite de ${def.max} fotos: as demais ficaram de fora.`);

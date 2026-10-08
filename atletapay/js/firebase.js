@@ -94,6 +94,9 @@ export function erroAmigavel(e) {
   if (/password-does-not-meet-requirements/.test(c)) return 'A senha não atende às regras de segurança: use pelo menos 8 caracteres, com letras e números.';
   if (/network-request-failed/.test(c)) return 'Sem internet agora. Tente de novo.';
   if (/permission-denied/.test(c)) return 'Sem permissão para gravar. Confira se o e-mail foi verificado.';
+  if (/storage\/unauthorized/.test(c)) return 'O envio da foto não foi autorizado. Saia, entre de novo com a conta que criou a escola e tente outra vez.';
+  if (/storage\/unauthenticated/.test(c)) return 'Sua sessão expirou. Entre de novo para enviar as fotos.';
+  if (/storage\/(retry-limit-exceeded|canceled)/.test(c)) return 'O envio demorou demais. Confira a internet e tente de novo.';
   return (e && e.message) || 'Não deu certo agora. Tente de novo.';
 }
 

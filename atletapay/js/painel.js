@@ -1,7 +1,7 @@
 /* painel.js — painel do dono da escola (atletapay.com.br/painel.html).
 Mostra a situação (rascunho → fila → ativa), o checklist, os dados e o plano;
 deixa trocar o modelo e completar fotos. Sem escola: manda para o cadastro. */
-import { db, auth, doc, getDoc, updateDoc, onSnapshot, collection, query, where, getCountFromServer, observarSessao, entrar, recuperarSenha, sair, erroAmigavel, comprimir, enviarImagem } from './firebase.js?v=20261009';
+import { db, auth, doc, getDoc, updateDoc, onSnapshot, collection, query, where, getCountFromServer, observarSessao, entrar, recuperarSenha, sair, erroAmigavel, comprimir, enviarImagem } from './firebase.js?v=20261010';
 import { porId, alunosExtras, valorDoMes, modalidadePorId, MODELOS, modeloPorId, FOTOS, brl, minimoDe, fotosFaltando, juntarFotos, contagemFotos } from './catalogo.js?v=20261010';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -88,7 +88,7 @@ function desenharFotos() {
     try {
       const urls = [];
       const arquivos = Array.from(inp.files).filter((f) => /^image\//.test(f.type)).slice(0, Math.max(0, espaco));
-      for (let i = 0; i < arquivos.length; i++) { toast(`Enviando ${i + 1} de ${arquivos.length}…`); const dataUrl = await comprimir(arquivos[i], id === 'logo' ? 1024 : 1600, id === 'logo' ? 1 : 0.86); const ext = /png/.test(dataUrl.slice(0, 20)) ? 'png' : 'jpg'; urls.push(await enviarImagem(`escolas/${e.id}/onboarding/${id}-${Date.now().toString(36)}-${i + 1}.${ext}`, dataUrl)); }
+      for (let i = 0; i < arquivos.length; i++) { toast(`Enviando ${i + 1} de ${arquivos.length}…`); const dataUrl = await comprimir(arquivos[i], id === 'logo' ? 1024 : 1600, id === 'logo' ? 1 : 0.86); const ext = /png/.test(dataUrl.slice(0, 20)) ? 'png' : 'jpg'; urls.push(await enviarImagem(`onboarding/${auth.currentUser.uid}/${e.id}/${id}-${Date.now().toString(36)}-${i + 1}.${ext}`, dataUrl)); }
       if (urls.length) { await updateDoc(doc(db, 'escolas', e.id), { [`fotos.${id}`]: juntarFotos(def, atuais, urls), atualizadoEm: new Date().toISOString() }); toast(`${urls.length} enviada${urls.length > 1 ? 's' : ''}!`); }
     } catch (er) { console.error(er); toast(erroAmigavel(er)); }
   };
