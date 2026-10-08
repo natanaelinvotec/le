@@ -1,6 +1,6 @@
 # AtletaPay — atletapay.com.br
 
-Site da plataforma (vitrine, planos, simulador), cadastro das escolas e painel do dono.
+Site da plataforma (vitrine, plano único, simulador), cadastro das escolas e painel do dono.
 Estático, publicado pelo **Firebase Hosting** (site `atletapay` do projeto `capoeira-liberdade`)
 a partir desta pasta do repositório `le` — o GitHub Actions (`.github/workflows/hosting.yml`)
 publica sozinho a cada envio na `main`. Firebase (Auth, Firestore, Storage) do mesmo projeto do
@@ -12,7 +12,7 @@ Storage ficam em `firebase/firestore.rules` e `firebase/storage.rules`.
 - `cadastro.html` + `js/cadastro.js` — assistente em 5 etapas (conta, escola, plano, logo e fotos, modelo). Grava `escolas/{slug}`.
 - `painel.html` + `js/painel.js` — painel do dono: situação, checklist, plano, dados, fotos e modelo.
 - `privacidade.html` — termos e privacidade (versão do período de testes).
-- `js/catalogo.js` — planos, modalidades, modelos, fotos pedidas, regras de subdomínio.
+- `js/catalogo.js` — plano único (R$ 39,90 até 80 alunos ativos + R$ 0,49 por aluno ativo acima disso), modalidades, modelos, fotos pedidas, regras de subdomínio.
 - `js/firebase.js` — inicialização do Firebase (chaves públicas).
 - `css/atletapay.css` — identidade visual ("a faixa e o placar").
 

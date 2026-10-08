@@ -10,7 +10,7 @@ e-mail; ninguém vê nem define senha de ninguém).
 Segurança: a tela só abre para conta com papel admin (usuarios/{uid}.papeis), e
 quem garante de verdade são as regras do banco — só o Admin lista e muda escolas. */
 import { db, doc, getDoc, setDoc, addDoc, updateDoc, collection, onSnapshot, query, where, getCountFromServer, observarSessao, entrar, recuperarSenha, sair, erroAmigavel } from './firebase.js?v=20261009';
-import { modalidadePorId, porId, FOTOS, fotosFaltando } from './catalogo.js?v=20261007';
+import { modalidadePorId, porId, FOTOS, fotosFaltando } from './catalogo.js?v=20261010';
 
 // Onde o app das escolas está publicado hoje (a inscrição de cada escola é ?escola=<id>).
 // Quando o app for servido em atletapay.com.br/<escola>, troca aqui.

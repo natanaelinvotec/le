@@ -373,7 +373,8 @@ allow update, delete: if ehAdmin();
 match /escolas/{id} {
 function dono() { return logado() && resource.data.donoUid == request.auth.uid; }
 function statusOk(s) { return s in ['rascunho', 'fila', 'ativa', 'pausada', 'cancelada']; }
-function planoOk(p) { return p in ['roda', 'nucleo', 'grupo', 'federacao']; }
+// 'completo' = plano único (08/10/2026); os ids antigos continuam aceitos para cadastros já existentes.
+function planoOk(p) { return p in ['completo', 'roda', 'nucleo', 'grupo', 'federacao']; }
 allow get: if dono() || ehAdmin();
 allow list: if ehAdmin();
 allow create: if logado() && request.resource.data.donoUid == request.auth.uid && request.resource.data.slug == id &&

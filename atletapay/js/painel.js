@@ -2,7 +2,7 @@
 Mostra a situação (rascunho → fila → ativa), o checklist, os dados e o plano;
 deixa trocar o modelo e completar fotos. Sem escola: manda para o cadastro. */
 import { db, auth, doc, getDoc, updateDoc, onSnapshot, collection, query, where, getCountFromServer, observarSessao, entrar, recuperarSenha, sair, erroAmigavel, comprimir, enviarImagem } from './firebase.js?v=20261009';
-import { porId, modalidadePorId, MODELOS, modeloPorId, FOTOS, brl, minimoDe, fotosFaltando, juntarFotos, contagemFotos } from './catalogo.js?v=20261007';
+import { porId, alunosExtras, valorDoMes, modalidadePorId, MODELOS, modeloPorId, FOTOS, brl, minimoDe, fotosFaltando, juntarFotos, contagemFotos } from './catalogo.js?v=20261010';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const el = (id) => document.getElementById(id);
@@ -63,7 +63,7 @@ function render() {
           ${!ativa ? `<p class="sub" style="font-size:.85rem;margin-top:12px">Enquanto a ativação acontece, complete o que falta aqui. Teste grátis até <b>${dataBR(e.trialAte)}</b>.</p>` : ''}</article>
         ${ativa && e.ativacao && e.ativacao.status === 'ok' ? `<article class="cartao" style="grid-column:1/-1"><h3>Link de inscrição dos alunos</h3><p class="sub" style="font-size:.9rem;margin-bottom:12px">Mande este link no grupo da turma: cada aluno faz a ficha (com foto, responsável dos menores e termos) e já entra no seu núcleo.</p><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><code class="mono" style="padding:10px 12px;border-radius:10px;background:var(--areia);overflow-wrap:anywhere">${esc(`${APP_URL}/inscricao.html?escola=${e.id}`)}</code><button type="button" class="bt bt-branco bt-sm" id="btCopiarLink"><i class="fas fa-link"></i> Copiar</button></div><p class="sub" style="font-size:.85rem;margin-top:10px">Para entrar no painel, use o mesmo e-mail e senha da AtletaPay.</p></article>` : ''}
         ${ativa && e.ativacao && e.ativacao.status === 'ok' ? '<article class="cartao" style="grid-column:1/-1"><h3>Números da escola</h3><div class="ec-numeros" id="numerosDono"><span class="sub"><i class="fas fa-spinner fa-spin"></i> Contando…</span></div><p class="sub" style="font-size:.82rem;margin-top:10px">Atualiza a cada vez que você abre o painel.</p></article>' : ''}
-        <article class="cartao"><h3>Plano</h3><dl class="kv"><dt>Plano</dt><dd>${esc(plano.nome)} — ${plano.mensal ? `${brl(plano.mensal)}/mês` : 'sem mensalidade'}</dd><dt>Split</dt><dd>${brl(plano.split)} por aluno pago</dd><dt>Alunos</dt><dd>${plano.ate ? `até ${plano.ate} ativos` : 'ilimitados'}</dd><dt>Teste grátis</dt><dd>até ${dataBR(e.trialAte)}</dd></dl><p class="sub" style="font-size:.85rem;margin-top:12px">Para mudar de plano ou cadastrar o pagamento, fale com <a href="mailto:contato@atletapay.com.br">contato@atletapay.com.br</a> — em breve isso fica aqui mesmo.</p></article>
+        <article class="cartao"><h3>Plano</h3><dl class="kv"><dt>Plano</dt><dd>${esc(plano.nome)} — ${brl(plano.mensal)}/mês</dd><dt>Inclui</dt><dd>até ${plano.inclusos} alunos ativos e o sistema inteiro</dd><dt>Acima de ${plano.inclusos}</dt><dd>+ ${brl(plano.porAlunoExtra)} por aluno ativo, contado automaticamente</dd><dt>Este mês</dt><dd id="valorMes">${brl(plano.mensal)} <span class="sub" style="font-size:.8rem">(estimativa)</span></dd><dt>Teste grátis</dt><dd>até ${dataBR(e.trialAte)}</dd></dl><p class="sub" style="font-size:.85rem;margin-top:12px">Aluno ativo é o cadastro com situação "Ativo". Marque como inativo quem saiu e ele deixa de contar. Para cadastrar o pagamento, fale com <a href="mailto:contato@atletapay.com.br">contato@atletapay.com.br</a> — em breve isso fica aqui mesmo.</p></article>
         <article class="cartao"><h3>Dados da escola</h3><dl class="kv"><dt>Nome curto</dt><dd>${esc(e.nomeCurto || '')}</dd><dt>Modalidade</dt><dd>${esc(mod.nome)}</dd><dt>Graduações</dt><dd>${esc((e.graduacoes || []).join(' › '))}</dd><dt>Responsável</dt><dd>${esc((e.responsavel && e.responsavel.nome) || e.donoNome || '')}${e.responsavel && e.responsavel.graduacao ? ` · ${esc(e.responsavel.graduacao)}` : ''}</dd>${e.endereco ? `<dt>Local de treino</dt><dd>${esc(e.endereco)}</dd>` : ''}${e.instagram ? `<dt>Instagram</dt><dd>${esc(e.instagram)}</dd>` : ''}<dt>Contato</dt><dd>${esc(e.donoEmail || '')}${e.donoCelular ? ` · ${esc(e.donoCelular)}` : ''}</dd></dl></article>
         <article class="cartao"><h3>Endereço do site</h3><dl class="kv"><dt>Endereço</dt><dd>${esc(url.replace('https://', ''))}</dd></dl><p class="sub" style="font-size:.85rem;margin-top:12px">${e.dominio ? 'Domínio próprio ligado pela AtletaPay.' : `Quer usar um domínio próprio (www.suaescola.com.br)? <a href="mailto:contato@atletapay.com.br?subject=${encodeURIComponent(`Domínio próprio — ${e.slug}`)}">Fale com o suporte da AtletaPay</a>: nós ligamos o domínio e o HTTPS para você.`}</p></article>
         <article class="cartao" style="grid-column:1/-1"><h3>Logo e fotos</h3><p class="sub" style="font-size:.9rem;margin-bottom:12px">Trocar ou completar. Logo, foto do responsável e pelo menos 10 fotos de membros, treinos e eventos destravam a montagem do site.</p><div class="fotos" id="fotos"></div></article>
@@ -102,14 +102,21 @@ function desenharFotos() {
 // Números da escola para o dono (Fundador da própria escola depois da ativação). O login
 // ganha a escola no servidor logo após a ativação: renovamos o token antes de contar.
 let numerosFeitos = null;
+// Estimativa da mensalidade da AtletaPay pelos alunos ativos de agora (a cobrança usa a contagem do fechamento do mês).
+function mostrarValorDoMes(ativos) {
+  const dd = document.getElementById('valorMes'); if (!dd || ativos == null) return;
+  const extras = alunosExtras(ativos); const plano = porId();
+  dd.innerHTML = `<b class="mono">${brl(valorDoMes(ativos))}</b> <span class="sub" style="font-size:.8rem">${esc(String(ativos))} ativos${extras ? ` · ${extras} acima de ${plano.inclusos}` : ''} · estimativa</span>`;
+}
 async function numerosDaEscola(id) {
   const caixa = document.getElementById('numerosDono'); if (!caixa) return;
-  if (numerosFeitos && numerosFeitos.id === id && Date.now() - numerosFeitos.em < 60000) { caixa.innerHTML = numerosFeitos.html; return; }
+  if (numerosFeitos && numerosFeitos.id === id && Date.now() - numerosFeitos.em < 60000) { caixa.innerHTML = numerosFeitos.html; mostrarValorDoMes(numerosFeitos.ativos); return; }
   try { if (auth.currentUser) await auth.currentUser.getIdToken(true); } catch (e) { /* ok */ }
   const contar = async (col, ...f) => { try { return (await getCountFromServer(query(collection(db, col), where('escolaId', '==', id), ...f))).data().count; } catch (e) { return null; } };
   const [alunos, ativos, presencas, posts] = await Promise.all([contar('usuarios'), contar('usuarios', where('statusAtual', '==', 'Ativo')), contar('presencas'), contar('posts', where('publico', '==', true))]);
   const n = (v) => (v === null ? '—' : Number(v).toLocaleString('pt-BR'));
   const html = [['Cadastros', alunos], ['Ativos', ativos], ['Presenças', presencas], ['Posts na Rede', posts]].map(([r, v]) => `<div><b class="mono">${n(v)}</b><span>${r}</span></div>`).join('');
-  numerosFeitos = { id, em: Date.now(), html };
+  numerosFeitos = { id, em: Date.now(), html, ativos };
   const c2 = document.getElementById('numerosDono'); if (c2) c2.innerHTML = html;
+  mostrarValorDoMes(ativos);
 }

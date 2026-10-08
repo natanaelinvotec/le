@@ -7,7 +7,7 @@ libera o upload das fotos para escolas/{slug}/... no Storage — e vira 'fila'
 na etapa 5. escolasSlugs/{slug} garante que dois donos não peguem o mesmo
 subdomínio. donos/{uid} aponta a conta para a escola. */
 import { db, doc, getDoc, setDoc, updateDoc, writeBatch, observarSessao, criarConta, entrar, recuperarSenha, sair, erroAmigavel, comprimir, enviarImagem } from './firebase.js?v=20261009';
-import { PLANOS, porId, MODALIDADES, modalidadePorId, MODELOS, FOTOS, TRIAL_DIAS, brl, slugDe, slugValido, RESERVADOS, minimoDe, fotosFaltando, juntarFotos, contagemFotos } from './catalogo.js?v=20261007';
+import { PLANO, MODALIDADES, modalidadePorId, MODELOS, FOTOS, TRIAL_DIAS, brl, slugDe, slugValido, RESERVADOS, minimoDe, fotosFaltando, juntarFotos, contagemFotos } from './catalogo.js?v=20261010';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const el = (id) => document.getElementById(id);
@@ -18,9 +18,8 @@ const ETAPAS = [['conta', 'Sua conta'], ['escola', 'A escola'], ['plano', 'Plano
 
 // ---------- rascunho ----------
 const CHAVE = 'atletapay.cadastro';
-let r = { etapa: 0, plano: new URLSearchParams(location.search).get('plano') || 'nucleo', fotos: {} };
+let r = { etapa: 0, plano: PLANO.id, fotos: {} };
 try { r = { ...r, ...JSON.parse(sessionStorage.getItem(CHAVE) || '{}') }; } catch (e) { /* ok */ }
-if (!PLANOS.some((p) => p.id === r.plano)) r.plano = 'nucleo';
 const salvarRascunho = () => { try { sessionStorage.setItem(CHAVE, JSON.stringify(r)); } catch (e) { /* ok */ } };
 let usuario = null; let escolaDoc = null;
 
@@ -152,7 +151,7 @@ function passoEscola() {
         const mod = modalidadePorId(modalidade); const agora = new Date().toISOString();
         const b = writeBatch(db);
         b.set(doc(db, 'escolasSlugs', dados.slug), { escolaId: dados.slug, donoUid: usuario.uid, criadoEm: agora });
-        b.set(doc(db, 'escolas', dados.slug), { ...dados, donoUid: usuario.uid, donoNome: usuario.displayName || (r.conta && r.conta.nome) || '', donoEmail: usuario.email || '', donoCelular: (r.conta && r.conta.celular) || '', status: 'rascunho', plano: r.plano, graduacoes: mod.graduacoes, lider: mod.lider, pecaGraduacao: mod.peca, fotos: {}, modelo: null, criadoEm: agora, atualizadoEm: agora, origem: 'atletapay.com.br' });
+        b.set(doc(db, 'escolas', dados.slug), { ...dados, donoUid: usuario.uid, donoNome: usuario.displayName || (r.conta && r.conta.nome) || '', donoEmail: usuario.email || '', donoCelular: (r.conta && r.conta.celular) || '', status: 'rascunho', plano: PLANO.id, graduacoes: mod.graduacoes, lider: mod.lider, pecaGraduacao: mod.peca, fotos: {}, modelo: null, criadoEm: agora, atualizadoEm: agora, origem: 'atletapay.com.br' });
         b.set(doc(db, 'donos', usuario.uid), { escolaId: dados.slug, atualizadoEm: agora }, { merge: true });
         await b.commit();
         r.escolaId = dados.slug;
@@ -165,18 +164,25 @@ function passoEscola() {
 }
 
 /* ---------- 3 · plano ---------- */
+// Plano único: não há escolha, só a confirmação do que está incluso e de como o valor cresce.
 function passoPlano() {
   el('passo').innerHTML = `
     <span class="eyebrow">Etapa 3 de 5</span>
-    <h2 style="margin-top:10px">Escolha o plano</h2>
-    <p class="sub" style="margin-top:8px">${TRIAL_DIAS} dias grátis em qualquer um, sem cartão. Você só cadastra o pagamento quando a escola estiver no ar e o teste acabar.</p>
+    <h2 style="margin-top:10px">Seu plano</h2>
+    <p class="sub" style="margin-top:8px">${TRIAL_DIAS} dias grátis, sem cartão. Você só cadastra o pagamento quando a escola estiver no ar e o teste acabar.</p>
     <div class="form"><div class="erro-caixa" id="erro" hidden></div>
-      <div style="display:grid;gap:10px" id="planos">${PLANOS.map((p) => `<button type="button" class="plano-mini" data-plano="${p.id}" aria-pressed="${p.id === r.plano}"><div><b>${esc(p.nome)}</b> ${p.destaque ? '<span style="font-size:.7rem;font-weight:800;color:var(--laranja);letter-spacing:.08em;text-transform:uppercase;margin-left:6px">mais escolhido</span>' : ''}<small>${p.ate ? `até ${p.ate} alunos ativos` : 'alunos ilimitados'} · ${esc(p.frase)} · + ${brl(p.split)} por aluno pago</small></div><div class="preco">${p.mensal ? brl(p.mensal) : 'Grátis'}<small>${p.mensal ? 'por mês' : 'sem mensalidade'}</small></div></button>`).join('')}</div>
+      <div class="plano-cadastro">
+        <div class="topo-pc"><b>${esc(PLANO.nome)}</b><span class="preco">${brl(PLANO.mensal)}<small>por mês</small></span></div>
+        <div class="regra">Inclui até <b>${PLANO.inclusos} alunos ativos</b>. Acima disso, <b>+ ${brl(PLANO.porAlunoExtra)} por aluno ativo</b>, contado automaticamente todo mês. Aluno inativo não conta.</div>
+        <ul>${PLANO.itens.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>
+      </div>
       <div class="acoes"><button type="button" class="bt bt-branco" id="btVoltar"><i class="fas fa-arrow-left"></i> Voltar</button><span class="espaco"></span><button type="button" class="bt bt-laranja" id="btOk">Continuar <i class="fas fa-arrow-right"></i></button></div>
     </div>`;
-  el('planos').addEventListener('click', (ev) => { const b = ev.target.closest('[data-plano]'); if (!b) return; r.plano = b.dataset.plano; el('planos').querySelectorAll('.plano-mini').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); });
   el('btVoltar').addEventListener('click', () => ir(1));
-  el('btOk').addEventListener('click', async () => { try { await updateDoc(doc(db, 'escolas', r.escolaId), { plano: r.plano, atualizadoEm: new Date().toISOString() }); ir(3); } catch (er) { erro(erroAmigavel(er)); } });
+  el('btOk').addEventListener('click', async (ev) => {
+    const bt = ev.currentTarget; bt.disabled = true;
+    try { r.plano = PLANO.id; await updateDoc(doc(db, 'escolas', r.escolaId), { plano: PLANO.id, atualizadoEm: new Date().toISOString() }); ir(3); } catch (er) { erro(erroAmigavel(er)); bt.disabled = false; }
+  });
 }
 
 /* ---------- 4 · fotos ---------- */
