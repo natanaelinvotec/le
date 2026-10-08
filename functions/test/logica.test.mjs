@@ -880,7 +880,16 @@ test('modalidades: escada do Jiu-Jitsu com graus, infantil até 15 anos e gradua
   const e = MOD.escadaPadrao('jiujitsu');
   assert.deepEqual(e.adulto.slice(0, 5).map((g) => g.nome), ['Branca', 'Azul', 'Roxa', 'Marrom', 'Preta']);
   assert.equal(e.adulto.find((g) => g.nome === 'Preta').graus, 6);
-  assert.equal(e.kids.length, 13);
+  assert.deepEqual(e.kids.map((g) => g.nome), ['Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde'], 'infantil do quadro da CBJJ');
+  assert.deepEqual(e.adulto.map((g) => g.titulo), ['Aluno', 'Aluno', 'Instrutor', 'Instrutor', 'Professor', 'Mestre', 'Mestre', 'Mestre']);
+  const preta = e.adulto.find((g) => g.nome === 'Preta');
+  assert.equal(MOD.tempoTexto(preta, 1), 'Mínimo 3 anos de faixa preta');
+  assert.equal(MOD.tempoTexto(preta, 4), 'Mínimo 5 anos do grau anterior');
+  assert.equal(MOD.tempoTexto(e.adulto[2]), 'Mínimo 1 ano e meio na faixa');
+  assert.equal(MOD.idadeTexto(e.kids[1]), '4 a 15 anos');
+  assert.equal(MOD.idadeTexto(e.adulto[3]), '18 anos ou mais');
+  assert.equal(MOD.rotuloGraduacao('Coral vermelha e branca', 0, e.adulto[6]), 'Coral vermelha e branca · 8º grau');
+  assert.deepEqual(MOD.escadaLimpa(e), e, 'a escada padrão passa inteira pela limpeza (vai para o cartão público)');
   assert.equal(MOD.graduacaoInicial(e, 9), 'Branca');
   assert.equal(MOD.listaDa(e, 9), e.kids);
   assert.equal(MOD.listaDa(e, 16), e.adulto);

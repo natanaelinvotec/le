@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1372" width="1400" height="1372" font-family="Manrope, 'Segoe UI', Roboto, Arial, sans-serif" role="img" aria-label="Graduação no Jiu-Jitsu">
+<rect width="1400" height="1372" fill="#F4F5F8"/>
+<rect x="20" y="20" width="1360" height="1332" rx="28" fill="#FFFFFF" stroke="#E2E5EC"/>
+<text x="60" y="88" font-size="40" font-weight="800" fill="#101219" letter-spacing="-.5">Graduação no Jiu-Jitsu</text>
+<text x="60" y="122" font-size="17" font-weight="600" fill="#5B6170">Faixas, graus, idade mínima e tempo de permanência — quadro de graduação da CBJJ</text>
+<g transform="translate(990 62)"><svg x="0" y="0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 24" width="210" height="24" role="img" aria-label="Branca">
+<defs>
+<clipPath id="legc"><rect width="210" height="24" rx="4"/></clipPath>
+<linearGradient id="legb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+<pattern id="legt" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="5" stroke="#000" stroke-opacity=".06" stroke-width="1.6"/></pattern>
+</defs>
+<g clip-path="url(#legc)"><rect x="0" y="0" width="210" height="24" fill="#F4F4F4"/><rect x="139" y="0" width="50" height="24" fill="#151515"/><rect x="183" y="2" width="3" height="20" rx="1" fill="#FFFFFF" opacity="1"/><rect x="177" y="2" width="3" height="20" rx="1" fill="#FFFFFF" opacity="1"/><rect x="171" y="2" width="3" height="20" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="165" y="2" width="3" height="20" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="0" y="0" width="210" height="24" fill="url(#legt)"/><line x1="4" y1="4.8" x2="206" y2="4.8" stroke="rgba(20,24,33,.28)" stroke-width="1" stroke-dasharray="4 3"/><line x1="4" y1="19.2" x2="206" y2="19.2" stroke="rgba(20,24,33,.28)" stroke-width="1" stroke-dasharray="4 3"/><rect x="0" y="0" width="210" height="24" fill="url(#legb)"/></g>
+<rect x=".5" y=".5" width="209" height="23" rx="4" fill="none" stroke="rgba(10,12,20,.22)"/>
+</svg></g>
+<text x="1212" y="72" font-size="13" font-weight="700" fill="#101219">Ponteira</text>
+<text x="1212" y="90" font-size="12.5" fill="#5B6170">barras brancas = graus</text>
+<text x="1212" y="106" font-size="12.5" fill="#5B6170">apagadas = graus possíveis</text>
+<text x="60" y="170" font-size="12.5" font-weight="800" fill="#8A90A0" letter-spacing="1.4">TÍTULO</text>
+<text x="210" y="170" font-size="12.5" font-weight="800" fill="#8A90A0" letter-spacing="1.4">FAIXA</text>
+<text x="506" y="170" font-size="12.5" font-weight="800" fill="#8A90A0" letter-spacing="1.4">GRADUAÇÃO</text>
+<text x="756" y="170" font-size="12.5" font-weight="800" fill="#8A90A0" letter-spacing="1.4">IDADE</text>
+<text x="924" y="170" font-size="12.5" font-weight="800" fill="#8A90A0" letter-spacing="1.4">TEMPO MÍNIMO</text>
+<text x="1214" y="170" font-size="12.5" font-weight="800" fill="#8A90A0" letter-spacing="1.4">GRAUS</text>
+<line x1="40" y1="184" x2="1360" y2="184" stroke="#E2E5EC" stroke-width="1.5"/>
+<rect x="40" y="196" width="150" height="316" rx="14" fill="#E6E9EF"/>
+<text x="115" y="360" text-anchor="middle" font-size="16" font-weight="800" letter-spacing="2" fill="#141821">ALUNO</text>
+<rect x="40" y="520" width="150" height="100" rx="14" fill="#B9C0CC"/>
+<text x="115" y="576" text-anchor="middle" font-size="16" font-weight="800" letter-spacing="2" fill="#141821">INSTRUTOR</text>
+<rect x="40" y="628" width="150" height="370" rx="14" fill="#4B5160"/>
+<text x="115" y="819" text-anchor="middle" font-size="16" font-weight="800" letter-spacing="2" fill="#FFFFFF">PROFESSOR</text>
+<rect x="40" y="1006" width="150" height="208" rx="14" fill="#101219"/>
+<text x="115" y="1116" text-anchor="middle" font-size="16" font-weight="800" letter-spacing="2" fill="#FFFFFF">MESTRE</text>
+<rect x="196" y="194" width="1164" height="48" rx="10" fill="#F7F8FB"/>
+<g transform="translate(210 206)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 26" width="270" height="26" role="img" aria-label="Branca">
+<defs>
+<clipPath id="q0c"><rect width="270" height="26" rx="5"/></clipPath>
+<linearGradient id="q0b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+<pattern id="q0t" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="5" stroke="#000" stroke-opacity=".06" stroke-width="1.6"/></pattern>
+</defs>
+<g clip-path="url(#q0c)"><rect x="0" y="0" width="270" height="26" fill="#F4F4F4"/><rect x="178" y="0" width="65" height="26" fill="#151515"/><rect x="236" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="229" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="222" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="215" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="0" y="0" width="270" height="26" fill="url(#q0t)"/><line x1="5" y1="5.2" x2="265" y2="5.2" stroke="rgba(20,24,33,.28)" stroke-width="1" stroke-dasharray="4 3"/><line x1="5" y1="20.8" x2="265" y2="20.8" stroke="rgba(20,24,33,.28)" stroke-width="1" stroke-dasharray="4 3"/><rect x="0" y="0" width="270" height="26" fill="url(#q0b)"/></g>
+<rect x=".5" y=".5" width="269" height="25" rx="5" fill="none" stroke="rgba(10,12,20,.22)"/>
+</svg></g>
+<text x="506" y="225" font-size="16" font-weight="800" fill="#101219">Branca</text>
+<text x="756" y="225" font-size="15" font-weight="600" fill="#2C313D">Qualquer idade</text>
+<text x="924" y="225" font-size="15" font-weight="600" fill="#8A90A0">Iniciante</text>
+<text x="1214" y="225" font-size="15" font-weight="700" fill="#5B6170">Lisa até 4 graus</text>
+<g transform="translate(210 260)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 26" width="270" height="26" role="img" aria-label="Cinza">
+<defs>
+<clipPath id="q1c"><rect width="270" height="26" rx="5"/></clipPath>
+<linearGradient id="q1b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+<pattern id="q1t" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="5" stroke="#000" stroke-opacity=".06" stroke-width="1.6"/></pattern>
+</defs>
+<g clip-path="url(#q1c)"><rect x="0" y="0" width="270" height="26" fill="#9E9E9E"/><rect x="178" y="0" width="65" height="26" fill="#151515"/><rect x="236" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="229" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="222" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="215" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="0" y="0" width="270" height="26" fill="url(#q1t)"/><line x1="5" y1="5.2" x2="265" y2="5.2" stroke="rgba(20,24,33,.28)" stroke-width="1" stroke-dasharray="4 3"/><line x1="5" y1="20.8" x2="265" y2="20.8" stroke="rgba(20,24,33,.28)" stroke-width="1" stroke-dasharray="4 3"/><rect x="0" y="0" width="270" height="26" fill="url(#q1b)"/></g>
+<rect x=".5" y=".5" width="269" height="25" rx="5" fill="none" stroke="rgba(10,12,20,.22)"/>
+</svg></g>
+<text x="506" y="279" font-size="16" font-weight="800" fill="#101219">Cinza</text>
+<rect x="561" y="263" width="66" height="22" rx="11" fill="#FFF1E6"/><text x="594" y="279" text-anchor="middle" font-size="11.5" font-weight="800" fill="#B4530A">INFANTIL</text>
+<text x="756" y="279" font-size="15" font-weight="600" fill="#2C313D">4 a 15 anos</text>
+<text x="924" y="279" font-size="15" font-weight="600" fill="#8A90A0">Faixa infantil</text>
+<text x="1214" y="279" font-size="15" font-weight="700" fill="#5B6170">Lisa até 4 graus</text>
+<rect x="196" y="302" width="1164" height="48" rx="10" fill="#F7F8FB"/>
+<g transform="translate(210 314)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 26" width="270" height="26" role="img" aria-label="Amarela">
+<defs>
+<clipPath id="q2c"><rect width="270" height="26" rx="5"/></clipPath>
+<linearGradient id="q2b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+<pattern id="q2t" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="5" stroke="#000" stroke-opacity=".06" stroke-width="1.6"/></pattern>
+</defs>
+<g clip-path="url(#q2c)"><rect x="0" y="0" width="270" height="26" fill="#F2C200"/><rect x="178" y="0" width="65" height="26" fill="#151515"/><rect x="236" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="229" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="222" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="215" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="0" y="0" width="270" height="26" fill="url(#q2t)"/><line x1="5" y1="5.2" x2="265" y2="5.2" stroke="rgba(20,24,33,.28)" stroke-width="1" stroke-dasharray="4 3"/><line x1="5" y1="20.8" x2="265" y2="20.8" stroke="rgba(20,24,33,.28)" stroke-width="1" stroke-dasharray="4 3"/><rect x="0" y="0" width="270" height="26" fill="url(#q2b)"/></g>
+<rect x=".5" y=".5" width="269" height="25" rx="5" fill="none" stroke="rgba(10,12,20,.22)"/>
+</svg></g>
+<text x="506" y="333" font-size="16" font-weight="800" fill="#101219">Amarela</text>
+<rect x="579.8" y="317" width="66" height="22" rx="11" fill="#FFF1E6"/><text x="612.8" y="333" text-anchor="middle" font-size="11.5" font-weight="800" fill="#B4530A">INFANTIL</text>
+<text x="756" y="333" font-size="15" font-weight="600" fill="#2C313D">7 a 15 anos</text>
+<text x="924" y="333" font-size="15" font-weight="600" fill="#8A90A0">Faixa infantil</text>
+<text x="1214" y="333" font-size="15" font-weight="700" fill="#5B6170">Lisa até 4 graus</text>
+<g transform="translate(210 368)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 26" width="270" height="26" role="img" aria-label="Laranja">
+<defs>
+<clipPath id="q3c"><rect width="270" height="26" rx="5"/></clipPath>
+<linearGradient id="q3b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+<pattern id="q3t" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="5" stroke="#000" stroke-opacity=".06" stroke-width="1.6"/></pattern>
+</defs>
+<g clip-path="url(#q3c)"><rect x="0" y="0" width="270" height="26" fill="#F57C00"/><rect x="178" y="0" width="65" height="26" fill="#151515"/><rect x="236" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="229" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="222" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="215" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="0" y="0" width="270" height="26" fill="url(#q3t)"/><line x1="5" y1="5.2" x2="265" y2="5.2" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><line x1="5" y1="20.8" x2="265" y2="20.8" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><rect x="0" y="0" width="270" height="26" fill="url(#q3b)"/></g>
+<rect x=".5" y=".5" width="269" height="25" rx="5" fill="none" stroke="rgba(10,12,20,.22)"/>
+</svg></g>
+<text x="506" y="387" font-size="16" font-weight="800" fill="#101219">Laranja</text>
+<rect x="579.8" y="371" width="66" height="22" rx="11" fill="#FFF1E6"/><text x="612.8" y="387" text-anchor="middle" font-size="11.5" font-weight="800" fill="#B4530A">INFANTIL</text>
+<text x="756" y="387" font-size="15" font-weight="600" fill="#2C313D">10 a 15 anos</text>
+<text x="924" y="387" font-size="15" font-weight="600" fill="#8A90A0">Faixa infantil</text>
+<text x="1214" y="387" font-size="15" font-weight="700" fill="#5B6170">Lisa até 4 graus</text>
+<rect x="196" y="410" width="1164" height="48" rx="10" fill="#F7F8FB"/>
+<g transform="translate(210 422)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 26" width="270" height="26" role="img" aria-label="Verde">
+<defs>
+<clipPath id="q4c"><rect width="270" height="26" rx="5"/></clipPath>
+<linearGradient id="q4b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+<pattern id="q4t" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="5" stroke="#000" stroke-opacity=".06" stroke-width="1.6"/></pattern>
+</defs>
+<g clip-path="url(#q4c)"><rect x="0" y="0" width="270" height="26" fill="#2E9D44"/><rect x="178" y="0" width="65" height="26" fill="#151515"/><rect x="236" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="229" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="222" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="215" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="0" y="0" width="270" height="26" fill="url(#q4t)"/><line x1="5" y1="5.2" x2="265" y2="5.2" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><line x1="5" y1="20.8" x2="265" y2="20.8" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><rect x="0" y="0" width="270" height="26" fill="url(#q4b)"/></g>
+<rect x=".5" y=".5" width="269" height="25" rx="5" fill="none" stroke="rgba(10,12,20,.22)"/>
+</svg></g>
+<text x="506" y="441" font-size="16" font-weight="800" fill="#101219">Verde</text>
+<rect x="561" y="425" width="66" height="22" rx="11" fill="#FFF1E6"/><text x="594" y="441" text-anchor="middle" font-size="11.5" font-weight="800" fill="#B4530A">INFANTIL</text>
+<text x="756" y="441" font-size="15" font-weight="600" fill="#2C313D">13 a 15 anos</text>
+<text x="924" y="441" font-size="15" font-weight="600" fill="#8A90A0">Faixa infantil</text>
+<text x="1214" y="441" font-size="15" font-weight="700" fill="#5B6170">Lisa até 4 graus</text>
+<g transform="translate(210 476)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 26" width="270" height="26" role="img" aria-label="Azul">
+<defs>
+<clipPath id="q5c"><rect width="270" height="26" rx="5"/></clipPath>
+<linearGradient id="q5b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+<pattern id="q5t" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="5" stroke="#000" stroke-opacity=".06" stroke-width="1.6"/></pattern>
+</defs>
+<g clip-path="url(#q5c)"><rect x="0" y="0" width="270" height="26" fill="#1E4FD8"/><rect x="178" y="0" width="65" height="26" fill="#151515"/><rect x="236" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="229" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="222" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="215" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="0" y="0" width="270" height="26" fill="url(#q5t)"/><line x1="5" y1="5.2" x2="265" y2="5.2" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><line x1="5" y1="20.8" x2="265" y2="20.8" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><rect x="0" y="0" width="270" height="26" fill="url(#q5b)"/></g>
+<rect x=".5" y=".5" width="269" height="25" rx="5" fill="none" stroke="rgba(10,12,20,.22)"/>
+</svg></g>
+<text x="506" y="495" font-size="16" font-weight="800" fill="#101219">Azul</text>
+<text x="756" y="495" font-size="15" font-weight="600" fill="#2C313D">16 anos ou mais</text>
+<text x="924" y="495" font-size="15" font-weight="600" fill="#2C313D">Mínimo 2 anos na faixa</text>
+<text x="1214" y="495" font-size="15" font-weight="700" fill="#5B6170">Lisa até 4 graus</text>
+<rect x="196" y="518" width="1164" height="48" rx="10" fill="#F7F8FB"/>
+<g transform="translate(210 530)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 26" width="270" height="26" role="img" aria-label="Roxa">
+<defs>
+<clipPath id="q6c"><rect width="270" height="26" rx="5"/></clipPath>
+<linearGradient id="q6b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+<pattern id="q6t" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="5" stroke="#000" stroke-opacity=".06" stroke-width="1.6"/></pattern>
+</defs>
+<g clip-path="url(#q6c)"><rect x="0" y="0" width="270" height="26" fill="#6A2C91"/><rect x="178" y="0" width="65" height="26" fill="#151515"/><rect x="236" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="229" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="222" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="215" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="0" y="0" width="270" height="26" fill="url(#q6t)"/><line x1="5" y1="5.2" x2="265" y2="5.2" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><line x1="5" y1="20.8" x2="265" y2="20.8" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><rect x="0" y="0" width="270" height="26" fill="url(#q6b)"/></g>
+<rect x=".5" y=".5" width="269" height="25" rx="5" fill="none" stroke="rgba(10,12,20,.22)"/>
+</svg></g>
+<text x="506" y="549" font-size="16" font-weight="800" fill="#101219">Roxa</text>
+<text x="756" y="549" font-size="15" font-weight="600" fill="#2C313D">16 anos ou mais</text>
+<text x="924" y="549" font-size="15" font-weight="600" fill="#2C313D">Mínimo 1 ano e meio na faixa</text>
+<text x="1214" y="549" font-size="15" font-weight="700" fill="#5B6170">Lisa até 4 graus</text>
+<g transform="translate(210 584)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 26" width="270" height="26" role="img" aria-label="Marrom">
+<defs>
+<clipPath id="q7c"><rect width="270" height="26" rx="5"/></clipPath>
+<linearGradient id="q7b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+<pattern id="q7t" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="5" stroke="#000" stroke-opacity=".06" stroke-width="1.6"/></pattern>
+</defs>
+<g clip-path="url(#q7c)"><rect x="0" y="0" width="270" height="26" fill="#6B3E26"/><rect x="178" y="0" width="65" height="26" fill="#151515"/><rect x="236" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="229" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="222" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="215" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="0" y="0" width="270" height="26" fill="url(#q7t)"/><line x1="5" y1="5.2" x2="265" y2="5.2" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><line x1="5" y1="20.8" x2="265" y2="20.8" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><rect x="0" y="0" width="270" height="26" fill="url(#q7b)"/></g>
+<rect x=".5" y=".5" width="269" height="25" rx="5" fill="none" stroke="rgba(10,12,20,.22)"/>
+</svg></g>
+<text x="506" y="603" font-size="16" font-weight="800" fill="#101219">Marrom</text>
+<text x="756" y="603" font-size="15" font-weight="600" fill="#2C313D">18 anos ou mais</text>
+<text x="924" y="603" font-size="15" font-weight="600" fill="#2C313D">Mínimo 1 ano na faixa</text>
+<text x="1214" y="603" font-size="15" font-weight="700" fill="#5B6170">Lisa até 4 graus</text>
+<rect x="196" y="626" width="1164" height="48" rx="10" fill="#F7F8FB"/>
+<g transform="translate(210 638)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 26" width="270" height="26" role="img" aria-label="Preta">
+<defs>
+<clipPath id="q8c"><rect width="270" height="26" rx="5"/></clipPath>
+<linearGradient id="q8b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+<pattern id="q8t" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="5" stroke="#000" stroke-opacity=".06" stroke-width="1.6"/></pattern>
+</defs>
+<g clip-path="url(#q8c)"><rect x="0" y="0" width="270" height="26" fill="#151515"/><rect x="178" y="0" width="65" height="26" fill="#C62828"/><rect x="236" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="229" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="222" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="215" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="208" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="201" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="0" y="0" width="270" height="26" fill="url(#q8t)"/><line x1="5" y1="5.2" x2="265" y2="5.2" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><line x1="5" y1="20.8" x2="265" y2="20.8" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><rect x="0" y="0" width="270" height="26" fill="url(#q8b)"/></g>
+<rect x=".5" y=".5" width="269" height="25" rx="5" fill="none" stroke="rgba(10,12,20,.22)"/>
+</svg></g>
+<text x="506" y="657" font-size="16" font-weight="800" fill="#101219">Preta (lisa)</text>
+<text x="756" y="657" font-size="15" font-weight="600" fill="#2C313D">19 anos ou mais</text>
+<text x="924" y="657" font-size="15" font-weight="600" fill="#2C313D">Após mínimo 1 ano de marrom</text>
+<text x="1214" y="657" font-size="15" font-weight="700" fill="#5B6170">Até 6 graus</text>
+<g transform="translate(210 692)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 26" width="270" height="26" role="img" aria-label="Preta">
+<defs>
+<clipPath id="q9c"><rect width="270" height="26" rx="5"/></clipPath>
+<linearGradient id="q9b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+<pattern id="q9t" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="5" stroke="#000" stroke-opacity=".06" stroke-width="1.6"/></pattern>
+</defs>
+<g clip-path="url(#q9c)"><rect x="0" y="0" width="270" height="26" fill="#151515"/><rect x="178" y="0" width="65" height="26" fill="#C62828"/><rect x="236" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="1"/><rect x="229" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="222" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="215" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="208" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="201" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="0" y="0" width="270" height="26" fill="url(#q9t)"/><line x1="5" y1="5.2" x2="265" y2="5.2" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><line x1="5" y1="20.8" x2="265" y2="20.8" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><rect x="0" y="0" width="270" height="26" fill="url(#q9b)"/></g>
+<rect x=".5" y=".5" width="269" height="25" rx="5" fill="none" stroke="rgba(10,12,20,.22)"/>
+</svg></g>
+<text x="506" y="711" font-size="16" font-weight="800" fill="#101219">Preta · 1º grau</text>
+<text x="756" y="711" font-size="15" font-weight="600" fill="#2C313D">19 anos ou mais</text>
+<text x="924" y="711" font-size="15" font-weight="600" fill="#2C313D">Mínimo 3 anos de faixa preta</text>
+<text x="1214" y="711" font-size="15" font-weight="700" fill="#5B6170">1º grau</text>
+<rect x="196" y="734" width="1164" height="48" rx="10" fill="#F7F8FB"/>
+<g transform="translate(210 746)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 26" width="270" height="26" role="img" aria-label="Preta">
+<defs>
+<clipPath id="q10c"><rect width="270" height="26" rx="5"/></clipPath>
+<linearGradient id="q10b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+<pattern id="q10t" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="5" stroke="#000" stroke-opacity=".06" stroke-width="1.6"/></pattern>
+</defs>
+<g clip-path="url(#q10c)"><rect x="0" y="0" width="270" height="26" fill="#151515"/><rect x="178" y="0" width="65" height="26" fill="#C62828"/><rect x="236" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="1"/><rect x="229" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="1"/><rect x="222" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="215" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="208" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="201" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="0" y="0" width="270" height="26" fill="url(#q10t)"/><line x1="5" y1="5.2" x2="265" y2="5.2" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><line x1="5" y1="20.8" x2="265" y2="20.8" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><rect x="0" y="0" width="270" height="26" fill="url(#q10b)"/></g>
+<rect x=".5" y=".5" width="269" height="25" rx="5" fill="none" stroke="rgba(10,12,20,.22)"/>
+</svg></g>
+<text x="506" y="765" font-size="16" font-weight="800" fill="#101219">Preta · 2º grau</text>
+<text x="756" y="765" font-size="15" font-weight="600" fill="#2C313D">19 anos ou mais</text>
+<text x="924" y="765" font-size="15" font-weight="600" fill="#2C313D">Mínimo 3 anos do grau anterior</text>
+<text x="1214" y="765" font-size="15" font-weight="700" fill="#5B6170">2º grau</text>
+<g transform="translate(210 800)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 26" width="270" height="26" role="img" aria-label="Preta">
+<defs>
+<clipPath id="q11c"><rect width="270" height="26" rx="5"/></clipPath>
+<linearGradient id="q11b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+<pattern id="q11t" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="5" stroke="#000" stroke-opacity=".06" stroke-width="1.6"/></pattern>
+</defs>
+<g clip-path="url(#q11c)"><rect x="0" y="0" width="270" height="26" fill="#151515"/><rect x="178" y="0" width="65" height="26" fill="#C62828"/><rect x="236" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="1"/><rect x="229" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="1"/><rect x="222" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="1"/><rect x="215" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="208" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="201" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="0" y="0" width="270" height="26" fill="url(#q11t)"/><line x1="5" y1="5.2" x2="265" y2="5.2" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><line x1="5" y1="20.8" x2="265" y2="20.8" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><rect x="0" y="0" width="270" height="26" fill="url(#q11b)"/></g>
+<rect x=".5" y=".5" width="269" height="25" rx="5" fill="none" stroke="rgba(10,12,20,.22)"/>
+</svg></g>
+<text x="506" y="819" font-size="16" font-weight="800" fill="#101219">Preta · 3º grau</text>
+<text x="756" y="819" font-size="15" font-weight="600" fill="#2C313D">19 anos ou mais</text>
+<text x="924" y="819" font-size="15" font-weight="600" fill="#2C313D">Mínimo 3 anos do grau anterior</text>
+<text x="1214" y="819" font-size="15" font-weight="700" fill="#5B6170">3º grau</text>
+<rect x="196" y="842" width="1164" height="48" rx="10" fill="#F7F8FB"/>
+<g transform="translate(210 854)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 26" width="270" height="26" role="img" aria-label="Preta">
+<defs>
+<clipPath id="q12c"><rect width="270" height="26" rx="5"/></clipPath>
+<linearGradient id="q12b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+<pattern id="q12t" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="5" stroke="#000" stroke-opacity=".06" stroke-width="1.6"/></pattern>
+</defs>
+<g clip-path="url(#q12c)"><rect x="0" y="0" width="270" height="26" fill="#151515"/><rect x="178" y="0" width="65" height="26" fill="#C62828"/><rect x="236" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="1"/><rect x="229" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="1"/><rect x="222" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="1"/><rect x="215" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="1"/><rect x="208" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="201" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="0" y="0" width="270" height="26" fill="url(#q12t)"/><line x1="5" y1="5.2" x2="265" y2="5.2" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><line x1="5" y1="20.8" x2="265" y2="20.8" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><rect x="0" y="0" width="270" height="26" fill="url(#q12b)"/></g>
+<rect x=".5" y=".5" width="269" height="25" rx="5" fill="none" stroke="rgba(10,12,20,.22)"/>
+</svg></g>
+<text x="506" y="873" font-size="16" font-weight="800" fill="#101219">Preta · 4º grau</text>
+<text x="756" y="873" font-size="15" font-weight="600" fill="#2C313D">19 anos ou mais</text>
+<text x="924" y="873" font-size="15" font-weight="600" fill="#2C313D">Mínimo 5 anos do grau anterior</text>
+<text x="1214" y="873" font-size="15" font-weight="700" fill="#5B6170">4º grau</text>
+<g transform="translate(210 908)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 26" width="270" height="26" role="img" aria-label="Preta">
+<defs>
+<clipPath id="q13c"><rect width="270" height="26" rx="5"/></clipPath>
+<linearGradient id="q13b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+<pattern id="q13t" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="5" stroke="#000" stroke-opacity=".06" stroke-width="1.6"/></pattern>
+</defs>
+<g clip-path="url(#q13c)"><rect x="0" y="0" width="270" height="26" fill="#151515"/><rect x="178" y="0" width="65" height="26" fill="#C62828"/><rect x="236" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="1"/><rect x="229" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="1"/><rect x="222" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="1"/><rect x="215" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="1"/><rect x="208" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="1"/><rect x="201" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="0.2"/><rect x="0" y="0" width="270" height="26" fill="url(#q13t)"/><line x1="5" y1="5.2" x2="265" y2="5.2" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><line x1="5" y1="20.8" x2="265" y2="20.8" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><rect x="0" y="0" width="270" height="26" fill="url(#q13b)"/></g>
+<rect x=".5" y=".5" width="269" height="25" rx="5" fill="none" stroke="rgba(10,12,20,.22)"/>
+</svg></g>
+<text x="506" y="927" font-size="16" font-weight="800" fill="#101219">Preta · 5º grau</text>
+<text x="756" y="927" font-size="15" font-weight="600" fill="#2C313D">19 anos ou mais</text>
+<text x="924" y="927" font-size="15" font-weight="600" fill="#2C313D">Mínimo 5 anos do grau anterior</text>
+<text x="1214" y="927" font-size="15" font-weight="700" fill="#5B6170">5º grau</text>
+<rect x="196" y="950" width="1164" height="48" rx="10" fill="#F7F8FB"/>
+<g transform="translate(210 962)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 26" width="270" height="26" role="img" aria-label="Preta">
+<defs>
+<clipPath id="q14c"><rect width="270" height="26" rx="5"/></clipPath>
+<linearGradient id="q14b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+<pattern id="q14t" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="5" stroke="#000" stroke-opacity=".06" stroke-width="1.6"/></pattern>
+</defs>
+<g clip-path="url(#q14c)"><rect x="0" y="0" width="270" height="26" fill="#151515"/><rect x="178" y="0" width="65" height="26" fill="#C62828"/><rect x="236" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="1"/><rect x="229" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="1"/><rect x="222" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="1"/><rect x="215" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="1"/><rect x="208" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="1"/><rect x="201" y="2" width="4" height="22" rx="1" fill="#FFFFFF" opacity="1"/><rect x="0" y="0" width="270" height="26" fill="url(#q14t)"/><line x1="5" y1="5.2" x2="265" y2="5.2" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><line x1="5" y1="20.8" x2="265" y2="20.8" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><rect x="0" y="0" width="270" height="26" fill="url(#q14b)"/></g>
+<rect x=".5" y=".5" width="269" height="25" rx="5" fill="none" stroke="rgba(10,12,20,.22)"/>
+</svg></g>
+<text x="506" y="981" font-size="16" font-weight="800" fill="#101219">Preta · 6º grau</text>
+<text x="756" y="981" font-size="15" font-weight="600" fill="#2C313D">19 anos ou mais</text>
+<text x="924" y="981" font-size="15" font-weight="600" fill="#2C313D">Mínimo 5 anos do grau anterior</text>
+<text x="1214" y="981" font-size="15" font-weight="700" fill="#5B6170">6º grau</text>
+<g transform="translate(210 1016)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 26" width="270" height="26" role="img" aria-label="Coral vermelha e preta">
+<defs>
+<clipPath id="q15c"><rect width="270" height="26" rx="5"/></clipPath>
+<linearGradient id="q15b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+<pattern id="q15t" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="5" stroke="#000" stroke-opacity=".06" stroke-width="1.6"/></pattern>
+</defs>
+<g clip-path="url(#q15c)"><rect x="0.00" y="0" width="34.35" height="26" fill="#C62828"/><rect x="33.75" y="0" width="34.35" height="26" fill="#151515"/><rect x="67.50" y="0" width="34.35" height="26" fill="#C62828"/><rect x="101.25" y="0" width="34.35" height="26" fill="#151515"/><rect x="135.00" y="0" width="34.35" height="26" fill="#C62828"/><rect x="168.75" y="0" width="34.35" height="26" fill="#151515"/><rect x="202.50" y="0" width="34.35" height="26" fill="#C62828"/><rect x="236.25" y="0" width="34.35" height="26" fill="#151515"/><rect x="194" y="4" width="33" height="19" rx="8" fill="#FFFFFF" opacity=".95"/><text x="210.5" y="17.4" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-size="12" font-weight="800" fill="#7A1C12">7º</text><rect x="0" y="0" width="270" height="26" fill="url(#q15t)"/><line x1="5" y1="5.2" x2="265" y2="5.2" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><line x1="5" y1="20.8" x2="265" y2="20.8" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><rect x="0" y="0" width="270" height="26" fill="url(#q15b)"/></g>
+<rect x=".5" y=".5" width="269" height="25" rx="5" fill="none" stroke="rgba(10,12,20,.22)"/>
+</svg></g>
+<text x="506" y="1035" font-size="16" font-weight="800" fill="#101219">Coral vermelha e preta</text>
+<text x="756" y="1035" font-size="15" font-weight="600" fill="#2C313D">19 anos ou mais</text>
+<text x="924" y="1035" font-size="15" font-weight="600" fill="#2C313D">Mínimo 7 anos do grau anterior</text>
+<text x="1214" y="1035" font-size="15" font-weight="700" fill="#5B6170">7º grau</text>
+<rect x="196" y="1058" width="1164" height="48" rx="10" fill="#F7F8FB"/>
+<g transform="translate(210 1070)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 26" width="270" height="26" role="img" aria-label="Coral vermelha e branca">
+<defs>
+<clipPath id="q16c"><rect width="270" height="26" rx="5"/></clipPath>
+<linearGradient id="q16b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+<pattern id="q16t" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="5" stroke="#000" stroke-opacity=".06" stroke-width="1.6"/></pattern>
+</defs>
+<g clip-path="url(#q16c)"><rect x="0.00" y="0" width="34.35" height="26" fill="#C62828"/><rect x="33.75" y="0" width="34.35" height="26" fill="#F4F4F4"/><rect x="67.50" y="0" width="34.35" height="26" fill="#C62828"/><rect x="101.25" y="0" width="34.35" height="26" fill="#F4F4F4"/><rect x="135.00" y="0" width="34.35" height="26" fill="#C62828"/><rect x="168.75" y="0" width="34.35" height="26" fill="#F4F4F4"/><rect x="202.50" y="0" width="34.35" height="26" fill="#C62828"/><rect x="236.25" y="0" width="34.35" height="26" fill="#F4F4F4"/><rect x="194" y="4" width="33" height="19" rx="8" fill="#FFFFFF" opacity=".95"/><text x="210.5" y="17.4" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-size="12" font-weight="800" fill="#7A1C12">8º</text><rect x="0" y="0" width="270" height="26" fill="url(#q16t)"/><line x1="5" y1="5.2" x2="265" y2="5.2" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><line x1="5" y1="20.8" x2="265" y2="20.8" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><rect x="0" y="0" width="270" height="26" fill="url(#q16b)"/></g>
+<rect x=".5" y=".5" width="269" height="25" rx="5" fill="none" stroke="rgba(10,12,20,.22)"/>
+</svg></g>
+<text x="506" y="1089" font-size="16" font-weight="800" fill="#101219">Coral vermelha e branca</text>
+<text x="756" y="1089" font-size="15" font-weight="600" fill="#2C313D">19 anos ou mais</text>
+<text x="924" y="1089" font-size="15" font-weight="600" fill="#2C313D">Mínimo 7 anos do grau anterior</text>
+<text x="1214" y="1089" font-size="15" font-weight="700" fill="#5B6170">8º grau</text>
+<g transform="translate(210 1124)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 26" width="270" height="26" role="img" aria-label="Vermelha">
+<defs>
+<clipPath id="q17c"><rect width="270" height="26" rx="5"/></clipPath>
+<linearGradient id="q17b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+<pattern id="q17t" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="5" stroke="#000" stroke-opacity=".06" stroke-width="1.6"/></pattern>
+</defs>
+<g clip-path="url(#q17c)"><rect x="0" y="0" width="270" height="26" fill="#C62828"/><rect x="194" y="4" width="33" height="19" rx="8" fill="#FFFFFF" opacity=".95"/><text x="210.5" y="17.4" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-size="12" font-weight="800" fill="#7A1C12">9º</text><rect x="0" y="0" width="270" height="26" fill="url(#q17t)"/><line x1="5" y1="5.2" x2="265" y2="5.2" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><line x1="5" y1="20.8" x2="265" y2="20.8" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><rect x="0" y="0" width="270" height="26" fill="url(#q17b)"/></g>
+<rect x=".5" y=".5" width="269" height="25" rx="5" fill="none" stroke="rgba(10,12,20,.22)"/>
+</svg></g>
+<text x="506" y="1143" font-size="16" font-weight="800" fill="#101219">Vermelha</text>
+<text x="756" y="1143" font-size="15" font-weight="600" fill="#2C313D">19 anos ou mais</text>
+<text x="924" y="1143" font-size="15" font-weight="600" fill="#2C313D">Mínimo 10 anos do grau anterior</text>
+<text x="1214" y="1143" font-size="15" font-weight="700" fill="#5B6170">9º grau</text>
+<rect x="196" y="1166" width="1164" height="48" rx="10" fill="#F7F8FB"/>
+<g transform="translate(210 1178)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 26" width="270" height="26" role="img" aria-label="Vermelha">
+<defs>
+<clipPath id="q18c"><rect width="270" height="26" rx="5"/></clipPath>
+<linearGradient id="q18b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+<pattern id="q18t" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="5" stroke="#000" stroke-opacity=".06" stroke-width="1.6"/></pattern>
+</defs>
+<g clip-path="url(#q18c)"><rect x="0" y="0" width="270" height="26" fill="#C62828"/><rect x="194" y="4" width="33" height="19" rx="8" fill="#FFFFFF" opacity=".95"/><text x="210.5" y="17.4" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-size="12" font-weight="800" fill="#7A1C12">10º</text><rect x="0" y="0" width="270" height="26" fill="url(#q18t)"/><line x1="5" y1="5.2" x2="265" y2="5.2" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><line x1="5" y1="20.8" x2="265" y2="20.8" stroke="rgba(255,255,255,.26)" stroke-width="1" stroke-dasharray="4 3"/><rect x="0" y="0" width="270" height="26" fill="url(#q18b)"/></g>
+<rect x=".5" y=".5" width="269" height="25" rx="5" fill="none" stroke="rgba(10,12,20,.22)"/>
+</svg></g>
+<text x="506" y="1197" font-size="16" font-weight="800" fill="#101219">Vermelha</text>
+<text x="756" y="1197" font-size="15" font-weight="600" fill="#2C313D">19 anos ou mais</text>
+<text x="924" y="1197" font-size="15" font-weight="600" fill="#B42318">Só os pioneiros (ver nota)</text>
+<text x="1214" y="1197" font-size="15" font-weight="700" fill="#5B6170">10º grau</text>
+<rect x="40" y="1238" width="1320" height="62" rx="14" fill="#FFF4F2" stroke="#F6C9C2"/>
+<text x="62" y="1276" font-size="15.5" font-weight="700" fill="#7A1C12">10º grau: apenas os pioneiros do Jiu-Jitsu da família Gracie — Carlos, Oswaldo, George, Gastão e Hélio Gracie.</text>
+<text x="44" y="1336" font-size="12.5" fill="#8A90A0">Tempos mínimos de cada faixa e grau. A graduação depende também da avaliação técnica e da conduta do atleta, a critério do professor responsável.</text>
+</svg>

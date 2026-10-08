@@ -17,24 +17,55 @@ const C = {
 const lisa = (nome, cor, graus = 0) => ({ nome, cor: [cor, cor, cor], ...(graus ? { graus } : {}) });
 const listrada = (nome, fora, meio, graus = 0) => ({ nome, cor: [fora, meio, fora], ...(graus ? { graus } : {}) });
 
-// Jiu-Jitsu (padrão IBJJF): adulto a partir de 16 anos; infantil de 4 a 15.
+// Jiu-Jitsu — quadro de graduação da CBJJ (enviado pelo Natanael em 08/10/2026).
+// Títulos: Aluno (branca → azul), Instrutor (roxa, marrom), Professor (preta, graus 1–6),
+// Mestre (coral 7º e 8º, vermelha 9º e 10º). Infantil (até 15 anos): branca, cinza,
+// amarela, laranja e verde, todas lisas até 4 graus. Tempos:
+//   permanenciaMeses = tempo mínimo NA faixa antes da próxima (azul 2 anos, roxa 1 ano e meio, marrom 1 ano);
+//   grausMeses[i]    = tempo mínimo para chegar ao grau i+1 da preta (1º: 3 anos de faixa preta; 2º e 3º: 3 anos
+//                      do grau anterior; 4º a 6º: 5 anos do grau anterior);
+//   requisitoMeses   = tempo mínimo no grau anterior para chegar a esta (coral 7º e 8º: 7 anos; vermelha 9º: 10 anos).
+// ponteira = a barra onde vão os graus (preta nas coloridas, vermelha na preta).
+const faixa = (nome, cor, extra = {}) => ({ nome, cor: [cor, cor, cor], ...extra });
 const JIUJITSU = {
   idadeKids: 16,
   adulto: [
-    lisa('Branca', C.branca, 4), lisa('Azul', C.azul, 4), lisa('Roxa', C.roxa, 4), lisa('Marrom', C.marrom, 4),
-    lisa('Preta', C.preta, 6), listrada('Coral vermelha e preta', C.vermelha, C.preta), listrada('Coral vermelha e branca', C.vermelha, C.branca),
-    lisa('Vermelha', C.vermelha),
+    faixa('Branca', C.branca, { titulo: 'Aluno', ponteira: C.preta, graus: 4, requisito: 'Iniciante, qualquer idade' }),
+    faixa('Azul', C.azul, { titulo: 'Aluno', ponteira: C.preta, graus: 4, idadeMin: 16, permanenciaMeses: 24 }),
+    faixa('Roxa', C.roxa, { titulo: 'Instrutor', ponteira: C.preta, graus: 4, idadeMin: 16, permanenciaMeses: 18 }),
+    faixa('Marrom', C.marrom, { titulo: 'Instrutor', ponteira: C.preta, graus: 4, idadeMin: 18, permanenciaMeses: 12 }),
+    faixa('Preta', C.preta, { titulo: 'Professor', ponteira: C.vermelha, graus: 6, idadeMin: 19, grausMeses: [36, 36, 36, 60, 60, 60] }),
+    { nome: 'Coral vermelha e preta', cor: [C.vermelha, C.preta, C.vermelha], padrao: 'blocos', titulo: 'Mestre', grauDan: 7, idadeMin: 19, requisitoMeses: 84 },
+    { nome: 'Coral vermelha e branca', cor: [C.vermelha, C.branca, C.vermelha], padrao: 'blocos', titulo: 'Mestre', grauDan: 8, idadeMin: 19, requisitoMeses: 84 },
+    faixa('Vermelha', C.vermelha, { titulo: 'Mestre', grauDan: 9, idadeMin: 19, requisitoMeses: 120,
+      nota: '10º grau: apenas os pioneiros do Jiu-Jitsu da família Gracie — Carlos, Oswaldo, George, Gastão e Hélio Gracie.' }),
   ],
   kids: [
-    lisa('Branca', C.branca, 4),
-    listrada('Cinza e branca', C.cinza, C.branca, 4), lisa('Cinza', C.cinza, 4), listrada('Cinza e preta', C.cinza, C.preta, 4),
-    listrada('Amarela e branca', C.amarela, C.branca, 4), lisa('Amarela', C.amarela, 4), listrada('Amarela e preta', C.amarela, C.preta, 4),
-    listrada('Laranja e branca', C.laranja, C.branca, 4), lisa('Laranja', C.laranja, 4), listrada('Laranja e preta', C.laranja, C.preta, 4),
-    listrada('Verde e branca', C.verde, C.branca, 4), lisa('Verde', C.verde, 4), listrada('Verde e preta', C.verde, C.preta, 4),
+    faixa('Branca', C.branca, { titulo: 'Aluno', ponteira: C.preta, graus: 4, requisito: 'Iniciante, qualquer idade' }),
+    faixa('Cinza', C.cinza, { titulo: 'Aluno', ponteira: C.preta, graus: 4, idadeMin: 4, idadeMax: 15 }),
+    faixa('Amarela', C.amarela, { titulo: 'Aluno', ponteira: C.preta, graus: 4, idadeMin: 7, idadeMax: 15 }),
+    faixa('Laranja', C.laranja, { titulo: 'Aluno', ponteira: C.preta, graus: 4, idadeMin: 10, idadeMax: 15 }),
+    faixa('Verde', C.verde, { titulo: 'Aluno', ponteira: C.preta, graus: 4, idadeMin: 13, idadeMax: 15 }),
   ],
   criterios: ['Postura e base', 'Quedas', 'Guarda', 'Passagem de guarda', 'Raspagens', 'Finalizações', 'Defesa pessoal',
     'Respeito', 'Disciplina', 'Pontualidade', 'Frequência', 'Higiene', 'Aprendizado'],
 };
+
+// Texto de requisito de uma graduação (o que o quadro e o app mostram).
+const anos = (m) => { const a = m / 12; return a === 1 ? '1 ano' : Number.isInteger(a) ? `${a} anos` : a === 1.5 ? '1 ano e meio' : `${m} meses`; };
+export function idadeTexto(g) {
+  if (!g) return '';
+  if (g.requisito) return g.requisito;
+  if (g.idadeMax) return `${g.idadeMin} a ${g.idadeMax} anos`;
+  return g.idadeMin ? `${g.idadeMin} anos ou mais` : 'Qualquer idade';
+}
+export function tempoTexto(g, grau = 0) {
+  if (!g) return '';
+  if (g.grausMeses && grau > 0) return grau === 1 ? `Mínimo ${anos(g.grausMeses[0])} de faixa ${g.nome.toLowerCase()}` : `Mínimo ${anos(g.grausMeses[grau - 1])} do grau anterior`;
+  if (g.requisitoMeses) return `Mínimo ${anos(g.requisitoMeses)} do grau anterior`;
+  if (g.permanenciaMeses) return `Mínimo ${anos(g.permanenciaMeses)} na faixa`;
+  return '';
+}
 
 // Escada só com nomes (as do catálogo da AtletaPay) → cores pelo nome da cor.
 function escadaDeNomes(nomes, graus = 0) {
@@ -77,9 +108,11 @@ export function listaDa(escada, idade) {
 // Graduação de quem acabou de entrar ('Iniciante' é o valor neutro da inscrição).
 export const graduacaoInicial = (escada, idade) => (listaDa(escada, idade)[0] || { nome: 'Iniciante' }).nome;
 
-// "Preta · 3º grau", "Azul · 1 grau", "Roxa".
-export function rotuloGraduacao(nome, graus) {
+// "Preta · 3º grau", "Azul · 1º grau", "Roxa", "Coral vermelha e preta · 7º grau".
+// grad (opcional): a graduação da escada — as faixas de mestre já são um grau (grauDan).
+export function rotuloGraduacao(nome, graus, grad = null) {
   const g = Math.max(0, Math.floor(Number(graus) || 0));
+  if (grad && grad.grauDan) return `${nome} · ${grad.grauDan + g}º grau`;
   return g ? `${nome} · ${g}º grau` : String(nome || '');
 }
 
@@ -102,7 +135,19 @@ export function escadaLimpa(e) {
   if (!e || typeof e !== 'object') return null;
   const cor = (c) => (/^#[0-9a-f]{3,6}$/i.test(String(c)) ? String(c) : C.neutra);
   const lista = (l) => (Array.isArray(l) ? l.slice(0, 40).filter((g) => g && typeof g.nome === 'string' && g.nome.trim())
-    .map((g) => ({ nome: g.nome.trim().slice(0, 40), cor: (Array.isArray(g.cor) ? g.cor : [g.cor, g.cor, g.cor]).slice(0, 3).map(cor), ...(Number(g.graus) > 0 ? { graus: Math.min(10, Math.floor(Number(g.graus))) } : {}) })) : null);
+    .map((g) => {
+      const n = (v, max) => (Number(v) > 0 ? Math.min(max, Math.floor(Number(v))) : null);
+      const t = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+      const extra = {
+        graus: n(g.graus, 10), titulo: t(g.titulo, 20), ponteira: /^#[0-9a-f]{3,6}$/i.test(String(g.ponteira)) ? String(g.ponteira) : null,
+        padrao: g.padrao === 'blocos' ? 'blocos' : null, idadeMin: n(g.idadeMin, 99), idadeMax: n(g.idadeMax, 99),
+        permanenciaMeses: n(g.permanenciaMeses, 600), requisitoMeses: n(g.requisitoMeses, 600), grauDan: n(g.grauDan, 10),
+        grausMeses: Array.isArray(g.grausMeses) ? g.grausMeses.slice(0, 10).map((m) => n(m, 600) || 0) : null,
+        requisito: t(g.requisito, 80), nota: t(g.nota, 200),
+      };
+      return { nome: g.nome.trim().slice(0, 40), cor: (Array.isArray(g.cor) ? g.cor : [g.cor, g.cor, g.cor]).slice(0, 3).map(cor),
+        ...Object.fromEntries(Object.entries(extra).filter(([, v]) => v !== null)) };
+    }) : null);
   const adulto = lista(e.adulto);
   if (!adulto || !adulto.length) return null;
   const kids = lista(e.kids);
