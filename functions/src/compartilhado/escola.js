@@ -173,6 +173,9 @@ export function aplicarEscola(cfg) {
 // Faixa/cordão com graus: "Azul · 2º grau" (sem graus, só o nome).
 export function rotuloGrad(nome, graus) {
   const g = Math.max(0, Math.floor(Number(graus) || 0));
+  // Faixas de mestre (coral, vermelha): o grau vem da própria faixa (7º, 8º, 9º) — igual ao servidor.
+  const item = CORDOES_ADULTO.find((c) => c.nome === nome) || CORDOES_KIDS.find((c) => c.nome === nome);
+  if (item && Number(item.grauDan) > 0) return `${nome} · ${Number(item.grauDan) + g}º grau`;
   return g ? `${nome} · ${g}º grau` : String(nome || '');
 }
 // Quantos graus a graduação admite na escada atual (0 = não usa graus).

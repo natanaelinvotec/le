@@ -24,9 +24,9 @@ publicarMaterial, listarMateriais, removerMaterial, excluirUsuarioPermanente,
 publicarMaterialFormacao, listarMateriaisFormacao, removerMaterialFormacao,
 lancarPagamento, listarPagamentosDoNucleo, marcarPagamento,
 lancarDespesaComRateio, todosRateios, marcarRateioPago,
-  presencasDoNucleo, presencasVisitantesDoNucleo, salvarFotoPerfil,
+  presencasDoNucleo, presencasVisitantesDoNucleo, salvarFotoPerfil, comMinhaEscola,
 } from './firebase.js';
-import { iniciarGestao, abrirTela as abrirTelaGestao, renderRelatoriosGerais, exportarExcel, exportarPDF } from './gestao.js?v=20261007';
+import { iniciarGestao, abrirTela as abrirTelaGestao, renderRelatoriosGerais, exportarExcel, exportarPDF } from './gestao.js?v=20261009';
 import { iniciarAniversarios, renderAniversarios, lembrete48h } from './aniversarios.js?v=20261001';
 import { CONDICOES, lacosHTML, lacoSVG, normalizarInclusao, temInclusao, resumoInclusao, apoiosChecklistHTML, ligarChecklist, apoiosMarcados, materiaisHTML, garantirEstilos as estilosInclusao } from './inclusao.js?v=20261006';
 estilosInclusao();
@@ -34,9 +34,10 @@ estilosInclusao();
 import { iniciarExperiencia, abrirAcessibilidade, tutorial, pedirAceiteSeNecessario } from './experiencia.js';
 import { ligarContador, abrirCentral, ouvirPushComAppAberto } from './notificacoes.js?v=20260926e';
 import { apresentacaoDe, migrarApresentacao, tocarApresentacao, tocarAoEntrar, gerenciarApresentacao, abrirMinhaConta, abrirTrocaSenha, definirAutor, podeTerApresentacao, formatarCelular, celularValido, celularDe } from './conta.js?v=20261006';
-import { escapeHTML, sanitizeInput, debounce, gerarSlug } from './shared.js';
+import { escapeHTML, sanitizeInput, debounce, gerarSlug, urlSegura, urlImagem, argJS } from './shared.js';
 import { BRASOES, porId as brasaoPorId, urlThumb as brasaoThumb, ehManual as brasaoManual } from './brasoes.js?v=20261006';
 import { configurarFaceId, atualizarContextoFaceId, pararFaceId } from './faceid.js?v=20261007';
+import { conferirTempo } from './modalidades.js';
 import { ESCOLA, ORDEM_CORDOES as ORDEM_ESCOLA, CORDOES_ADULTO as ADULTO_ESCOLA, CORDOES_KIDS as KIDS_ESCOLA, CRITERIOS as CRITERIOS_ESCOLA, linkMapa as linkMapaEscola, IDADE_KIDS, rotuloGrad } from './escola.js';
 // Escada infantil: idade da escola (Liberdade 12; Jiu-Jitsu 16; sem escada infantil = nunca).
 // Mesmo critério de antes (idade não informada conta como infantil quando a escola tem infantil).
@@ -131,7 +132,7 @@ return porc >= 70 ? 'arv-verde' : 'arv-azul';
 }
 function arvFotoHTML(pessoa, classe = '') {
 return pessoa.fotoUrl && !/placeholder/i.test(pessoa.fotoUrl)
-? `<img class="arv-foto ${classe}" src="${escapeHTML(pessoa.fotoUrl)}" alt="" loading="lazy">`
+? `<img class="arv-foto ${classe}" src="${escapeHTML(urlImagem(pessoa.fotoUrl))}" alt="" loading="lazy">`
 : `<div class="arv-foto ${classe}" style="background:${arvCorAvatar(pessoa.id)}">${escapeHTML(arvIniciais(pessoa.nome))}</div>`;
 }
 
@@ -264,10 +265,10 @@ ${pessoa.statusAtual && pessoa.statusAtual !== 'Ativo' ? `<span class="pill pill
 <small>${porc == null ? 'Ainda sem notas lançadas em Avaliar/Editar.' : (porc >= 70 ? 'Já atingiu a meta de 70% nos critérios avaliados.' : 'Meta: 70% nos critérios avaliados pelo responsável.')}</small>
 </div>
 ${filhos.length ? `<div class="arv-lista"><h4>${nucleo ? 'Alunos e formados' : 'Formados'} <span>${prontos}/${filhos.length} prontos</span></h4>
-${filhos.map((f) => `<button type="button" class="arv-linha-aluno" onclick="window.__arvIr('${escapeHTML(f.id)}')">${arvFotoHTML(f, 'arv-foto-m')}<span>${escapeHTML(f.nome || 'Sem nome')}</span><span class="arv-g">${escapeHTML(f.cordaoAtual || 'Iniciante')}${f.notas ? ` · ${calcularPorcentagemEvolucaoDe(f)}%` : ''}</span></button>`).join('')}</div>` : ''}
+${filhos.map((f) => `<button type="button" class="arv-linha-aluno" onclick="window.__arvIr(${argJS(f.id)})">${arvFotoHTML(f, 'arv-foto-m')}<span>${escapeHTML(f.nome || 'Sem nome')}</span><span class="arv-g">${escapeHTML(f.cordaoAtual || 'Iniciante')}${f.notas ? ` · ${calcularPorcentagemEvolucaoDe(f)}%` : ''}</span></button>`).join('')}</div>` : ''}
 <div class="arv-acoes">
-${filhos.length ? `<button type="button" class="btn-detalhes ${aberto ? 'btn-soft' : ''}" onclick="window.__arvIr('${escapeHTML(pessoa.id)}')">${aberto ? 'Recolher ramificação' : 'Abrir ramificação'}</button>` : ''}
-${podeEditar && todosUsuarios.some((u) => u.id === pessoa.id) ? `<button type="button" class="btn-mini" onclick="abrirModal('${escapeHTML(pessoa.id)}')"><i class="fas fa-pen"></i> Abrir prontuário (Avaliar/Editar)</button>` : ''}
+${filhos.length ? `<button type="button" class="btn-detalhes ${aberto ? 'btn-soft' : ''}" onclick="window.__arvIr(${argJS(pessoa.id)})">${aberto ? 'Recolher ramificação' : 'Abrir ramificação'}</button>` : ''}
+${podeEditar && todosUsuarios.some((u) => u.id === pessoa.id) ? `<button type="button" class="btn-mini" onclick="abrirModal(${argJS(pessoa.id)})"><i class="fas fa-pen"></i> Abrir prontuário (Avaliar/Editar)</button>` : ''}
 </div>`;
 }
 
@@ -784,7 +785,7 @@ ${ehSede ? '<span class="pill pill-gold">SEDE</span>' : ''}
 <span class="pill ${n.ativo ? 'pill-aprovado' : 'pill-neutra'}">${n.ativo ? 'ATIVO' : 'INATIVO'}</span>
 </div>
 </div>
-${resp ? `<div class="nucleo-responsavel"><img src="${escapeHTML(resp.fotoUrl || 'https://via.placeholder.com/36')}" alt=""><span><strong>${escapeHTML(resp.nome || '')}</strong>${souFundador(resp) ? 'Acesso Geral · Fundador' : 'Responsável do núcleo'}</span></div>` : '<p class="nucleo-sem-responsavel">Use "Editar" para atribuir um responsável.</p>'}
+${resp ? `<div class="nucleo-responsavel"><img src="${escapeHTML(urlImagem(resp.fotoUrl) || 'https://via.placeholder.com/36')}" alt=""><span><strong>${escapeHTML(resp.nome || '')}</strong>${souFundador(resp) ? 'Acesso Geral · Fundador' : 'Responsável do núcleo'}</span></div>` : '<p class="nucleo-sem-responsavel">Use "Editar" para atribuir um responsável.</p>'}
 <div class="nucleo-stats">
 <div class="nucleo-stat"><strong class="teal">${alunosAtivos}</strong><small>alunos ativos</small></div>
 <div class="nucleo-stat"><strong class="navy">${n.mensalidadeValor ? `R$ ${Number(n.mensalidadeValor).toFixed(0)}` : '—'}</strong><small>mensalidade</small></div>
@@ -795,7 +796,7 @@ ${resp ? `<div class="nucleo-responsavel"><img src="${escapeHTML(resp.fotoUrl ||
 <span class="estrelas"><span class="on">${'★'.repeat(estrelas)}</span><span class="off">${'★'.repeat(7 - estrelas)}</span></span>
 </div>
 <div class="academia-actions">
-<button class="btn-edit-ac" onclick="abrirEditarNucleo('${n.id}')"><i class="fas fa-pen"></i> Editar núcleo</button>
+<button class="btn-edit-ac" onclick="abrirEditarNucleo(${argJS(n.id)})"><i class="fas fa-pen"></i> Editar núcleo</button>
 </div>
 </div>`;
 }).join('');
@@ -862,6 +863,9 @@ const respAtual = todosUsuarios.find((u) => u.id === professorUid);
 professorNome = (respAtual && respAtual.nome) || '';
 const papeisNovos = Array.from(new Set([...(respAtual?.papeis || ['aluno']), 'mestre']));
 const formadorUidNovo = obterFormadorUid(respAtual, todosNucleos);
+// O núcleo nasce ANTES de virar o "núcleo administrado" da pessoa: as regras só aceitam
+// apontar para um núcleo que já existe e é da mesma escola.
+await salvar('nucleos', slug, await comMinhaEscola({ nome, mensalidadeValor, professorUid, professorNome, ativo: true, endereco, latitude, longitude, raioMetros }));
 await atualizar('usuarios', professorUid, { papeis: papeisNovos, academiaGerenciadaId: slug, ...(formadorUidNovo ? { formadorUid: formadorUidNovo } : {}) });
 }
 
@@ -869,7 +873,9 @@ await atualizar('usuarios', professorUid, { papeis: papeisNovos, academiaGerenci
 // do aluno (app.html) não tem permissão para ler o documento de outro
 // usuário em usuarios/{uid} — só assim a tela de Núcleos consegue mostrar
 // o nome do professor sem exigir uma regra de leitura mais aberta.
-await salvar('nucleos', slug, { nome, mensalidadeValor, professorUid, professorNome, ativo: true, endereco, latitude, longitude, raioMetros });
+// Com escolaId: sem ele as regras recusam (antes o servidor punha na escola nº 1).
+// (Pessoa já cadastrada: o núcleo já foi gravado acima, antes do vínculo.)
+if (respSelecionado === '__novo__') await salvar('nucleos', slug, await comMinhaEscola({ nome, mensalidadeValor, professorUid, professorNome, ativo: true, endereco, latitude, longitude, raioMetros }));
 toast('Núcleo criado com sucesso!');
 formNovoNucleo.reset();
 document.getElementById('camposNovoResponsavel').style.display = 'grid';
@@ -1093,7 +1099,7 @@ return;
 
 grid.innerHTML = alunos.map((a, i) => {
 const htmlTransferencia = ehAdmin()
-? `<select class="select-encaminhar" onchange="transferirAluno('${a.id}', this.value)">${optAc}</select>`
+? `<select class="select-encaminhar" onchange="transferirAluno(${argJS(a.id)}, this.value)">${optAc}</select>`
 : '';
 const statusCor = a.statusAtual === 'Ativo' ? '#389E92' : '#D32F2F';
 const ehMestreCard = (a.papeis || []).includes('mestre');
@@ -1108,7 +1114,7 @@ const tagTransferido = a.academiaAnteriorId && !ehAdmin() ? '' : '';
 return `
 <div class="aluno-card" style="--card-index:${i}${a.origemTransferenciaDireta ? '; opacity:0.85' : ''}">
 <div class="card-top">
-<span class="foto-com-lacos"><img src="${escapeHTML(a.fotoUrl || 'https://via.placeholder.com/70')}" class="card-foto" alt="Foto de ${escapeHTML(a.nome || 'aluno')}" loading="lazy">${lacosHTML(a.inclusao, { px: 24 })}</span>
+<span class="foto-com-lacos"><img src="${escapeHTML(urlImagem(a.fotoUrl) || 'https://via.placeholder.com/70')}" class="card-foto" alt="Foto de ${escapeHTML(a.nome || 'aluno')}" loading="lazy">${lacosHTML(a.inclusao, { px: 24 })}</span>
 <div class="card-info">
 <h3>${escapeHTML(a.nome || 'Sem nome')} ${badges}${estrelasHtml}</h3>
 <p>Rank: <strong>${escapeHTML(a.cordaoAtual || 'Iniciante')}</strong></p>
@@ -1119,7 +1125,7 @@ return `
 </div>
 <div class="card-bottom" style="${!ehAdmin() ? 'justify-content: flex-end;' : ''}">
 ${htmlTransferencia}
-<button class="btn-detalhes" onclick="abrirModal('${a.id}')">Avaliar / Editar</button>
+<button class="btn-detalhes" onclick="abrirModal(${argJS(a.id)})">Avaliar / Editar</button>
 </div>
 </div>`;
 }).join('');
@@ -1355,7 +1361,7 @@ const ativo = usuarioSelecionado.statusAtual !== 'Inativo';
 btnStatus.innerHTML = ativo ? '<i class="fas fa-user-slash"></i> Desativar Aluno' : '<i class="fas fa-user-check"></i> Reativar Aluno';
 btnStatus.classList.remove('confirm-danger');
 
-document.getElementById('modFoto').src = usuarioSelecionado.fotoUrl || 'https://via.placeholder.com/90';
+document.getElementById('modFoto').src = urlImagem(usuarioSelecionado.fotoUrl) || 'https://via.placeholder.com/90';
 // Atenção e inclusão: laços no canto da foto do modal + caixas para editar.
 {
 const lacosMod = document.getElementById('modFotoLacos');
@@ -1464,9 +1470,27 @@ const desenharGraus = () => {
   wrap.hidden = !max;
   const sel = document.getElementById('modGraus');
   const atual = selCordao.value === (usuarioSelecionado.cordaoAtual || '') ? Math.min(max, Number(usuarioSelecionado.grausAtual) || 0) : 0;
-  sel.innerHTML = Array.from({ length: max + 1 }, (_, g) => `<option value="${g}">${g ? rotuloGrad(selCordao.value, g) : `${escapeHTML(selCordao.value)} (lisa)`}</option>`).join('');
+  sel.innerHTML = Array.from({ length: max + 1 }, (_, g) => `<option value="${g}">${g ? escapeHTML(rotuloGrad(selCordao.value, g)) : `${escapeHTML(selCordao.value)} (lisa)`}</option>`).join('');
   sel.value = String(atual);
+  sel.onchange = avisarTempo;
+  avisarTempo();
 };
+// v34: tempo mínimo e idade do quadro de graduação (Jiu-Jitsu/CBJJ). Só avisa — quem decide é o professor.
+function avisarTempo() {
+  let box = document.getElementById('modAvisoTempo');
+  if (!box) {
+    box = document.createElement('div'); box.id = 'modAvisoTempo'; box.setAttribute('aria-live', 'polite');
+    box.style.cssText = 'display:grid;gap:6px;margin:-4px 0 12px;font-size:.82rem;line-height:1.4';
+    (document.getElementById('wrapModGraus') || document.getElementById('wrapModCordao')).insertAdjacentElement('afterend', box);
+  }
+  const selG = document.getElementById('modGraus');
+  const graus = selG && !document.getElementById('wrapModGraus').hidden ? Number(selG.value) || 0 : 0;
+  const temQuadro = listaCordoesLocal.some((c) => c.idadeMin || c.permanenciaMeses || c.requisitoMeses || c.grausMeses);
+  const avisos = temQuadro ? conferirTempo(listaCordoesLocal, usuarioSelecionado, selCordao.value, graus) : [];
+  const cor = { ok: ['#E4F7EA', '#1E8449', 'fa-circle-check'], atencao: ['#FFF4E0', '#9A5B00', 'fa-triangle-exclamation'], info: ['#EAF2F1', '#0B5C52', 'fa-circle-info'] };
+  box.innerHTML = avisos.map((a) => { const [fundo, texto, ic] = cor[a.nivel] || cor.info; return `<p style="margin:0;padding:8px 10px;border-radius:10px;background:${fundo};color:${texto}"><i class="fas ${ic}"></i> ${escapeHTML(a.texto)}</p>`; }).join('');
+  box.style.display = avisos.length ? 'grid' : 'none';
+}
 desenharGraus();
 notasAtuais = { ...(usuarioSelecionado.notas || {}) };
 gerarCriteriosUI(listaCordoesLocal, idadeNumero);
@@ -1671,6 +1695,9 @@ if (novaNasc) document.getElementById('modIdadeInput').value = idadePelaData(nov
 const novaIdade = Number(document.getElementById('modIdadeInput').value);
 const novaFoto = document.getElementById('modFotoInput').value;
 
+if (usuarioSelecionado.id === sessaoAtual.uid && !ehAdmin() && !souFundador(sessaoAtual)) {
+toast('A sua própria avaliação é lançada pelo Fundador da escola (ou pelo Admin).', 'error'); return;
+}
 if (!novoNome) { toast('O nome do aluno não pode ficar vazio.', 'error'); return; }
 if (!Number.isFinite(novaIdade) || novaIdade < 0 || novaIdade > 120) { toast('Informe uma idade válida.', 'error'); return; }
 const campoCelular = document.getElementById('modCelularInput');
@@ -1726,7 +1753,7 @@ dadosAtualizados.historicoGraduacoes = historico.slice(-30);
 if (dadosAtualizados.cordaoAtual !== (usuarioSelecionado.cordaoAtual || 'Iniciante') && idxCordaoNovo > idxCordaoVelho) {
 const historico = Array.isArray(usuarioSelecionado.historicoGraduacoes) ? usuarioSelecionado.historicoGraduacoes.slice() : [];
 const jaTinha = !!(document.getElementById('modCordaoLegado') && document.getElementById('modCordaoLegado').checked && !document.getElementById('wrapModLegado').hidden);
-historico.push({ cordao: dadosAtualizados.cordaoAtual, ...(grausNovos ? { grau: grausNovos } : {}), anterior: usuarioSelecionado.cordaoAtual || 'Iniciante', em: new Date().toISOString(), por: sessaoAtual.uid, porNome: sessaoAtual.nome || '', ...(jaTinha ? { legado: true } : {}) });
+historico.push({ cordao: dadosAtualizados.cordaoAtual, ...(grausNovos ? { grau: grausNovos } : {}), ...(usaGraus || grausVelhos ? { anteriorGrau: grausVelhos } : {}), anterior: usuarioSelecionado.cordaoAtual || 'Iniciante', em: new Date().toISOString(), por: sessaoAtual.uid, porNome: sessaoAtual.nome || '', ...(jaTinha ? { legado: true } : {}) });
 dadosAtualizados.historicoGraduacoes = historico.slice(-30);
 }
 // Avaliação de formador: grava só pra quem tem o papel de mestre/instrutor
@@ -1877,8 +1904,8 @@ ${iconeSolicitacaoHTML(s)}
 <span>${escapeHTML(descreverSolicitacao(s))}</span>
 </div>
 <div class="lista-item-actions">
-<button class="btn-mini btn-mini-aprovar" onclick="aprovarSolicitacao('${s.id}')">Aprovar</button>
-<button class="btn-mini btn-mini-rejeitar" onclick="rejeitarSolicitacao('${s.id}')">Rejeitar</button>
+<button class="btn-mini btn-mini-aprovar" onclick="aprovarSolicitacao(${argJS(s.id)})">Aprovar</button>
+<button class="btn-mini btn-mini-rejeitar" onclick="rejeitarSolicitacao(${argJS(s.id)})">Rejeitar</button>
 </div>
 </div>`).join('')
 : '<div class="empty-state"><i class="fas fa-inbox"></i>Nenhuma solicitação pendente.</div>';
@@ -1909,7 +1936,7 @@ ${iconeSolicitacaoHTML(s)}
 </div>
 <div class="lista-item-actions">
 <span class="pill pill-${s.status}">${s.status === 'pendente' ? 'Pendente' : (s.status === 'aprovado' ? 'Aprovado' : 'Rejeitado')}</span>
-${s.status === 'pendente' ? `<button class="btn-mini btn-mini-rejeitar" onclick="cancelarSolicitacao('${s.id}')">Cancelar</button>` : ''}
+${s.status === 'pendente' ? `<button class="btn-mini btn-mini-rejeitar" onclick="cancelarSolicitacao(${argJS(s.id)})">Cancelar</button>` : ''}
 </div>
 </div>`).join('')
 : '<div class="empty-state"><i class="fas fa-inbox"></i>Você ainda não enviou nenhuma solicitação.</div>';
@@ -1930,8 +1957,8 @@ ${iconeSolicitacaoHTML(s)}
 <span>${escapeHTML(descreverSolicitacao(s))}</span>
 </div>
 <div class="lista-item-actions">
-<button class="btn-mini btn-mini-aprovar" onclick="aprovarSolicitacao('${s.id}')">Aprovar</button>
-<button class="btn-mini btn-mini-rejeitar" onclick="rejeitarSolicitacao('${s.id}')">Rejeitar</button>
+<button class="btn-mini btn-mini-aprovar" onclick="aprovarSolicitacao(${argJS(s.id)})">Aprovar</button>
+<button class="btn-mini btn-mini-rejeitar" onclick="rejeitarSolicitacao(${argJS(s.id)})">Rejeitar</button>
 </div>
 </div>`).join('')
 : '<div class="empty-state"><i class="fas fa-user-group"></i>Nenhum pedido de vínculo de parentesco pendente.</div>';
@@ -1955,8 +1982,8 @@ ${iconeSolicitacaoHTML(s)}
 <span>Pedido por ${escapeHTML(s.solicitanteNome || 'alguém do grupo')} · vem de ${escapeHTML(s.dadosPedido?.academiaOrigemNome || 'outro núcleo')}</span>
 </div>
 <div class="lista-item-actions">
-<button class="btn-mini btn-mini-aprovar" onclick="aprovarSolicitacao('${s.id}')">Aceitar aluno</button>
-<button class="btn-mini btn-mini-rejeitar" onclick="rejeitarSolicitacao('${s.id}')">Recusar</button>
+<button class="btn-mini btn-mini-aprovar" onclick="aprovarSolicitacao(${argJS(s.id)})">Aceitar aluno</button>
+<button class="btn-mini btn-mini-rejeitar" onclick="rejeitarSolicitacao(${argJS(s.id)})">Recusar</button>
 </div>
 </div>`).join('')
 : '<div class="empty-state"><i class="fas fa-right-left"></i>Nenhuma transferência aguardando seu aceite.</div>';
@@ -1991,6 +2018,7 @@ await atualizar('usuarios', sol.dadosPedido.alunoUid, {
 academiaId: sol.dadosPedido.destinoId, academiaNome: sol.dadosPedido.destinoNome,
 academiaAnteriorId: alunoAtual ? alunoAtual.academiaId : sol.academiaId,
 origemTransferenciaDireta: true,
+transferenciaId: sol.id, // as regras conferem o pedido pendente (núcleo de destino aceitando)
 });
 } else if (sol.tipo === 'vinculo_familia') {
 await aprovarVinculoFamilia(sol.solicitanteUid, sol.dadosPedido.alunoRelacionadoUid);
@@ -2056,7 +2084,7 @@ lista.innerHTML = visiveis.length
 ? visiveis.map((a) => {
 const detalhes = [
 a.data ? new Date(a.data + 'T00:00:00').toLocaleDateString('pt-BR') : '',
-a.hora || '',
+a.hora ? escapeHTML(a.hora) : '',
 a.local ? escapeHTML(a.local) : '',
 ].filter(Boolean).join(' · ');
 const iconeTipo = { evento: 'gold fa-calendar-day', financeiro: 'green fa-credit-card', geral: 'navy fa-bell' }[a.tipo] || 'navy fa-bell';
@@ -2068,7 +2096,7 @@ return `
 <span>${escapeHTML(a.texto)}</span>
 ${detalhes ? `<span style="color:var(--primary-teal); font-weight:700;"><i class="fas fa-calendar-days"></i> ${detalhes}</span>` : ''}
 </div>
-${podeExcluir ? `<div class="lista-item-actions"><button class="btn-mini btn-mini-rejeitar" onclick="excluirAviso('${a.id}')">Excluir</button></div>` : ''}
+${podeExcluir ? `<div class="lista-item-actions"><button class="btn-mini btn-mini-rejeitar" onclick="excluirAviso(${argJS(a.id)})">Excluir</button></div>` : ''}
 </div>`;
 }).join('')
 : '<div class="empty-state"><i class="fas fa-bell-slash"></i>Nenhum aviso publicado ainda.</div>';
@@ -2134,10 +2162,10 @@ lista.innerHTML = materiais.length
 <div class="lista-item-info">
 <strong>${escapeHTML(m.titulo)} <span class="pill pill-aprovado">${escapeHTML(m.tipo || 'link')}</span></strong>
 <span>${escapeHTML(m.descricao || '')}</span>
-<a href="${escapeHTML(m.url)}" target="_blank" rel="noopener" style="font-size:0.85rem; color:var(--primary-teal); font-weight:700;">Abrir material <i class="fas fa-arrow-up-right-from-square"></i></a>
+<a href="${escapeHTML(urlSegura(m.url) || '#')}" target="_blank" rel="noopener" style="font-size:0.85rem; color:var(--primary-teal); font-weight:700;">Abrir material <i class="fas fa-arrow-up-right-from-square"></i></a>
 </div>
 <div class="lista-item-actions" data-papel="admin">
-<button class="btn-mini btn-mini-rejeitar" onclick="removerMaterialUI('${m.id}')">Remover</button>
+<button class="btn-mini btn-mini-rejeitar" onclick="removerMaterialUI(${argJS(m.id)})">Remover</button>
 </div>
 </div>`).join('')
 : '<div class="empty-state"><i class="fas fa-folder-open"></i>Nenhum material publicado ainda.</div>';
@@ -2161,10 +2189,13 @@ e.preventDefault();
 const btn = formNovoMaterial.querySelector('button[type="submit"]');
 btn.disabled = true;
 try {
+// Só link https:// (um "javascript:" aqui rodaria no celular de quem abrisse o material).
+const urlMaterial = document.getElementById('materialUrl').value.trim();
+if (!/^https:\/\//i.test(urlMaterial)) { toast('Use um link que comece com https://', 'error'); btn.disabled = false; return; }
 await publicarMaterial({
 titulo: sanitizeInput(document.getElementById('materialTitulo').value),
 descricao: sanitizeInput(document.getElementById('materialDescricao').value),
-url: document.getElementById('materialUrl').value.trim(),
+url: urlMaterial,
 tipo: document.getElementById('materialTipo').value,
 autorUid: sessaoAtual.uid,
 });
@@ -2190,10 +2221,10 @@ lista.innerHTML = conteudos.length
 <div class="lista-item-info">
 <strong>${escapeHTML(m.titulo)} <span class="pill pill-pendente">${escapeHTML(rotulos[m.categoria] || m.categoria || 'geral')}</span></strong>
 <span>${escapeHTML(m.descricao || '')}</span>
-<a href="${escapeHTML(m.url)}" target="_blank" rel="noopener" style="font-size:0.85rem; color:var(--primary-teal); font-weight:700;">Abrir conteúdo <i class="fas fa-arrow-up-right-from-square"></i></a>
+<a href="${escapeHTML(urlSegura(m.url) || '#')}" target="_blank" rel="noopener" style="font-size:0.85rem; color:var(--primary-teal); font-weight:700;">Abrir conteúdo <i class="fas fa-arrow-up-right-from-square"></i></a>
 </div>
 <div class="lista-item-actions" data-papel="admin">
-<button class="btn-mini btn-mini-rejeitar" onclick="removerFormacaoUI('${m.id}')">Remover</button>
+<button class="btn-mini btn-mini-rejeitar" onclick="removerFormacaoUI(${argJS(m.id)})">Remover</button>
 </div>
 </div>`).join('')
 : '<div class="empty-state"><i class="fas fa-graduation-cap"></i>Nenhum conteúdo de formação publicado ainda.</div>';
@@ -2218,10 +2249,12 @@ e.preventDefault();
 const btn = formNovaFormacao.querySelector('button[type="submit"]');
 btn.disabled = true;
 try {
+const urlFormacao = document.getElementById('formacaoUrl').value.trim();
+if (!/^https:\/\//i.test(urlFormacao)) { toast('Use um link que comece com https://', 'error'); btn.disabled = false; return; }
 await publicarMaterialFormacao({
 titulo: sanitizeInput(document.getElementById('formacaoTitulo').value),
 categoria: document.getElementById('formacaoCategoria').value,
-url: document.getElementById('formacaoUrl').value.trim(),
+url: urlFormacao,
 descricao: sanitizeInput(document.getElementById('formacaoDescricao').value),
 autorUid: sessaoAtual.uid,
 });
@@ -2271,7 +2304,7 @@ lista.innerHTML = pagamentos.length
 <span>${p.tipo === 'adicional' ? `<b>${escapeHTML(p.descricao || 'Valor adicional')}</b> · ` : 'Mensalidade · '}${escapeHTML(p.competencia || '')} · R$ ${Number(p.valor || 0).toFixed(2)}</span>
 </div>
 <div class="lista-item-actions">
-<button class="btn-mini ${p.pago ? 'btn-mini-rejeitar' : 'btn-mini-aprovar'}" onclick="alternarPagamentoUI('${p.id}', ${!p.pago})">${p.pago ? 'Marcar não pago' : 'Marcar pago'}</button>
+<button class="btn-mini ${p.pago ? 'btn-mini-rejeitar' : 'btn-mini-aprovar'}" onclick="alternarPagamentoUI(${argJS(p.id)}, ${!p.pago})">${p.pago ? 'Marcar não pago' : 'Marcar pago'}</button>
 </div>
 </div>`).join('')
 : '<div class="empty-state"><i class="fas fa-sack-dollar"></i>Nenhum pagamento lançado ainda.</div>';
@@ -2378,7 +2411,7 @@ lista.innerHTML = rateios.length
 <span>Parcela: R$ ${Number(r.valor || 0).toFixed(2)}</span>
 </div>
 <div class="lista-item-actions">
-<button class="btn-mini ${r.status === 'pago' ? 'btn-mini-rejeitar' : 'btn-mini-aprovar'}" onclick="alternarRateioUI('${r.id}', ${r.status !== 'pago'})">${r.status === 'pago' ? 'Marcar pendente' : 'Marcar pago'}</button>
+<button class="btn-mini ${r.status === 'pago' ? 'btn-mini-rejeitar' : 'btn-mini-aprovar'}" onclick="alternarRateioUI(${argJS(r.id)}, ${r.status !== 'pago'})">${r.status === 'pago' ? 'Marcar pendente' : 'Marcar pago'}</button>
 </div>
 </div>`).join('')
 : '<div class="empty-state"><i class="fas fa-scale-balanced"></i>Nenhuma despesa lançada ainda.</div>';

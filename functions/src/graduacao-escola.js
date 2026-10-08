@@ -8,20 +8,16 @@
 //   • subir de faixa ou de grau avisa o atleta (e o responsável legal) e abre a
 //     festa na tela principal do app — com as cores da faixa.
 import { ESCOLA_PADRAO } from './escolas.js';
-import { escadaLimpa, escadaPadrao, listaDa, graduacaoInicial, rotuloGraduacao } from './compartilhado/modalidades.js';
+import { listaDa, graduacaoInicial, rotuloGraduacao } from './compartilhado/modalidades.js';
 import { notificar } from './notificar.js';
+import { escadaDaEscola } from './escada-escola.js';
+import { emitirCertificadoEscola } from './certificado-escola.js';
+
+export { escadaDaEscola };
 
 const primeiroNome = (n) => String(n || 'Atleta').split(' ')[0];
-
-export async function escadaDaEscola(ctx, escolaId) {
-  if (!ctx._escadas) ctx._escadas = new Map();
-  if (ctx._escadas.has(escolaId)) return ctx._escadas.get(escolaId);
-  const s = await ctx.db.doc(`escolas/${escolaId}`).get();
-  const e = s.exists ? s.data() : {};
-  const escada = escadaLimpa(e.escada) || escadaPadrao(e.modalidade || 'outra', Array.isArray(e.graduacoes) ? e.graduacoes : []);
-  ctx._escadas.set(escolaId, escada);
-  return escada;
-}
+// Id da festa/aviso de graduação (o mesmo que o "desfazer graduação" apaga).
+export const idAvisoGraduacao = (cordao, graus) => `grad_${String(cordao).replace(/[^\w]+/g, '-')}_${Number(graus) || 0}`.slice(0, 120);
 
 export const ehOutraEscola = (u) => !!(u && u.escolaId && u.escolaId !== ESCOLA_PADRAO);
 
@@ -38,8 +34,11 @@ export async function aoGraduarNaEscola(ctx, uid, antes, depois) {
   if (!antes) return null;
   const iA = lista.findIndex((g) => g.nome === antes.cordaoAtual);
   const iD = lista.findIndex((g) => g.nome === depois.cordaoAtual);
-  const gA = Number(antes.grausAtual) || 0; const gD = Number(depois.grausAtual) || 0;
-  const subiuFaixa = iA >= 0 && iD > iA; // de "Iniciante" para a 1ª faixa não é festa (é o passo 1)
+  const gA = Number(antes.grausAtual) || 0; const gD = Math.min(Number(depois.grausAtual) || 0, 10);
+  // Passou da escada infantil para a adulta (ex.: Verde → Azul aos 16): também é faixa nova.
+  const daOutraEscada = iA < 0 && iD >= 0 && antes.cordaoAtual !== depois.cordaoAtual &&
+    [...(escada.kids || []), ...(escada.adulto || [])].some((g) => g.nome === antes.cordaoAtual);
+  const subiuFaixa = (iA >= 0 && iD > iA) || daOutraEscada; // de "Iniciante" para a 1ª faixa não é festa (é o passo 1)
   const subiuGrau = iD >= 0 && iD === iA && gD > gA;
   if (!subiuFaixa && !subiuGrau) return null;
   const item = lista[iD];
@@ -50,9 +49,25 @@ export async function aoGraduarNaEscola(ctx, uid, antes, depois) {
     tipo: 'cordao', link: `rede.html#perfil/${uid}`, atletaUid: uid, atletaNome: String(depois.nome || '').slice(0, 80),
     cordao: depois.cordaoAtual, graus: gD, anterior: antes.cordaoAtual || '', cores: item.cor,
   };
-  const idFixo = `grad_${String(depois.cordaoAtual).replace(/[^\w]+/g, '-')}_${gD}`.slice(0, 120);
+  const idFixo = idAvisoGraduacao(depois.cordaoAtual, gD);
   const titulo = subiuFaixa ? `${Peca} ${rotulo}!` : `Novo grau: ${rotulo}!`;
-  await notificar(ctx, [uid], { ...dados, titulo, texto: 'Parabéns pela nova graduação! Veja na sua trajetória.' }, { idFixo });
+  // Linha do histórico desta troca: faixa nova = a linha em que ENTROU na faixa (o lote não grava grau);
+  // grau novo = a linha daquela faixa com aquele grau.
+  const hist = Array.isArray(depois.historicoGraduacoes) ? depois.historicoGraduacoes : [];
+  const linha = [...hist].reverse().find((h) => h && h.cordao === depois.cordaoAtual &&
+    (subiuFaixa ? h.anterior !== depois.cordaoAtual : (Number(h.grau) || 0) === gD)) || {};
+  // "Já tinha" (lançamento de graduação anterior ao app): sem certificado e sem festa.
+  if (linha.legado) return subiuFaixa ? 'faixa' : 'grau';
+  // v34: certificado da faixa/grau (data e evento da linha do histórico gravada pelo professor).
+  let cert = null;
+  try {
+    cert = await emitirCertificadoEscola(ctx, uid, depois, item, {
+      cordao: depois.cordaoAtual, graus: gD, anterior: antes.cordaoAtual || '', anteriorGraus: gA,
+      em: linha.em || null, eventoId: linha.eventoId || null,
+    });
+  } catch (e) { (ctx.log || console).warn('certificado da escola', uid, e && e.message); }
+  if (cert) dados.certificado = cert.codigo;
+  await notificar(ctx, [uid], { ...dados, titulo, texto: cert ? 'Parabéns! O certificado já está no app.' : 'Parabéns pela nova graduação! Veja na sua trajetória.' }, { idFixo });
   if (depois.responsavelUid && depois.responsavelUid !== uid) {
     await notificar(ctx, [depois.responsavelUid], { ...dados, titulo: `${primeiroNome(depois.nome)}: ${subiuFaixa ? `${peca} ${rotulo}` : `novo grau (${rotulo})`}!`, texto: 'Parabéns pela nova graduação.' }, { idFixo });
   }

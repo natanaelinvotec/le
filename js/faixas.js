@@ -43,7 +43,10 @@ export function faixaSVG(g, { graus = 0, vagas = null, largura = 300, altura = 2
     partes.push(`<rect x="${p0}" y="0" width="${p1 - p0}" height="${H}" fill="${COR_OK(g.ponteira)}"/>`);
     const n = Math.max(total, feitos);
     if (n) {
-      const bw = Math.max(3, Math.round(W * 0.014)); const gap = Math.max(3, Math.round(W * 0.012));
+      let bw = Math.max(3, Math.round(W * 0.014)); let gap = Math.max(3, Math.round(W * 0.012));
+      // Faixa pequena (carteirinha) com muitos graus: as barras encolhem para caber na ponteira.
+      const cabe = p1 - p0 - gap;
+      if (n * (bw + gap) > cabe) { const passo = cabe / n; bw = Math.max(1.5, passo * 0.55); gap = passo - bw; }
       let x = p1 - gap - bw;
       for (let i = 0; i < n; i++) {
         partes.push(`<rect x="${x}" y="${Math.round(H * 0.08)}" width="${bw}" height="${H - Math.round(H * 0.16)}" rx="1" fill="#FFFFFF" opacity="${i < feitos ? 1 : 0.2}"/>`);

@@ -67,6 +67,57 @@ export function tempoTexto(g, grau = 0) {
   return '';
 }
 
+// Tempo em texto curto: "8 meses", "1 ano e 3 meses", "2 anos".
+export function tempoCurto(m) {
+  const n = Math.max(0, Math.floor(Number(m) || 0));
+  if (n < 12) return n === 1 ? '1 mês' : `${n} meses`;
+  const a = Math.floor(n / 12); const r = n % 12;
+  return `${a === 1 ? '1 ano' : `${a} anos`}${r ? ` e ${r === 1 ? '1 mês' : `${r} meses`}` : ''}`;
+}
+
+// v34 — confere tempo mínimo e idade do quadro de graduação ANTES de o professor salvar.
+// Não bloqueia (o professor decide); devolve avisos para a tela:
+//   [{ nivel: 'ok' | 'atencao' | 'info', texto }]
+// lista = escada da pessoa (adulto ou kids); pessoa = { cordaoAtual, grausAtual, idade, historicoGraduacoes }.
+// Datas: a troca de faixa é a linha do histórico em que a pessoa ENTROU na faixa (anterior diferente);
+// o grau é a última linha daquela faixa com aquele grau.
+export function conferirTempo(lista, pessoa, novoNome, novoGraus = 0, hoje = new Date()) {
+  const av = [];
+  if (!Array.isArray(lista) || !lista.length || !pessoa) return av;
+  const atualNome = pessoa.cordaoAtual && lista.some((g) => g.nome === pessoa.cordaoAtual) ? pessoa.cordaoAtual : lista[0].nome;
+  const atualGraus = Math.max(0, Number(pessoa.grausAtual) || 0);
+  const iA = lista.findIndex((g) => g.nome === atualNome);
+  const iN = lista.findIndex((g) => g.nome === novoNome);
+  if (iN < 0) return av;
+  const novo = lista[iN]; const atual = lista[iA];
+  const idade = Number(pessoa.idade) || 0;
+  const hist = Array.isArray(pessoa.historicoGraduacoes) ? pessoa.historicoGraduacoes : [];
+  const ultima = (f) => { for (let i = hist.length - 1; i >= 0; i -= 1) { const h = hist[i]; if (h && f(h)) return h.em || null; } return null; };
+  const entrouNaFaixa = ultima((h) => h.cordao === atualNome && h.anterior !== atualNome);
+  const ultimoGrau = atualGraus ? ultima((h) => h.cordao === atualNome && (Number(h.grau) || 0) === atualGraus) : null;
+  const mesesDesde = (iso) => { const t = Date.parse(iso || ''); return Number.isFinite(t) ? Math.floor((hoje.getTime() - t) / (30.44 * 86400000)) : null; };
+  const conferir = (req, desde, rotulo) => {
+    if (!req) return;
+    const m = mesesDesde(desde);
+    if (m === null) av.push({ nivel: 'info', texto: `Tempo mínimo: ${tempoCurto(req)} ${rotulo}. A data não está no app — confira antes de graduar.` });
+    else if (m < req) av.push({ nivel: 'atencao', texto: `Tempo mínimo: ${tempoCurto(req)} ${rotulo}. Faz ${tempoCurto(m)} — faltam ${tempoCurto(req - m)}.` });
+    else av.push({ nivel: 'ok', texto: `Tempo mínimo cumprido: ${tempoCurto(m)} ${rotulo} (mínimo ${tempoCurto(req)}).` });
+  };
+  if (iN > iA) {
+    if (novo.idadeMin && idade && idade < novo.idadeMin) av.push({ nivel: 'atencao', texto: `A faixa ${novo.nome} pede ${novo.idadeMin} anos ou mais (tem ${idade}).` });
+    if (novo.idadeMax && idade && idade > novo.idadeMax) av.push({ nivel: 'atencao', texto: `A faixa ${novo.nome} vai só até ${novo.idadeMax} anos (tem ${idade}).` });
+    if (iN > iA + 1) av.push({ nivel: 'info', texto: `Pula ${iN - iA - 1 === 1 ? '1 faixa' : `${iN - iA - 1} faixas`} de uma vez — se a pessoa já tinha a faixa antes do app, marque "já tinha".` });
+    else if (novo.requisitoMeses) conferir(novo.requisitoMeses, ultimoGrau || entrouNaFaixa, atualGraus ? `no ${atualGraus}º grau` : `na faixa ${atualNome}`);
+    else if (atual && atual.permanenciaMeses) conferir(atual.permanenciaMeses, entrouNaFaixa, `na faixa ${atualNome}`);
+  } else if (iN === iA && novoGraus > atualGraus) {
+    if (novoGraus > atualGraus + 1) av.push({ nivel: 'info', texto: `Sobe ${novoGraus - atualGraus} graus de uma vez.` });
+    else if (Array.isArray(atual.grausMeses) && atual.grausMeses[novoGraus - 1]) {
+      conferir(atual.grausMeses[novoGraus - 1], atualGraus ? ultimoGrau : entrouNaFaixa, atualGraus ? `desde o ${atualGraus}º grau` : `de faixa ${atualNome.toLowerCase()}`);
+    }
+  }
+  return av;
+}
+
 // Escada só com nomes (as do catálogo da AtletaPay) → cores pelo nome da cor.
 function escadaDeNomes(nomes, graus = 0) {
   const cor = (n) => { const k = Object.keys(C).find((c) => String(n).toLowerCase().startsWith(c)); return C[k || 'neutra']; };

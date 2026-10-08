@@ -6,7 +6,8 @@ A foto da carteirinha é de DOCUMENTO e passa pela aprovação do núcleo; a fot
 de perfil da Rede continua livre. Conta família: o responsável vê e envia a
 foto de cada dependente (regras: responsavelUid). */
 import { observarSessao, db, doc, getDoc, setDoc, updateDoc, onSnapshot, enviarFoto } from './firebase.js';
-import { ESCOLA, coresDoCordao } from './escola.js';
+import { ESCOLA, coresDoCordao, escadaDe, rotuloGrad, CORDOES_ADULTO, CORDOES_KIDS } from './escola.js';
+import { faixaSVG } from './faixas.js';
 import { qrSvg } from './qr.js';
 import { esc, situacao, textoValidade, dataBR, iniciais, linkVerificacao, cartaoHtml, prepararFoto, IC, ehAtleta, PARENTESCOS, LIMITE_POR_PARENTESCO, MAX_BENEFICIARIOS, deAtleta } from './carteirinha-comum.js';
 import { mesclar, cartaoParceiro } from './site-render.js?v=20261006';
@@ -131,8 +132,18 @@ function dadosDoCartao() {
     validade: c ? textoValidade(c) : 'em emissão', validadeOk: c ? situacao(c) === 'valida' : false,
     foto: c && c.fotoUrl ? c.fotoUrl : '',
     qrSvg: link ? qrSvg(link, { nivel: 'M', margem: 1, cor: '#061A3A', rotulo: 'QR de verificação da carteirinha' }) : '',
-    logo: LOGO, grupo: ESCOLA.nomeCurto,
+    logo: ESCOLA.logoPequeno || ESCOLA.logo || LOGO, grupo: ESCOLA.nomeCurto,
+    ...faixaDoCartao(u, cordao),
   };
+}
+// v34: escolas de faixa (Jiu-Jitsu…) — a faixa desenhada com os graus e o nome certo ("Faixa Azul · 2º grau").
+function faixaDoCartao(u, cordao) {
+  if (!['faixa', 'prajied'].includes(String(ESCOLA.peca || ''))) return {};
+  const g = escadaDe(u).find((x) => x.nome === cordao) || CORDOES_ADULTO.find((x) => x.nome === cordao) || CORDOES_KIDS.find((x) => x.nome === cordao);
+  if (!g) return {};
+  const Peca = String(ESCOLA.peca).charAt(0).toUpperCase() + String(ESCOLA.peca).slice(1);
+  const svg = faixaSVG(g, { graus: Number(u.grausAtual) || 0, largura: 128, altura: 14, titulo: rotuloGrad(cordao, u.grausAtual) });
+  return { rotulo: `${Peca} ${rotuloGrad(cordao, u.grausAtual)}`, faixaSvg: svg.replace('<svg ', '<svg style="width:100%;height:auto" ') };
 }
 
 function tiles(c) {
@@ -228,7 +239,7 @@ function blocoCertificados() {
     const data = /^\d{4}-\d{2}-\d{2}$/.test(c.data || '') ? c.data.split('-').reverse().join('/') : '';
     const link = `certificado.html#${encodeURIComponent(c.codigo)}`;
     return `<li class="benef"><span class="av-b" style="background:repeating-linear-gradient(45deg,${cores[0]} 0 5px,${cores[1]} 5px 10px,${cores[2]} 10px 15px)"></span>
-      <span class="txt"><b>Cordão ${esc(c.cordao)}</b><small>${esc([data, c.evento].filter(Boolean).join(' · '))}</small></span>
+      <span class="txt"><b>${faixaDoCartao(dadosAlvo || {}, c.cordao).rotulo ? esc(`${String(ESCOLA.peca).charAt(0).toUpperCase()}${String(ESCOLA.peca).slice(1)} ${rotuloGrad(c.cordao, c.graus)}`) : `Cordão ${esc(c.cordao)}`}</b><small>${esc([data, c.evento].filter(Boolean).join(' · '))}</small></span>
       <span class="acoes-b"><a class="bt bt-claro" href="${esc(link)}" style="height:38px;padding:0 12px;font-size:12.5px">Ver</a><a class="bt bt-claro" href="certificado.html?imprimir=1#${esc(encodeURIComponent(c.codigo))}" style="height:38px;padding:0 12px;font-size:12.5px">PDF</a></span></li>`;
   }).join('');
   return `<section class="beneficiarios" aria-labelledby="titCert"><div class="sec-tit"><h2 id="titCert">Certificados de graduação</h2><small>${certificados.length}</small></div><ul class="lista-benef">${linhas}</ul><a class="bt bt-claro" href="certificados.html#${esc(encodeURIComponent(alvoUid || ''))}" style="margin-top:10px;width:100%">Ver todos os certificados</a></section>`;

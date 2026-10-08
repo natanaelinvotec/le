@@ -15,8 +15,10 @@
 //                             SEPARADA da foto de perfil (a da Rede é livre).
 import { randomBytes } from 'node:crypto';
 import { coresDoCordao } from './compartilhado/escola.js';
-import { ehMenor, usoImagemOk } from './perfil.js';
+import { ehMenor, usoImagemOk, pagamentosValidos } from './perfil.js';
 import { notificar, gestoresDoNucleo } from './notificar.js';
+import { escadaDaEscola } from './escada-escola.js';
+import { listaDa, rotuloGraduacao } from './compartilhado/modalidades.js';
 
 // Sem 0/O e 1/I: dá para ditar o código por telefone sem confusão.
 const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -101,7 +103,7 @@ export function validadeDePagamentos(pagamentos) {
 export async function regraDeValidade(ctx, u, uid) {
   if (u.isentoMensalidade === true) return { controle: 'isento', validaAte: null };
   const pags = await ctx.db.collection('pagamentos').where('alunoId', '==', uid).limit(120).get();
-  const validaAte = validadeDePagamentos(pags.docs.map((d) => d.data()));
+  const validaAte = validadeDePagamentos(pagamentosValidos(pags.docs.map((d) => d.data()), u));
   if (validaAte) return { controle: 'mensalidade', validaAte };
   if (!u.academiaId) return { controle: 'livre', validaAte: null };
   const doNucleo = await ctx.db.collection('pagamentos').where('academiaId', '==', u.academiaId).limit(1).get();
@@ -186,8 +188,22 @@ export async function sincronizarCarteirinha(ctx, uid) {
   const cordao = u.cordaoAtual || 'Iniciante';
   const ativo = u.ativo !== false && u.statusAtual !== 'Inativo';
 
+  // v34: escola de faixa — cores da escada da escola e o rótulo "Faixa Azul · 2º grau" para a conferência pública.
+  let cores = coresDoCordao(cordao, u); let rotulo = null; let escola = null;
+  if (u.escolaId && u.escolaId !== 'liberdade') {
+    try {
+      const escada = await escadaDaEscola(ctx, u.escolaId);
+      const g = listaDa(escada, u.idade).find((x) => x.nome === cordao) || (escada.adulto || []).find((x) => x.nome === cordao);
+      if (g) { cores = g.cor; const peca = String(escada.peca || 'faixa'); rotulo = `${peca.charAt(0).toUpperCase()}${peca.slice(1)} ${rotuloGraduacao(cordao, u.grausAtual, g)}`; }
+      const sp = await ctx.db.doc(`escolasPublicas/${u.escolaId}`).get();
+      if (sp.exists) {
+        const e = sp.data();
+        escola = { nome: String(e.nome || e.nomeCurto || '').slice(0, 80), logo: /^https:\/\/firebasestorage\.googleapis\.com\//.test(String(e.logo || '')) ? e.logo : null };
+      }
+    } catch (e) { (ctx.log || console).warn('carteirinha: escada da escola', uid, e && e.message); }
+  }
   const pub = {
-    nome: nomePublico(u.nome, menor), cordao, cores: coresDoCordao(cordao, u), nucleo,
+    nome: nomePublico(u.nome, menor), cordao, cores, ...(rotulo ? { rotulo } : {}), ...(escola ? { escola } : {}), nucleo,
     matricula: ind.matricula, validaAte, controle, ativo, menor, fotoAprovada: !!ind.fotoAprovadaCaminho,
     foto: ind.fotoPublicaCaminho && ctx.bucket ? urlPublica(ctx.bucket, ind.fotoPublicaCaminho) : '',
   };
@@ -237,7 +253,9 @@ export async function apagarCarteirinha(ctx, uid, ind) {
 // Sem isso, monta o link pelo token de download do próprio arquivo.
 export async function urlDoArquivo(ctx, caminho, urlInformada) {
   const u = String(urlInformada || '');
-  if (u.startsWith('https://firebasestorage.googleapis.com/') && u.includes(`/o/${encodeURIComponent(caminho)}?`)) return u;
+  // Só do bucket DESTE projeto (auditoria 08/10: antes valia o mesmo caminho em qualquer bucket).
+  const prefixo = ctx.bucket && ctx.bucket.name ? `https://firebasestorage.googleapis.com/v0/b/${ctx.bucket.name}/o/` : null;
+  if (prefixo && u.startsWith(prefixo) && u.slice(prefixo.length).startsWith(`${encodeURIComponent(caminho)}?`)) return u;
   if (!ctx.bucket) return '';
   try {
     const [meta] = await ctx.bucket.file(caminho).getMetadata();

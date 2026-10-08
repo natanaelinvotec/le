@@ -427,7 +427,9 @@ async function exportarRel(formato, d) {
   } catch (e) { console.error(e); C.toast(e.message || 'Não foi possível exportar agora.', 'error'); }
 }
 async function registrarGraduacoes(lista, eventos) {
-  const alvos = lista.filter((x) => gradSel.has(x.a.id));
+  const eu = C.sessao().uid; const possoEu = C.ehAdmin() || C.fundador();
+  const alvos = lista.filter((x) => gradSel.has(x.a.id) && (possoEu || x.a.id !== eu));
+  if (alvos.length < lista.filter((x) => gradSel.has(x.a.id)).length) C.toast('A sua própria graduação é lançada pelo Fundador da escola — os outros seguem.');
   if (!alvos.length) return;
   const data = el('gsGradData').value || hojeISO();
   const ev = eventos.find((e) => e.id === el('gsGradEvento').value) || null;
@@ -435,9 +437,12 @@ async function registrarGraduacoes(lista, eventos) {
   const btn = el('gsGradSalvar'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registrando…';
   const s = C.sessao(); const em = new Date(`${data}T12:00:00`).toISOString();
   const res = await Promise.allSettled(alvos.map(async ({ a, prox }) => {
-    const marco = { cordao: prox.nome, anterior: a.cordaoAtual || 'Iniciante', em, por: s.uid, porNome: s.nome || '', ...(ev ? { eventoId: ev.id, eventoNome: ev.nome || '' } : {}) };
+    const marco = { cordao: prox.nome, anterior: a.cordaoAtual || 'Iniciante', ...(Number(a.grausAtual) ? { anteriorGrau: Number(a.grausAtual) } : {}), em, por: s.uid, porNome: s.nome || '', ...(ev ? { eventoId: ev.id, eventoNome: ev.nome || '' } : {}) };
     const historico = (Array.isArray(a.historicoGraduacoes) ? a.historicoGraduacoes.slice() : []).concat([marco]).slice(-30);
-    await updateDoc(doc(db, 'usuarios', a.id), { cordaoAtual: prox.nome, historicoGraduacoes: historico });
+    // Escola de faixa: faixa nova começa lisa (0 graus) — o grau antigo não vai junto.
+    const zerarGraus = Number(prox.graus) > 0 || a.grausAtual !== undefined;
+    await updateDoc(doc(db, 'usuarios', a.id), { cordaoAtual: prox.nome, historicoGraduacoes: historico, ...(zerarGraus ? { grausAtual: 0 } : {}) });
+    if (zerarGraus) a.grausAtual = 0;
     a.cordaoAtual = prox.nome; a.historicoGraduacoes = historico;
     return { id: a.id, nome: a.nome, cordao: prox.nome, anterior: marco.anterior, em, nucleo: nomeNucleo(a.academiaId), evento: ev ? ev.nome : '', idade: a.idade };
   }));
@@ -513,7 +518,7 @@ async function renderEventos() {
     : `<div class="card-padrao"><p class="gs-ajuda"><i class="fas fa-circle-info"></i> Eventos novos são criados pelo Admin/Fundador. Para marcar um evento no seu núcleo, <a href="#" onclick="mudarAba('solicitacoes', event)">abra uma solicitação</a>.</p></div>`}
   <div class="lista-simples">${eventos.map((e, i) => {
     const lista = conf[i].filter((c) => podeCriar || !meuNuc || c.academiaId === meuNuc || e.academiaId === meuNuc);
-    return `<div class="card-padrao gs-evento ${e.data < hoje ? 'passado' : ''}"><div class="gs-ev-topo"><div class="gs-ev-data"><b>${e.data.slice(8, 10)}</b><small>${new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</small></div>
+    return `<div class="card-padrao gs-evento ${e.data < hoje ? 'passado' : ''}"><div class="gs-ev-topo"><div class="gs-ev-data"><b>${esc(String(e.data).slice(8, 10))}</b><small>${new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</small></div>
       <div class="gs-ev-info"><strong>${esc(e.nome || 'Evento')}</strong><span>${e.hora ? esc(e.hora) + ' · ' : ''}${esc(e.academiaId ? nomeNucleo(e.academiaId) : 'Grupo todo')}${e.local ? ` · ${esc(e.local)}` : ''}${e.taxa ? ` · taxa ${brl(e.taxa)}` : ''}</span></div>
       <span class="pill ${lista.length ? 'pill-aprovado' : 'pill-pendente'}">${lista.length} inscrito${lista.length === 1 ? '' : 's'}</span></div>
       <details><summary>Ver inscritos</summary><div class="gs-inscritos">${lista.map((c) => `<span>${esc(c.nome || '')}${c.cordaoAtual ? ` <small>${esc(c.cordaoAtual)}</small>` : ''}</span>`).join('') || '<em>Ninguém inscrito ainda.</em>'}</div></details>

@@ -82,9 +82,24 @@ export async function admins(ctx) {
   return s.docs.map((d) => d.id);
 }
 
-// Todo mundo de um núcleo (ou do grupo inteiro, com nucleoId vazio).
-export async function membros(ctx, nucleoId) {
-  const q = nucleoId ? ctx.db.collection('usuarios').where('academiaId', '==', nucleoId) : ctx.db.collection('usuarios');
-  const s = await q.limit(1000).get();
-  return s.docs.filter((d) => d.data().ativo !== false).map((d) => d.id);
+// Todo mundo de um núcleo, ou da ESCOLA inteira (nucleoId vazio + escolaId).
+// Auditoria 08/10: antes, sem núcleo, ia para os 1000 primeiros cadastros da PLATAFORMA
+// (aviso de uma escola chegando nas outras). Sem núcleo e sem escola: ninguém.
+// Paginado: escola grande não perde ninguém depois do milésimo.
+export async function membros(ctx, nucleoId, escolaId = null) {
+  let q = ctx.db.collection('usuarios');
+  if (nucleoId) q = q.where('academiaId', '==', nucleoId);
+  else if (escolaId) q = q.where('escolaId', '==', escolaId);
+  else return [];
+  const ids = []; let ultimo = null;
+  for (let pagina = 0; pagina < 20; pagina += 1) { // até 20 mil pessoas por aviso
+    let p = q.orderBy('__name__').limit(1000);
+    if (ultimo) p = p.startAfter(ultimo);
+    const s = await p.get();
+    // Com núcleo E escola: só quem é da escola (um núcleo citado não leva o aviso para outra escola).
+    s.docs.forEach((d) => { if (d.data().ativo !== false && (!nucleoId || !escolaId || (d.data().escolaId || 'liberdade') === escolaId)) ids.push(d.id); });
+    if (s.size < 1000) break;
+    ultimo = s.docs[s.docs.length - 1];
+  }
+  return ids;
 }

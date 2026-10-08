@@ -47,7 +47,34 @@ function academiaInalterada() { return request.resource.data.get('academiaId', n
 function academiaGerenciadaInalterada() { return request.resource.data.get('academiaGerenciadaId', null) == resource.data.get('academiaGerenciadaId', null); }
 function notasInalteradas() { return request.resource.data.get('notas', null) == resource.data.get('notas', null); }
 function acessoGeralInalterado() { return request.resource.data.get('acessoGeral', false) == resource.data.get('acessoGeral', false); }
+// Id de documento escolhido pelo app: só letras, números, _ e - (o id aparece em telas e
+// atributos HTML — aspas ou < > num id viravam injeção; auditoria 08/10).
+function idSeguro(i) { return i.matches('^[A-Za-z0-9_-]{1,80}$'); }
 function souInstrutorDoAluno() { return ehInstrutor() && resource.data.get('instrutorUid', null) == request.auth.uid; }
+function responsavelInalterado() { return request.resource.data.get('responsavelUid', null) == resource.data.get('responsavelUid', null); }
+// Auditoria 08/10: ninguém além do Admin põe ou tira o papel 'admin' (antes o Fundador de
+// QUALQUER escola conseguia se dar 'admin' no próprio cadastro e virar Admin da plataforma).
+function adminInalterado() { return ('admin' in request.resource.data.get('papeis', [])) == ('admin' in resource.data.get('papeis', [])); }
+// Núcleo que existe E é da minha escola (sem padrão: núcleo sem escola não serve).
+// O servidor deduz a escola do cadastro pelo núcleo (functions/src/escolas.js), então
+// apontar academiaId/academiaGerenciadaId para núcleo de outra escola = mudar a pessoa de escola.
+function nucleoExisteNaMinhaEscola(n) {
+return exists(/databases/$(database)/documents/nucleos/$(n)) &&
+get(/databases/$(database)/documents/nucleos/$(n)).data.get('escolaId', '') == minhaEscola();
+}
+function nucleoOkOuVazio(n) { return n == null || n == '' || nucleoExisteNaMinhaEscola(n); }
+function nucleosDoCadastroNaMinhaEscola() {
+return (academiaInalterada() || nucleoOkOuVazio(request.resource.data.get('academiaId', null))) &&
+(academiaGerenciadaInalterada() || nucleoOkOuVazio(request.resource.data.get('academiaGerenciadaId', null)));
+}
+// Transferência aceita pelo núcleo de DESTINO: tem que existir o pedido pendente para ESTE
+// aluno, saindo do núcleo onde ele está hoje e vindo para o meu (id do pedido no cadastro).
+function transferenciaPendenteParaMim(uid) {
+let s = get(/databases/$(database)/documents/solicitacoes/$(request.resource.data.transferenciaId)).data;
+return s.tipo == 'transferencia' && s.status == 'pendente' && s.get('escolaId', '') == minhaEscola() &&
+s.dadosPedido.alunoUid == uid && s.dadosPedido.destinoId == minhaAcademiaGerenciada() &&
+s.academiaId == resource.data.get('academiaId', '');
+}
 // Brasões: 'brasoesAdmin' (qualquer brasão, até automático) só o Admin Master
 // grava; 'brasoesManuais' só Admin, Fundador e o responsável do núcleo do aluno.
 // 'brasoesBloqueados' (brasão removido pelo Admin Master — ferramenta de teste) também só o Admin.
@@ -60,7 +87,7 @@ function brasoesManuaisInalterados() { return request.resource.data.get('brasoes
 function camposTravadosDoProprio() {
 return ['cordaoAtual', 'historicoGraduacoes', 'instrutorUid', 'responsavelUid', 'idade', 'dataNasc',
 'statusAtual', 'brasoesTotal', 'eventosConfirmados', 'cardsCompartilhados', 'origemTransferenciaDireta', 'academiaAnteriorId',
-'carteirinha', 'isentoMensalidade', 'competicoes', 'escolaId', 'grausAtual'];
+'carteirinha', 'isentoMensalidade', 'competicoes', 'escolaId', 'grausAtual', 'transferenciaId'];
 }
 
 match /usuarios/{uid} {
@@ -79,8 +106,11 @@ allow create: if ehAdmin() || (
 request.auth.uid == uid &&
 request.resource.data.papeis == ['aluno'] &&
 !request.resource.data.keys().hasAny(['acessoGeral', 'brasoesAdmin', 'brasoesManuais', 'brasoesBloqueados', 'eventosConfirmados', 'cardsCompartilhados', 'instrutorUid',
-'historicoGraduacoes', 'brasoesTotal', 'origemTransferenciaDireta', 'academiaAnteriorId', 'carteirinha', 'isentoMensalidade', 'competicoes', 'escolaId', 'grausAtual']) &&
+'historicoGraduacoes', 'brasoesTotal', 'origemTransferenciaDireta', 'academiaAnteriorId', 'carteirinha', 'isentoMensalidade', 'competicoes', 'escolaId', 'grausAtual', 'transferenciaId']) &&
 request.resource.data.get('academiaGerenciadaId', null) == null &&
+// núcleo escolhido na inscrição: vazio ou um núcleo que existe e está ativo
+(request.resource.data.get('academiaId', null) == null || request.resource.data.get('academiaId', '') == '' ||
+ get(/databases/$(database)/documents/nucleos/$(request.resource.data.academiaId)).data.get('ativo', true) != false) &&
 request.resource.data.get('cordaoAtual', 'Iniciante') == 'Iniciante' &&
 request.resource.data.get('notas', {}) == {} &&
 request.resource.data.get('responsavelUid', null) == null &&
@@ -90,12 +120,23 @@ request.resource.data.get('statusAtual', 'Ativo') == 'Ativo'
 // Fundador: aplica transferências aprovadas em qualquer núcleo DA PRÓPRIA ESCOLA.
 // "Aceitar transferência": o gestor do núcleo de DESTINO move um aluno PARA o
 // próprio núcleo sem mexer em papéis, notas, acesso geral nem núcleo administrado.
+// Auditoria 08/10 (antes: Fundador sem trava nenhuma; gestor mexia no núcleo administrado,
+// no responsável legal e no PRÓPRIO cordão; "aceitar transferência" puxava gente de qualquer escola):
+//   • Fundador: não mexe no papel 'admin', no acesso geral nem no responsável legal, e só aponta
+//     núcleo (onde treina / que administra) da PRÓPRIA escola;
+//   • gestor e instrutor: nunca no próprio cadastro, nunca no responsável legal nem no núcleo administrado;
+//   • aceitar transferência: só com o pedido pendente (transferenciaId) e só os campos da transferência.
 allow update: if ehAdmin() || (escolaInalterada() && (
-(fundadorDa(resource.data.get('escolaId', '')) && brasoesAdminInalterados()) ||
-(ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada() && academiaInalterada() && papeisInalterados() && acessoGeralInalterado() && brasoesAdminInalterados()) ||
-(ehGestor() && request.resource.data.academiaId == minhaAcademiaGerenciada() && papeisInalterados() && academiaGerenciadaInalterada() && notasInalteradas() && acessoGeralInalterado() && brasoesAdminInalterados() && brasoesManuaisInalterados()) ||
-(souInstrutorDoAluno() && academiaInalterada() && papeisInalterados() && academiaGerenciadaInalterada() && acessoGeralInalterado() && brasoesAdminInalterados() && brasoesManuaisInalterados()
-&& !mudou().hasAny(['isentoMensalidade', 'carteirinha'])) ||
+(fundadorDa(resource.data.get('escolaId', '')) && brasoesAdminInalterados() && adminInalterado() && acessoGeralInalterado() &&
+ responsavelInalterado() && nucleosDoCadastroNaMinhaEscola()) ||
+(ehGestor() && request.auth.uid != uid && resource.data.academiaId == minhaAcademiaGerenciada() && resource.data.get('escolaId', '') == minhaEscola() &&
+ academiaInalterada() && academiaGerenciadaInalterada() && papeisInalterados() && acessoGeralInalterado() && brasoesAdminInalterados() && responsavelInalterado()) ||
+(ehGestor() && request.auth.uid != uid && resource.data.get('escolaId', '') == minhaEscola() &&
+ request.resource.data.academiaId == minhaAcademiaGerenciada() &&
+ mudou().hasOnly(['academiaId', 'academiaNome', 'academiaAnteriorId', 'origemTransferenciaDireta', 'transferenciaId']) &&
+ transferenciaPendenteParaMim(uid)) ||
+(souInstrutorDoAluno() && request.auth.uid != uid && academiaInalterada() && papeisInalterados() && academiaGerenciadaInalterada() && acessoGeralInalterado() && brasoesAdminInalterados() && brasoesManuaisInalterados()
+&& responsavelInalterado() && !mudou().hasAny(['isentoMensalidade', 'carteirinha'])) ||
 (request.auth.uid == uid && papeisInalterados() && academiaInalterada() && academiaGerenciadaInalterada() && notasInalteradas() && acessoGeralInalterado() && brasoesAdminInalterados() && brasoesManuaisInalterados()
 && !mudou().hasAny(camposTravadosDoProprio())) ||
 // Responsável legal: só a ficha de atenção e inclusão do dependente (condições, apoios, orientações) — nada mais.
@@ -129,7 +170,9 @@ request.resource.data.token is string && request.resource.data.token.size() < 40
 match /notificacoes/{uid}/itens/{id} {
 allow read, delete: if logado() && request.auth.uid == uid;
 // celebradoEm: a festa (troca de cordão / brasão novo) já apareceu na tela principal.
-allow update: if logado() && request.auth.uid == uid && mudou().hasOnly(['lida', 'lidaEm', 'celebradoEm', 'compartilhadoEm']);
+allow update: if logado() && request.auth.uid == uid && mudou().hasOnly(['lida', 'lidaEm', 'celebradoEm', 'compartilhadoEm']) &&
+// compartilhou o card: marca UMA vez (apagar e marcar de novo somava o brasão sem fim)
+(!('compartilhadoEm' in mudou()) || resource.data.get('compartilhadoEm', null) == null);
 allow create: if false;
 }
 
@@ -180,9 +223,11 @@ match /nucleos/{id} {
 allow read: if true;
 // O Fundador cuida dos núcleos da PRÓPRIA escola e não muda a escola de um núcleo
 // (os alunos herdam a escola pelo núcleo). Ligar núcleo a outra escola: só o Admin.
-allow create: if ehAdmin() || (souFundador() && request.resource.data.get('escolaId', minhaEscola()) == minhaEscola());
-allow update: if ehAdmin() || (souFundador() && resource.data.get('escolaId', minhaEscola()) == minhaEscola() && escolaInalterada());
-allow delete: if ehAdmin() || (souFundador() && resource.data.get('escolaId', minhaEscola()) == minhaEscola());
+// Auditoria 08/10: sem escolaId o servidor etiquetava o núcleo como da escola nº 1 — o Fundador
+// de outra escola "criava" um núcleo dentro da Liberdade. Agora a escola vem sempre e é a minha.
+allow create: if ehAdmin() || (souFundador() && request.resource.data.get('escolaId', '') == minhaEscola());
+allow update: if ehAdmin() || (souFundador() && resource.data.get('escolaId', '') == minhaEscola() && escolaInalterada());
+allow delete: if ehAdmin() || (souFundador() && resource.data.get('escolaId', '') == minhaEscola());
 }
 
 match /presencas/{id} {
@@ -226,7 +271,7 @@ resource.data.dadosPedido.destinoId == minhaAcademiaGerenciada()
 ));
 // Gestor pede mensalidade/evento/transferência para o próprio núcleo.
 // Qualquer pessoa pede a EXCLUSÃO DA PRÓPRIA CONTA (LGPD).
-allow create: if escolaNovaOk() && ((ehGestor() &&
+allow create: if idSeguro(id) && escolaNovaOk() && ((ehGestor() &&
 request.resource.data.solicitanteUid == request.auth.uid &&
 request.resource.data.academiaId == minhaAcademiaGerenciada() &&
 request.resource.data.status == 'pendente') || (
@@ -236,16 +281,17 @@ request.resource.data.solicitanteUid == request.auth.uid &&
 // núcleo informado tem que ser da escola de quem pede (o servidor deduz a escola por ele)
 nucleoDaMinhaEscolaOuNenhum(request.resource.data.get('academiaId', null)) &&
 request.resource.data.status == 'pendente'));
+// Gestor só RESOLVE um pedido pendente (não reabre um já resolvido — auditoria 08/10).
 allow update: if ehAdmin() || (fundadorDa(resource.data.get('escolaId', '')) && escolaInalterada()) || (
 ehGestor() &&
 resource.data.academiaId == minhaAcademiaGerenciada() &&
 resource.data.tipo in ['vinculo_familia', 'transferencia'] &&
-mudou().hasOnly(['status'])
+mudou().hasOnly(['status']) && resource.data.status == 'pendente' && request.resource.data.status in ['aprovado', 'rejeitado']
 ) || (
 ehGestor() &&
 resource.data.tipo == 'transferencia' &&
 resource.data.dadosPedido.destinoId == minhaAcademiaGerenciada() &&
-mudou().hasOnly(['status'])
+mudou().hasOnly(['status']) && resource.data.status == 'pendente' && request.resource.data.status in ['aprovado', 'rejeitado']
 );
 allow delete: if ehAdmin() || fundadorDa(resource.data.get('escolaId', '')) ||
 (logado() && resource.data.solicitanteUid == request.auth.uid && resource.data.status == 'pendente');
@@ -253,7 +299,7 @@ allow delete: if ehAdmin() || fundadorDa(resource.data.get('escolaId', '')) ||
 
 match /eventos/{id} {
 allow read: if logado() && (daMinhaEscola() || ehAdmin());
-allow create: if ehAdmin() || (souFundador() && novoDaMinhaEscola());
+allow create: if ehAdmin() || (idSeguro(id) && souFundador() && novoDaMinhaEscola() && nucleoDaMinhaEscolaOuNenhum(request.resource.data.get('academiaId', null)));
 allow update: if ehAdmin() || (souFundador() && daMinhaEscola() && escolaInalterada());
 allow delete: if ehAdmin() || (souFundador() && daMinhaEscola());
 }
@@ -282,7 +328,12 @@ allow create: if ehGestor() && request.resource.data.organizadorUid == request.a
 request.resource.data.nome is string && request.resource.data.nome.size() <= 80 &&
 (ehAdmin() || (novoDaMinhaEscola() && (souFundador() || request.resource.data.get('academiaId', null) == minhaAcademiaGerenciada())));
 allow update: if organizo(camp()) && statusOk(request.resource.data) && (ehAdmin() || escolaInalterada()) &&
-(camp().status != 'encerrado' || ehAdmin() || souFundador());
+(camp().status != 'encerrado' || ehAdmin() || souFundador()) &&
+// organizador e marcas do servidor (premiação feita) não mudam pelo app (auditoria 08/10)
+(ehAdmin() || (request.resource.data.get('organizadorUid', '') == camp().get('organizadorUid', '') &&
+ request.resource.data.get('premiadoEm', null) == camp().get('premiadoEm', null) &&
+ request.resource.data.get('premiados', null) == camp().get('premiados', null) &&
+ request.resource.data.get('participantesReais', null) == camp().get('participantesReais', null)));
 allow delete: if organizo(camp());
 match /inscricoes/{uid} {
 function campPai() { return get(/databases/$(database)/documents/campeonatos/$(id)).data; }
@@ -328,12 +379,16 @@ allow list: if ehAdmin();
 allow create: if logado() && request.resource.data.donoUid == request.auth.uid && request.resource.data.slug == id &&
 request.resource.data.status == 'rascunho' && planoOk(request.resource.data.plano) &&
 request.resource.data.nome is string && request.resource.data.nome.size() <= 80 &&
+!request.resource.data.keys().hasAny(['assinatura', 'ativadaEm', 'ativadaPor', 'escolaId', 'projeto', 'dominio', 'ativacao', 'escada', 'trialAte']) &&
 slugLivre(id);
 // O dono edita a própria escola, sem trocar dono/slug e só entre rascunho e fila; o Admin faz o resto.
 // (dono() vem primeiro: o dono da escola não tem usuarios/{uid}, e ehAdmin() falharia ao ler o perfil.)
 allow update: if (dono() && request.resource.data.donoUid == resource.data.donoUid && request.resource.data.slug == resource.data.slug &&
 request.resource.data.status in ['rascunho', 'fila'] && planoOk(request.resource.data.plano) &&
-!mudou().hasAny(['assinatura', 'ativadaEm', 'ativadaPor', 'escolaId', 'projeto', 'dominio', 'ativacao', 'escada'])) || ehAdmin();
+!mudou().hasAny(['assinatura', 'ativadaEm', 'ativadaPor', 'escolaId', 'projeto', 'dominio', 'ativacao', 'escada']) &&
+// teste grátis: gravado uma vez só, quando o cadastro sai do rascunho
+(!('trialAte' in mudou()) || (resource.data.get('trialAte', null) == null && resource.data.status == 'rascunho' &&
+ request.resource.data.trialAte is string && request.resource.data.trialAte.size() == 10))) || ehAdmin();
 allow delete: if ehAdmin();
 }
 // Cartão público de cada escola ativa e índice de domínios próprios: só o
@@ -354,14 +409,15 @@ allow delete: if ehAdmin();
 
 match /avisos/{id} {
 allow read: if logado() && (daMinhaEscola() || ehAdmin());
-allow create: if ehAdmin() || (novoDaMinhaEscola() && (souFundador() || (ehGestor() && request.resource.data.academiaId == minhaAcademiaGerenciada())));
+allow create: if ehAdmin() || (idSeguro(id) && novoDaMinhaEscola() && nucleoDaMinhaEscolaOuNenhum(request.resource.data.get('academiaId', null)) &&
+(souFundador() || (ehGestor() && request.resource.data.academiaId == minhaAcademiaGerenciada())));
 allow update: if ehAdmin() || (souFundador() && daMinhaEscola() && escolaInalterada());
 allow delete: if ehAdmin() || (souFundador() && daMinhaEscola());
 }
 
 match /materiais/{id} {
 allow read: if logado() && (daMinhaEscola() || ehAdmin());
-allow create: if ehAdmin() || (ehGestor() && novoDaMinhaEscola());
+allow create: if ehAdmin() || (idSeguro(id) && ehGestor() && novoDaMinhaEscola());
 allow update: if ehAdmin() || (ehGestor() && daMinhaEscola() && escolaInalterada());
 allow delete: if ehAdmin() || (ehGestor() && daMinhaEscola());
 }
@@ -374,8 +430,13 @@ allow write: if ehAdmin();
 // Pagamentos manuais — restritos ao próprio núcleo de quem lança; Admin vê tudo.
 match /pagamentos/{id} {
 allow read: if logado() && (resource.data.alunoId == request.auth.uid || ehAdmin() || fundadorDa(resource.data.escolaId) || (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada()));
-allow create: if ehAdmin() || (ehGestor() && escolaNovaOk() && request.resource.data.academiaId == minhaAcademiaGerenciada());
-allow update: if ehAdmin() || (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada() && escolaInalterada());
+allow create: if ehAdmin() || (idSeguro(id) && ehGestor() && escolaNovaOk() && request.resource.data.academiaId == minhaAcademiaGerenciada() &&
+// o aluno do lançamento treina no MEU núcleo (auditoria 08/10)
+(request.resource.data.get('alunoId', null) == null ||
+ get(/databases/$(database)/documents/usuarios/$(request.resource.data.alunoId)).data.get('academiaId', '') == minhaAcademiaGerenciada()));
+allow update: if ehAdmin() || (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada() && escolaInalterada() &&
+request.resource.data.academiaId == resource.data.academiaId &&
+request.resource.data.get('alunoId', null) == resource.data.get('alunoId', null));
 allow delete: if ehAdmin() || (ehGestor() && resource.data.academiaId == minhaAcademiaGerenciada());
 }
 
@@ -405,7 +466,8 @@ request.resource.data.despesaId == resource.data.despesaId
 match /perfisPublicos/{uid} {
 function souResponsavelLegal() { return get(/databases/$(database)/documents/usuarios/$(uid)).data.get('responsavelUid', null) == request.auth.uid; }
 function soMeuUidEm(campo) {
-return request.resource.data.get(campo, []).removeAll(resource.data.get(campo, [])).hasOnly([request.auth.uid]) &&
+return request.resource.data.get(campo, []).toSet().size() == request.resource.data.get(campo, []).size() &&
+request.resource.data.get(campo, []).removeAll(resource.data.get(campo, [])).hasOnly([request.auth.uid]) &&
 resource.data.get(campo, []).removeAll(request.resource.data.get(campo, [])).hasOnly([request.auth.uid]);
 }
 function camposDoDono() {
@@ -417,17 +479,24 @@ request.resource.data.get('apelido', '').size() <= 30 &&
 request.resource.data.get('cidade', '').size() <= 60 &&
 request.resource.data.get('funcoes', []).size() <= 6;
 }
+// Seguidor novo só sai de um pedido (aceitar) — o dono não "cria" seguidores (brasões da Rede).
+function seguidoresSoDePedidos() {
+return request.resource.data.get('seguidores', []).removeAll(resource.data.get('seguidores', [])).removeAll(resource.data.get('pedidosSeguir', [])).size() == 0;
+}
 // Multi-escola: cada escola só enxerga os cartões da própria escola (a aba Global,
 // quando existir, terá o próprio recorte). A pessoa sempre lê o próprio cartão.
 // Cartão que não existe: responde "não existe" em vez de "sem permissão".
 allow get: if logado() && (resource == null || request.auth.uid == uid);
 allow read: if logado() && (daMinhaEscola() || ehAdmin());
-allow create: if logado() && request.auth.uid == uid && request.resource.data.keys().hasOnly(camposDoDono()) && tamanhosOk();
+allow create: if logado() && request.auth.uid == uid && request.resource.data.keys().hasOnly(camposDoDono()) && tamanhosOk() &&
+request.resource.data.get('seguidores', []).size() == 0;
 allow update: if logado() && (
-(request.auth.uid == uid && mudou().hasOnly(camposDoDono()) && tamanhosOk()) ||
-(souResponsavelLegal() && mudou().hasOnly(['privado', 'seguidores', 'pedidosSeguir', 'atualizadoEm'])) ||
+(request.auth.uid == uid && mudou().hasOnly(camposDoDono()) && tamanhosOk() && seguidoresSoDePedidos()) ||
+(souResponsavelLegal() && mudou().hasOnly(['privado', 'seguidores', 'pedidosSeguir', 'atualizadoEm']) && seguidoresSoDePedidos()) ||
 (daMinhaEscola() && mudou().hasOnly(['seguidores', 'pedidosSeguir']) &&
-(!('seguidores' in mudou()) || soMeuUidEm('seguidores')) &&
+// perfil privado: quem é de fora só PEDE (pedidosSeguir) ou deixa de seguir — entrar direto, não
+(!('seguidores' in mudou()) || (soMeuUidEm('seguidores') &&
+ (resource.data.get('privado', false) != true || resource.data.get('seguidores', []).hasAll(request.resource.data.get('seguidores', []))))) &&
 (!('pedidosSeguir' in mudou()) || soMeuUidEm('pedidosSeguir')))
 );
 allow delete: if ehAdmin();
@@ -445,6 +514,11 @@ function moderaEstePost() {
 return ehAdmin() || fundadorDa(resource.data.get('escolaId', '')) ||
 (ehGestor() && (resource.data.autorAcademiaId == minhaAcademiaGerenciada() || resource.data.nucleoId == minhaAcademiaGerenciada()));
 }
+// Marcações, menções e hashtags com tamanho (cada marcação vira notificação).
+function listasDoPostOk() {
+return request.resource.data.get('marcados', []).size() <= 10 && request.resource.data.get('mencoes', []).size() <= 10 &&
+request.resource.data.get('hashtags', []).size() <= 10;
+}
 function publicoCoerente(ocultoNovo, revisaoNova) {
 return request.resource.data.publico == (ocultoNovo == false && revisaoNova == 'ok');
 }
@@ -456,12 +530,13 @@ resource.data.autorUid == request.auth.uid ||
 ehAdmin() || fundadorDa(resource.data.escolaId) ||
 (ehGestor() && (resource.data.autorAcademiaId == minhaAcademiaGerenciada() || resource.data.nucleoId == minhaAcademiaGerenciada()))
 );
-allow create: if logado() &&
+allow create: if logado() && idSeguro(id) &&
 request.resource.data.autorUid == request.auth.uid && escolaNovaOk() &&
 // O núcleo marcado no post é da escola de quem publica (o servidor deduz a escola pelo núcleo).
 nucleoDaMinhaEscolaOuNenhum(request.resource.data.get('nucleoId', null)) &&
 request.resource.data.texto is string && request.resource.data.texto.size() <= 800 &&
 request.resource.data.get('midias', []).size() <= 4 &&
+listasDoPostOk() &&
 request.resource.data.get('tipo', 'post') in ['post', 'aviso'] &&
 request.resource.data.oculto == false &&
 request.resource.data.revisao in ['ok', 'pendente'] &&
@@ -480,12 +555,14 @@ allow update: if logado() && (
 // Autor: só edita texto, marcações e o selo de melhor momento.
 (resource.data.autorUid == request.auth.uid &&
 mudou().hasOnly(['texto', 'melhorMomento', 'hashtags', 'mencoes', 'marcados', 'visibilidade', 'editadoEm']) &&
-request.resource.data.texto is string && request.resource.data.texto.size() <= 800) ||
+request.resource.data.texto is string && request.resource.data.texto.size() <= 800 && listasDoPostOk()) ||
 // Admin Master oculta/mostra qualquer post.
 (ehAdmin() && mudou().hasOnly(['oculto', 'ocultadoPor', 'ocultadoEm', 'publico']) &&
 publicoCoerente(request.resource.data.oculto, resource.data.get('revisao', 'ok'))) ||
 // Curtir: só adiciona/remove o PRÓPRIO uid.
 (mudou().hasOnly(['curtidas']) &&
+// sem repetir o mesmo uid (cada curtida conta no brasão do autor)
+request.resource.data.get('curtidas', []).toSet().size() == request.resource.data.get('curtidas', []).size() &&
 request.resource.data.get('curtidas', []).removeAll(resource.data.get('curtidas', [])).hasOnly([request.auth.uid]) &&
 resource.data.get('curtidas', []).removeAll(request.resource.data.get('curtidas', [])).hasOnly([request.auth.uid])) ||
 (mudou().hasOnly(['comentariosCount']) &&
@@ -505,7 +582,7 @@ ehAdmin() || fundadorDa(post().get('escolaId', '')) ||
 (ehGestor() && (post().get('autorAcademiaId', '') == minhaAcademiaGerenciada() || post().get('nucleoId', '') == minhaAcademiaGerenciada()));
 }
 allow read: if logado() && vejoOPost();
-allow create: if logado() && vejoOPost() && request.resource.data.autorUid == request.auth.uid &&
+allow create: if logado() && idSeguro(cid) && vejoOPost() && request.resource.data.autorUid == request.auth.uid &&
 request.resource.data.keys().hasOnly(['autorUid', 'autorNome', 'autorFoto', 'texto', 'criadoEm', 'respostaA', 'respostaANome', 'mencoes']) &&
 request.resource.data.texto is string && request.resource.data.texto.size() <= 400 &&
 request.resource.data.get('mencoes', []).size() <= 10;
@@ -521,7 +598,7 @@ post().autorUid == request.auth.uid ||
 // Admin ou Fundador.
 match /stories/{id} {
 allow read: if logado() && (daMinhaEscola() || ehAdmin());
-allow create: if logado() && novoDaMinhaEscola() &&
+allow create: if logado() && idSeguro(id) && novoDaMinhaEscola() &&
 request.resource.data.autorUid == request.auth.uid &&
 request.resource.data.midiaUrl is string &&
 request.resource.data.get('texto', '').size() <= 200 &&
@@ -563,7 +640,7 @@ ehAdmin() || fundadorDa(pp(outroNaDireta()).get('escolaId', ''));
 // Conferir se uma conversa AINDA NÃO existe (antes de criar) não revela nada.
 allow get: if (logado() && resource == null) || podeLer();
 allow list: if podeLer();
-allow create: if logado() && !request.resource.data.keys().hasAny(['responsaveisIds']) && escolaNovaOk() && (
+allow create: if logado() && idSeguro(id) && !request.resource.data.keys().hasAny(['responsaveisIds']) && escolaNovaOk() && (
 (request.resource.data.tipo == 'direta' &&
 request.resource.data.participantes.size() == 2 &&
 request.auth.uid in request.resource.data.participantes &&
@@ -575,7 +652,10 @@ allow update: if podeEscrever() && escolaInalterada() &&
 request.resource.data.tipo == resource.data.tipo &&
 request.resource.data.get('nucleoId', '') == resource.data.get('nucleoId', '') &&
 request.resource.data.get('responsaveisIds', null) == resource.data.get('responsaveisIds', null) &&
-(resource.data.tipo == 'grupo' || request.resource.data.participantes == resource.data.participantes);
+(request.resource.data.participantes == resource.data.participantes ||
+ (resource.data.tipo == 'grupo' && (gestorDoGrupo() ||
+  (request.resource.data.participantes.removeAll(resource.data.participantes).hasOnly([request.auth.uid]) &&
+   resource.data.participantes.removeAll(request.resource.data.participantes).size() == 0))));
 allow delete: if ehAdmin() || fundadorDa(resource.data.get('escolaId', ''));
 match /mensagens/{mid} {
 function conversa() { return get(/databases/$(database)/documents/conversas/$(id)).data; }
@@ -591,7 +671,7 @@ return escreveNaConversa() || (logado() && (
 request.auth.uid in conversa().get('responsaveisIds', []) || ehAdmin() || fundadorDa(conversa().get('escolaId', ''))));
 }
 allow read: if leConversa();
-allow create: if escreveNaConversa() && request.resource.data.autorUid == request.auth.uid &&
+allow create: if idSeguro(mid) && escreveNaConversa() && request.resource.data.autorUid == request.auth.uid &&
 request.resource.data.get('texto', '').size() <= 1000;
 allow delete: if logado() && (resource.data.autorUid == request.auth.uid || ehAdmin() || fundadorDa(conversa().get('escolaId', '')) ||
 (conversa().tipo == 'grupo' && ehGestor() && conversa().nucleoId == minhaAcademiaGerenciada()));
@@ -613,7 +693,7 @@ request.resource.data.get('presidenteUid', null) == resource.data.get('president
 // Denúncias de post ou comentário: qualquer logado denuncia; quem trata é
 // Admin, Fundador ou o responsável do núcleo do autor do post.
 match /denuncias/{id} {
-allow create: if logado() && request.resource.data.denuncianteUid == request.auth.uid &&
+allow create: if logado() && idSeguro(id) && request.resource.data.denuncianteUid == request.auth.uid &&
 request.resource.data.get('motivo', '').size() <= 300 && escolaNovaOk() &&
 request.resource.data.status == 'aberta';
 allow read: if ehAdmin() || fundadorDa(resource.data.escolaId) ||
@@ -652,7 +732,7 @@ return request.resource.data.keys().hasOnly(['url', 'caminho', 'status', 'academ
 request.resource.data.caminho is string && request.resource.data.caminho.matches('carteirinha/' + uid + '/[A-Za-z0-9_.-]+') &&
 request.resource.data.url is string && request.resource.data.url.size() < 1500 &&
 // o link tem que ser do MESMO arquivo de "caminho" (o núcleo aprova o que vê)
-request.resource.data.url.matches('https://firebasestorage[.]googleapis[.]com/v0/b/[^/]+/o/carteirinha%2F' + uid + '%2F' + request.resource.data.caminho.split('/')[2] + '[?].*') &&
+request.resource.data.url.matches('https://firebasestorage[.]googleapis[.]com/v0/b/(capoeira-liberdade[.]firebasestorage[.]app|capoeira-liberdade[.]appspot[.]com)/o/carteirinha%2F' + uid + '%2F' + request.resource.data.caminho.split('/')[2] + '[?].*') &&
 request.resource.data.enviadoPorUid == request.auth.uid && nucleoCerto() &&
 request.resource.data.get('alunoNome', '').size() <= 120;
 }
@@ -709,7 +789,7 @@ allow create, update: if logado() && (ehAdmin() || (request.auth.uid == uid && (
 request.resource.data.keys().hasOnly(['url', 'nome', 'atualizadoEm', 'porUid']) &&
 request.resource.data.porUid == request.auth.uid &&
 request.resource.data.url is string && request.resource.data.url.size() < 1500 &&
-request.resource.data.url.matches('https://firebasestorage[.]googleapis[.]com/v0/b/[^/]+/o/assinaturas%2F' + uid + '%2F.*');
+request.resource.data.url.matches('https://firebasestorage[.]googleapis[.]com/v0/b/(capoeira-liberdade[.]firebasestorage[.]app|capoeira-liberdade[.]appspot[.]com)/o/assinaturas%2F' + uid + '%2F.*');
 allow delete: if logado() && (ehAdmin() || request.auth.uid == uid);
 }
 // certificadosDe/{uid}: a lista da pessoa (app) — ela, o responsável legal e o núcleo.

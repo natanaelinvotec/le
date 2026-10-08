@@ -31,9 +31,9 @@ collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, w
 arrayUnion, arrayRemove, increment, onSnapshot, storageRef, uploadString, uploadBytes, getDownloadURL, salvarFotoPerfil,
 consultaDaEscola, comMinhaEscola, ondeEscola, talvezComEscola,
 } from './firebase.js';
-import { escapeHTML } from './shared.js';
+import { escapeHTML, urlImagem } from './shared.js';
 import { ESCOLA, CORDOES_ADULTO, CORDOES_KIDS, ORDEM_CORDOES, IDADE_KIDS, rotuloGrad, linkMapa as linkMapaEscola, proximoCordao as proximoCordaoEscola } from './escola.js';
-import { faixaSVG } from './faixas.js';
+import { faixaSVG, quadroGraduacoesSVG } from './faixas.js';
 import { termosOfensivos, MOTIVOS_DENUNCIA } from './moderacao.js';
 import { iniciarExperiencia, abrirAcessibilidade, instalar, estaInstalado, tutorial, pedirAceiteSeNecessario } from './experiencia.js';
 import { ligarContador, listar as listarNotificacoes, marcarTodasLidas, itemHTML as notificacaoHTML, CSS_NOTIF, ativarPush, desativarPush, estadoPush, ouvirPushComAppAberto } from './notificacoes.js';
@@ -96,12 +96,15 @@ return `Não foi possível publicar ${oque} agora${code ? ` (${code})` : ''}.`;
 const iniciais = (nome) => String(nome || '?').replace(/^(mestre|prof\.?|professora?|instrutora?)\s+/i, '').trim().split(/\s+/).slice(0, 2).map((p) => (p[0] || '').toUpperCase()).join('') || '?';
 const corAvatar = (id) => AVATAR_CORES[[...String(id || '')].reduce((s, c) => s + c.charCodeAt(0), 0) % AVATAR_CORES.length];
 function avatarHTML(pessoa, classe = '') {
-const foto = pessoa && pessoa.fotoUrl && !/placeholder/i.test(pessoa.fotoUrl) ? pessoa.fotoUrl : '';
-return foto ? `<img class="avatar ${classe}" src="${escapeHTML(foto)}" alt="" loading="lazy">`
+const foto = pessoa && pessoa.fotoUrl && !/placeholder/i.test(pessoa.fotoUrl) ? urlImagem(pessoa.fotoUrl) : ''; // só https, relativo ou imagem embutida
+return foto ? `<img class="avatar ${classe}" src="${escapeHTML(urlImagem(foto))}" alt="" loading="lazy">`
 : `<span class="avatar ${classe}" style="background:${corAvatar(pessoa && (pessoa.id || pessoa.uid || pessoa.nome))}">${escapeHTML(iniciais(pessoa && pessoa.nome))}</span>`;
 }
+// Escada infantil: o cartão público traz só "kids" (sem a idade exata, desde 08/10);
+// cartões antigos ainda com idade continuam funcionando.
+const ehKidsPub = (p) => !!(p && (p.kids === true || (p.kids === undefined && p.menor && (Number(p.idade) || 0) > 0 && (Number(p.idade) || 0) < IDADE_KIDS)));
 function coresCordao(pessoa) {
-const lista = pessoa && pessoa.menor && (Number(pessoa.idade) || 0) > 0 && (Number(pessoa.idade) || 0) < IDADE_KIDS ? CORDOES_KIDS : CORDOES_ADULTO;
+const lista = ehKidsPub(pessoa) ? CORDOES_KIDS : CORDOES_ADULTO;
 const item = lista.find((c) => c.nome === (pessoa && pessoa.cordaoAtual || 'Iniciante')) || lista[0];
 return item.cor;
 }
@@ -130,7 +133,8 @@ const podeModerar = (p) => p.autorUid === uid || ehModerador() || gerencia(p.aut
 const souMenor = () => perfil && Number(perfil.idade) > 0 && Number(perfil.idade) < 18;
 const podeVerPerfil = (pub) => !pub.privado || pub.id === uid || ehModerador() || gerencia(pub.academiaId) || (pub.seguidores || []).includes(uid);
 
-const proximoCordao = (pessoa) => proximoCordaoEscola(pessoa && pessoa.menor ? pessoa : { ...(pessoa || {}), idade: null });
+// O cartão público não traz mais a idade: a escada (kids ou adulta) sai da marca "kids".
+const proximoCordao = (pessoa) => proximoCordaoEscola({ ...(pessoa || {}), idade: ehKidsPub(pessoa) ? 1 : null });
 // Texto com #hashtags e @menções clicáveis (sempre escapado antes).
 // mencoes: [{uid, nome, token}] gravados junto do texto — o @token vira link pro perfil.
 function formatarTexto(txt, mencoes = []) {
@@ -325,7 +329,7 @@ const capa = (g.itens.find((s) => !storiesVistos.has(s.id)) || g.itens[0] || {})
 const nome = g.id === uid ? 'Você' : (g.nucleo ? nomeCurtoNucleo(g.nome) : String(g.nome || '').split(' ')[0]);
 const mini = g.nucleo ? '<span class="avatar" style="background:var(--navy)"><i class="fas fa-people-group"></i></span>' : avatarHTML({ ...g, nome: g.nome });
 return `<button type="button" class="story-card ${g.visto ? 'visto' : ''} ${g.nucleo ? 'nucleo' : ''}" data-story="${escapeHTML(g.chave)}" style="--i:${k + 1}" aria-label="Story de ${escapeHTML(nome)}${g.visto ? ' (visto)' : ''}">
-${capa ? `<img class="sc-fundo" src="${escapeHTML(capa)}" alt="" loading="lazy" draggable="false">` : ''}<span class="sc-sombra"></span>
+${capa ? `<img class="sc-fundo" src="${escapeHTML(urlImagem(capa))}" alt="" loading="lazy" draggable="false">` : ''}<span class="sc-sombra"></span>
 <span class="sc-mini">${mini}</span><span class="sc-nome">${escapeHTML(nome)}</span></button>`;
 };
 return `<div class="stories" role="list">
@@ -345,9 +349,9 @@ const { itens, i, grupo } = storyAtual; const s = itens[i]; if (!s) { fecharStor
 storiesVistos.add(s.id); localStorage.setItem('rede.storiesVistos', JSON.stringify(Array.from(storiesVistos).slice(-300)));
 el('storyProgresso').innerHTML = itens.map((x, k) => `<i class="${k < i ? 'visto' : k === i ? 'ativo' : ''}"></i>`).join('');
 el('storyAutor').innerHTML = `<div style="display:flex;align-items:center;gap:10px">${grupo.nucleo ? '<span class="avatar" style="background:var(--navy)"><i class="fas fa-people-group"></i></span>' : avatarHTML({ nome: s.autorNome, fotoUrl: s.autorFoto, id: s.autorUid })}<div><b>${escapeHTML(grupo.nucleo ? s.nucleoNome : s.autorNome)}</b><small>${grupo.nucleo ? `por ${escapeHTML(s.autorNome)} · ` : ''}${tempoRelativo(s.criadoEm)}</small></div></div>`;
-el('storyMidia').innerHTML = `<img src="${escapeHTML(s.midiaUrl)}" alt="">`;
+el('storyMidia').innerHTML = `<img src="${escapeHTML(urlImagem(s.midiaUrl))}" alt="">`;
 el('storyTexto').textContent = s.texto || '';
-el('storyRodape').innerHTML = (s.autorUid === uid || ehModerador() || gerencia(s.nucleoId)) ? `<button type="button" class="btn-perigo" data-apagar-story="${s.id}"><i class="fas fa-trash-can"></i> Apagar</button>` : `<button type="button" class="btn-claro" data-perfil-story="${escapeHTML(s.autorUid)}"><i class="far fa-user"></i> Ver perfil</button>`;
+el('storyRodape').innerHTML = (s.autorUid === uid || ehModerador() || gerencia(s.nucleoId)) ? `<button type="button" class="btn-perigo" data-apagar-story="${escapeHTML(s.id)}"><i class="fas fa-trash-can"></i> Apagar</button>` : `<button type="button" class="btn-claro" data-perfil-story="${escapeHTML(s.autorUid)}"><i class="far fa-user"></i> Ver perfil</button>`;
 clearTimeout(storyAtual.timer); storyAtual.timer = setTimeout(() => proximoStory(1), 6000);
 }
 function proximoStory(dir) { storyAtual.i += dir; if (storyAtual.i < 0) storyAtual.i = 0; if (storyAtual.i >= storyAtual.itens.length) { fecharStories(); return; } mostrarStory(); }
@@ -384,12 +388,12 @@ const local = p.nucleoNome ? `<span class="tag-local"><i class="fas fa-location-
 // centro para ampliar. Vídeo ou 1–2 fotos seguem no carrossel de sempre.
 if (m.length >= 3 && m.every((x) => x.tipo !== 'video')) {
 return `<div class="leque" data-leque data-k="0" data-n="${m.length}" aria-roledescription="galeria" aria-label="${m.length} fotos">
-${m.map((x, i) => `<button type="button" class="carta" data-carta="${i}" data-pos="${posCarta(i, 0, m.length)}" style="--o:${i}" aria-label="Foto ${i + 1} de ${m.length}"><img src="${escapeHTML(x.url)}" alt="${escapeHTML(altDe(p, i))}" loading="lazy" draggable="false"></button>`).join('')}
+${m.map((x, i) => `<button type="button" class="carta" data-carta="${i}" data-pos="${posCarta(i, 0, m.length)}" style="--o:${i}" aria-label="Foto ${i + 1} de ${m.length}"><img src="${escapeHTML(urlImagem(x.url))}" alt="${escapeHTML(altDe(p, i))}" loading="lazy" draggable="false"></button>`).join('')}
 <span class="cont">1/${m.length}</span>${local}
 </div>`;
 }
 return `<div class="midias" data-midias>
-<div class="faixa">${m.map((x, i) => x.tipo === 'video' ? `<video src="${escapeHTML(x.url)}" ${x.posterUrl ? `poster="${escapeHTML(x.posterUrl)}"` : ''} controls playsinline preload="${x.posterUrl ? 'none' : 'metadata'}"></video>` : `<img src="${escapeHTML(x.url)}" alt="${escapeHTML(altDe(p, i))}" loading="lazy" data-ver="${i}">`).join('')}</div>
+<div class="faixa">${m.map((x, i) => x.tipo === 'video' ? `<video src="${escapeHTML(urlImagem(x.url))}" ${x.posterUrl ? `poster="${escapeHTML(urlImagem(x.posterUrl))}"` : ''} controls playsinline preload="${x.posterUrl ? 'none' : 'metadata'}"></video>` : `<img src="${escapeHTML(urlImagem(x.url))}" alt="${escapeHTML(altDe(p, i))}" loading="lazy" data-ver="${i}">`).join('')}</div>
 ${m.length > 1 ? `<span class="cont">1/${m.length}</span><div class="pontos">${m.map((x, i) => `<i class="${i ? '' : 'ativo'}"></i>`).join('')}</div>` : ''}${local}
 </div>`;
 }
@@ -414,7 +418,7 @@ const carta = ev.target.closest('[data-carta]'); if (!carta) return;
 const leque = carta.closest('[data-leque]'); if (!leque) return;
 if (arrasto && arrasto.moveu) { arrasto = null; return; }
 const pos = carta.dataset.pos;
-if (pos === 'c') { const img = carta.querySelector('img'); if (img) abrirMidia(`<img src="${escapeHTML(img.src)}" alt="">`); }
+if (pos === 'c') { const img = carta.querySelector('img'); if (img) abrirMidia(`<img src="${escapeHTML(urlImagem(img.src))}" alt="">`); }
 else girarLeque(leque, pos === 'e' ? -1 : 1);
 });
 document.addEventListener('keydown', (ev) => {
@@ -450,7 +454,7 @@ const meta = [p.autorCordao ? `<span class="pill teal">${escapeHTML(p.autorCorda
 const marcados = (p.marcados || []).length ? `<div class="marcados"><i class="fas fa-user-tag"></i> com ${(p.marcados || []).map((m) => `<button type="button" data-perfil="${escapeHTML(m.uid)}">${escapeHTML(m.nome)}</button>`).join(', ')}</div>` : '';
 const curtidores = (p.curtidas || []).length ? `<div class="curtidas-linha"><span class="pilha">${(p.curtidas || []).slice(0, 3).map((u) => avatarHTML(pubCache.get(u) || { id: u, nome: (pubCache.get(u) || {}).nome || '·' })).join('')}</span> ${(p.curtidas || []).length} ${(p.curtidas || []).length === 1 ? 'curtida' : 'curtidas'}</div>` : '';
 const revisao = p.revisao === 'pendente' && (ehModerador() || gerencia(p.autorAcademiaId) || gerencia(p.nucleoId)) ? `<div class="revisao"><i class="fas fa-shield-halved"></i> Post aguardando revisão do responsável do núcleo${p.autorMenor ? ' (autor menor de idade)' : ''}.<button type="button" class="btn-claro" data-acao="revisar-ok">Aprovar</button></div>` : '';
-return `<article class="card post ${tipo}" data-id="${p.id}">
+return `<article class="card post ${tipo}" data-id="${escapeHTML(p.id)}">
 ${tipo === 'momento' ? `<div class="selo-momento"><i class="fas fa-star"></i> Melhor momento${p.nucleoNome ? ` · ${escapeHTML(nomeCurtoNucleo(p.nucleoNome))}` : ''}</div>` : ''}
 ${tipo === 'aviso' ? `<div class="selo-aviso"><i class="fas fa-bullhorn"></i> Aviso do núcleo${p.nucleoNome ? ` · ${escapeHTML(nomeCurtoNucleo(p.nucleoNome))}` : ''}</div>` : ''}
 ${p.comoNucleo && p.nucleoId ? `<div class="post-topo"><button type="button" class="anel-btn" data-nucleo="${escapeHTML(p.nucleoId)}" style="background:none;border:0;padding:0" aria-label="Abrir o núcleo"><span class="anel anel-nucleo"><span class="avatar" style="background:var(--navy)"><i class="fas fa-people-group"></i></span></span></button>
@@ -466,7 +470,7 @@ ${midiasHTML(p)}
 ${marcados}
 <div class="post-acoes">
 <button type="button" class="acao ${curtido ? 'curtido' : ''}" data-acao="curtir"><i class="${curtido ? 'fas' : 'far'} fa-heart"></i> ${(p.curtidas || []).length || ''}</button>
-<button type="button" class="acao" data-acao="comentar"><i class="far fa-comment"></i> ${p.comentariosCount || ''}</button>
+<button type="button" class="acao" data-acao="comentar"><i class="far fa-comment"></i> ${Number(p.comentariosCount) || ''}</button>
 <button type="button" class="acao" data-acao="compartilhar" aria-label="Compartilhar"><i class="far fa-paper-plane"></i></button>
 <button type="button" class="acao ultimo ${salvo ? 'salvo' : ''}" data-acao="salvar" aria-label="Salvar"><i class="${salvo ? 'fas' : 'far'} fa-bookmark"></i></button>
 </div>
@@ -476,8 +480,8 @@ ${curtidores}
 }
 function avisoHTML(a) {
 const n = a.academiaId ? nucleoDe(a.academiaId) : null;
-const quando = a.data ? new Date(a.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) + (a.hora ? ` · ${a.hora}` : '') : '';
-return `<article class="card aviso-card" data-aviso="${a.id}"><div class="ic"><i class="fas fa-bullhorn"></i></div><div style="flex:1;min-width:0"><span class="eyebrow" style="color:#1E8449">Aviso ${n ? `do ${escapeHTML(nomeCurtoNucleo(n.nome))}` : 'do grupo'}</span><b>${escapeHTML(a.titulo || 'Aviso')}</b><p>${escapeHTML(a.texto || '')}</p><div class="info">${quando ? `<span><i class="far fa-calendar"></i> ${quando}</span>` : ''}${a.local ? `<span><i class="fas fa-location-dot"></i> ${escapeHTML(a.local)}</span>` : ''}<span>${tempoRelativo(a.criadoEm)}</span></div></div></article>`;
+const quando = a.data ? new Date(a.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) + (a.hora ? ` · ${escapeHTML(a.hora)}` : '') : '';
+return `<article class="card aviso-card" data-aviso="${escapeHTML(a.id)}"><div class="ic"><i class="fas fa-bullhorn"></i></div><div style="flex:1;min-width:0"><span class="eyebrow" style="color:#1E8449">Aviso ${n ? `do ${escapeHTML(nomeCurtoNucleo(n.nome))}` : 'do grupo'}</span><b>${escapeHTML(a.titulo || 'Aviso')}</b><p>${escapeHTML(a.texto || '')}</p><div class="info">${quando ? `<span><i class="far fa-calendar"></i> ${quando}</span>` : ''}${a.local ? `<span><i class="fas fa-location-dot"></i> ${escapeHTML(a.local)}</span>` : ''}<span>${tempoRelativo(a.criadoEm)}</span></div></div></article>`;
 }
 // Um post só aparece pra quem pode vê-lo: respeita visibilidade, perfil
 // privado e a revisão pendente (foto de menor / sem termo de imagem fica
@@ -616,7 +620,7 @@ catch (e) { console.error(e); toast(explicarErro(e, 'o post')); }
 function denunciar(alvo) {
 abrirFolha(`<h3>Denunciar ${alvo.tipoAlvo === 'comentario' ? 'comentário' : 'post'} <button type="button" class="btn-icone" data-m="fechar"><i class="fas fa-xmark"></i></button></h3>
 <p class="contador" style="margin-bottom:10px">Ninguém fica sabendo quem denunciou. O responsável do núcleo e o Admin Master analisam.</p>
-<div style="display:grid;gap:8px">${MOTIVOS_DENUNCIA.map((m) => `<button type="button" class="btn-claro" data-m="${m.id}" style="justify-content:flex-start"><i class="fas fa-flag" style="color:var(--red)"></i> ${escapeHTML(m.rotulo)}</button>`).join('')}</div>`, async (m) => {
+<div style="display:grid;gap:8px">${MOTIVOS_DENUNCIA.map((m) => `<button type="button" class="btn-claro" data-m="${escapeHTML(m.id)}" style="justify-content:flex-start"><i class="fas fa-flag" style="color:var(--red)"></i> ${escapeHTML(m.rotulo)}</button>`).join('')}</div>`, async (m) => {
 if (m === 'fechar') return;
 const rot = (MOTIVOS_DENUNCIA.find((x) => x.id === m) || {}).rotulo || 'Outro';
 const extra = m === 'outro' ? (prompt('Conte em poucas palavras o que aconteceu:') || '') : '';
@@ -674,7 +678,7 @@ function comentarioHTML(c, p, filhos = []) {
 const podeApagar = c.autorUid === uid || p.autorUid === uid || ehModerador() || gerencia(p.autorAcademiaId);
 const escondido = c.oculto === true;
 if (escondido && !(c.autorUid === uid || ehModerador() || gerencia(p.autorAcademiaId))) return '';
-return `<div class="comentario ${c.respostaA ? 'resposta' : ''}" data-cid="${c.id}">${avatarHTML({ id: c.autorUid, nome: c.autorNome, fotoUrl: c.autorFoto }, 'mini')}<div class="bolha-wrap"><div class="bolha ${escondido ? 'escondido' : ''}"><strong>${escapeHTML(c.autorNome || 'Capoeirista')} <small>· ${tempoRelativo(c.criadoEm)}</small></strong>${escondido ? '<em class="aviso-mod"><i class="fas fa-eye-slash"></i> Escondido pelo filtro automático — só você e a moderação veem.</em>' : ''}${c.respostaANome ? `<span class="em-resposta">↪ ${escapeHTML(c.respostaANome)}</span>` : ''}${formatarTexto(c.texto, c.mencoes)}</div>
+return `<div class="comentario ${c.respostaA ? 'resposta' : ''}" data-cid="${escapeHTML(c.id)}">${avatarHTML({ id: c.autorUid, nome: c.autorNome, fotoUrl: c.autorFoto }, 'mini')}<div class="bolha-wrap"><div class="bolha ${escondido ? 'escondido' : ''}"><strong>${escapeHTML(c.autorNome || 'Capoeirista')} <small>· ${tempoRelativo(c.criadoEm)}</small></strong>${escondido ? '<em class="aviso-mod"><i class="fas fa-eye-slash"></i> Escondido pelo filtro automático — só você e a moderação veem.</em>' : ''}${c.respostaANome ? `<span class="em-resposta">↪ ${escapeHTML(c.respostaANome)}</span>` : ''}${formatarTexto(c.texto, c.mencoes)}</div>
 <div class="coment-acoes">${c.respostaA ? '' : `<button type="button" data-acao="responder" data-nome="${escapeHTML(String(c.autorNome || '').split(' ')[0])}">Responder</button>`}${c.autorUid !== uid ? '<button type="button" data-acao="denunciar-comentario">Denunciar</button>' : ''}${podeApagar ? '<button type="button" data-acao="apagar-comentario">Apagar</button>' : ''}</div>
 ${filhos.map((f) => comentarioHTML(f, p)).join('')}</div></div>`;
 }
@@ -712,7 +716,7 @@ try {
 await addDoc(collection(db, 'posts', p.id, 'comentarios'), dados);
 try { await updateDoc(doc(db, 'posts', p.id), { comentariosCount: increment(1) }); p.comentariosCount = (p.comentariosCount || 0) + 1; } catch (e) { /* cosmético */ }
 await abrirComentarios(p, card, true);
-const btn = card.querySelector('[data-acao="comentar"]'); if (btn) btn.innerHTML = `<i class="far fa-comment"></i> ${p.comentariosCount || ''}`;
+const btn = card.querySelector('[data-acao="comentar"]'); if (btn) btn.innerHTML = `<i class="far fa-comment"></i> ${Number(p.comentariosCount) || ''}`;
 } catch (e) { console.error(e); toast('Não foi possível comentar.'); } finally { botao.disabled = false; }
 }
 async function apagarComentario(p, card, cid) {
@@ -747,7 +751,7 @@ const agendaBtn = ev.target.closest('[data-agenda]'); if (agendaBtn) { ir(agenda
 const brBtn = ev.target.closest('[data-brasao]'); if (brBtn) { const alvo = vista.dataset.pubBrasoes || (location.hash.split('/')[1]) || uid; pubDe(alvo).then((pub) => abrirBrasao(brBtn.dataset.brasao, pub || meuPub || {})); return; }
 const st = ev.target.closest('[data-story]'); if (st) { abrirStories(st.dataset.story); return; }
 if (ev.target.closest('[data-story-novo]')) { el('inputStory').click(); return; }
-const ver = ev.target.closest('[data-ver]'); if (ver && ver.tagName === 'IMG') { abrirMidia(`<img src="${escapeHTML(ver.src)}" alt="">`); return; }
+const ver = ev.target.closest('[data-ver]'); if (ver && ver.tagName === 'IMG') { abrirMidia(`<img src="${escapeHTML(urlImagem(ver.src))}" alt="">`); return; }
 const card = ev.target.closest('.post'); if (!card) return;
 const p = postPorId(card.dataset.id) || card.__post; if (!p) return;
 const btn = ev.target.closest('[data-acao]'); if (!btn) return;
@@ -782,7 +786,7 @@ return snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => new Date
 }
 function gradeHTML(lista, vazio) {
 if (!lista.length) return `<div class="vazio"><i class="fas fa-image"></i>${vazio}</div>`;
-return `<div class="grade">${lista.map((p, i) => { const m = midiasDe(p)[0]; return `<button type="button" data-abrir-post="${p.id}" class="${i === 0 && p.melhorMomento ? 'grande' : ''}">${m.tipo === 'video' ? `<video src="${escapeHTML(m.url)}" preload="metadata" muted></video><i class="fas fa-video ic"></i>` : `<img src="${escapeHTML(m.url)}" alt="" loading="lazy">`}${midiasDe(p).length > 1 ? '<i class="fas fa-layer-group ic"></i>' : ''}${p.melhorMomento ? '<span class="selo">★ momento</span>' : ''}</button>`; }).join('')}</div>`;
+return `<div class="grade">${lista.map((p, i) => { const m = midiasDe(p)[0]; return `<button type="button" data-abrir-post="${escapeHTML(p.id)}" class="${i === 0 && p.melhorMomento ? 'grande' : ''}">${m.tipo === 'video' ? `<video src="${escapeHTML(urlImagem(m.url))}" preload="metadata" muted></video><i class="fas fa-video ic"></i>` : `<img src="${escapeHTML(urlImagem(m.url))}" alt="" loading="lazy">`}${midiasDe(p).length > 1 ? '<i class="fas fa-layer-group ic"></i>' : ''}${p.melhorMomento ? '<span class="selo">★ momento</span>' : ''}</button>`; }).join('')}</div>`;
 }
 /* ===================== BRASÕES (catálogo real em brasoes.js) ===================== */
 // Dados de avaliação a partir do perfil público (o que a pessoa publicou sobre si).
@@ -873,7 +877,7 @@ f.querySelector('.conteudo').classList.add('celebra-folha');
 }
 // Certificados publicados no perfil (servidor: perfisPublicos.certificados).
 const certsDe = (pub) => (Array.isArray(pub.certificados) ? pub.certificados : []).filter((c) => c && /^[A-Z0-9]{6,20}$/.test(String(c.codigo || '')));
-const escadaPub = (pub) => (pub.menor && (pub.idade || 0) < IDADE_KIDS ? CORDOES_KIDS : CORDOES_ADULTO);
+const escadaPub = (pub) => (ehKidsPub(pub) ? CORDOES_KIDS : CORDOES_ADULTO);
 const corDoCordaoPub = (nome, pub) => (escadaPub(pub).find((c) => c.nome === nome) || CORDOES_ADULTO.find((c) => c.nome === nome) || CORDOES_KIDS.find((c) => c.nome === nome) || { cor: coresCordao(pub) }).cor;
 const linkCertificado = (codigo) => `certificado.html#${encodeURIComponent(codigo)}`;
 function trajetoriaHTML(pub) {
@@ -881,7 +885,7 @@ const escada = escadaPub(pub).map((c) => c.nome);
 const certs = certsDe(pub);
 const hist = (pub.historicoGraduacoes || []).filter((h) => h && h.cordao);
 // Um marco por troca registrada + os cordões que só têm certificado (anteriores ao app).
-const marcos = hist.map((h) => ({ cordao: h.cordao, em: h.em, porNome: h.porNome, legado: h.legado === true, evento: h.eventoNome || '' }));
+const marcos = hist.map((h) => ({ cordao: h.cordao, grau: Number(h.grau) || 0, em: h.em, porNome: h.porNome, legado: h.legado === true, evento: h.eventoNome || '' }));
 certs.forEach((c) => { if (!marcos.some((m) => m.cordao === c.cordao)) marcos.push({ cordao: c.cordao, em: c.data ? `${c.data}T12:00:00` : null, legado: c.legado === true || !c.data, evento: c.evento || '' }); });
 marcos.sort((a, b) => (escada.indexOf(b.cordao) - escada.indexOf(a.cordao)) || (new Date(b.em || 0) - new Date(a.em || 0)));
 const certDo = (m) => { const doCordao = certs.filter((c) => c.cordao === m.cordao); const dia = m.em && !m.legado ? String(m.em).slice(0, 10) : ''; return doCordao.find((c) => dia && c.data === dia) || doCordao.find((c) => (m.legado ? c.legado : !c.legado)) || doCordao[0] || null; };
@@ -889,12 +893,25 @@ const prox = proximoCordao(pub); const cProx = escadaPub(pub).find((c) => c.nome
 const cAtual = coresCordao(pub);
 const eventos = [
 `<div class="ev futuro"><b>${escapeHTML(prox.nome)}</b><small>Próxima meta${pub.prontidao != null ? ` · prontidão ${pub.prontidao}%` : ' · sem avaliação lançada'}</small><div class="cord" style="--c1:${cProx.cor[0]};--c2:${cProx.cor[1]};--c3:${cProx.cor[2]}"></div></div>`,
-...(marcos.length ? marcos.map((m) => { const cor = corDoCordaoPub(m.cordao, pub); const c = certDo(m); const quando = m.legado ? 'Graduação anterior ao app' : new Date(m.em).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }); return `<div class="ev"><b>${escapeHTML(m.cordao)}</b><small>${escapeHTML(quando)}${m.evento && !m.legado ? ` · ${escapeHTML(m.evento)}` : ''}${m.porNome && !m.legado ? ` · por ${escapeHTML(m.porNome)}` : ''}</small><div class="cord" style="--c1:${cor[0]};--c2:${cor[1]};--c3:${cor[2]}"></div>${c ? `<a class="ver-cert" href="${linkCertificado(c.codigo)}"><i class="fas fa-award"></i> Ver certificado</a>` : ''}</div>`; })
+...(marcos.length ? marcos.map((m) => { const cor = corDoCordaoPub(m.cordao, pub); const c = certDo(m); const quando = m.legado ? 'Graduação anterior ao app' : new Date(m.em).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }); return `<div class="ev"><b>${escapeHTML(rotuloGrad(m.cordao, m.grau))}</b><small>${escapeHTML(quando)}${m.evento && !m.legado ? ` · ${escapeHTML(m.evento)}` : ''}${m.porNome && !m.legado ? ` · por ${escapeHTML(m.porNome)}` : ''}</small><div class="cord" style="--c1:${cor[0]};--c2:${cor[1]};--c3:${cor[2]}"></div>${c ? `<a class="ver-cert" href="${linkCertificado(c.codigo)}"><i class="fas fa-award"></i> Ver certificado</a>` : ''}</div>`; })
 : [`<div class="ev"><b>${escapeHTML(pub.cordaoAtual || 'Iniciante')}</b><small>Cordão atual (as próximas trocas de cordão feitas pelo mestre entram aqui automaticamente)</small><div class="cord" style="--c1:${cAtual[0]};--c2:${cAtual[1]};--c3:${cAtual[2]}"></div></div>`]),
 pub.criadoEm ? `<div class="ev ouro"><b>Entrou no grupo</b><small>${new Date(pub.criadoEm).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}${pub.academiaNome ? ` · ${escapeHTML(nomeCurtoNucleo(pub.academiaNome))}` : ''}</small></div>` : '',
 ];
-return `<div class="tl">${eventos.join('')}</div>`;
+return `${botaoQuadroHTML()}<div class="tl">${eventos.join('')}</div>`;
 }
+// v34: quadro de graduação da escola (faixas, graus, idade e tempo mínimo) — escolas de faixa.
+const temQuadro = () => ['faixa', 'prajied'].includes(String(ESCOLA.peca || '')) && CORDOES_ADULTO.some((g) => g.titulo || g.graus || g.permanenciaMeses);
+const botaoQuadroHTML = () => (temQuadro() ? '<button type="button" class="btn-claro" data-quadro="1" style="margin:0 0 12px;width:100%"><i class="fas fa-table-list"></i> Quadro de graduação da escola</button>' : '');
+function abrirQuadro() {
+  const kids = CORDOES_KIDS !== CORDOES_ADULTO && CORDOES_KIDS.some((k) => !CORDOES_ADULTO.includes(k)) ? CORDOES_KIDS : null;
+  const jj = ESCOLA.modalidade === 'jiujitsu';
+  const svg = quadroGraduacoesSVG({ adulto: CORDOES_ADULTO, kids, idadeKids: IDADE_KIDS }, {
+    titulo: `Graduação — ${ESCOLA.nomeCurto || ESCOLA.nome}`,
+    subtitulo: jj ? 'Faixas, graus, idade mínima e tempo de permanência — quadro de graduação da CBJJ' : 'Faixas e graus da escola',
+  });
+  abrirFolha(`<h3>Quadro de graduação</h3><p style="color:var(--muted);font-size:.82rem;margin:0 0 10px">Toque e arraste para ver tudo; dá para ampliar com dois dedos.</p><div style="overflow:auto;max-height:70vh;border-radius:14px">${svg.replace('<svg ', '<svg style="width:100%;min-width:720px;height:auto" ')}</div>`);
+}
+document.addEventListener('click', (ev) => { if (ev.target.closest && ev.target.closest('[data-quadro]')) abrirQuadro(); });
 // Galeria de certificados/cordões do perfil: um "mini certificado" por cordão.
 function galeriaCertificadosHTML(pub, meu) {
 const escada = escadaPub(pub).map((c) => c.nome);
@@ -903,14 +920,14 @@ if (!certs.length) return '';
 return `<div class="titulo-sec">Certificados <span class="contador">${certs.length} ${certs.length === 1 ? 'cordão' : 'cordões'}</span>${meu ? '<a class="contador" href="certificados.html" style="margin-left:auto;color:var(--teal);font-weight:800;text-decoration:none">ver todos</a>' : ''}</div>
 <div class="galeria-cert">${certs.map((c) => { const cor = corDoCordaoPub(c.cordao, pub); const leg = c.legado || !c.data; return `<a class="mini-cert" href="${linkCertificado(c.codigo)}" aria-label="Certificado do Cordão ${escapeHTML(c.cordao)}">
 <span class="faixa" style="--c1:${cor[0]};--c2:${cor[1]};--c3:${cor[2]}"><i></i></span>
-<span class="corpo"><small>CERTIFICADO</small><b>Cordão ${escapeHTML(c.cordao)}</b><em>${leg ? 'anterior ao app' : escapeHTML(c.data.split('-').reverse().join('/'))}${c.evento && !leg ? ` · ${escapeHTML(String(c.evento).slice(0, 26))}` : ''}</em></span>
+<span class="corpo"><small>CERTIFICADO</small><b>${escapeHTML(String(ESCOLA.peca || 'cordão').replace(/^./, (x) => x.toUpperCase()))} ${escapeHTML(rotuloGrad(c.cordao, c.graus))}</b><em>${leg ? 'anterior ao app' : escapeHTML(c.data.split('-').reverse().join('/'))}${c.evento && !leg ? ` · ${escapeHTML(String(c.evento).slice(0, 26))}` : ''}</em></span>
 <span class="selo" aria-hidden="true"><i class="fas fa-award"></i></span></a>`; }).join('')}</div>`;
 }
 // Escolas de faixa (Jiu-Jitsu, Judô, Karatê…): a faixa desenhada em vetor no perfil,
 // com os graus na ponteira. A escola nº 1 (cordão de capoeira) segue só com a pílula.
 function faixaDoPerfil(pub) {
   if (!pub || !pub.cordaoAtual || !['faixa', 'prajied'].includes(String(ESCOLA.peca || ''))) return '';
-  const g = CORDOES_ADULTO.find((c) => c.nome === pub.cordaoAtual) || CORDOES_KIDS.find((c) => c.nome === pub.cordaoAtual);
+  const g = escadaPub(pub).find((c) => c.nome === pub.cordaoAtual) || CORDOES_ADULTO.find((c) => c.nome === pub.cordaoAtual) || CORDOES_KIDS.find((c) => c.nome === pub.cordaoAtual);
   if (!g) return '';
   try {
     const svg = faixaSVG(g, { graus: Number(pub.grausAtual) || 0, largura: 300, altura: 26, titulo: rotuloGrad(pub.cordaoAtual, pub.grausAtual) });
@@ -933,7 +950,7 @@ const momentos = lista.filter((p) => p.melhorMomento && midiasDe(p).length);
 const comMidia = lista.filter((p) => midiasDe(p).length);
 const r = pub.resumoPresencas;
 vista.innerHTML = `
-<div class="perfil-capa">${pub.capaUrl ? `<img src="${escapeHTML(pub.capaUrl)}" alt="">` : ''}<div class="acoes-capa">${meu ? `<button type="button" class="btn-icone" id="btnCapa" title="Trocar capa" aria-label="Trocar capa"><i class="fas fa-image"></i></button><button type="button" class="btn-icone" id="btnEditarBio" title="Editar perfil" aria-label="Editar perfil"><i class="fas fa-pen"></i></button><button type="button" class="btn-icone" id="btnAjustes" title="Ajustes, notificações e privacidade" aria-label="Ajustes"><i class="fas fa-gear"></i></button>` : `<button type="button" class="btn-icone" id="btnMsgPerfil" title="Mensagem"><i class="far fa-comment"></i></button>`}</div></div>
+<div class="perfil-capa">${pub.capaUrl ? `<img src="${escapeHTML(urlImagem(pub.capaUrl))}" alt="">` : ''}<div class="acoes-capa">${meu ? `<button type="button" class="btn-icone" id="btnCapa" title="Trocar capa" aria-label="Trocar capa"><i class="fas fa-image"></i></button><button type="button" class="btn-icone" id="btnEditarBio" title="Editar perfil" aria-label="Editar perfil"><i class="fas fa-pen"></i></button><button type="button" class="btn-icone" id="btnAjustes" title="Ajustes, notificações e privacidade" aria-label="Ajustes"><i class="fas fa-gear"></i></button>` : `<button type="button" class="btn-icone" id="btnMsgPerfil" title="Mensagem"><i class="far fa-comment"></i></button>`}</div></div>
 <div class="perfil-topo">${anelHTML(pub)}<div class="bt">${aprPerfil ? '<button type="button" class="btn-claro btn-apresentacao" id="btnAprPerfil" title="Ver a apresentação em vídeo"><i class="fas fa-play"></i> Apresentação</button>' : ''}${meu ? `<button type="button" class="btn-verde" id="btnFotoPerfil" style="padding:8px 14px;font-size:.76rem"><i class="fas fa-camera"></i> Foto</button>` : `<button type="button" class="${sigo ? 'btn-claro' : 'btn-navy'}" id="btnSeguir">${sigo ? '<i class="fas fa-user-check"></i> Seguindo' : pedi ? '<i class="fas fa-clock"></i> Pedido enviado' : `<i class="fas fa-user-plus"></i> ${pub.privado ? 'Pedir pra seguir' : 'Seguir'}`}</button>`}</div></div>
 <div class="perfil-nome"><h2>${escapeHTML(pub.nome)} ${pub.fundador ? '<i class="fas fa-crown verif" title="Fundador" style="color:var(--gold)"></i>' : (pub.mestre || pub.instrutor) ? '<i class="fas fa-circle-check verif" title="Responsável de núcleo"></i>' : ''}</h2>
 ${pub.apelido ? `<div class="apelido">"${escapeHTML(pub.apelido)}"</div>` : ''}
@@ -948,7 +965,7 @@ ${!podeVer ? `<div class="vazio"><i class="fas fa-lock"></i><b>Perfil privado</b
 const painel = el('painelPerfil');
 const desenhar = () => {
 if (!painel) return;
-if (perfilAba === 'momentos') painel.innerHTML = `${momentos.length ? `<div class="titulo-sec">Melhores momentos <span class="pill gold">${momentos.length}</span></div><div class="destaques">${momentos.slice(0, 12).map((p) => { const m = midiasDe(p)[0]; return `<button type="button" class="dest" data-abrir-post="${p.id}">${m.tipo === 'video' ? `<video class="foto" src="${escapeHTML(m.url)}" muted preload="metadata"></video>` : `<img class="foto" src="${escapeHTML(m.url)}" alt="">`}${escapeHTML((p.nucleoNome ? nomeCurtoNucleo(p.nucleoNome) : (p.texto || 'Momento')).slice(0, 14))}</button>`; }).join('')}</div>` : ''}<div class="titulo-sec">Galeria <span class="contador">${comMidia.length} com foto/vídeo · ${lista.length} posts</span></div>${gradeHTML(comMidia, meu ? 'Suas fotos e vídeos de treino aparecem aqui. Toque em + pra publicar.' : 'Ainda sem fotos ou vídeos.')}${lista.filter((p) => !midiasDe(p).length).length ? `<div class="titulo-sec" style="margin-top:6px">Só texto</div>${lista.filter((p) => !midiasDe(p).length).slice(0, 10).map((p) => { const c = postHTML(p); return c; }).join('')}` : ''}`;
+if (perfilAba === 'momentos') painel.innerHTML = `${momentos.length ? `<div class="titulo-sec">Melhores momentos <span class="pill gold">${momentos.length}</span></div><div class="destaques">${momentos.slice(0, 12).map((p) => { const m = midiasDe(p)[0]; return `<button type="button" class="dest" data-abrir-post="${escapeHTML(p.id)}">${m.tipo === 'video' ? `<video class="foto" src="${escapeHTML(urlImagem(m.url))}" muted preload="metadata"></video>` : `<img class="foto" src="${escapeHTML(urlImagem(m.url))}" alt="">`}${escapeHTML((p.nucleoNome ? nomeCurtoNucleo(p.nucleoNome) : (p.texto || 'Momento')).slice(0, 14))}</button>`; }).join('')}</div>` : ''}<div class="titulo-sec">Galeria <span class="contador">${comMidia.length} com foto/vídeo · ${lista.length} posts</span></div>${gradeHTML(comMidia, meu ? 'Suas fotos e vídeos de treino aparecem aqui. Toque em + pra publicar.' : 'Ainda sem fotos ou vídeos.')}${lista.filter((p) => !midiasDe(p).length).length ? `<div class="titulo-sec" style="margin-top:6px">Só texto</div>${lista.filter((p) => !midiasDe(p).length).slice(0, 10).map((p) => { const c = postHTML(p); return c; }).join('')}` : ''}`;
 else if (perfilAba === 'trajetoria') painel.innerHTML = `<div class="card"><div class="titulo-sec" style="padding:0 0 6px">Sobre</div>${pub.bio ? `<p class="bio">${formatarTexto(pub.bio)}</p>` : `<p class="bio" style="color:var(--muted)">${meu ? 'Conte sua história na capoeira — toque no lápis lá em cima.' : 'Ainda sem biografia.'}</p>`}${pub.cidade ? `<div class="bio-linha"><i class="fas fa-location-dot"></i> ${escapeHTML(pub.cidade)}</div>` : ''}${pub.criadoEm ? `<div class="bio-linha"><i class="far fa-calendar"></i> No grupo desde ${new Date(pub.criadoEm).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}</div>` : ''}${(pub.funcoes || []).length ? `<div class="bio-linha"><i class="fas fa-briefcase"></i> ${pub.funcoes.map(escapeHTML).join(' · ')}</div>` : ''}${r && r.ultima ? `<div class="bio-linha"><i class="fas fa-check"></i> Último treino registrado ${tempoRelativo(r.ultima)}</div>` : ''}</div>
 ${galeriaCertificadosHTML(pub, meu)}
 <div class="titulo-sec">Graduações <span class="contador">linha do tempo</span></div><div class="card">${trajetoriaHTML(pub)}</div>
@@ -989,7 +1006,7 @@ if (el('btnAprPerfil')) el('btnAprPerfil').addEventListener('click', () => apres
 }
 function formacaoHTML(pub) {
 const n = nucleoDe(pub.academiaId); const prof = n && n.professorUid && n.professorUid !== pub.id ? (pubCache.get(n.professorUid) || { id: n.professorUid, nome: n.professorNome || 'Responsável' }) : null;
-if (pub.fundador) return '<div class="formador"><span class="avatar" style="background:var(--gold);color:#241900"><i class="fas fa-crown"></i></span><div><b>${escapeHTML(ESCOLA.nomeCurto)}</b><small>Fundador do grupo</small></div></div>';
+if (pub.fundador) return `<div class="formador"><span class="avatar" style="background:var(--gold);color:#241900"><i class="fas fa-crown"></i></span><div><b>${escapeHTML(ESCOLA.nomeCurto)}</b><small>Fundador do grupo</small></div></div>`;
 if (!prof) return '<p class="contador" style="padding:4px">Formador ainda não identificado no cadastro.</p>';
 return `<button type="button" class="formador" data-perfil="${escapeHTML(prof.id)}">${avatarHTML(prof)}<div><b>${escapeHTML(prof.nome)}</b><small>Responsável ${n ? `pelo ${escapeHTML(nomeCurtoNucleo(n.nome))}` : ''}</small></div><i class="fas fa-chevron-right" style="margin-left:auto;color:var(--soft)"></i></button>`;
 }
@@ -1000,7 +1017,7 @@ const card = f.querySelector('.post'); card.__post = p;
 card.addEventListener('click', (ev) => {
 const btn = ev.target.closest('[data-acao]'); const pf = ev.target.closest('[data-perfil]'); const ver = ev.target.closest('[data-ver]');
 if (pf) { f.remove(); ir(`perfil/${pf.dataset.perfil}`); return; }
-if (ver && ver.tagName === 'IMG') { abrirMidia(`<img src="${escapeHTML(ver.src)}" alt="">`); return; }
+if (ver && ver.tagName === 'IMG') { abrirMidia(`<img src="${escapeHTML(urlImagem(ver.src))}" alt="">`); return; }
 if (!btn) return;
 if (btn.dataset.acao === 'menu') { f.remove(); menuPost(p, card); return; }
 acaoNoPost(p, card, btn, ev);
@@ -1027,7 +1044,7 @@ try { await updateDoc(doc(db, 'perfisPublicos', uid), { seguindoCount: seguindo.
 }
 async function renderPedidos(pub) {
 const box = el('listaPedidos'); const pedidos = await Promise.all((pub.pedidosSeguir || []).map(pubDe));
-box.innerHTML = pedidos.filter(Boolean).map((p) => `<div class="pessoa">${avatarHTML(p)}<button type="button" class="q" data-perfil="${p.id}"><b>${escapeHTML(p.nome)}</b><small>${[p.cordaoAtual, nomeCurtoNucleo(p.academiaNome)].filter(Boolean).map(escapeHTML).join(' · ')}</small></button><button type="button" class="btn-navy" data-aceitar="${p.id}">Aceitar</button><button type="button" class="btn-claro" data-recusar="${p.id}">Recusar</button></div>`).join('') || '<p class="contador">Sem pedidos.</p>';
+box.innerHTML = pedidos.filter(Boolean).map((p) => `<div class="pessoa">${avatarHTML(p)}<button type="button" class="q" data-perfil="${escapeHTML(p.id)}"><b>${escapeHTML(p.nome)}</b><small>${[p.cordaoAtual, nomeCurtoNucleo(p.academiaNome)].filter(Boolean).map(escapeHTML).join(' · ')}</small></button><button type="button" class="btn-navy" data-aceitar="${escapeHTML(p.id)}">Aceitar</button><button type="button" class="btn-claro" data-recusar="${escapeHTML(p.id)}">Recusar</button></div>`).join('') || '<p class="contador">Sem pedidos.</p>';
 box.addEventListener('click', async (ev) => {
 const ac = ev.target.closest('[data-aceitar]'); const rc = ev.target.closest('[data-recusar]'); if (!ac && !rc) return;
 const quem = (ac || rc).dataset.aceitar || (ac || rc).dataset.recusar;
@@ -1097,7 +1114,7 @@ const painel = el('painelNucleo');
 const desenhar = () => {
 if (nucleoAba === 'momentos') painel.innerHTML = `${prof ? `<button type="button" class="formador" data-perfil="${escapeHTML(prof.id)}">${anelHTML(prof)}<div><b>${escapeHTML(prof.nome)}</b><small>${escapeHTML(prof.cordaoAtual || '')} · responsável do núcleo</small></div><i class="fas fa-chevron-right" style="margin-left:auto;color:var(--soft)"></i></button>` : ''}<div class="titulo-sec">Melhores momentos do núcleo <span class="pill gold">${momentos.length}</span></div>${gradeHTML(momentos, 'Quando alguém do núcleo marcar um post como "melhor momento", ele fica guardado aqui.')}`;
 else if (nucleoAba === 'posts') painel.innerHTML = `${avisosNuc.length ? avisosNuc.slice(0, 2).map(postHTML).join('') : ''}${lista.filter((p) => p.tipo !== 'aviso').map(postHTML).join('') || '<div class="vazio"><i class="fas fa-pen"></i>Nenhuma publicação marcada com este núcleo ainda.</div>'}`;
-else painel.innerHTML = `<div class="card">${ordemAtletas.map((p) => `<div class="pessoa">${anelHTML(p)}<button type="button" class="q" data-perfil="${p.id}"><b>${escapeHTML(p.nome)}</b><small>${escapeHTML(p.cordaoAtual || '')}${p.academiaGerenciadaId ? ' · responsável de núcleo' : ''}${p.privado ? ' · privado' : ''}</small></button>${p.id !== uid ? `<button type="button" class="${seguindo.has(p.id) ? 'btn-claro' : 'btn-navy'}" data-seguir="${p.id}">${seguindo.has(p.id) ? 'Seguindo' : (p.privado ? 'Pedir' : 'Seguir')}</button>` : ''}</div>`).join('') || '<p class="contador">Ninguém deste núcleo abriu a rede ainda.</p>'}</div>`;
+else painel.innerHTML = `<div class="card">${ordemAtletas.map((p) => `<div class="pessoa">${anelHTML(p)}<button type="button" class="q" data-perfil="${escapeHTML(p.id)}"><b>${escapeHTML(p.nome)}</b><small>${escapeHTML(p.cordaoAtual || '')}${p.academiaGerenciadaId ? ' · responsável de núcleo' : ''}${p.privado ? ' · privado' : ''}</small></button>${p.id !== uid ? `<button type="button" class="${seguindo.has(p.id) ? 'btn-claro' : 'btn-navy'}" data-seguir="${escapeHTML(p.id)}">${seguindo.has(p.id) ? 'Seguindo' : (p.privado ? 'Pedir' : 'Seguir')}</button>` : ''}</div>`).join('') || '<p class="contador">Ninguém deste núcleo abriu a rede ainda.</p>'}</div>`;
 painel.querySelectorAll('[data-abrir-post]').forEach((b) => b.addEventListener('click', () => abrirPost(lista.find((p) => p.id === b.dataset.abrirPost))));
 painel.querySelectorAll('[data-seguir]').forEach((b) => b.addEventListener('click', async () => { const p = atletas.find((x) => x.id === b.dataset.seguir); await alternarSeguir(p); desenhar(); }));
 };
@@ -1123,12 +1140,12 @@ vista.innerHTML = `
 <div class="busca"><i class="fas fa-magnifying-glass" style="color:var(--soft)"></i><input id="buscaPessoa" type="search" placeholder="Atletas, núcleos, #hashtags…" autocomplete="off"></div>
 <div id="resultadoBusca"></div>
 ${topTags.length ? `<div class="chips">${topTags.map(([t, n]) => `<button type="button" class="pill ${n > 1 ? 'teal' : 'neutra'} hash" data-hash="${escapeHTML(t)}">#${escapeHTML(t)} <span class="mono" style="opacity:.7">${n}</span></button>`).join('')}</div>` : ''}
-${ev ? `<div class="evento"><div class="data"><b>${ev.data.slice(8, 10)}</b><small>${new Date(ev.data + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase()}</small></div><b class="n">${escapeHTML(ev.nome || 'Evento')}</b><small>${ev.descricao ? escapeHTML(ev.descricao) + ' · ' : ''}${nucleoDe(ev.academiaId) ? escapeHTML(nomeCurtoNucleo(nucleoDe(ev.academiaId).nome)) : 'Grupo'}${confirmados ? ` · ${confirmados.size} confirmado${confirmados.size === 1 ? '' : 's'}` : ''}</small><div class="acoes-ev"><button type="button" class="btn-claro" id="btnEuVou">${euVou ? '<i class="fas fa-check"></i> Eu vou' : '<i class="far fa-calendar-check"></i> Eu vou'}</button><button type="button" class="btn-claro" data-agenda="${escapeHTML(ev.id)}">Detalhes</button>${eventos.length > 1 ? `<button type="button" class="pill" data-agenda="" style="background:rgba(255,255,255,.18);color:#fff;border:0">+${eventos.length - 1} evento${eventos.length > 2 ? 's' : ''}</button>` : ''}</div></div>` : `<button type="button" class="btn-mais" data-agenda=""><i class="far fa-calendar"></i> Agenda de eventos e álbuns</button>`}
+${ev ? `<div class="evento"><div class="data"><b>${escapeHTML(String(ev.data).slice(8, 10))}</b><small>${new Date(ev.data + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase()}</small></div><b class="n">${escapeHTML(ev.nome || 'Evento')}</b><small>${ev.descricao ? escapeHTML(ev.descricao) + ' · ' : ''}${nucleoDe(ev.academiaId) ? escapeHTML(nomeCurtoNucleo(nucleoDe(ev.academiaId).nome)) : 'Grupo'}${confirmados ? ` · ${confirmados.size} confirmado${confirmados.size === 1 ? '' : 's'}` : ''}</small><div class="acoes-ev"><button type="button" class="btn-claro" id="btnEuVou">${euVou ? '<i class="fas fa-check"></i> Eu vou' : '<i class="far fa-calendar-check"></i> Eu vou'}</button><button type="button" class="btn-claro" data-agenda="${escapeHTML(ev.id)}">Detalhes</button>${eventos.length > 1 ? `<button type="button" class="pill" data-agenda="" style="background:rgba(255,255,255,.18);color:#fff;border:0">+${eventos.length - 1} evento${eventos.length > 2 ? 's' : ''}</button>` : ''}</div></div>` : `<button type="button" class="btn-mais" data-agenda=""><i class="far fa-calendar"></i> Agenda de eventos e álbuns</button>`}
 <div class="titulo-sec">Núcleos da rede</div>
 <div class="nucleos">${nucleos.filter((n) => n.ativo !== false).map((n) => `<button type="button" class="nuc" data-nucleo="${escapeHTML(n.id)}"><span class="avatar" style="background:${corAvatar(n.id)}"><i class="fas fa-people-group"></i></span><b>${escapeHTML(n.nome)}</b><small>${n.professorNome ? escapeHTML(n.professorNome) : ''}</small>${n.id === perfil.academiaId ? '<span class="pill teal">seu núcleo</span>' : (n.professorUid && (pubCache.get(n.professorUid) || {}).fundador ? '<span class="pill gold">Fundador</span>' : '')}</button>`).join('')}</div>
-${sugeridos.length ? `<div class="titulo-sec">Sugestões pra você <span class="contador">do seu núcleo</span></div><div class="card" id="sugestoes">${sugeridos.map((p) => `<div class="pessoa">${anelHTML(p)}<button type="button" class="q" data-perfil="${p.id}"><b>${escapeHTML(p.nome)}</b><small>${[p.cordaoAtual, nomeCurtoNucleo(p.academiaNome)].filter(Boolean).map(escapeHTML).join(' · ')}</small></button><button type="button" class="btn-navy" data-seguir="${p.id}">${p.privado ? 'Pedir' : 'Seguir'}</button></div>`).join('')}</div>` : ''}
+${sugeridos.length ? `<div class="titulo-sec">Sugestões pra você <span class="contador">do seu núcleo</span></div><div class="card" id="sugestoes">${sugeridos.map((p) => `<div class="pessoa">${anelHTML(p)}<button type="button" class="q" data-perfil="${escapeHTML(p.id)}"><b>${escapeHTML(p.nome)}</b><small>${[p.cordaoAtual, nomeCurtoNucleo(p.academiaNome)].filter(Boolean).map(escapeHTML).join(' · ')}</small></button><button type="button" class="btn-navy" data-seguir="${escapeHTML(p.id)}">${p.privado ? 'Pedir' : 'Seguir'}</button></div>`).join('')}</div>` : ''}
 <div class="titulo-sec">Momentos da rede <span class="contador">recentes</span></div>
-${comMidia.length ? `<div class="mosaico">${comMidia.map((p) => { const m = midiasDe(p)[0]; return `<button type="button" data-abrir-post="${p.id}">${m.tipo === 'video' ? `<video src="${escapeHTML(m.url)}" muted preload="metadata"></video>` : `<img src="${escapeHTML(m.url)}" alt="" loading="lazy">`}</button>`; }).join('')}</div>` : '<div class="vazio"><i class="fas fa-image"></i>Ainda não há fotos publicadas na rede.</div>'}`;
+${comMidia.length ? `<div class="mosaico">${comMidia.map((p) => { const m = midiasDe(p)[0]; return `<button type="button" data-abrir-post="${escapeHTML(p.id)}">${m.tipo === 'video' ? `<video src="${escapeHTML(urlImagem(m.url))}" muted preload="metadata"></video>` : `<img src="${escapeHTML(urlImagem(m.url))}" alt="" loading="lazy">`}</button>`; }).join('')}</div>` : '<div class="vazio"><i class="fas fa-image"></i>Ainda não há fotos publicadas na rede.</div>'}`;
 vista.querySelectorAll('[data-abrir-post]').forEach((b) => b.addEventListener('click', () => abrirPost(posts.find((p) => p.id === b.dataset.abrirPost))));
 vista.querySelectorAll('[data-seguir]').forEach((b) => b.addEventListener('click', async () => { await alternarSeguir(sugeridos.find((x) => x.id === b.dataset.seguir)); b.textContent = seguindo.has(b.dataset.seguir) ? 'Seguindo' : 'Seguir'; }));
 if (ev && el('btnEuVou')) el('btnEuVou').addEventListener('click', async () => { try { if (euVou) await deleteDoc(doc(db, 'eventos', ev.id, 'confirmados', uid)); else await setDoc(doc(db, 'eventos', ev.id, 'confirmados', uid), { nome: perfil.nome || '', em: new Date().toISOString(), academiaId: perfil.academiaId || null, cordaoAtual: (meuPub && meuPub.cordaoAtual) || perfil.cordaoAtual || '', fotoUrl: /^https:/.test(perfil.fotoUrl || '') ? perfil.fotoUrl : '' }); renderExplorar(null, vista); } catch (e) { toast('Não foi possível confirmar (regras do Firestore).'); } });
@@ -1140,7 +1157,7 @@ if (!q) { box.innerHTML = ''; return; }
 if (q.startsWith('#')) { ir(`tag/${q.slice(1)}`); return; }
 const nucs = nucleos.filter((n) => String(n.nome).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').includes(q));
 let pessoas = []; try { pessoas = (await getDocs(query(collection(db, 'perfisPublicos'), ...(await ondeEscola()), where('nomeBusca', '>=', q), where('nomeBusca', '<=', q + ''), limit(12)))).docs.map((d) => ({ id: d.id, ...d.data() })); } catch (e) { /* ok */ }
-box.innerHTML = `<div class="card">${nucs.map((n) => `<div class="pessoa"><span class="avatar" style="border-radius:12px;background:${corAvatar(n.id)}"><i class="fas fa-people-group"></i></span><button type="button" class="q" data-nucleo="${escapeHTML(n.id)}"><b>${escapeHTML(n.nome)}</b><small>núcleo</small></button></div>`).join('')}${pessoas.map((p) => `<div class="pessoa">${anelHTML(p)}<button type="button" class="q" data-perfil="${p.id}"><b>${escapeHTML(p.nome)}</b><small>${[p.cordaoAtual, nomeCurtoNucleo(p.academiaNome)].filter(Boolean).map(escapeHTML).join(' · ')}</small></button></div>`).join('') || (nucs.length ? '' : '<p class="contador" style="padding:6px">Ninguém encontrado.</p>')}</div>`;
+box.innerHTML = `<div class="card">${nucs.map((n) => `<div class="pessoa"><span class="avatar" style="border-radius:12px;background:${corAvatar(n.id)}"><i class="fas fa-people-group"></i></span><button type="button" class="q" data-nucleo="${escapeHTML(n.id)}"><b>${escapeHTML(n.nome)}</b><small>núcleo</small></button></div>`).join('')}${pessoas.map((p) => `<div class="pessoa">${anelHTML(p)}<button type="button" class="q" data-perfil="${escapeHTML(p.id)}"><b>${escapeHTML(p.nome)}</b><small>${[p.cordaoAtual, nomeCurtoNucleo(p.academiaNome)].filter(Boolean).map(escapeHTML).join(' · ')}</small></button></div>`).join('') || (nucs.length ? '' : '<p class="contador" style="padding:6px">Ninguém encontrado.</p>')}</div>`;
 }
 }
 async function renderTag(tag, vista) {
@@ -1173,7 +1190,7 @@ vista.innerHTML = `<div class="card compor">
 <div class="opcoes">
 <div class="opc"><div class="ic g"><i class="fas fa-star"></i></div><div class="t"><b>Marcar como melhor momento</b><small>Vai pros seus destaques e pros momentos do núcleo, com selo dourado</small></div><button type="button" class="switch cinza" id="swMomento" aria-label="Melhor momento"></button></div>
 <div class="opc"><div class="ic n"><i class="fas fa-location-dot"></i></div><div class="t"><b>Núcleo do treino</b><small id="nucInfo">${composicao.hoje ? `Detectado pela sua presença de hoje às ${dataDe(composicao.hoje.entradaEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : 'Sem presença registrada hoje — escolha o núcleo'}</small></div><select id="selNucleo">${nucleos.filter((n) => n.ativo !== false).map((n) => `<option value="${escapeHTML(n.id)}" ${n.id === composicao.nucleoId ? 'selected' : ''}>${escapeHTML(nomeCurtoNucleo(n.nome))}</option>`).join('')}<option value="" ${!composicao.nucleoId ? 'selected' : ''}>Sem núcleo</option></select></div>
-<div class="opc" style="flex-wrap:wrap"><div class="ic"><i class="fas fa-user-tag"></i></div><div class="t"><b>Marcar atletas</b><small id="marcInfo">${colegas.length ? 'Toque pra marcar quem estava no treino' : 'Ninguém do núcleo abriu a rede ainda'}</small></div><span class="val mono" id="marcQtd">0</span><div class="marcar-lista" id="marcarLista" style="width:100%">${colegas.map((c) => `<button type="button" class="pill" data-marcar="${c.id}" data-img="${c.usoImagemOk ? '1' : '0'}">${escapeHTML(c.nome.split(' ').slice(0, 2).join(' '))}${c.usoImagemOk ? '' : ' <i class="fas fa-eye-slash" title="sem termo de imagem"></i>'}</button>`).join('')}</div></div>
+<div class="opc" style="flex-wrap:wrap"><div class="ic"><i class="fas fa-user-tag"></i></div><div class="t"><b>Marcar atletas</b><small id="marcInfo">${colegas.length ? 'Toque pra marcar quem estava no treino' : 'Ninguém do núcleo abriu a rede ainda'}</small></div><span class="val mono" id="marcQtd">0</span><div class="marcar-lista" id="marcarLista" style="width:100%">${colegas.map((c) => `<button type="button" class="pill" data-marcar="${escapeHTML(c.id)}" data-img="${c.usoImagemOk ? '1' : '0'}">${escapeHTML(c.nome.split(' ').slice(0, 2).join(' '))}${c.usoImagemOk ? '' : ' <i class="fas fa-eye-slash" title="sem termo de imagem"></i>'}</button>`).join('')}</div></div>
 <div class="opc"><div class="ic"><i class="fas fa-shield-halved"></i></div><div class="t"><b>Proteger rostos</b><small id="rostosInfo">Detecta rostos nas fotos e deixa você desfocar quem não autorizou imagem</small></div><button type="button" class="val" id="btnRostos" disabled>Detectar</button></div>
 ${eventosRecentes.length ? `<div class="opc"><div class="ic g"><i class="fas fa-images"></i></div><div class="t"><b>Álbum do evento</b><small>As fotos entram no álbum do evento, com quem você marcou</small></div><select id="selEvento" aria-label="Álbum do evento"><option value="">Nenhum</option>${eventosRecentes.map((e) => `<option value="${escapeHTML(e.id)}">${escapeHTML(e.nome || 'Evento')} · ${escapeHTML(e.data.slice(8, 10) + '/' + e.data.slice(5, 7))}</option>`).join('')}</select></div>` : ''}
 ${podeComoNucleo ? `<div class="opc"><div class="ic" style="background:var(--sky-soft);color:var(--sky-texto)"><i class="fas fa-people-group"></i></div><div class="t"><b>Publicar como o núcleo</b><small>Sai com o nome e o selo de ${escapeHTML(nucMeu ? nomeCurtoNucleo(nucMeu.nome) : 'seu núcleo')} (você aparece como quem publicou)</small></div><button type="button" class="switch cinza ${composicao.comoNucleo ? 'on' : ''}" id="swComoNucleo" aria-label="Publicar como o núcleo"></button></div>` : ''}
@@ -1200,6 +1217,7 @@ el('btnVisib').addEventListener('click', () => abrirFolha(`<h3>Quem pode ver</h3
 el('marcarLista').addEventListener('click', (ev) => {
 const b = ev.target.closest('[data-marcar]'); if (!b) return; const c = colegas.find((x) => x.id === b.dataset.marcar);
 const i = composicao.marcados.findIndex((m) => m.uid === c.id);
+if (i < 0 && composicao.marcados.length >= 10) { toast('Dá para marcar até 10 pessoas por post.'); return; }
 if (i >= 0) composicao.marcados.splice(i, 1); else composicao.marcados.push({ uid: c.id, nome: c.nome, usoImagemOk: !!c.usoImagemOk, menor: !!c.menor });
 b.classList.toggle('on', i < 0); el('marcQtd').textContent = composicao.marcados.length;
 if (i < 0 && !c.usoImagemOk) toast(`${c.nome.split(' ')[0]} não tem termo de imagem — use "Proteger rostos" antes de publicar.`);
@@ -1323,10 +1341,10 @@ autorUid: uid, autorNome: perfil.nome || '', autorFoto: /^https:/.test(perfil.fo
 autorMenor: !!souMenor(), texto, fotoUrl: midias.find((m) => m.tipo === 'imagem')?.url || null, midias,
 tipo: ehAviso ? 'aviso' : 'post', melhorMomento: !!composicao.melhorMomento && !ehAviso,
 nucleoId: nuc ? nuc.id : null, nucleoNome: nuc ? nuc.nome : '', marcados: composicao.marcados.map((m) => ({ uid: m.uid, nome: m.nome })),
-visibilidade: composicao.visibilidade, hashtags: extrairHashtags(texto), revisao: precisaRevisao ? 'pendente' : 'ok',
+visibilidade: composicao.visibilidade, hashtags: extrairHashtags(texto).slice(0, 10), revisao: precisaRevisao ? 'pendente' : 'ok',
 oculto: false, publico: !precisaRevisao,
 criadoEm: new Date().toISOString(), curtidas: [], comentariosCount: 0,
-...(mencoesDoTexto(texto, composicao.mencoes).length ? { mencoes: mencoesDoTexto(texto, composicao.mencoes) } : {}),
+...(mencoesDoTexto(texto, composicao.mencoes).length ? { mencoes: mencoesDoTexto(texto, composicao.mencoes).slice(0, 10) } : {}),
 ...(composicao.eventoId ? { eventoId: composicao.eventoId, eventoNome: composicao.eventoNome } : {}),
 ...(comoNucleo ? { comoNucleo: true } : {}),
 };
@@ -1386,15 +1404,15 @@ await garantirGrupoDoNucleo();
 const lista = await minhasConversas();
 const lidas = JSON.parse(localStorage.getItem('rede.lidas') || '{}');
 vista.innerHTML = `<div class="busca"><i class="fas fa-magnifying-glass" style="color:var(--soft)"></i><input id="buscaConv" type="search" placeholder="Buscar atleta pra conversar…" autocomplete="off"></div><div id="resConv"></div>
-<div class="card">${lista.filter((c) => !acompanho(c)).map((c) => { const f = fotoConversa(c); const nova = c.atualizadoEm && (!lidas[c.id] || lidas[c.id] < c.atualizadoEm) && c.ultimoAutor && c.ultimoAutor !== uid; return `<button type="button" class="conv ${c.tipo === 'grupo' ? 'grupo' : ''}" data-conv="${c.id}">${c.tipo === 'grupo' ? `<span class="avatar" style="background:var(--navy)"><i class="fas fa-people-group"></i></span>` : avatarHTML(f)}<div class="q"><b>${escapeHTML(nomeConversa(c))}</b><small>${escapeHTML(c.ultimaMsg || 'Sem mensagens ainda')}</small></div><div class="meta">${c.atualizadoEm ? tempoRelativo(c.atualizadoEm) : ''}${nova ? '<br><span class="n">•</span>' : ''}</div></button>`; }).join('') || '<div class="vazio" style="border:0"><i class="far fa-comment"></i><b>Nenhuma conversa ainda</b>Abra o perfil de um atleta e toque no balão pra conversar.</div>'}</div>
-${lista.some(acompanho) ? `<div class="titulo-sec">Conversas que você acompanha <span class="contador">responsável legal</span></div><div class="card">${lista.filter(acompanho).map((c) => `<button type="button" class="conv" data-conv="${c.id}"><span class="avatar" style="background:var(--gold);color:#241900"><i class="fas fa-user-shield"></i></span><div class="q"><b>${escapeHTML(nomeConversa(c))}</b><small>${escapeHTML(c.ultimaMsg || 'Sem mensagens ainda')}</small></div><div class="meta">${c.atualizadoEm ? tempoRelativo(c.atualizadoEm) : ''}</div></button>`).join('')}</div>` : ''}
+<div class="card">${lista.filter((c) => !acompanho(c)).map((c) => { const f = fotoConversa(c); const nova = c.atualizadoEm && (!lidas[c.id] || lidas[c.id] < c.atualizadoEm) && c.ultimoAutor && c.ultimoAutor !== uid; return `<button type="button" class="conv ${c.tipo === 'grupo' ? 'grupo' : ''}" data-conv="${escapeHTML(c.id)}">${c.tipo === 'grupo' ? `<span class="avatar" style="background:var(--navy)"><i class="fas fa-people-group"></i></span>` : avatarHTML(f)}<div class="q"><b>${escapeHTML(nomeConversa(c))}</b><small>${escapeHTML(c.ultimaMsg || 'Sem mensagens ainda')}</small></div><div class="meta">${c.atualizadoEm ? tempoRelativo(c.atualizadoEm) : ''}${nova ? '<br><span class="n">•</span>' : ''}</div></button>`; }).join('') || '<div class="vazio" style="border:0"><i class="far fa-comment"></i><b>Nenhuma conversa ainda</b>Abra o perfil de um atleta e toque no balão pra conversar.</div>'}</div>
+${lista.some(acompanho) ? `<div class="titulo-sec">Conversas que você acompanha <span class="contador">responsável legal</span></div><div class="card">${lista.filter(acompanho).map((c) => `<button type="button" class="conv" data-conv="${escapeHTML(c.id)}"><span class="avatar" style="background:var(--gold);color:#241900"><i class="fas fa-user-shield"></i></span><div class="q"><b>${escapeHTML(nomeConversa(c))}</b><small>${escapeHTML(c.ultimaMsg || 'Sem mensagens ainda')}</small></div><div class="meta">${c.atualizadoEm ? tempoRelativo(c.atualizadoEm) : ''}</div></button>`).join('')}</div>` : ''}
 <p class="contador" style="text-align:center;padding:0 12px"><i class="fas fa-shield-halved"></i> Menores conversam só com pessoas do próprio núcleo, e o responsável legal (pai, mãe ou quem estiver cadastrado) pode acompanhar as conversas do filho.</p>`;
 vista.querySelectorAll('[data-conv]').forEach((b) => b.addEventListener('click', () => ir(`mensagens/${b.dataset.conv}`)));
 let timer = null;
 el('buscaConv').addEventListener('input', (e) => { clearTimeout(timer); timer = setTimeout(async () => {
 const q = e.target.value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim(); const box = el('resConv'); if (!q) { box.innerHTML = ''; return; }
 try { const pessoas = (await getDocs(query(collection(db, 'perfisPublicos'), ...(await ondeEscola()), where('nomeBusca', '>=', q), where('nomeBusca', '<=', q + ''), limit(10)))).docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => p.id !== uid);
-box.innerHTML = `<div class="card">${pessoas.map((p) => `<div class="pessoa">${anelHTML(p)}<button type="button" class="q" data-abrir-direta="${p.id}"><b>${escapeHTML(p.nome)}</b><small>${[p.cordaoAtual, nomeCurtoNucleo(p.academiaNome)].filter(Boolean).map(escapeHTML).join(' · ')}</small></button><i class="far fa-comment" style="color:var(--teal)"></i></div>`).join('') || '<p class="contador" style="padding:6px">Ninguém encontrado.</p>'}</div>`;
+box.innerHTML = `<div class="card">${pessoas.map((p) => `<div class="pessoa">${anelHTML(p)}<button type="button" class="q" data-abrir-direta="${escapeHTML(p.id)}"><b>${escapeHTML(p.nome)}</b><small>${[p.cordaoAtual, nomeCurtoNucleo(p.academiaNome)].filter(Boolean).map(escapeHTML).join(' · ')}</small></button><i class="far fa-comment" style="color:var(--teal)"></i></div>`).join('') || '<p class="contador" style="padding:6px">Ninguém encontrado.</p>'}</div>`;
 box.querySelectorAll('[data-abrir-direta]').forEach((b) => b.addEventListener('click', () => abrirDireta(pessoas.find((p) => p.id === b.dataset.abrirDireta))));
 } catch (err) { /* ok */ }
 }, 300); });
@@ -1413,7 +1431,7 @@ el('btnVoltarChat').addEventListener('click', () => ir('mensagens'));
 const box = el('msgs');
 chatUnsub = onSnapshot(query(collection(db, 'conversas', id, 'mensagens'), orderBy('criadoEm', 'desc'), limit(60)), (snap) => {
 const msgs = snap.docs.map((d) => ({ id: d.id, ...d.data() })).reverse();
-box.innerHTML = msgs.map((m) => `<div class="balao ${m.autorUid === uid ? 'meu' : 'dele'}">${c.tipo === 'grupo' && m.autorUid !== uid ? `<span class="de">${escapeHTML(m.autorNome || '')}</span>` : ''}${m.midiaUrl ? `<img src="${escapeHTML(m.midiaUrl)}" alt="" data-ver="0">` : ''}${m.texto ? formatarTexto(m.texto) : ''}<time>${new Date(m.criadoEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</time></div>`).join('') || '<p class="contador" style="text-align:center">Diga um "Axé" pra começar.</p>';
+box.innerHTML = msgs.map((m) => `<div class="balao ${m.autorUid === uid ? 'meu' : 'dele'}">${c.tipo === 'grupo' && m.autorUid !== uid ? `<span class="de">${escapeHTML(m.autorNome || '')}</span>` : ''}${m.midiaUrl ? `<img src="${escapeHTML(urlImagem(m.midiaUrl))}" alt="" data-ver="0">` : ''}${m.texto ? formatarTexto(m.texto) : ''}<time>${new Date(m.criadoEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</time></div>`).join('') || '<p class="contador" style="text-align:center">Diga um "Axé" pra começar.</p>';
 box.scrollTop = box.scrollHeight; window.scrollTo({ top: document.body.scrollHeight });
 const lidas = JSON.parse(localStorage.getItem('rede.lidas') || '{}'); lidas[id] = new Date().toISOString(); localStorage.setItem('rede.lidas', JSON.stringify(lidas));
 }, (err) => { console.error(err); box.innerHTML = '<p class="contador" style="text-align:center">Sem permissão pra ler esta conversa.</p>'; });
@@ -1456,8 +1474,8 @@ guardarAvulsos(pendentes.concat(ocultos));
 const pontinho = el('pontoModeracao'); if (pontinho) pontinho.classList.toggle('oculto', !(pendentes.length + denuncias.length));
 const denunciaHTML = (d) => `<div class="card denuncia"><i class="fas ${d.tipoAlvo === 'comentario' ? 'fa-comment-slash' : 'fa-flag'}" style="color:var(--red)"></i><div class="q"><b>${escapeHTML(d.motivo || '')}</b><small>${d.tipoAlvo === 'comentario' ? 'comentário · ' : ''}${d.denuncianteUid === 'sistema' ? 'filtro automático' : `por ${escapeHTML(d.denuncianteNome || '')}`} · ${tempoRelativo(d.criadoEm)}</small></div><div style="display:grid;gap:6px">
 <button type="button" class="btn-claro" data-ver-post="${escapeHTML(d.postId || '')}">Ver post</button>
-${d.tipoAlvo === 'comentario' ? `<button type="button" class="btn-perigo" data-apagar-coment="${escapeHTML(d.comentarioId || '')}" data-post="${escapeHTML(d.postId || '')}" data-den="${d.id}"><i class="fas fa-trash-can"></i> Apagar comentário</button>` : (ehAdmin() ? `<button type="button" class="btn-perigo" data-ocultar-post="${escapeHTML(d.postId || '')}" data-den="${d.id}"><i class="fas fa-eye-slash"></i> Ocultar post</button>` : '')}
-<button type="button" class="btn-claro" data-fechar-den="${d.id}">Manter</button></div></div>`;
+${d.tipoAlvo === 'comentario' ? `<button type="button" class="btn-perigo" data-apagar-coment="${escapeHTML(d.comentarioId || '')}" data-post="${escapeHTML(d.postId || '')}" data-den="${escapeHTML(d.id)}"><i class="fas fa-trash-can"></i> Apagar comentário</button>` : (ehAdmin() ? `<button type="button" class="btn-perigo" data-ocultar-post="${escapeHTML(d.postId || '')}" data-den="${escapeHTML(d.id)}"><i class="fas fa-eye-slash"></i> Ocultar post</button>` : '')}
+<button type="button" class="btn-claro" data-fechar-den="${escapeHTML(d.id)}">Manter</button></div></div>`;
 vista.innerHTML = `<div class="titulo-sec">Posts aguardando revisão <span class="pill gold">${pendentes.length}</span></div>${pendentes.map((p) => `${p.moderacaoAuto ? `<p class="contador mod-auto"><i class="fas fa-robot"></i> Filtro automático: ${escapeHTML((p.moderacaoAuto.motivos || []).join(', '))}</p>` : ''}${postHTML(p)}`).join('') || '<div class="vazio"><i class="fas fa-check"></i>Nada pendente. Fotos de menores, fotos com atleta sem termo de imagem e o que o filtro automático segurar aparecem aqui.</div>'}
 <div class="titulo-sec">Denúncias abertas <span class="pill red">${denuncias.length}</span></div>${denuncias.map(denunciaHTML).join('') || '<div class="vazio"><i class="fas fa-flag"></i>Nenhuma denúncia aberta.</div>'}
 ${ehAdmin() ? `<div class="titulo-sec">Posts ocultados <span class="pill neutra">${ocultos.length}</span></div>${ocultos.map(postHTML).join('') || '<div class="vazio"><i class="fas fa-eye"></i>Nenhum post ocultado.</div>'}` : ''}`;
@@ -1494,7 +1512,7 @@ if (!ev) { vista.innerHTML = '<div class="vazio"><i class="far fa-calendar"></i>
 let conf = []; try { conf = (await getDocs(collection(db, 'eventos', id, 'confirmados'))).docs.map((d) => ({ id: d.id, ...d.data() })); } catch (e) { conf = []; }
 const euVou = conf.some((c) => c.id === uid); const futuro = new Date(ev.data + 'T23:59:59') >= h;
 const nuc = nucleoDe(ev.academiaId);
-vista.innerHTML = `<div class="evento grande"><div class="data"><b>${ev.data.slice(8, 10)}</b><small>${new Date(ev.data + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase()}</small></div><b class="n">${escapeHTML(ev.nome || 'Evento')}</b><small>${escapeHTML(dataCurta(ev.data))}${ev.hora ? ` · ${escapeHTML(ev.hora)}` : ''}${nuc ? ` · ${escapeHTML(nomeCurtoNucleo(nuc.nome))}` : ' · Grupo todo'}</small>
+vista.innerHTML = `<div class="evento grande"><div class="data"><b>${escapeHTML(String(ev.data).slice(8, 10))}</b><small>${new Date(ev.data + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase()}</small></div><b class="n">${escapeHTML(ev.nome || 'Evento')}</b><small>${escapeHTML(dataCurta(ev.data))}${ev.hora ? ` · ${escapeHTML(ev.hora)}` : ''}${nuc ? ` · ${escapeHTML(nomeCurtoNucleo(nuc.nome))}` : ' · Grupo todo'}</small>
 ${ev.descricao ? `<p class="ev-desc">${escapeHTML(ev.descricao)}</p>` : ''}${ev.local ? `<a class="nucleo-endereco" href="${escapeHTML(linkMapa({ endereco: ev.local }))}" target="_blank" rel="noopener"><i class="fas fa-location-dot"></i> ${escapeHTML(ev.local)} <i class="fas fa-diamond-turn-right"></i></a>` : ''}
 ${ev.taxa ? `<span class="pill" style="background:rgba(255,255,255,.18);color:#fff;margin-top:6px"><i class="fas fa-ticket"></i> Taxa: ${Number(ev.taxa).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>` : ''}
 <div class="acoes-ev">${futuro ? `<button type="button" class="${euVou ? 'btn-verde' : 'btn-claro'}" id="btnEuVou">${euVou ? '<i class="fas fa-check"></i> Inscrito — toque para sair' : '<i class="far fa-calendar-check"></i> Eu vou'}</button>` : ''}<button type="button" class="btn-claro" data-album="${escapeHTML(id)}"><i class="fas fa-images"></i> Álbum</button></div></div>
@@ -1512,7 +1530,7 @@ renderAgenda(id, vista);
 });
 return;
 }
-const cartao = (e) => `<button type="button" class="ev-linha" data-agenda="${escapeHTML(e.id)}"><span class="d"><b>${e.data.slice(8, 10)}</b><small>${new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</small></span><span class="t"><b>${escapeHTML(e.nome || 'Evento')}</b><small>${escapeHTML(dataCurta(e.data))}${e.hora ? ` · ${escapeHTML(e.hora)}` : ''}${nucleoDe(e.academiaId) ? ` · ${escapeHTML(nomeCurtoNucleo(nucleoDe(e.academiaId).nome))}` : ' · Grupo'}</small></span><i class="fas fa-chevron-right"></i></button>`;
+const cartao = (e) => `<button type="button" class="ev-linha" data-agenda="${escapeHTML(e.id)}"><span class="d"><b>${escapeHTML(String(e.data).slice(8, 10))}</b><small>${new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</small></span><span class="t"><b>${escapeHTML(e.nome || 'Evento')}</b><small>${escapeHTML(dataCurta(e.data))}${e.hora ? ` · ${escapeHTML(e.hora)}` : ''}${nucleoDe(e.academiaId) ? ` · ${escapeHTML(nomeCurtoNucleo(nucleoDe(e.academiaId).nome))}` : ' · Grupo'}</small></span><i class="fas fa-chevron-right"></i></button>`;
 vista.innerHTML = `<div class="titulo-sec">Próximos eventos <span class="pill teal">${proximos.length}</span></div>
 <div class="card lista-ev">${proximos.map(cartao).join('') || '<p class="contador">Nenhum evento marcado. Quando o grupo marcar batizado, roda ou oficina, aparece aqui.</p>'}</div>
 ${passados.length ? `<div class="titulo-sec">Aconteceram <span class="contador">álbuns</span></div><div class="card lista-ev">${passados.map(cartao).join('')}</div>` : ''}`;

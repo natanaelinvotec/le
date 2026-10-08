@@ -14,6 +14,7 @@ import { avaliar, consolidar, resumirPresencas, porId, carteirinhaEmDia, benefic
 import { ESCOLA_PADRAO } from './escolas.js';
 import { prontidao } from './compartilhado/escola.js';
 import { notificar } from './notificar.js';
+import { escadaDaEscola } from './escada-escola.js';
 
 // Campos de usuarios/{uid} que mudam o cartão público. Mudança só em outros
 // campos (seguindo, salvos, faceDescriptor, brasoesTotal…) não recalcula nada.
@@ -26,7 +27,18 @@ export const CAMPOS_DO_CARTAO = [
 ];
 
 const semAcento = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-export const ehMenor = (u) => Number(u && u.idade) > 0 && Number(u.idade) < 18;
+// Idade: pela data de nascimento quando existe (AAAA-MM-DD); senão o campo idade.
+export function idadeDe(u, hoje = new Date()) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String((u && u.dataNasc) || ''));
+  if (m) {
+    let a = hoje.getUTCFullYear() - Number(m[1]);
+    const mes = hoje.getUTCMonth() + 1; const dia = hoje.getUTCDate();
+    if (mes < Number(m[2]) || (mes === Number(m[2]) && dia < Number(m[3]))) a -= 1;
+    if (a >= 0 && a < 120) return a;
+  }
+  return Number(u && u.idade) || 0;
+}
+export const ehMenor = (u) => { const i = idadeDe(u); return i > 0 && i < 18; };
 export const usoImagemOk = (u) => {
   const v = String((u && u.usoImagem) || '').toUpperCase();
   return v.startsWith('AUTORIZO') && !v.startsWith('NÃO') && !v.startsWith('NAO');
@@ -39,7 +51,9 @@ export async function carregarConfigBrasoes(ctx) {
   const s = await ctx.db.doc('config/brasoes').get();
   const cfg = { ...(s.exists ? s.data() : {}) };
   if (!cfg.nucleoFundadorId || !cfg.presidenteUid) {
-    const f = await ctx.db.collection('usuarios').where('acessoGeral', '==', true).limit(5).get();
+    // Fundador da escola nº 1 (os certificados com brasão são dela) — não um dono de outra escola.
+    const f0 = await ctx.db.collection('usuarios').where('acessoGeral', '==', true).limit(20).get();
+    const f = { docs: f0.docs.filter((d) => (d.data().escolaId || ESCOLA_PADRAO) === ESCOLA_PADRAO) };
     // O Fundador é quem tem Acesso Geral E administra um núcleo.
     const fund = f.docs.find((d) => d.data().academiaGerenciadaId) || f.docs[0];
     if (fund) {
@@ -79,9 +93,21 @@ export function mesesSeguidosPagos(pagamentos, { isento = false, criadoEm = null
   while (pagos.has(chave(d)) && n < 240) { n++; d = voltar(d); }
   return n;
 }
+// Auditoria 08/10: só valem mensalidades lançadas pelo núcleo do aluno (o atual ou o de onde
+// veio transferido), da mesma escola, e com competência até 12 meses à frente. Antes, o
+// responsável de QUALQUER núcleo lançava "pago até 2099" para qualquer aluno (carteirinha
+// válida para sempre e brasões de mensalidade).
+export function pagamentosValidos(pags, u, hoje = new Date()) {
+  const limite = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth() + 12, 1)).toISOString().slice(0, 7);
+  const nucleos = new Set([u && u.academiaId, u && u.academiaAnteriorId].filter(Boolean));
+  return (pags || []).filter((p) => p &&
+    (!p.academiaId || nucleos.has(p.academiaId)) &&
+    (!p.escolaId || !u || !u.escolaId || p.escolaId === u.escolaId) &&
+    String(p.competencia || '') <= limite);
+}
 export async function calcularResumoCompromisso(ctx, uid, u) {
   const snap = await ctx.db.collection('pagamentos').where('alunoId', '==', uid).limit(400).get();
-  return { mesesSeguidos: mesesSeguidosPagos(snap.docs.map((d) => d.data()), { isento: u.isentoMensalidade === true, criadoEm: u.criadoEm || null }), calculadoEm: new Date().toISOString() };
+  return { mesesSeguidos: mesesSeguidosPagos(pagamentosValidos(snap.docs.map((d) => d.data()), u), { isento: u.isentoMensalidade === true, criadoEm: u.criadoEm || null }), calculadoEm: new Date().toISOString() };
 }
 
 export async function calcularResumoRede(ctx, uid) {
@@ -126,6 +152,15 @@ export async function sincronizarPerfil(ctx, uid, refazer = {}) {
   const cfg = await carregarConfigBrasoes(ctx);
   const papeis = Array.isArray(u.papeis) ? u.papeis : [];
   const menor = ehMenor(u);
+  // Auditoria 08/10: o cartão público é lido por toda a escola — de menor não sai a idade
+  // exata (só "kids", que escolhe a escada infantil) nem a foto sem o termo de imagem.
+  const idadeReal = idadeDe(u);
+  let idadeKids = 12; // escola nº 1 (capoeira)
+  if ((u.escolaId || ESCOLA_PADRAO) !== ESCOLA_PADRAO) {
+    try { const esc = await escadaDaEscola(ctx, u.escolaId); idadeKids = esc && esc.kids ? (Number(esc.idadeKids) || 16) : 0; } catch (e) { idadeKids = 0; }
+  }
+  const kids = menor && idadeKids > 0 && idadeReal > 0 && idadeReal < idadeKids;
+  const fotoOk = /^(https:\/\/|data:image\/)/.test(u.fotoUrl || '') && (!menor || usoImagemOk(u));
 
   const resumoPresencas = (refazer.presencas || !pub || !pub.resumoPresencas || pub.resumoPresencas.treinouNoAniversario === undefined) ? await calcularResumoPresencas(ctx, uid, u.dataNasc || null) : pub.resumoPresencas;
   // Meses pagos custam uma consulta (só quando pedido ou na 1ª vez); os contadores do
@@ -152,11 +187,12 @@ export async function sincronizarPerfil(ctx, uid, refazer = {}) {
   const dados = {
     nome: u.nome || ((u.escolaId || ESCOLA_PADRAO) === ESCOLA_PADRAO ? 'Capoeirista' : 'Atleta'),
     nomeBusca: semAcento(u.nome),
-    fotoUrl: /^(https:\/\/|data:image\/)/.test(u.fotoUrl || '') ? u.fotoUrl : '',
+    fotoUrl: fotoOk ? u.fotoUrl : '',
     cordaoAtual: u.cordaoAtual || 'Iniciante',
     grausAtual: Math.max(0, Math.min(10, Number(u.grausAtual) || 0)), // faixas com graus (Jiu-Jitsu…)
-    idade: menor ? (Number(u.idade) || 0) : null, // idade só escolhe a escada kids; adulto não expõe
+    idade: null, // idade exata não vai para o cartão público (antes: idade do menor)
     menor,
+    kids,
     escolaId: u.escolaId || ESCOLA_PADRAO, // rede da escola x aba Global
     academiaId: u.academiaId || null,
     academiaNome: u.academiaNome || '',

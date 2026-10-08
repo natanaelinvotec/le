@@ -2081,7 +2081,7 @@ class Component extends DCLogic {
       } else if (sol.tipo === 'transferencia') {
         await this._FB.atualizar('usuarios', sol.dadosPedido.alunoUid, {
           academiaId: sol.dadosPedido.destinoId, academiaNome: sol.dadosPedido.destinoNome,
-          academiaAnteriorId: sol.academiaId, origemTransferenciaDireta: true,
+          academiaAnteriorId: sol.academiaId, origemTransferenciaDireta: true, transferenciaId: sol.id,
         });
       } else if (sol.tipo === 'vinculo_familia') {
         await this._FB.aprovarVinculoFamilia(sol.solicitanteUid, sol.dadosPedido.alunoRelacionadoUid);
@@ -2227,7 +2227,7 @@ class Component extends DCLogic {
         tipo: TIPOS_MATERIAL.indexOf(m.tipo) !== -1 ? m.tipo : (TIPOS_MATERIAL[0] || 'Videoaula'),
         titulo: m.titulo || 'Material',
         desc: m.descricao || '',
-        link: m.url || '#',
+        link: /^https:\/\//i.test(String(m.url || '')) ? m.url : '#', // só https (auditoria 08/10: "javascript:" rodaria no toque)
         capa: '',
         destino: 'Todas as academias',
       }));

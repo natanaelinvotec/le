@@ -59,6 +59,15 @@ function desenharBeneficiario(c) {
 }
 
 function desenhar(c) {
+  // Carteirinha de outra escola da plataforma: o topo mostra a escola dela.
+  if (c.escola && c.escola.nome) {
+    const topo = document.querySelector('.v-topo');
+    if (topo) {
+      const img = topo.querySelector('img'); const small = topo.querySelector('small');
+      if (img) { if (/^https:\/\/firebasestorage\.googleapis\.com\//.test(String(c.escola.logo || ''))) { img.src = c.escola.logo; img.alt = `Logo ${c.escola.nome}`; } else img.remove(); }
+      if (small) small.textContent = c.escola.nome;
+    }
+  }
   if (c.tipo === 'beneficiario') { desenharBeneficiario(c); return; }
   const sit = situacao(c);
   const s = {
@@ -74,7 +83,7 @@ function desenhar(c) {
     <section class="ficha" aria-label="Dados do atleta">
       <div class="ficha-topo">
         <div class="ficha-av" style="background:${faixas(c.cores, '180deg')}"><div>${foto ? `<img src="${esc(foto)}" alt="Foto do atleta" referrerpolicy="no-referrer">` : esc(iniciais(c.nome))}</div></div>
-        <span class="t"><strong>${esc(c.nome || 'Atleta')}</strong><span class="ficha-cordao"><i style="background:${faixas(c.cores)}"></i>Cordão ${esc(c.cordao || '')}</span></span>
+        <span class="t"><strong>${esc(c.nome || 'Atleta')}</strong><span class="ficha-cordao"><i style="background:${faixas(c.cores)}"></i>${c.rotulo ? esc(c.rotulo) : `Cordão ${esc(c.cordao || '')}`}</span></span>
       </div>
       <div class="ficha-campos">
         <span><b>NÚCLEO</b><em>${esc(c.nucleo || '—')}</em></span>

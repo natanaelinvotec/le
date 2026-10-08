@@ -7,6 +7,7 @@ import { notificar, gestoresDoNucleo } from './notificar.js';
 import { responsaveisDe, apagarSubcolecao, apagarArquivosDoStorage } from './gatilhos.js';
 import { migrarEscolaId, migrarClaims, migrarEscolasPublicas, migrarEscolaId1c, ESCOLA_PADRAO } from './escolas.js';
 import { testarEmail } from './emails.js';
+import { ehOutraEscola, idAvisoGraduacao } from './graduacao-escola.js';
 
 const DIA = 86400000;
 
@@ -48,8 +49,12 @@ export async function rotinaDiaria(ctx) {
   r.perfis = await emPaginas(ctx.db.collection('usuarios').orderBy('__name__'), async (d) => {
     await sincronizarPerfil(ctx, d.id, { presencas: true, compromisso: true, formacao: true }).catch(() => null); // presenças, mensalidades e tempo de grupo mudam com o calendário; formação só consulta para quem gerencia núcleo
     if (temCarteirinha(d.data())) { await sincronizarCarteirinha(ctx, d.id).then(() => { r.carteirinhas++; }).catch(() => null); }
-    await alinharAoCordaoAtual(ctx, d.id, d.data()).catch(() => null);
-    r.certificados = (r.certificados || 0) + await conferirCertificados(ctx, d.id, d.data()).catch(() => 0);
+    // Certificados de cordão (escada da capoeira) são só da escola nº 1; as outras escolas têm
+    // o certificado de faixa emitido na hora da graduação (certificado-escola.js).
+    if (!ehOutraEscola(d.data())) {
+      await alinharAoCordaoAtual(ctx, d.id, d.data()).catch(() => null);
+      r.certificados = (r.certificados || 0) + await conferirCertificados(ctx, d.id, d.data()).catch(() => 0);
+    }
   });
   // 5. Conversas de menores sem o responsável legal anotado.
   const conv = await ctx.db.collection('conversas').where('envolveMenor', '==', true).limit(300).get();
@@ -110,6 +115,7 @@ export async function migrarConversas(ctx) {
 export async function migrarCertificados(ctx) {
   let n = 0;
   await emPaginas(ctx.db.collection('usuarios').orderBy('__name__'), async (d) => {
+    if (ehOutraEscola(d.data())) return;
     n += await conferirCertificados(ctx, d.id, d.data()).catch((e) => { (ctx.log || console).warn('certificados', d.id, e && e.message); return 0; });
   });
   return n;
@@ -118,6 +124,7 @@ export async function migrarCertificados(ctx) {
 export async function migrarCordoesQueVoltaram(ctx) {
   let n = 0;
   await emPaginas(ctx.db.collection('usuarios').orderBy('__name__'), async (d) => {
+    if (ehOutraEscola(d.data())) return;
     const r = await alinharAoCordaoAtual(ctx, d.id, d.data()).catch(() => null);
     if (r && (r.certificados || r.trocas)) { n++; await sincronizarPerfil(ctx, d.id, { presencas: true, rede: true, formacao: true }).catch(() => null); }
   });
@@ -182,13 +189,25 @@ export async function excluirConta(ctx, uid, { porUid = null, porNome = '' } = {
   }
   const msgs = await ctx.db.collectionGroup('mensagens').where('autorUid', '==', uid).limit(2000).get();
   for (const d of msgs.docs) { await d.ref.delete(); r.mensagensGrupo++; }
+  // Auditoria 08/10 (LGPD): também os comentários em posts de OUTRAS pessoas, as inscrições em
+  // campeonatos (nome, foto, idade, peso), a assinatura e o cadastro de dono de escola.
+  r.comentarios = 0; r.inscricoes = 0;
+  try {
+    const cs = await ctx.db.collectionGroup('comentarios').where('autorUid', '==', uid).limit(2000).get();
+    for (const d of cs.docs) { await d.ref.delete(); r.comentarios++; }
+  } catch (e) { (ctx.log || console).warn('LGPD comentários', uid, e && e.message); }
+  try {
+    const is = await ctx.db.collectionGroup('inscricoes').where('uid', '==', uid).limit(500).get();
+    for (const d of is.docs) { await d.ref.delete(); r.inscricoes++; }
+  } catch (e) { (ctx.log || console).warn('LGPD inscrições', uid, e && e.message); }
+  for (const c of [`assinaturas/${uid}`, `beneficiarios/${uid}`, `donos/${uid}`]) await ctx.db.doc(c).delete().catch(() => {});
   await apagarSubcolecao(ctx, `notificacoes/${uid}/itens`);
   await apagarSubcolecao(ctx, `usuarios/${uid}/dispositivos`);
   await apagarSubcolecao(ctx, `usuarios/${uid}/avaliacoes`);
   await ctx.db.doc(`perfisPublicos/${uid}`).delete().catch(() => {});
   await ctx.db.doc(`apresentacoes/${uid}`).delete().catch(() => {});
   if (ctx.bucket) {
-    for (const prefixo of [`rede/${uid}/`, `fotos/${uid}/`, `apresentacoes/${uid}/`, `carteirinha/${uid}/`]) {
+    for (const prefixo of [`rede/${uid}/`, `fotos/${uid}/`, `apresentacoes/${uid}/`, `carteirinha/${uid}/`, `assinaturas/${uid}/`]) {
       try { await ctx.bucket.deleteFiles({ prefix: prefixo }); } catch (e) { /* ok */ }
     }
   }
@@ -270,14 +289,19 @@ export async function desfazerGraduacao(ctx, c, { porUid = null, porNome = '' } 
   const troca = hist[i];
   const anterior = troca.anterior || 'Iniciante';
   const motivo = String(c.motivo || '').slice(0, 200);
-  await ref.update({ cordaoAtual: anterior, historicoGraduacoes: hist.slice(0, i) });
-  const codigo = await cancelarCertificado(ctx, uid, `${cordao}|${em}`, motivo || 'Graduação desfeita pelo Admin Master');
-  // A festa "Troquei de cordão" que ainda não apareceu não aparece mais.
-  const idAviso = idAvisoCordao(troca, uid);
+  const outra = ehOutraEscola(u);
+  // Escola de faixa: volta ao grau de antes da troca (anteriorGrau, gravado pelo painel).
+  // Grau da troca desfeita: o da linha (grau novo) ou o grau atual da faixa (faixa nova).
+  const grauDaTroca = troca.anterior === cordao ? Number(troca.grau) || 0 : Number(u.grausAtual) || 0;
+  await ref.update({ cordaoAtual: anterior, historicoGraduacoes: hist.slice(0, i), ...(outra ? { grausAtual: Number(troca.anteriorGrau) || 0 } : {}) });
+  const chave = outra ? `${cordao}|${grauDaTroca}|${em.slice(0, 19)}` : `${cordao}|${em}`;
+  const codigo = await cancelarCertificado(ctx, uid, chave, motivo || 'Graduação desfeita pelo Admin Master');
+  // A festa que ainda não apareceu não aparece mais.
+  const idAviso = outra ? idAvisoGraduacao(cordao, grauDaTroca) : idAvisoCordao(troca, uid);
   for (const dono of [uid, u.responsavelUid].filter(Boolean)) await ctx.db.doc(`notificacoes/${dono}/itens/${idAviso}`).delete().catch(() => {});
   await ctx.db.doc(`lembretes/${idAviso}`).delete().catch(() => {});
-  // Certificados sem data de cordões acima do que ficou também saem.
-  await cancelarAcimaDe(ctx, uid, u, anterior, motivo || 'Graduação desfeita pelo Admin Master');
+  // Certificados sem data de cordões acima do que ficou também saem (escada da capoeira).
+  if (!outra) await cancelarAcimaDe(ctx, uid, u, anterior, motivo || 'Graduação desfeita pelo Admin Master');
   await notificar(ctx, await gestoresDoNucleo(ctx, u.academiaId), {
     tipo: 'graduacao', titulo: 'Graduação desfeita — registre de novo',
     texto: `${String(u.nome || 'Atleta').split(' ')[0]} voltou para o cordão ${anterior}${motivo ? ` (${motivo})` : ''}. Registre a troca de novo em Graduação.`,

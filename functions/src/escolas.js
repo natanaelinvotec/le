@@ -219,10 +219,46 @@ export async function migrarClaims(ctx) {
 // atualiza o login (custom claims) quando é um cadastro, e não repete o
 // gatilho quando a única mudança foi a nossa etiqueta.
 const CAMPOS_DOS_CLAIMS = ['papeis', 'academiaId', 'academiaGerenciadaId', 'acessoGeral', 'escolaId'];
+
+// Auditoria 08/10 (defesa em profundidade): a escola de um cadastro sai do núcleo dele, então
+// apontar academiaId/academiaGerenciadaId para um núcleo de OUTRA escola mudaria a pessoa de
+// escola (e o login dela). Isso só o Admin da plataforma ou o próprio servidor fazem; vindo de
+// qualquer outra pessoa, o servidor DESFAZ a troca de núcleo em vez de trocar a escola.
+// Escrita do próprio servidor (Admin SDK / rotinas / Console)? Não dá para confiar só no authType:
+// no Firestore ele vem como 'service_account' ou 'system' para o servidor, e o app pode chegar como
+// 'app_user', 'api_key' ou 'unknown' (varia). Uid de pessoa nunca tem '@' (conta de serviço tem).
+export const escritaDoServidor = (ev) => !ev || !ev.authId || ['service_account', 'system'].includes(ev.authType) ||
+  /@|gserviceaccount/.test(String(ev.authId));
+export async function trocaDeEscolaAutorizada(ctx, ev) {
+  if (escritaDoServidor(ev)) return true;
+  const s = await ctx.db.doc(`usuarios/${ev.authId}`).get();
+  return !!(s.exists && Array.isArray(s.data().papeis) && s.data().papeis.includes('admin'));
+}
+export async function barrarTrocaDeEscola(ctx, id, ev) {
+  const { antes, depois } = ev;
+  if (!antes || !depois || !antes.escolaId) return false;
+  if ((antes.academiaId ?? null) === (depois.academiaId ?? null) && (antes.academiaGerenciadaId ?? null) === (depois.academiaGerenciadaId ?? null)) return false;
+  const certa = await escolaDe(ctx, 'usuarios', depois, id);
+  if (!certa || certa === antes.escolaId) return false;
+  if (await trocaDeEscolaAutorizada(ctx, ev)) return false;
+  (ctx.log || console).warn('troca de escola barrada', id, antes.escolaId, '→', certa, 'por', ev.authId);
+  await ctx.db.doc(`usuarios/${id}`).update({
+    academiaId: antes.academiaId ?? null, academiaNome: antes.academiaNome ?? null,
+    academiaGerenciadaId: antes.academiaGerenciadaId ?? null, escolaId: antes.escolaId,
+  });
+  await ctx.db.collection('auditoria').add({
+    escolaId: antes.escolaId, quando: new Date().toISOString(), quemUid: ev.authId || null, quemNome: '', colecao: 'usuarios', docId: id,
+    alvoNome: String(antes.nome || '').slice(0, 80), acao: 'troca de escola barrada', campos: ['academiaId', 'academiaGerenciadaId'],
+    resumo: `Tentativa de mover o cadastro para a escola ${certa} desfeita pelo servidor.`, antes: null, depois: null,
+  });
+  return true;
+}
+
 export function comEscola(colecao, handler) {
   return async (ctx, ev) => {
     const id = ev.params && Object.values(ev.params)[0];
     let e = ev;
+    if (colecao === 'usuarios' && id && (await barrarTrocaDeEscola(ctx, id, e))) return null;
     if (e.depois && id) {
       const nova = await etiquetarEscola(ctx, colecao, id, e.depois);
       if (nova) e = { ...e, depois: { ...e.depois, escolaId: nova } };

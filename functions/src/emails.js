@@ -14,6 +14,7 @@
 // não tem conta não recebe nada e o app responde igual (não revela quem tem conta).
 import { createHash } from 'node:crypto';
 import { ESCOLA_PADRAO } from './escolas.js';
+import { notificar, admins } from './notificar.js';
 
 export const URL_CONTA = 'https://atletapay.com.br/conta';
 // Para onde o link pode devolver a pessoa (mesma lista de atletapay/js/conta.js).
@@ -44,26 +45,32 @@ export function linkDaPlataforma(linkFirebase, modo) {
 }
 
 // Limites (contador por e-mail e geral). Devolve true se pode enviar (e já conta o envio).
+// Numa transação (auditoria 08/10): pedidos simultâneos para o mesmo e-mail não furam o limite.
 export async function dentroDoLimite(ctx, email, agora = Date.now()) {
   const ref = ctx.db.doc(`limitesEmail/${hashEmail(email)}`);
-  const s = await ref.get();
-  const envios = (s.exists && Array.isArray(s.data().envios) ? s.data().envios : []).filter((t) => agora - t < 86400000);
-  if (envios.filter((t) => agora - t < 3600000).length >= LIMITE.hora || envios.length >= LIMITE.dia) return false;
-  const horaId = new Date(agora).toISOString().slice(0, 13);
   const gref = ctx.db.doc('limitesEmail/_geral');
-  const g = await gref.get();
-  const n = g.exists && g.data().hora === horaId ? Number(g.data().n) || 0 : 0;
-  if (n >= LIMITE.geralHora) return false;
-  await gref.set({ hora: horaId, n: n + 1 });
-  await ref.set({ envios: [...envios, agora], atualizadoEm: new Date(agora).toISOString() });
-  return true;
+  const horaId = new Date(agora).toISOString().slice(0, 13);
+  return ctx.db.runTransaction(async (t) => {
+    const s = await t.get(ref);
+    const g = await t.get(gref);
+    const envios = (s.exists && Array.isArray(s.data().envios) ? s.data().envios : []).filter((x) => agora - x < 86400000);
+    if (envios.filter((x) => agora - x < 3600000).length >= LIMITE.hora || envios.length >= LIMITE.dia) return false;
+    const n = g.exists && g.data().hora === horaId ? Number(g.data().n) || 0 : 0;
+    if (n >= LIMITE.geralHora) return false;
+    t.set(gref, { hora: horaId, n: n + 1 });
+    t.set(ref, { envios: [...envios, agora], atualizadoEm: new Date(agora).toISOString() });
+    return true;
+  });
 }
 
 // Cara do e-mail: a escola da pessoa (cartão público) ou a AtletaPay.
 export async function marcaDoEmail(ctx, email) {
   const padrao = { nome: 'AtletaPay', curto: 'AtletaPay', logo: null, cor: '#1E2A78', acento: '#FF7A1A' };
   let uid = null;
-  try { uid = (await ctx.auth.getUserByEmail(email)).uid; } catch (e) { return { ...padrao, existe: false }; }
+  try { uid = (await ctx.auth.getUserByEmail(email)).uid; } catch (e) {
+    if (e && e.code === 'auth/user-not-found') return { ...padrao, existe: false };
+    throw e; // falha de verdade (rede, cota) aparece no log em vez de virar "sem conta"
+  }
   try {
     const u = await ctx.db.doc(`usuarios/${uid}`).get();
     const escolaId = u.exists ? (u.data().escolaId || ESCOLA_PADRAO) : null;
@@ -138,16 +145,21 @@ export async function configEmail(ctx) {
 // Gatilho de pedidosEmail/{id}. Devolve o que aconteceu (para os testes).
 export async function atenderPedidoEmail(ctx, id, p) {
   const ref = ctx.db.doc(`pedidosEmail/${id}`);
-  const fim = async (r) => { await ref.delete().catch(() => {}); return r; };
   if (!p) return null;
+  // O pedido (com o e-mail) é apagado SEMPRE, mesmo se o envio falhar (auditoria 08/10).
+  try { return await atender(ctx, p); } finally { await ref.delete().catch(() => {}); }
+}
+async function atender(ctx, p) {
   const email = String(p.email || '').trim().toLowerCase();
   const tipo = p.tipo === 'confirmar' ? 'confirmar' : 'senha';
-  if (!EMAIL_OK.test(email)) return fim('email-invalido');
+  if (!EMAIL_OK.test(email)) return 'email-invalido';
   const cfg = await configEmail(ctx);
-  if (!cfg) return fim('sem-servico');
-  if (!(await dentroDoLimite(ctx, email))) return fim('limite');
+  if (!cfg) return 'sem-servico';
+  // Conta primeiro, limite depois: pedidos para e-mails que não existem não gastam a cota
+  // geral (antes, um script anônimo esgotava os 300/hora e ninguém recebia a nova senha).
   const marca = await marcaDoEmail(ctx, email);
-  if (!marca.existe) return fim('sem-conta'); // não revela: o app mostra a mesma mensagem
+  if (!marca.existe) return 'sem-conta'; // não revela: o app mostra a mesma mensagem
+  if (!(await dentroDoLimite(ctx, email))) return 'limite';
   const volta = voltaSegura(p.voltarPara || '');
   const ajustes = volta ? { url: volta } : undefined;
   let linkFb;
@@ -160,7 +172,7 @@ export async function atenderPedidoEmail(ctx, id, p) {
   const link = linkDaPlataforma(linkFb, tipo === 'senha' ? 'resetPassword' : 'verifyEmail');
   const m = montarEmail(tipo, { link, marca });
   await enviar(ctx, cfg, { para: email, ...m });
-  return fim('enviado');
+  return 'enviado';
 }
 
 // Pedido "Testar e-mail" do Mega painel: manda um e-mail de teste ao próprio Admin e
@@ -174,9 +186,35 @@ export async function testarEmail(ctx, emailAdmin) {
   try {
     await enviar(ctx, cfg, { para: emailAdmin, assunto: 'Teste de e-mail · AtletaPay', html: m.html.replace('Crie uma senha nova', 'E-mail funcionando'), txt: m.txt });
   } catch (e) {
-    await pub.set({ emailsProprios: false, erroEmail: String(e.message || e).slice(0, 300), atualizadoEm: new Date().toISOString() }, { merge: true });
+    // plataforma/publico é de leitura PÚBLICA: só o código do erro vai para lá (o corpo da
+    // resposta do serviço pode trazer o e-mail da conta). O detalhe volta no comando (só Admin lê).
+    const codigo = /respondeu (\d{3})/.exec(String(e && e.message))?.[1];
+    await pub.set({ emailsProprios: false, erroEmail: codigo ? `O serviço recusou o envio (código ${codigo}). Veja o detalhe no resultado do teste.` : 'O envio falhou. Veja o detalhe no resultado do teste.', atualizadoEm: new Date().toISOString() }, { merge: true });
     throw e;
   }
   await pub.set({ emailsProprios: true, provedorEmail: cfg.provedor, remetenteEmail: cfg.remetente || 'noreply@atletapay.com.br', nomeRemetente: cfg.nomeRemetente || 'AtletaPay', erroEmail: null, testadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString() }, { merge: true });
   return { enviadoPara: emailAdmin, provedor: cfg.provedor };
+}
+
+// Trilha da chave do serviço de e-mail (auditoria 08/10): quem tem a chave consegue ler os
+// links de nova senha que saem por ela. Toda troca vira registro na auditoria (só o Admin lê)
+// e aviso para os Admins — se não foi você, desligue e gere outra chave no serviço.
+export async function aoEscreverSegredo(ctx, ev) {
+  const id = ev.params && ev.params.id;
+  const d = ev.depois; const a = ev.antes;
+  const acao = !d ? 'apagou' : !a ? 'cadastrou' : (d.chave !== a.chave ? 'trocou a chave de' : 'alterou');
+  const desligou = !!(d && /^desligado/.test(String(d.chave || '')));
+  const quando = new Date().toISOString();
+  await ctx.db.collection('auditoria').add({
+    escolaId: null, quando, quemUid: ev.authId || (d && d.porUid) || null, quemNome: '', colecao: 'segredos', docId: id,
+    alvoNome: 'E-mails da plataforma', acao: `${acao} o serviço de e-mail`, campos: d ? Object.keys(d).filter((k) => k !== 'chave') : [],
+    resumo: desligou ? 'E-mails da plataforma desligados pelo Mega painel.' : `Serviço ${d ? d.provedor : '-'} · remetente ${d ? d.remetente || '-' : '-'} (a chave não é registrada)`,
+    antes: null, depois: null,
+  });
+  await notificar(ctx, await admins(ctx), {
+    tipo: 'seguranca', titulo: desligou ? 'E-mails da plataforma desligados' : 'Chave de e-mail da plataforma alterada',
+    texto: desligou ? 'Os pedidos de nova senha voltaram para o e-mail padrão do Firebase.' : 'Se não foi você, desligue em Configurações no Mega painel e gere outra chave no serviço.',
+    link: 'admin.html', // o Mega painel fica em atletapay.com.br/master (outro site)
+  }, { idFixo: `segredo_${quando.slice(0, 13)}` });
+  return acao;
 }

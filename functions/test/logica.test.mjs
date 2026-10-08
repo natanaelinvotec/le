@@ -51,7 +51,9 @@ test('cartão público calculado no servidor: presenças, brasões, menor privad
   assert.equal(notifs(f, 'nat').length, 0, 'a 1ª sincronização não notifica');
   await sincronizarPerfil(ctx, 'kid');
   const kid = f.ler('perfisPublicos/kid');
-  assert.equal(kid.menor, true); assert.equal(kid.privado, true); assert.equal(kid.idade, 10); assert.equal(kid.usoImagemOk, false);
+  assert.equal(kid.menor, true); assert.equal(kid.privado, true); assert.equal(kid.usoImagemOk, false);
+  assert.equal(kid.idade, null, 'idade exata do menor não vai para o cartão público');
+  assert.equal(kid.kids, true, 'só a marca "kids" (escada infantil)');
 });
 
 test('concessão do Admin vira brasão + notificação; Presidente não se concede', async () => {
@@ -320,15 +322,18 @@ test('carteirinha: foto aprovada vira pública só para adulto; menor nunca; con
   // Tentativa de aprovar arquivo de OUTRA pessoa é ignorada.
   await aoEscreverFotoCarteirinha(ctx, { params: { uid: 'nat' }, antes: null, depois: { status: 'aprovada', caminho: 'fotos/tay/x.jpg', url: 'https://x' } });
   assert.equal(f.ler('carteirinhasIndice/nat'), undefined);
-  await aoEscreverFotoCarteirinha(ctx, { params: { uid: 'nat' }, antes: { status: 'pendente', caminho: 'carteirinha/nat/1.jpg' }, depois: { status: 'aprovada', caminho: 'carteirinha/nat/1.jpg', url: 'https://firebasestorage.googleapis.com/v0/b/b/o/carteirinha%2Fnat%2F1.jpg?alt=media&token=t' } });
+  await aoEscreverFotoCarteirinha(ctx, { params: { uid: 'nat' }, antes: { status: 'pendente', caminho: 'carteirinha/nat/1.jpg' }, depois: { status: 'aprovada', caminho: 'carteirinha/nat/1.jpg', url: 'https://firebasestorage.googleapis.com/v0/b/teste.firebasestorage.app/o/carteirinha%2Fnat%2F1.jpg?alt=media&token=t' } });
   const ind = f.ler('carteirinhasIndice/nat');
   assert.equal(ind.fotoAprovadaCaminho, 'carteirinha/nat/1.jpg');
   assert.ok(ind.fotoPublicaCaminho.startsWith(`carteirinha-publica/${ind.codigo}-`));
   assert.ok(bucket.arquivos.has(ind.fotoPublicaCaminho));
   assert.match(f.ler(`carteirinhas/${ind.codigo}`).foto, /carteirinha-publica%2F/);
-  assert.equal(f.ler('usuarios/nat').carteirinha.fotoUrl, 'https://firebasestorage.googleapis.com/v0/b/b/o/carteirinha%2Fnat%2F1.jpg?alt=media&token=t');
+  assert.equal(f.ler('usuarios/nat').carteirinha.fotoUrl, 'https://firebasestorage.googleapis.com/v0/b/teste.firebasestorage.app/o/carteirinha%2Fnat%2F1.jpg?alt=media&token=t');
   assert.equal(f.ler(`carteirinhas/${ind.codigo}`).fotoAprovada, true);
   assert.ok(notifs(f, 'nat').some((n) => n.titulo === 'Carteirinha pronta!'));
+  // Link do mesmo caminho em OUTRO bucket não vale (auditoria 08/10).
+  const { urlDoArquivo } = await import('../src/carteirinha.js');
+  assert.equal(await urlDoArquivo({ bucket: { name: 'teste.firebasestorage.app', file: () => ({ getMetadata: async () => [{}] }) } }, 'carteirinha/nat/1.jpg', 'https://firebasestorage.googleapis.com/v0/b/outro-bucket/o/carteirinha%2Fnat%2F1.jpg?alt=media&token=t'), '');
   // Adulto que NÃO autorizou uso de imagem: aprovada, mas sem foto pública.
   bucket.arquivos.set('carteirinha/mae/1.jpg', { tam: 10 });
   await f.db.doc('usuarios/mae').update({ usoImagem: 'NÃO AUTORIZO' });
@@ -1053,4 +1058,188 @@ test('e-mails: Testar no Mega painel liga os e-mails próprios só se o envio fu
   assert.equal(f.ler('plataforma/publico').emailsProprios, true);
   assert.equal(corpo.url, 'https://api.brevo.com/v3/smtp/email'); assert.equal(corpo.h['api-key'], 'xkeysib-teste');
   assert.deepEqual(corpo.b.to, [{ email: 'admin@ex.com' }]);
+});
+
+/* ===================== auditoria de segurança (08/10) ===================== */
+import { barrarTrocaDeEscola } from '../src/escolas.js';
+import { membros } from '../src/notificar.js';
+import { pagamentosValidos } from '../src/perfil.js';
+
+function baseDuasEscolas() {
+  return base({
+    nucleos: {
+      profeta: { nome: 'Academia Mestre Profeta', professorUid: 'profeta', escolaId: 'liberdade' },
+      taynara: { nome: 'Academia Professora Taynara', professorUid: 'tay', escolaId: 'liberdade' },
+      'ct-sede': { nome: 'CT Dragão', professorUid: 'dono', escolaId: 'ct' },
+    },
+  });
+}
+
+test('segurança: mudar alguém de ESCOLA pelo núcleo só o Admin; vindo de outra pessoa o servidor desfaz', async () => {
+  const { f, ctx } = ctxDe(baseDuasEscolas());
+  f.db.doc('usuarios/dono').set({ nome: 'Dono CT', papeis: ['aluno', 'mestre'], acessoGeral: true, academiaId: 'ct-sede', academiaGerenciadaId: 'ct-sede', escolaId: 'ct' });
+  await f.db.doc('usuarios/nat').update({ escolaId: 'liberdade' });
+  const antes = f.ler('usuarios/nat');
+  const depois = { ...antes, academiaId: 'ct-sede' };
+  await f.db.doc('usuarios/nat').set(depois);
+  // dono de outra escola (pessoa logada) tentando puxar o aluno: desfeito
+  assert.equal(await barrarTrocaDeEscola(ctx, 'nat', { antes, depois, authId: 'dono', authType: 'app_user' }), true);
+  assert.equal(f.ler('usuarios/nat').academiaId, 'taynara');
+  assert.equal(f.ler('usuarios/nat').escolaId, 'liberdade');
+  assert.ok(Object.values(f.lerCol('auditoria')).some((a) => a.acao === 'troca de escola barrada'));
+  // o app pode chegar como 'api_key' ou 'unknown' (varia no Firestore): continua barrado
+  await f.db.doc('usuarios/nat').set(depois);
+  assert.equal(await barrarTrocaDeEscola(ctx, 'nat', { antes, depois, authId: 'dono', authType: 'api_key' }), true);
+  await f.db.doc('usuarios/nat').set(depois);
+  assert.equal(await barrarTrocaDeEscola(ctx, 'nat', { antes, depois, authId: 'dono', authType: 'unknown' }), true);
+  // conta de serviço (servidor) com e-mail no authId: passa
+  assert.equal(await barrarTrocaDeEscola(ctx, 'nat', { antes, depois, authId: 'firebase-adminsdk@x.iam.gserviceaccount.com', authType: 'unknown' }), false);
+  // Admin da plataforma pode; servidor (Admin SDK) também
+  assert.equal(await barrarTrocaDeEscola(ctx, 'nat', { antes, depois, authId: 'admin', authType: 'app_user' }), false);
+  assert.equal(await barrarTrocaDeEscola(ctx, 'nat', { antes, depois, authId: null, authType: 'service_account' }), false);
+  // troca de núcleo DENTRO da escola não é barrada
+  assert.equal(await barrarTrocaDeEscola(ctx, 'nat', { antes, depois: { ...antes, academiaId: 'profeta' }, authId: 'tay', authType: 'app_user' }), false);
+});
+
+test('segurança: aviso sem núcleo vai só para a escola dele (antes ia para a plataforma inteira)', async () => {
+  const { f, ctx } = ctxDe(baseDuasEscolas());
+  for (const u of ['profeta', 'tay', 'nat', 'kid', 'mae', 'admin']) await f.db.doc(`usuarios/${u}`).update({ escolaId: 'liberdade' });
+  f.db.doc('usuarios/dono').set({ nome: 'Dono CT', papeis: ['aluno'], academiaId: 'ct-sede', escolaId: 'ct' });
+  assert.deepEqual(await membros(ctx, null, 'ct'), ['dono']);
+  assert.ok(!(await membros(ctx, null, 'liberdade')).includes('dono'));
+  assert.deepEqual(await membros(ctx, null, null), [], 'sem núcleo e sem escola: ninguém');
+  await G.aoEscreverAviso(ctx, { params: { id: 'a1' }, antes: null, depois: { titulo: 'Treino cancelado', texto: 'x', academiaId: null, escolaId: 'ct' } });
+  assert.equal(notifs(f, 'nat').length, 0, 'aluno da Liberdade não recebe aviso do CT');
+  assert.equal(notifs(f, 'dono').length, 1);
+});
+
+test('segurança: carteirinha e brasões só contam mensalidade do núcleo do aluno, da mesma escola, até 12 meses à frente', () => {
+  const u = { academiaId: 'taynara', academiaAnteriorId: 'profeta', escolaId: 'liberdade' };
+  const hoje = new Date(Date.UTC(2026, 9, 8));
+  const pags = [
+    { pago: true, competencia: '2026-10', academiaId: 'taynara', escolaId: 'liberdade' },
+    { pago: true, competencia: '2026-05', academiaId: 'profeta' },
+    { pago: true, competencia: '2099-12', academiaId: 'taynara' },
+    { pago: true, competencia: '2026-11', academiaId: 'ct-sede', escolaId: 'ct' },
+    { pago: true, competencia: '2026-11', academiaId: 'taynara', escolaId: 'ct' },
+  ];
+  assert.deepEqual(pagamentosValidos(pags, u, hoje).map((p) => p.competencia), ['2026-10', '2026-05']);
+});
+
+test('segurança: e-mail de quem não tem conta não gasta a cota geral; o pedido some mesmo se o envio falhar', async () => {
+  const { f, ctx } = ctxDe(base());
+  ctx.auth.getUserByEmail = async (e) => { if (e === 'nat@ex.com') return { uid: 'nat' }; const er = new Error('no user'); er.code = 'auth/user-not-found'; throw er; };
+  ctx.auth.generatePasswordResetLink = async (e) => `https://capoeira-liberdade.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=OOB-${e}`;
+  f.db.doc('segredos/email').set({ provedor: 'resend', chave: 're_teste_123' });
+  for (let i = 0; i < 5; i++) assert.equal(await EM.atenderPedidoEmail(ctx, `x${i}`, { tipo: 'senha', email: `ninguem${i}@ex.com` }), 'sem-conta');
+  assert.equal(f.ler('limitesEmail/_geral'), undefined, 'cota geral intacta');
+  ctx.fetch = async () => ({ ok: false, status: 500, text: async () => 'fora do ar' });
+  f.db.doc('pedidosEmail/p9').set({ tipo: 'senha', email: 'nat@ex.com' });
+  await assert.rejects(() => EM.atenderPedidoEmail(ctx, 'p9', f.ler('pedidosEmail/p9')), /500/);
+  assert.equal(f.ler('pedidosEmail/p9'), undefined, 'pedido (com o e-mail) apagado mesmo com falha');
+  // teste do Mega painel que falha: o público só vê o código, nunca a resposta do serviço
+  await assert.rejects(() => EM.testarEmail(ctx, 'admin@ex.com'), /500/);
+  assert.ok(!/fora do ar/.test(f.ler('plataforma/publico').erroEmail));
+  assert.match(f.ler('plataforma/publico').erroEmail, /código 500/);
+});
+
+test('segurança: troca da chave de e-mail fica na auditoria (sem a chave) e avisa os Admins', async () => {
+  const { f, ctx } = ctxDe(base());
+  await EM.aoEscreverSegredo(ctx, { params: { id: 'email' }, antes: null, depois: { provedor: 'resend', chave: 're_secreta_999', remetente: 'noreply@atletapay.com.br', porUid: 'admin' }, authId: 'admin' });
+  const a = Object.values(f.lerCol('auditoria'))[0];
+  assert.match(a.acao, /cadastrou/);
+  assert.ok(!JSON.stringify(a).includes('re_secreta_999'), 'a chave não vai para a auditoria');
+  assert.equal(notifs(f, 'admin').length, 1);
+});
+
+test('segurança: pódio só com inscritos; o post do campeonato fica na escola do campeonato', async () => {
+  const { f, ctx } = ctxDe(base());
+  await f.db.doc('usuarios/tay').update({ escolaId: 'liberdade' });
+  f.db.doc('campeonatos/c9/inscricoes/nat').set({ uid: 'nat', nome: 'Natanael Silva' });
+  const depois = { nome: 'Copa', status: 'encerrado', escolaId: 'liberdade', organizadorUid: 'tay', podios: [{ categoriaNome: 'Adulto', podio: ['nat', 'intruso'], atletas: [{ uid: 'nat', nome: 'Natanael Silva' }, { uid: 'intruso', nome: 'Phishing' }] }] };
+  f.db.doc('campeonatos/c9').set(depois);
+  await aoEscreverCampeonato(ctx, { params: { id: 'c9' }, antes: { ...depois, status: 'andamento' }, depois });
+  assert.equal(notifs(f, 'intruso').length, 0, 'quem não se inscreveu não "ganha" pódio');
+  assert.equal(notifs(f, 'nat').length, 1);
+  const post = Object.values(f.lerCol('posts')).find((p) => p.campeonatoId === 'c9');
+  assert.equal(post.escolaId, 'liberdade');
+  assert.equal(post.autorUid, 'tay');
+});
+
+test('segurança: cartão público de menor sem idade exata e sem foto sem termo; "kids" pela escola', async () => {
+  const { f, ctx } = ctxDe(base());
+  await f.db.doc('usuarios/kid').update({ fotoUrl: 'https://foto/kid.jpg' });
+  await sincronizarPerfil(ctx, 'kid');
+  let pub = f.ler('perfisPublicos/kid');
+  assert.equal(pub.fotoUrl, '', 'menor sem termo de imagem: sem foto no cartão');
+  assert.equal(pub.idade, null); assert.equal(pub.kids, true);
+  await f.db.doc('usuarios/kid').update({ usoImagem: 'AUTORIZO o uso' });
+  await sincronizarPerfil(ctx, 'kid');
+  pub = f.ler('perfisPublicos/kid');
+  assert.equal(pub.fotoUrl, 'https://foto/kid.jpg');
+  // 13 anos no Jiu-Jitsu (infantil até 15) é kids; na capoeira (até 11) não
+  f.db.doc('escolas/ct').set({ modalidade: 'jiujitsu' });
+  await f.db.doc('usuarios/kid').update({ idade: 13, escolaId: 'ct' });
+  await sincronizarPerfil(ctx, 'kid');
+  assert.equal(f.ler('perfisPublicos/kid').kids, true);
+  await f.db.doc('usuarios/kid').update({ escolaId: 'liberdade' });
+  await sincronizarPerfil(ctx, 'kid');
+  assert.equal(f.ler('perfisPublicos/kid').kids, false);
+  // menor pela data de nascimento, mesmo com o campo idade "adulto"
+  await f.db.doc('usuarios/kid').update({ idade: 30, dataNasc: `${new Date().getUTCFullYear() - 9}-01-01` });
+  await sincronizarPerfil(ctx, 'kid');
+  assert.equal(f.ler('perfisPublicos/kid').menor, true);
+});
+
+test('segurança: marcação e menção só avisam a mesma escola; remetente é o nome do cartão público', async () => {
+  const { f, ctx } = ctxDe(base());
+  for (const u of ['tay', 'nat', 'mae']) await f.db.doc(`usuarios/${u}`).update({ escolaId: 'liberdade' });
+  f.db.doc('usuarios/fora').set({ nome: 'De Fora', escolaId: 'ct', papeis: ['aluno'] });
+  f.db.doc('perfisPublicos/nat').set({ nome: 'Natanael Silva', academiaId: 'taynara' });
+  await G.aoEscreverPost(ctx, { params: { id: 'p1' }, antes: null, depois: { autorUid: 'nat', autorNome: 'Suporte AtletaPay', texto: 'oi', escolaId: 'liberdade', revisao: 'ok', marcados: [{ uid: 'mae' }, { uid: 'fora' }] } });
+  assert.equal(notifs(f, 'fora').length, 0);
+  const n = notifs(f, 'mae')[0];
+  assert.match(n.titulo, /^Natanael marcou você/);
+});
+
+/* ===================== v34: certificado de faixa e de grau ===================== */
+import { aoGraduarNaEscola as graduar34 } from '../src/graduacao-escola.js';
+import { escadaPadrao as escada34, conferirTempo } from '../src/compartilhado/modalidades.js';
+
+test('v34: faixa e grau novos no CT geram certificado com a cara da escola (uma vez por troca)', async () => {
+  const { f, ctx } = ctxDe(base({
+    escolas: { ct: { nome: 'CT Dragão Jiu-Jitsu', nomeCurto: 'CT Dragão', modalidade: 'jiujitsu', donoUid: 'dono', escada: escada34('jiujitsu'), status: 'ativa' } },
+    escolasPublicas: { ct: { nome: 'CT Dragão Jiu-Jitsu', nomeCurto: 'CT Dragão', modalidade: 'jiujitsu', cidade: 'Campo Grande', uf: 'MS', logo: 'https://firebasestorage.googleapis.com/v0/b/x/o/logo.png', cores: { navy: '#7A1C12', verde: '#F2C200' } } },
+    nucleos: { 'ct-sede': { nome: 'CT Dragão', professorUid: 'dono', escolaId: 'ct' } },
+  }));
+  f.db.doc('usuarios/dono').set({ nome: 'Rafael Dono', papeis: ['aluno', 'mestre'], escolaId: 'ct', academiaId: 'ct-sede' });
+  const antes = { nome: 'Lucas Atleta', escolaId: 'ct', academiaId: 'ct-sede', cordaoAtual: 'Branca', grausAtual: 4, idade: 22, historicoGraduacoes: [] };
+  f.db.doc('usuarios/lucas').set(antes);
+  const depois = { ...antes, cordaoAtual: 'Azul', grausAtual: 0, historicoGraduacoes: [{ cordao: 'Azul', anterior: 'Branca', em: '2026-10-08T12:00:00.000Z', por: 'dono' }] };
+  assert.equal(await graduar34(ctx, 'lucas', antes, depois), 'faixa');
+  let lista = f.ler('certificadosDe/lucas').itens;
+  assert.equal(lista.length, 1);
+  const c = f.ler(`certificados/${lista[0].codigo}`);
+  assert.equal(c.tipo, 'faixa'); assert.match(c.numero, /^CT[0-9A-F]{2}-CERT-\d{4}-0001$/);
+  assert.equal(c.escola.curto, 'CT Dragão'); assert.equal(c.escola.cidade, 'Campo Grande'); assert.equal(c.faixa.ponteira, '#151515');
+  assert.equal(c.assinaturas[0].nome, 'Rafael Dono'); assert.equal(c.rotulo, 'Azul');
+  assert.ok(notifs(f, 'lucas').some((n) => /certificado/.test(n.texto)));
+  // grau novo na mesma faixa: outro certificado; repetir o evento não duplica
+  const depois2 = { ...depois, grausAtual: 1, historicoGraduacoes: [...depois.historicoGraduacoes, { cordao: 'Azul', grau: 1, anterior: 'Azul', anteriorGrau: 0, em: '2027-02-01T12:00:00.000Z' }] };
+  assert.equal(await graduar34(ctx, 'lucas', depois, depois2), 'grau');
+  await graduar34(ctx, 'lucas', depois, depois2);
+  lista = f.ler('certificadosDe/lucas').itens;
+  assert.equal(lista.length, 2);
+  assert.equal(f.ler(`certificados/${lista[1].codigo}`).rotulo, 'Azul · 1º grau');
+  assert.deepEqual(f.ler('perfisPublicos/lucas'), undefined, 'sem cartão público ainda, nada a publicar');
+});
+
+test('v34: tempo mínimo e idade do quadro da CBJJ (só aviso)', () => {
+  const e = escada34('jiujitsu'); const hoje = new Date('2026-10-08T12:00:00Z');
+  const azul = { cordaoAtual: 'Azul', grausAtual: 2, idade: 20, historicoGraduacoes: [{ cordao: 'Azul', anterior: 'Branca', em: '2025-03-01' }, { cordao: 'Azul', grau: 2, anterior: 'Azul', em: '2026-01-01' }] };
+  assert.equal(conferirTempo(e.adulto, azul, 'Roxa', 0, hoje)[0].nivel, 'atencao', 'azul pede 2 anos');
+  assert.equal(conferirTempo(e.adulto, { ...azul, historicoGraduacoes: [{ cordao: 'Azul', anterior: 'Branca', em: '2024-01-01' }] }, 'Roxa', 0, hoje)[0].nivel, 'ok');
+  assert.equal(conferirTempo(e.adulto, { cordaoAtual: 'Branca', idade: 15 }, 'Azul', 0, hoje)[0].texto, 'A faixa Azul pede 16 anos ou mais (tem 15).');
+  assert.equal(conferirTempo(e.adulto, { cordaoAtual: 'Preta', idade: 30, historicoGraduacoes: [] }, 'Preta', 1, hoje)[0].nivel, 'info', 'sem data: pede para conferir');
+  assert.deepEqual(conferirTempo(e.adulto, azul, 'Azul', 2, hoje), [], 'sem mudança, sem aviso');
 });

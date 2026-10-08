@@ -46,8 +46,9 @@ export function camposMudados(colecao, antes, depois) {
 export async function registrar(ctx, ev) {
   const { colecao, docId, antes, depois, authId, authType } = ev;
   if (!(colecao in CAMPOS_AUDITADOS)) return null;
-  // Escritas do próprio servidor (sincronização, migração) não entram.
-  if (authType && authType !== 'app_user') return null;
+  // Escritas do próprio servidor (sincronização, migração) não entram. Pessoa do app pode chegar
+  // como 'app_user', 'api_key' ou 'unknown' (com o uid em authId); servidor, como conta de serviço.
+  if (['service_account', 'system'].includes(authType) || (authType && !authId) || /@|gserviceaccount/.test(String(authId || ''))) return null;
   let acao; let campos;
   if (!antes && depois) { if (!AUDITA_CRIACAO.has(colecao) && !(colecao === 'presencas' && ['manual', 'faceid-foto'].includes(depois.origem))) return null; acao = 'criou'; campos = Object.keys(depois); }
   else if (antes && !depois) { acao = 'apagou'; campos = Object.keys(antes); }

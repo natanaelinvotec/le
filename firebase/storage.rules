@@ -9,10 +9,14 @@ service firebase.storage {
   match /b/{bucket}/o {
 
     function perfilDe(id) { return firestore.get(/databases/(default)/documents/usuarios/$(id)).data; }
-    function souAdminOuFundador() {
-      return 'admin' in perfilDe(request.auth.uid).get('papeis', [])
-          || perfilDe(request.auth.uid).get('acessoGeral', false) == true;
+    function souAdmin() { return 'admin' in perfilDe(request.auth.uid).get('papeis', []); }
+    // Fundador (acessoGeral) só vale DENTRO da própria escola (auditoria 08/10: antes o
+    // dono de qualquer escola da AtletaPay alcançava fotos e documentos de todas as escolas).
+    function souFundadorDe(uid) {
+      return perfilDe(request.auth.uid).get('acessoGeral', false) == true
+          && perfilDe(uid).get('escolaId', '-') == perfilDe(request.auth.uid).get('escolaId', '');
     }
+    function souAdminOuFundadorDe(uid) { return souAdmin() || souFundadorDe(uid); }
     function gerenciaNucleoDe(uid) {
       return 'mestre' in perfilDe(request.auth.uid).get('papeis', [])
           && perfilDe(request.auth.uid).get('academiaGerenciadaId', null) != null
@@ -23,7 +27,7 @@ service firebase.storage {
           && perfilDe(uid).get('instrutorUid', '') == request.auth.uid;
     }
     function podeMexerNaApresentacao(uid) {
-      return souAdminOuFundador()
+      return souAdminOuFundadorDe(uid)
           || (request.auth.uid == uid && (
                 perfilDe(request.auth.uid).get('cordaoAtual', '') in ['Instrutor', 'Professor', 'Mestre', 'Mestre/Presidente']
                 || perfilDe(request.auth.uid).get('papeis', []).hasAny(['mestre', 'instrutor'])))
@@ -37,11 +41,11 @@ service firebase.storage {
     // Grava a própria pessoa (inscrição, Meus dados, Rede), o Admin/Fundador,
     // o responsável do núcleo onde ela treina e o instrutor dela (painel). Só logado vê.
     match /fotos/{uid}/{arquivo} {
-      allow read: if request.auth != null;
+      allow get: if request.auth != null;
       allow write: if request.auth != null && imagem(3)
-                   && (request.auth.uid == uid || souAdminOuFundador() || gerenciaNucleoDe(uid) || souInstrutorDe(uid));
+                   && (request.auth.uid == uid || souAdminOuFundadorDe(uid) || gerenciaNucleoDe(uid) || souInstrutorDe(uid));
       allow delete: if request.auth != null
-                    && (request.auth.uid == uid || souAdminOuFundador() || gerenciaNucleoDe(uid));
+                    && (request.auth.uid == uid || souAdminOuFundadorDe(uid) || gerenciaNucleoDe(uid));
     }
 
     // AtletaPay: logo e fotos de cada escola cadastrada em atletapay.com.br.
@@ -57,7 +61,7 @@ service firebase.storage {
     // Pasta antiga das fotos de perfil (links já gravados continuam abrindo).
     // Uploads novos vão para fotos/<uid>/ — aqui ninguém grava mais.
     match /fotos_alunos/{arquivo} {
-      allow read: if true;
+      allow get: if true;
       allow write: if false;
     }
 
@@ -65,7 +69,8 @@ service firebase.storage {
     // Fotos já chegam comprimidas (~350 KB); vídeos curtos (até 20 s) chegam
     // recomprimidos pelo app. Leitura só pra quem está logado (rede fechada).
     match /rede/{uid}/{arquivo} {
-      allow read: if request.auth != null;
+      allow get: if request.auth != null;
+      allow list: if request.auth != null && request.auth.uid == uid;
       allow write: if request.auth != null
                    && request.auth.uid == uid
                    && (imagem(2) ||
@@ -75,7 +80,7 @@ service firebase.storage {
 
     // Apresentações em vídeo (Instrutor/Professor/Mestre): apresentacoes/<uid>/.
     match /apresentacoes/{uid}/{arquivo} {
-      allow read: if request.auth != null;
+      allow get: if request.auth != null;
       allow write: if request.auth != null
                    && request.resource.contentType.matches('video/.*')
                    && request.resource.size < 20 * 1024 * 1024
@@ -89,12 +94,12 @@ service firebase.storage {
     function souResponsavelDe(uid) { return perfilDe(uid).get('responsavelUid', '') == request.auth.uid; }
     match /carteirinha/{uid}/{arquivo} {
       allow read: if request.auth != null
-                  && (request.auth.uid == uid || souResponsavelDe(uid) || souAdminOuFundador() || gerenciaNucleoDe(uid) || souInstrutorDe(uid));
+                  && (request.auth.uid == uid || souResponsavelDe(uid) || souAdminOuFundadorDe(uid) || gerenciaNucleoDe(uid) || souInstrutorDe(uid));
       // Atleta/responsável só CRIAM arquivo novo (não trocam um já enviado ou aprovado).
       allow create: if request.auth != null && imagem(2)
-                    && (request.auth.uid == uid || souResponsavelDe(uid) || souAdminOuFundador() || gerenciaNucleoDe(uid));
-      allow update: if request.auth != null && imagem(2) && (souAdminOuFundador() || gerenciaNucleoDe(uid));
-      allow delete: if request.auth != null && (souAdminOuFundador() || gerenciaNucleoDe(uid));
+                    && (request.auth.uid == uid || souResponsavelDe(uid) || souAdminOuFundadorDe(uid) || gerenciaNucleoDe(uid));
+      allow update: if request.auth != null && imagem(2) && (souAdminOuFundadorDe(uid) || gerenciaNucleoDe(uid));
+      allow delete: if request.auth != null && (souAdminOuFundadorDe(uid) || gerenciaNucleoDe(uid));
     }
     // Cópia pública da foto aprovada (só adulto), feita pelo servidor. O nome
     // leva o código secreto da carteirinha: abre por link, mas não dá para listar.

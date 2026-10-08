@@ -11,7 +11,7 @@
 // Offline: sem internet o app abre com o que já foi carregado e o Firestore
 // mostra os dados do cache local dele. Fotos já vistas ficam guardadas (até 800).
 // Push: o Firebase Cloud Messaging entrega a notificação mesmo com o app fechado.
-const VERSAO = 'le-app-v31'; // ← mude SÓ isto a cada atualização publicada (ver quadro abaixo)
+const VERSAO = 'le-app-v32'; // ← mude SÓ isto a cada atualização publicada (ver quadro abaixo)
 const CACHE_TELAS = `${VERSAO}-telas`;
 const CACHE_FOTOS = `${VERSAO}-fotos`;
 const CACHE_LIBS = 'le-libs-v1'; // não depende da VERSAO: endereços versionados não mudam
@@ -207,7 +207,9 @@ self.addEventListener('notificationclick', (e) => {
   const dados = (e.notification && e.notification.data) || {};
   const link = (dados.FCM_MSG && dados.FCM_MSG.data && dados.FCM_MSG.data.link) || dados.link || 'app.html';
   e.notification.close();
-  const alvo = new URL(link, self.registration.scope).href;
+  // Só abre página do PRÓPRIO app (link de outro site no aviso vira a tela inicial).
+  let alvo = new URL(link, self.registration.scope).href;
+  if (new URL(alvo).origin !== self.location.origin) alvo = new URL('app.html', self.registration.scope).href;
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((abas) => {
     const mesma = abas.find((a) => a.url.split('#')[0] === alvo.split('#')[0]);
     if (mesma) { mesma.focus(); return mesma.navigate(alvo).catch(() => null); }

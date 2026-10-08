@@ -159,6 +159,8 @@ export function prepararEscola() {
       const cfg = await carregarEscola(id);
       if (!cfg.ativa) return { id, aplicada: false };
       aplicarEscola(cfg);
+      // Escola sem logo: o monograma (iniciais na cor da escola) em vez do ícone da escola nº 1.
+      if (!/^https:\/\//.test(String(cfg.logo || ''))) { const m = monograma(cfg); ESCOLA.logo = m; ESCOLA.logoPequeno = m; }
       if (typeof document !== 'undefined') aplicarIdentidade(cfg);
       return { ...cfg, aplicada: true };
     })().catch((e) => { console.warn('escola atual', e); return { id: ESCOLA_PADRAO, aplicada: false }; });
@@ -201,10 +203,42 @@ function trocarTexto(v, trocas) { let r = v; for (const [rx, por] of trocas) r =
 
 // Monograma (quando a escola ainda não tem logo): iniciais sobre a cor da escola.
 function monograma(cfg) {
-  const ini = String(cfg.nomeCurto || cfg.nome || 'E').split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase();
+  const ini = String(cfg.nomeCurto || cfg.nome || 'E').split(/\s+/).map((p) => p.replace(/[^\p{L}\p{N}]/gu, '')).filter(Boolean)
+    .slice(0, 2).map((p) => Array.from(p)[0]).join('').toUpperCase() || 'E';
   const cor = (cfg.cores && cfg.cores.navy) || '#1E2A78';
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><rect width="96" height="96" rx="24" fill="${cor}"/><text x="48" y="61" text-anchor="middle" font-family="Arial,sans-serif" font-size="38" font-weight="700" fill="#fff">${ini.replace(/[<&>]/g, '')}</text></svg>`;
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+// v34 — app instalável com o nome e o ícone DA ESCOLA (Android/Chrome): troca o manifesto da
+// página por um gerado aqui (blob: da mesma origem, endereços absolutos). id e start_url levam
+// ?escola=, então cada escola instala como um app separado. iPhone: nome da tela inicial pela meta
+// apple-mobile-web-app-title (o ícone usa o logo da escola quando ele existe).
+function aplicarManifesto(cfg) {
+  try {
+    const link = document.querySelector('link[rel="manifest"]');
+    if (!link || typeof Blob === 'undefined' || !(window.URL && URL.createObjectURL)) return;
+    const base = new URL('./', location.href).href;
+    const abs = (p) => new URL(p, base).href;
+    const id = encodeURIComponent(cfg.id);
+    const nome = String(cfg.nome || cfg.nomeCurto || 'Escola').slice(0, 60);
+    const curto = String(cfg.nomeCurto || cfg.nome || 'Escola').slice(0, 24);
+    const cor = cfg.cores && /^#[0-9a-f]{6}$/i.test(String(cfg.cores.navy || '')) ? cfg.cores.navy : '#1E2A78';
+    const icones = [];
+    if (/^https:\/\//.test(String(cfg.logo || ''))) icones.push({ src: cfg.logo, sizes: '512x512', purpose: 'any' });
+    icones.push({ src: monograma(cfg), sizes: 'any', type: 'image/svg+xml', purpose: 'any' });
+    const rede = /rede/.test(link.getAttribute('href') || ''); // a Rede tem o próprio app instalável
+    const manifesto = {
+      id: abs(`${rede ? 'rede' : 'app'}.html?escola=${id}`), name: rede ? `Rede ${curto}` : nome, short_name: rede ? `Rede ${curto}`.slice(0, 24) : curto, lang: 'pt-BR',
+      description: rede ? `A rede da comunidade de ${nome}.` : `App de ${nome}: aulas, graduação, presença e comunidade.`,
+      start_url: abs(rede ? `rede.html?escola=${id}#feed` : `login.html?escola=${id}`), scope: base, display: 'standalone', orientation: 'portrait',
+      background_color: cor, theme_color: cor, icons: icones,
+    };
+    link.setAttribute('href', URL.createObjectURL(new Blob([JSON.stringify(manifesto)], { type: 'application/manifest+json' })));
+    let t = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+    if (!t) { t = document.createElement('meta'); t.setAttribute('name', 'apple-mobile-web-app-title'); document.head.appendChild(t); }
+    t.setAttribute('content', curto);
+  } catch (e) { /* manifesto da escola nº 1 continua valendo */ }
 }
 
 // Aplica a identidade na página: título, logos, ícone, cor do navegador, cores do tema
@@ -228,6 +262,7 @@ export function aplicarIdentidade(cfg) {
   };
   document.title = trocarTexto(document.title, trocas);
   document.querySelectorAll('link[rel~="icon"],link[rel="apple-touch-icon"]').forEach((l) => { l.href = logo; });
+  aplicarManifesto(cfg);
   const tema = (cfg.cores && cfg.cores.navy) || null;
   if (tema) document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', tema));
   aplicarCores(cfg);

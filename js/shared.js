@@ -16,6 +16,28 @@ export function escapeHTML(value) {
     }[ch]));
 }
 
+/**
+ * Link seguro para href/src (auditoria 08/10): escapeHTML não barra "javascript:".
+ * Aceita https://, caminho relativo do próprio site e (com imagem:true) data:image/png|jpeg|webp|gif.
+ * Qualquer outro esquema (javascript:, data:text/html, http:, //host) vira ''.
+ */
+export function urlSegura(u, { imagem = false } = {}) {
+    const s = String(u ?? '').trim();
+    if (/^https:\/\/[^\s"'<>]+$/i.test(s)) return s;
+    if (imagem && /^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/=]+$/i.test(s)) return s;
+    if (imagem && /^blob:https:\/\//i.test(s)) return s; // prévia local do próprio aparelho
+    if (s && !/^[a-z][a-z0-9+.-]*:/i.test(s) && !s.startsWith('//') && !/[\s"'<>]/.test(s)) return s; // relativo
+    return '';
+}
+export const urlImagem = (u) => urlSegura(u, { imagem: true });
+
+/**
+ * Argumento seguro para onclick="fn(...)" montado em template: JSON (aspas e barras escapadas
+ * para o JavaScript) e depois escapeHTML (para o atributo). escapeHTML sozinho não basta:
+ * o navegador decodifica &#39; de volta para ' antes de rodar o JavaScript.
+ */
+export const argJS = (v) => escapeHTML(JSON.stringify(String(v ?? '')));
+
 /** Remove tags/espaços indevidos de um input de texto simples antes de salvar. */
 export function sanitizeInput(value) {
     if (typeof value !== 'string') return value;

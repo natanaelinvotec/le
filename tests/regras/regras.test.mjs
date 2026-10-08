@@ -163,8 +163,14 @@ test('cartão público: a pessoa só mexe em bio/capa/privacidade', async () => 
   await assertFails(updateDoc(doc(db('nat'), 'perfisPublicos', 'nat'), { cordaoAtual: 'Mestre' }));
   await assertFails(updateDoc(doc(db('kid'), 'perfisPublicos', 'kid'), { menor: false }));
   await assertSucceeds(updateDoc(doc(db('mae'), 'perfisPublicos', 'kid'), { privado: false }));
-  await assertSucceeds(updateDoc(doc(db('tay'), 'perfisPublicos', 'nat'), { seguidores: arrayUnion('tay') }));
-  await assertFails(updateDoc(doc(db('tay'), 'perfisPublicos', 'nat'), { seguidores: arrayUnion('estranho') }));
+  // nat ficou privado (acima): de fora, só PEDIR para seguir; ele aceita e aí vira seguidor
+  await assertFails(updateDoc(doc(db('tay'), 'perfisPublicos', 'nat'), { seguidores: arrayUnion('tay') }), 'perfil privado: entrar direto, não');
+  await assertSucceeds(updateDoc(doc(db('tay'), 'perfisPublicos', 'nat'), { pedidosSeguir: arrayUnion('tay') }));
+  await assertSucceeds(updateDoc(doc(db('nat'), 'perfisPublicos', 'nat'), { pedidosSeguir: [], seguidores: arrayUnion('tay') }), 'aceitar o pedido');
+  await assertFails(updateDoc(doc(db('nat'), 'perfisPublicos', 'nat'), { seguidores: arrayUnion('estranho') }), 'o dono não inventa seguidores');
+  await assertSucceeds(updateDoc(doc(db('nat'), 'perfisPublicos', 'nat'), { privado: false }));
+  await assertSucceeds(updateDoc(doc(db('estranho'), 'perfisPublicos', 'nat'), { seguidores: arrayUnion('estranho') }), 'perfil aberto: segue direto');
+  await assertFails(updateDoc(doc(db('tay'), 'perfisPublicos', 'nat'), { seguidores: arrayUnion('mae') }));
 });
 
 test('post ocultado ou em revisão não vaza pela API', async () => {
@@ -261,7 +267,8 @@ test('LGPD e coleções antigas', async () => {
 });
 
 // ---------- Carteirinha virtual ----------
-const urlFoto = (uid, arq = '1.jpg') => `https://firebasestorage.googleapis.com/v0/b/x/o/carteirinha%2F${uid}%2F${arq}?alt=media&token=t`;
+const BUCKET = 'capoeira-liberdade.firebasestorage.app'; // links do Storage presos ao bucket do projeto (auditoria 08/10)
+const urlFoto = (uid, arq = '1.jpg', bucket = BUCKET) => `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/carteirinha%2F${uid}%2F${arq}?alt=media&token=t`;
 const fotoDe = (uid, porUid, extra = {}) => ({
   url: urlFoto(uid), caminho: `carteirinha/${uid}/1.jpg`, status: 'pendente', academiaId: 'taynara', alunoNome: 'Atleta',
   enviadoPorUid: porUid, enviadoPorNome: 'Quem enviou', enviadoEm: AGORA, ...extra,
@@ -298,6 +305,7 @@ test('carteirinha: foto de documento — atleta/responsável enviam pendente; n�
   // Link de OUTRO arquivo (o núcleo veria uma foto e aprovaria outra): negado.
   await assertFails(setDoc(doc(db('nat'), 'fotosCarteirinha', 'nat'), fotoDe('nat', 'nat', { url: urlFoto('nat', 'outra.jpg') })));
   await assertFails(setDoc(doc(db('nat'), 'fotosCarteirinha', 'nat'), fotoDe('nat', 'nat', { url: urlFoto('tay') })));
+  await assertFails(setDoc(doc(db('nat'), 'fotosCarteirinha', 'nat'), fotoDe('nat', 'nat', { url: urlFoto('nat', '1.jpg', 'bucket-de-outro') })), 'mesmo caminho em outro bucket, não');
   await assertFails(setDoc(doc(db('nat'), 'fotosCarteirinha', 'nat'), fotoDe('nat', 'nat', { academiaId: 'profeta' })));
   await assertFails(setDoc(doc(db('nat'), 'fotosCarteirinha', 'nat'), fotoDe('nat', 'tay')));
   await assertSucceeds(setDoc(doc(db('nat'), 'fotosCarteirinha', 'nat'), fotoDe('nat', 'nat')));
@@ -357,7 +365,7 @@ test('notificações: a pessoa marca a festa como vista (celebradoEm), sem mexer
 });
 
 test('assinaturas: quem assina (Fundador, responsável de núcleo) grava a própria; Admin grava de todos; aluno não', async () => {
-  const url = (uid) => `https://firebasestorage.googleapis.com/v0/b/x/o/assinaturas%2F${uid}%2Fa.png?alt=media&token=t`;
+  const url = (uid) => `https://firebasestorage.googleapis.com/v0/b/${BUCKET}/o/assinaturas%2F${uid}%2Fa.png?alt=media&token=t`;
   await assertSucceeds(setDoc(doc(db('tay'), 'assinaturas', 'tay'), { url: url('tay'), nome: 'Taynara', atualizadoEm: AGORA, porUid: 'tay' }));
   await assertSucceeds(setDoc(doc(db('profeta'), 'assinaturas', 'profeta'), { url: url('profeta'), nome: 'Isaias', atualizadoEm: AGORA, porUid: 'profeta' }));
   await assertSucceeds(setDoc(doc(db('admin'), 'assinaturas', 'profeta'), { url: url('profeta'), nome: 'Isaias', atualizadoEm: AGORA, porUid: 'admin' }));
@@ -548,3 +556,71 @@ test('e-mails próprios: pedido de link público e enxuto; chave do serviço só
   await assertFails(setDoc(doc(db('admin'), 'plataforma', 'publico'), { emailsProprios: true }), 'só o servidor liga');
   await assertSucceeds(addDoc(collection(db('admin'), 'comandos'), { tipo: 'testarEmail', porUid: 'admin', status: 'pendente' }));
 });
+
+test('auditoria 08/10: Fundador não vira Admin nem puxa gente de outra escola; transferência só com pedido; listas e contadores sem abuso', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, 'solicitacoes', 'solT'), { tipo: 'transferencia', academiaId: 'profeta', solicitanteUid: 'profeta', status: 'pendente', escolaId: 'liberdade',
+      dadosPedido: { alunoUid: 'estranho', alunoNome: 'Estranho', destinoId: 'taynara', destinoNome: 'taynara' } });
+    await setDoc(doc(d, 'conversas', 'grupo_taynara'), { tipo: 'grupo', nucleoId: 'taynara', participantes: ['tay'], escolaId: 'liberdade' });
+  });
+  const profeta = db('profeta'); const rafa = db('rafa', { escolaId: 'gracie-cg' }); const tay = db('tay');
+  // 1) ninguém além do Admin põe 'admin' em papéis — nem no próprio cadastro
+  await assertFails(updateDoc(doc(rafa, 'usuarios', 'rafa'), { papeis: ['aluno', 'mestre', 'admin'] }), 'Fundador de outra escola não se dá admin');
+  await assertFails(updateDoc(doc(profeta, 'usuarios', 'profeta'), { papeis: ['aluno', 'mestre', 'admin'] }));
+  await assertFails(updateDoc(doc(profeta, 'usuarios', 'nat'), { papeis: ['aluno', 'admin'] }));
+  await assertFails(updateDoc(doc(profeta, 'usuarios', 'admin'), { papeis: ['aluno'] }), 'nem tira o admin de quem é');
+  await assertSucceeds(updateDoc(doc(profeta, 'usuarios', 'nat'), { papeis: ['aluno', 'instrutor'] }), 'outros papéis, dentro da escola, pode');
+  // 2) Fundador: acesso geral e responsável legal são do Admin; núcleo só da própria escola
+  await assertFails(updateDoc(doc(profeta, 'usuarios', 'nat'), { acessoGeral: true }));
+  await assertFails(updateDoc(doc(profeta, 'usuarios', 'kid'), { responsavelUid: 'profeta' }));
+  await assertFails(updateDoc(doc(rafa, 'usuarios', 'rafa'), { academiaId: 'taynara' }), 'apontar o próprio núcleo para a Liberdade = mudar de escola');
+  await assertFails(updateDoc(doc(profeta, 'usuarios', 'nat'), { academiaGerenciadaId: 'gracie' }));
+  await assertFails(updateDoc(doc(profeta, 'usuarios', 'nat'), { academiaId: 'nucleo-que-nao-existe' }));
+  await assertSucceeds(updateDoc(doc(profeta, 'usuarios', 'nat'), { academiaId: 'profeta', academiaNome: 'profeta' }), 'troca de núcleo dentro da escola');
+  await assertSucceeds(updateDoc(doc(profeta, 'usuarios', 'nat'), { academiaId: 'taynara', academiaNome: 'taynara' }));
+  // 3) gestor: nunca no responsável legal nem no núcleo administrado de um aluno
+  await assertFails(updateDoc(doc(tay, 'usuarios', 'kid'), { responsavelUid: 'tay' }), 'professor não vira responsável legal (leria as conversas do menor)');
+  await assertFails(updateDoc(doc(tay, 'usuarios', 'nat'), { academiaGerenciadaId: 'taynara' }));
+  await assertSucceeds(updateDoc(doc(tay, 'usuarios', 'nat'), { cordaoAtual: 'Vagante' }), 'avaliar continua normal');
+  // 4) aceitar transferência: só com o pedido pendente para este aluno e só os campos da transferência
+  const t = { academiaId: 'taynara', academiaNome: 'taynara', academiaAnteriorId: 'profeta', origemTransferenciaDireta: true };
+  await assertFails(updateDoc(doc(tay, 'usuarios', 'estranho'), t), 'sem o pedido, não');
+  await assertFails(updateDoc(doc(tay, 'usuarios', 'estranho'), { ...t, transferenciaId: 'solT', cordaoAtual: 'Mestre' }), 'junto com outro campo, não');
+  await assertFails(updateDoc(doc(tay, 'usuarios', 'rafa'), { ...t, transferenciaId: 'solT' }), 'pedido de outro aluno / outra escola, não');
+  await assertSucceeds(updateDoc(doc(tay, 'usuarios', 'estranho'), { ...t, transferenciaId: 'solT' }));
+  // 5) núcleo sempre com a escola de quem cria
+  await assertFails(setDoc(doc(profeta, 'nucleos', 'sem-escola'), { nome: 'Sem escola' }), 'sem escolaId o servidor punha na escola nº 1');
+  await assertFails(setDoc(doc(rafa, 'nucleos', 'invasor'), { nome: 'Invasor' }));
+  // 6) mensalidade só para aluno do próprio núcleo; o lançamento não troca de aluno
+  await assertSucceeds(addDoc(collection(tay, 'pagamentos'), { alunoId: 'nat', academiaId: 'taynara', valor: 100, competencia: '2026-10', pago: true, escolaId: 'liberdade' }));
+  await assertFails(addDoc(collection(tay, 'pagamentos'), { alunoId: 'estranho2', academiaId: 'taynara', valor: 100, competencia: '2099-12', pago: true, escolaId: 'liberdade' }));
+  await assertFails(addDoc(collection(tay, 'pagamentos'), { alunoId: 'rafa', academiaId: 'taynara', valor: 100, competencia: '2099-12', pago: true, escolaId: 'liberdade' }), 'aluno de outra escola');
+  // 7) listas do post com tamanho; curtida sem repetir; card compartilhado conta uma vez
+  const p = { autorUid: 'nat', texto: 'treino', midias: [], tipo: 'post', curtidas: [], comentariosCount: 0, criadoEm: AGORA, oculto: false, revisao: 'ok', publico: true, escolaId: 'liberdade' };
+  await assertFails(addDoc(collection(db('nat'), 'posts'), { ...p, marcados: Array.from({ length: 11 }, (_, i) => ({ uid: `u${i}`, nome: 'x' })) }));
+  await assertSucceeds(addDoc(collection(db('nat'), 'posts'), { ...p, marcados: [{ uid: 'mae', nome: 'Mãe' }] }));
+  await assertFails(updateDoc(doc(db('estranho'), 'posts', 'pub'), { curtidas: ['estranho', 'estranho'] }), 'mesma curtida duas vezes');
+  await assertFails(updateDoc(doc(db('nat'), 'notificacoes/nat/itens/n1'), { compartilhadoEm: new Date().toISOString() }), 'compartilhamento já marcado');
+  // 8) grupo do núcleo: o membro entra a si mesmo; colocar outros é do responsável do núcleo
+  await assertSucceeds(updateDoc(doc(db('nat'), 'conversas', 'grupo_taynara'), { participantes: arrayUnion('nat') }));
+  await assertFails(updateDoc(doc(db('nat'), 'conversas', 'grupo_taynara'), { participantes: arrayUnion('estranho') }));
+  await assertSucceeds(updateDoc(doc(tay, 'conversas', 'grupo_taynara'), { participantes: arrayUnion('mae') }));
+  // 9) campeonato: organizador e premiação não mudam pelo app
+  await assertFails(updateDoc(doc(tay, 'campeonatos', 'camp1'), { organizadorUid: 'profeta' }));
+  // 10) escola nova: campos de Admin nem na criação; teste grátis uma vez só
+  const dono = db('dono9', {}); const esc = { nome: 'Tigre', slug: 'tigre9', donoUid: 'dono9', status: 'rascunho', plano: 'nucleo' };
+  await assertFails(setDoc(doc(dono, 'escolas', 'tigre9'), { ...esc, ativacao: { status: 'ok', nucleoId: 'taynara' } }), 'ativação forjada na criação');
+  await assertFails(setDoc(doc(dono, 'escolas', 'tigre9'), { ...esc, dominio: 'liberdadeeexpressao.com.br' }), 'domínio na criação');
+  await assertSucceeds(setDoc(doc(dono, 'escolas', 'tigre9'), esc));
+  await assertSucceeds(updateDoc(doc(dono, 'escolas', 'tigre9'), { status: 'fila', trialAte: '2026-11-07' }));
+  await assertFails(updateDoc(doc(dono, 'escolas', 'tigre9'), { trialAte: '2099-12-31' }), 'não estica o teste grátis');
+  // 11) pedido resolvido não reabre; aviso não cita núcleo de outra escola; id de documento sem aspas/< >
+  await assertSucceeds(updateDoc(doc(tay, 'solicitacoes', 'solT'), { status: 'aprovado' }));
+  await assertFails(updateDoc(doc(tay, 'solicitacoes', 'solT'), { status: 'pendente' }), 'reabrir pedido resolvido');
+  await assertFails(addDoc(collection(profeta, 'avisos'), { titulo: 'x', academiaId: 'gracie', escolaId: 'liberdade', criadoEm: AGORA }), 'aviso apontando núcleo de outra escola');
+  await assertSucceeds(addDoc(collection(profeta, 'avisos'), { titulo: 'Geral', academiaId: null, escolaId: 'liberdade', criadoEm: AGORA }));
+  await assertFails(setDoc(doc(db('nat'), 'posts', 'x"onmouseover=1'), { ...p, marcados: [] }), 'id com aspas');
+  await assertSucceeds(setDoc(doc(db('nat'), 'posts', 'post_ok-1'), { ...p, marcados: [] }));
+});
+

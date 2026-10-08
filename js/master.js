@@ -273,6 +273,7 @@ await atualizar('usuarios', sol.dadosPedido.alunoUid, {
 academiaId: sol.dadosPedido.destinoId, academiaNome: sol.dadosPedido.destinoNome,
 academiaAnteriorId: alunoAtual ? alunoAtual.academiaId : sol.academiaId,
 origemTransferenciaDireta: true,
+transferenciaId: sol.id,
 });
 } else if (sol.tipo === 'vinculo_familia') {
 await aprovarVinculoFamilia(sol.solicitanteUid, sol.dadosPedido.alunoRelacionadoUid);

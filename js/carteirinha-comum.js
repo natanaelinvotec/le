@@ -76,7 +76,7 @@ export function cartaoHtml(d, virado = false) {
           <div class="f-foto" style="background:${faixas(d.cores, '180deg')}"><div>${fotoInterna}</div></div>
           <div class="f-dados">
             <span class="f-nome">${esc(d.nome)}</span>
-            <span class="f-cordao"><i style="background:${faixas(d.cores)}"></i>Cordão ${esc(d.cordao)}</span>
+            <span class="f-cordao">${d.faixaSvg ? `<span class="f-faixa-svg" style="display:inline-block;width:64px;line-height:0;vertical-align:middle;margin-right:6px">${d.faixaSvg}</span>` : `<i style="background:${faixas(d.cores)}"></i>`}${d.rotulo ? esc(d.rotulo) : `Cordão ${esc(d.cordao)}`}</span>
             <div class="f-campos">
               <span><b>NÚCLEO</b><em>${esc(d.nucleo || '—')}</em></span>
               <span><b>MATRÍCULA</b><em class="mono">${esc(d.matricula || 'em emissão')}</em></span>

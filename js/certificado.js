@@ -6,7 +6,7 @@ O desenho está em js/certificado-render.js (idêntico ao mockup). */
 import { FIREBASE_CONFIG, ESCOLA } from './escola.js';
 import { qrSvg } from './qr.js';
 import { gerarCardStory, compartilharImagem, linkWhatsApp, baixarImagem } from './card-story.js';
-import { certificadoHtml, carregarAssinaturas, coresOk } from './certificado-render.js';
+import { certificadoHtml, carregarAssinaturas, coresOk, tituloDoCertificado, grupoDoCertificado } from './certificado-render.js';
 
 const pagina = document.getElementById('pagina');
 const selo = document.getElementById('seloOk');
@@ -23,8 +23,19 @@ function aviso(titulo, texto) {
 function desenhar(lista, assinaturas) {
   const um = lista.length === 1;
   const c0 = lista[0].c;
+  // Certificado de outra escola: a barra do topo mostra a escola dele (não a Liberdade).
+  if (c0 && c0.tipo === 'faixa' && c0.escola) {
+    const marca = document.querySelector('.marca');
+    if (marca) {
+      const img = marca.querySelector('img'); const small = marca.querySelector('small');
+      if (img) { if (/^https:\/\/firebasestorage\.googleapis\.com\//.test(String(c0.escola.logo || ''))) img.src = c0.escola.logo; else img.remove(); }
+      if (small) small.textContent = c0.escola.nome || c0.escola.curto || '';
+      marca.setAttribute('href', '#');
+    }
+    const voltar = document.getElementById('btVoltar'); if (voltar) voltar.setAttribute('href', 'login.html');
+  }
   if (um) {
-    document.title = `Certificado — ${c0.nome} · Cordão ${c0.cordao}`;
+    document.title = `Certificado — ${c0.nome} · ${tituloDoCertificado(c0)}`;
     selo.hidden = false;
     selo.classList.toggle('ruim', c0.ativo === false);
     selo.textContent = c0.ativo === false ? 'Certificado cancelado' : '✓ Certificado autêntico';
@@ -35,7 +46,7 @@ function desenhar(lista, assinaturas) {
   pagina.innerHTML = `
     <div class="acoes nao-imprime">
       <button type="button" class="bt bt-verde" id="btImprimir">${um ? 'Imprimir ou salvar PDF' : `Imprimir ou salvar PDF (${lista.length})`}</button>
-      ${um ? '<button type="button" class="bt bt-marinho" id="btStory">Card de stories</button><a class="bt bt-zap" id="btZap" target="_blank" rel="noopener">WhatsApp</a>' : ''}
+      ${um ? (c0.tipo === 'faixa' ? '' : '<button type="button" class="bt bt-marinho" id="btStory">Card de stories</button>') + '<a class="bt bt-zap" id="btZap" target="_blank" rel="noopener">WhatsApp</a>' : ''}
     </div>
     <p class="status" id="status" aria-live="polite"></p>
     ${lista.map(({ cod, c }) => `<div class="folha-caixa">${certificadoHtml(c, { qr: qrSvg(linkDe(cod), { nivel: 'Q', margem: 0, cor: '#061A3A', rotulo: 'QR de verificação do certificado' }), assinaturas })}</div>`).join('')}`;
@@ -43,10 +54,10 @@ function desenhar(lista, assinaturas) {
   document.getElementById('btImprimir').addEventListener('click', () => window.print());
   if (um) {
     const cor = coresOk(c0.cores);
-    const texto = `Troquei de cordão: Cordão ${c0.cordao}! Grupo de Capoeira ${ESCOLA.nomeCurto}. ${ESCOLA.fraseCelebracao}`;
+    const texto = c0.tipo === 'faixa' ? `Nova graduação: ${tituloDoCertificado(c0)}! ${grupoDoCertificado(c0)}. ${/jiu|jud/i.test(String((c0.escola || {}).modalidade || '')) ? 'Oss!' : 'Parabéns!'}` : `Troquei de cordão: Cordão ${c0.cordao}! Grupo de Capoeira ${ESCOLA.nomeCurto}. ${ESCOLA.fraseCelebracao}`;
     document.getElementById('btZap').href = linkWhatsApp(texto, linkDe(lista[0].cod));
     const status = (t) => { document.getElementById('status').textContent = t; };
-    document.getElementById('btStory').addEventListener('click', async (e) => {
+    document.getElementById('btStory')?.addEventListener('click', async (e) => {
       const b = e.currentTarget; b.disabled = true; status('Preparando a imagem…');
       try {
         const blob = await gerarCardStory({ tipo: 'cordao', nome: c0.nome, cordao: c0.cordao, cores: cor, eyebrow: c0.evento ? 'BATIZADO' : 'MEU CORDÃO' });

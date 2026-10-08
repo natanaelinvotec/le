@@ -7,7 +7,7 @@ import { observarSessao, db, doc, getDoc, onSnapshot } from './firebase.js';
 import { ESCOLA, escadaDe, coresDoCordao, nomeBonito } from './escola.js';
 import { qrSvg } from './qr.js';
 import { ehAtleta, iniciais } from './carteirinha-comum.js';
-import { certificadoHtml, carregarAssinaturas, coresOk } from './certificado-render.js';
+import { certificadoHtml, carregarAssinaturas, coresOk, tituloDoCertificado, grupoDoCertificado } from './certificado-render.js';
 import { gerarCardStory, compartilharImagem, baixarImagem } from './card-story.js';
 
 const pagina = document.getElementById('pagina');
@@ -75,7 +75,7 @@ function desenhar(itensBrutos) {
   const iAtual = Math.max(0, escada.findIndex((c) => c.nome === atual));
   const temCert = new Set(itens.map((i) => i.cordao));
   const familia = alvos.length > 1 ? `<nav class="familia" aria-label="Escolher atleta">${alvos.map((a) => `<button type="button" class="chip-pessoa" data-alvo="${esc(a.uid)}" aria-pressed="${a.uid === alvoUid}"><span class="av">${a.foto ? `<img src="${esc(a.foto)}" alt="">` : esc(iniciais(a.nome))}</span>${esc(a.eu ? 'Eu' : String(a.nome).split(' ')[0])}</button>`).join('')}</nav>` : '';
-  const trilha = escada.slice(1).map((c, i) => `${i ? '<span class="seta" aria-hidden="true">›</span>' : ''}<span class="degrau${i + 1 > iAtual ? ' falta' : ''}${c.nome === atual ? ' atual' : ''}" title="${esc(c.nome)}${temCert.has(c.nome) ? ' — certificado emitido' : ''}"><i style="background:${listras(c.cor)}"></i>${esc(c.nome)}</span>`).join('');
+  const trilha = escada.slice(escada[0] && escada[0].nome === 'Iniciante' ? 1 : 0).map((c, i) => `${i ? '<span class="seta" aria-hidden="true">›</span>' : ''}<span class="degrau${i + 1 > iAtual ? ' falta' : ''}${c.nome === atual ? ' atual' : ''}" title="${esc(c.nome)}${temCert.has(c.nome) ? ' — certificado emitido' : ''}"><i style="background:${listras(c.cor)}"></i>${esc(c.nome)}</span>`).join('');
   const codigos = itens.map((i) => i.codigo);
   const cartoes = itens.slice().reverse().map((i) => {
     const c = docsCert.get(i.codigo);
@@ -83,15 +83,15 @@ function desenhar(itensBrutos) {
     const legado = i.legado === true || !i.data;
     const info = legado ? 'Graduação conquistada antes do registro digital do grupo.' : [dataBR(i.data), i.evento].filter(Boolean).join(' · ');
     return `<article class="cartao">
-      <a class="miniatura" href="certificado.html#${esc(encodeURIComponent(i.codigo))}" aria-label="Abrir o certificado do Cordão ${esc(i.cordao)}">${c ? certificadoHtml(c, { qr: qrSvg(linkCert(i.codigo), { nivel: 'Q', margem: 0, cor: '#061A3A', rotulo: '' }), assinaturas }) : ''}</a>
+      <a class="miniatura" href="certificado.html#${esc(encodeURIComponent(i.codigo))}" aria-label="Abrir o certificado: ${esc(tituloDoCertificado(c, i))}">${c ? certificadoHtml(c, { qr: qrSvg(linkCert(i.codigo), { nivel: 'Q', margem: 0, cor: '#061A3A', rotulo: '' }), assinaturas }) : ''}</a>
       <div class="cartao-corpo">
-        <div class="cartao-tit"><i style="background:${listras(cores)}" aria-hidden="true"></i><b>Cordão ${esc(i.cordao)}</b></div>
+        <div class="cartao-tit"><i style="background:${listras(cores)}" aria-hidden="true"></i><b>${esc(tituloDoCertificado(c, i))}</b></div>
         <p class="cartao-info">${esc(info)}</p>
         <span><span class="etiqueta${legado ? ' legado' : ''}">${legado ? 'ANTERIOR AO APP' : (i.evento && /batizado/i.test(i.evento) ? 'BATIZADO' : 'GRADUAÇÃO')}</span> <small class="mono" style="color:var(--suave);font-size:11.5px;margin-left:6px">${esc((c && c.numero) || i.numero || '')}</small></span>
         <div class="cartao-bts">
           <a class="bt bt-marinho" href="certificado.html#${esc(encodeURIComponent(i.codigo))}">Ver</a>
           <a class="bt bt-claro" href="certificado.html?imprimir=1#${esc(encodeURIComponent(i.codigo))}">PDF</a>
-          <button type="button" class="bt bt-verde" data-card="${esc(i.codigo)}">Card</button>
+          ${c && c.tipo === 'faixa' ? '' : `<button type="button" class="bt bt-verde" data-card="${esc(i.codigo)}">Card</button>`}
         </div>
       </div>
     </article>`;
@@ -126,9 +126,9 @@ async function card(botao, codigo) {
   const status = (t) => { const s = document.getElementById('status'); if (s) s.textContent = t; };
   botao.disabled = true; status('Preparando o card…');
   try {
-    const blob = await gerarCardStory({ tipo: 'cordao', nome: c.nome, cordao: c.cordao, cores: coresOk(c.cores), eyebrow: c.evento && c.evento.nome ? (/batizado/i.test(c.evento.nome) ? 'BATIZADO' : 'TROCA DE CORDÃO') : 'MEU CORDÃO' });
+    const blob = await gerarCardStory({ tipo: 'cordao', nome: c.nome, cordao: c.cordao, cores: coresOk(c.cores), eyebrow: c.tipo === 'faixa' ? 'NOVA GRADUAÇÃO' : (c.evento && c.evento.nome ? (/batizado/i.test(c.evento.nome) ? 'BATIZADO' : 'TROCA DE CORDÃO') : 'MEU CORDÃO') });
     const arquivo = `cordao-${String(c.cordao).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-')}.png`;
-    const r = await compartilharImagem(blob, { texto: `Cordão ${c.cordao} — Grupo de Capoeira ${ESCOLA.nomeCurto}. ${ESCOLA.fraseCelebracao}`, link: linkCert(codigo), arquivo });
+    const r = await compartilharImagem(blob, { texto: `${tituloDoCertificado(c)} — ${grupoDoCertificado(c)}. ${ESCOLA.fraseCelebracao}`, link: linkCert(codigo), arquivo });
     if (r === 'sem-suporte') { baixarImagem(blob, arquivo); status('Imagem baixada: publique nos stories pela galeria.'); } else status(r === 'compartilhado' ? 'Compartilhado!' : '');
   } catch (e) { console.error(e); status('Não deu para gerar o card agora.'); }
   botao.disabled = false;

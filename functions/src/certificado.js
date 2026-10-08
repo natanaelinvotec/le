@@ -36,10 +36,11 @@ export function nomeNoCertificado(nome, menor) {
 
 // O batizado em que a troca aconteceu: evento da agenda até 3 dias antes ou
 // depois da troca, preferindo "batizado" e o núcleo do atleta.
-export async function eventoDaTroca(ctx, dataYmd, academiaId) {
+export async function eventoDaTroca(ctx, dataYmd, academiaId, escolaId = 'liberdade') {
   if (!dataYmd) return null;
   const s = await ctx.db.collection('eventos').where('data', '>=', somarDias(dataYmd, -3)).where('data', '<=', somarDias(dataYmd, 3)).limit(20).get();
-  const lista = s.docs.map((d) => d.data()).filter((e) => e && e.nome);
+  // Só eventos da escola do certificado (auditoria 08/10: antes entrava evento de outra escola).
+  const lista = s.docs.map((d) => d.data()).filter((e) => e && e.nome && (!e.escolaId || e.escolaId === escolaId));
   const nota = (e) => (sem(e.nome).includes('batizado') ? 2 : 0) + (e.academiaId && e.academiaId === academiaId ? 1 : 0) + (!e.academiaId ? 0.5 : 0);
   lista.sort((a, b) => nota(b) - nota(a));
   const e = lista[0];
@@ -163,7 +164,7 @@ export async function publicarNoPerfil(ctx, uid) {
   const [sd, sp] = await Promise.all([ctx.db.doc(`certificadosDe/${uid}`).get(), ctx.db.doc(`perfisPublicos/${uid}`).get()]);
   if (!sp.exists) return;
   const itens = sd.exists && Array.isArray(sd.data().itens) ? sd.data().itens : [];
-  const lista = itens.map((i) => ({ codigo: i.codigo, cordao: i.cordao, data: i.data || null, legado: !!i.legado, evento: i.evento || '' }));
+  const lista = itens.map((i) => ({ codigo: i.codigo, cordao: i.cordao, ...(i.graus ? { graus: i.graus } : {}), data: i.data || null, legado: !!i.legado, evento: i.evento || '' }));
   await ctx.db.doc(`perfisPublicos/${uid}`).set({ certificados: lista }, { mergeFields: ['certificados'] });
 }
 

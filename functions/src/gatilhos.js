@@ -10,15 +10,33 @@ import { sincronizarCarteirinha } from './carteirinha.js';
 import { emitirCertificado, apagarCertificados, idAvisoCordao, garantirCertificados, agendarLembrete, alinharAoCordaoAtual } from './certificado.js';
 import { coresDoCordao } from './compartilhado/escola.js';
 import { aoGraduarNaEscola, ehOutraEscola } from './graduacao-escola.js';
+import { escolaDoUsuario } from './escolas.js';
 
 // Campos de usuarios/{uid} que mudam a carteirinha (o próprio espelho entra:
 // se alguém mexer nele, o servidor regrava o valor certo).
-const CAMPOS_DA_CARTEIRINHA = ['nome', 'cordaoAtual', 'idade', 'academiaId', 'academiaNome', 'papeis', 'ativo', 'statusAtual', 'isentoMensalidade', 'carteirinha', 'sincronizarEm'];
+const CAMPOS_DA_CARTEIRINHA = ['nome', 'cordaoAtual', 'grausAtual', 'idade', 'academiaId', 'academiaNome', 'papeis', 'ativo', 'statusAtual', 'isentoMensalidade', 'carteirinha', 'sincronizarEm'];
 
 const mudouAlgum = (antes, depois, campos) => campos.some((k) => JSON.stringify((antes || {})[k] ?? null) !== JSON.stringify((depois || {})[k] ?? null));
 const primeiroNome = (n) => String(n || 'Alguém').split(' ')[0];
 const ORDEM = ['Iniciante', 'Escravo', 'Fugitivo', 'Quilombola', 'Vagante', 'Liberto', 'Instrutor', 'Professor', 'Mestre', 'Mestre/Presidente'];
 const uidsDe = (lista) => (Array.isArray(lista) ? lista : []).map((x) => (typeof x === 'string' ? x : x && x.uid)).filter(Boolean);
+// Auditoria 08/10: quem aparece como remetente de uma notificação é o que o SERVIDOR sabe
+// (cartão público), não o nome que veio no post/comentário/mensagem (dava para assinar
+// "Suporte AtletaPay"). E marcações/menções só avisam gente da MESMA escola, no máximo 10.
+async function pessoaReal(ctx, uid, fallback = {}) {
+  if (!uid) return { uid, nome: fallback.nome || '', foto: fallback.foto || '', academiaId: null };
+  const s = await ctx.db.doc(`perfisPublicos/${uid}`).get();
+  const p = s.exists ? s.data() : {};
+  return { uid, nome: p.nome || fallback.nome || '', foto: p.fotoUrl || fallback.foto || '', academiaId: p.academiaId || null };
+}
+export async function soDaEscola(ctx, uids, escolaId, max = 10) {
+  const out = [];
+  for (const u of Array.from(new Set(uids)).slice(0, 30)) {
+    if (out.length >= max) break;
+    if (!escolaId || (await escolaDoUsuario(ctx, u)) === escolaId) out.push(u);
+  }
+  return out;
+}
 
 async function auditar(ctx, colecao, ev) {
   try { await registrar(ctx, { colecao, docId: ev.params.id || ev.params.uid, antes: ev.antes, depois: ev.depois, authId: ev.authId, authType: ev.authType }); }
@@ -120,13 +138,15 @@ export async function aoEscreverPost(ctx, ev) {
   const { id } = ev.params; const { antes, depois } = ev;
   await auditar(ctx, 'posts', ev);
   const autorUid = (depois || antes).autorUid;
-  const de = { uid: autorUid, nome: (depois || antes).autorNome || '', foto: (depois || antes).autorFoto || '' };
+  const autor = await pessoaReal(ctx, autorUid, { nome: (depois || antes).autorNome, foto: (depois || antes).autorFoto });
+  const de = { uid: autorUid, nome: autor.nome, foto: autor.foto };
+  const escolaPost = (depois || antes).escolaId || null;
 
   if (!antes && depois) { // publicado
     const motivos = [...(await checarTexto(ctx, depois.texto)).map((t) => `palavra "${t}"`),
       ...(await checarImagens(ctx, (depois.midias || []).filter((m) => m.tipo !== 'video').map((m) => m.url)))];
     const ref = ctx.db.doc(`posts/${id}`);
-    const destino = [...(await gestoresDoNucleo(ctx, depois.autorAcademiaId)), ...(await gestoresDoNucleo(ctx, depois.nucleoId))];
+    const destino = [...(await gestoresDoNucleo(ctx, autor.academiaId || null)), ...(await gestoresDoNucleo(ctx, depois.nucleoId))];
     if (motivos.length) {
       await ref.update({ revisao: 'pendente', publico: false, moderacaoAuto: { motivos, em: new Date().toISOString() } });
       await notificar(ctx, [...destino, ...(await admins(ctx))], { tipo: 'revisao', titulo: 'Post foi para revisão automática', texto: `${de.nome}: ${motivos.join(', ')}`, link: 'rede.html#moderacao' });
@@ -135,7 +155,8 @@ export async function aoEscreverPost(ctx, ev) {
       await notificar(ctx, destino, { tipo: 'revisao', titulo: 'Post aguardando sua revisão', texto: `${de.nome} publicou ${depois.autorMenor ? '(menor de idade) ' : ''}com foto.`, link: 'rede.html#moderacao', de });
     }
     if (!motivos.length) {
-      const marcados = uidsDe(depois.marcados); const mencionados = uidsDe(depois.mencoes).filter((u) => !marcados.includes(u));
+      const marcados = await soDaEscola(ctx, uidsDe(depois.marcados), escolaPost);
+      const mencionados = await soDaEscola(ctx, uidsDe(depois.mencoes).filter((u) => !marcados.includes(u)), escolaPost);
       if (depois.revisao !== 'pendente') {
         await notificar(ctx, marcados, { tipo: 'marcacao', titulo: `${primeiroNome(de.nome)} marcou você`, texto: String(depois.texto || 'Numa publicação da Rede').slice(0, 120), link: `rede.html#post/${id}`, de });
         await notificar(ctx, mencionados, { tipo: 'mencao', titulo: `${primeiroNome(de.nome)} mencionou você`, texto: String(depois.texto || '').slice(0, 120), link: `rede.html#post/${id}`, de });
@@ -169,7 +190,7 @@ export async function aoEscreverPost(ctx, ev) {
   if (mudouAlgum(antes, depois, ['melhorMomento', 'oculto'])) await sincronizarPerfil(ctx, autorUid, { rede: true });
   if (antes.revisao === 'pendente' && depois.revisao === 'ok' && depois.publico) {
     await notificar(ctx, [autorUid], { tipo: 'revisao', titulo: 'Seu post foi aprovado', texto: 'Já aparece para a rede.', link: `rede.html#post/${id}` });
-    await notificar(ctx, uidsDe(depois.marcados), { tipo: 'marcacao', titulo: `${primeiroNome(de.nome)} marcou você`, texto: String(depois.texto || 'Numa publicação da Rede').slice(0, 120), link: `rede.html#post/${id}`, de });
+    await notificar(ctx, await soDaEscola(ctx, uidsDe(depois.marcados), escolaPost), { tipo: 'marcacao', titulo: `${primeiroNome(de.nome)} marcou você`, texto: String(depois.texto || 'Numa publicação da Rede').slice(0, 120), link: `rede.html#post/${id}`, de });
   }
   if (!antes.oculto && depois.oculto) {
     await notificar(ctx, [autorUid], { tipo: 'moderacao', titulo: 'Seu post foi ocultado', texto: 'O Admin Master ocultou este post da rede. Ele continua visível só para você.', link: `rede.html#post/${id}` }, { push: false });
@@ -188,17 +209,20 @@ export async function aoCriarComentario(ctx, ev) {
       tipoAlvo: 'comentario', postId, comentarioId: cid, autorPostUid: post.autorUid, autorPostAcademiaId: post.autorAcademiaId || null,
       autorComentarioUid: c.autorUid, denuncianteUid: 'sistema', denuncianteNome: 'Filtro automático', motivo: `Comentário com ${termos.join(', ')}: "${String(c.texto).slice(0, 120)}"`,
       criadoEm: new Date().toISOString(), status: 'aberta',
+      // a escola do POST (antes caía na escola nº 1: 'sistema' não é cadastro)
+      ...(post.escolaId ? { escolaId: post.escolaId } : {}),
     });
     return;
   }
-  const de = { uid: c.autorUid, nome: c.autorNome || '', foto: c.autorFoto || '' };
+  const quem = await pessoaReal(ctx, c.autorUid, { nome: c.autorNome, foto: c.autorFoto });
+  const de = { uid: c.autorUid, nome: quem.nome, foto: quem.foto };
   const link = `rede.html#post/${postId}`;
   const avisados = new Set([c.autorUid]);
   if (c.respostaA) {
     const r = await ctx.db.doc(`posts/${postId}/comentarios/${c.respostaA}`).get();
     if (r.exists && !avisados.has(r.data().autorUid)) { avisados.add(r.data().autorUid); await notificar(ctx, [r.data().autorUid], { tipo: 'resposta', titulo: `${primeiroNome(de.nome)} respondeu você`, texto: String(c.texto).slice(0, 140), link, de }); }
   }
-  const mencionados = uidsDe(c.mencoes).filter((u) => !avisados.has(u));
+  const mencionados = (await soDaEscola(ctx, uidsDe(c.mencoes), post.escolaId || null)).filter((u) => !avisados.has(u));
   mencionados.forEach((u) => avisados.add(u));
   await notificar(ctx, mencionados, { tipo: 'mencao', titulo: `${primeiroNome(de.nome)} mencionou você`, texto: String(c.texto).slice(0, 140), link, de });
   if (!avisados.has(post.autorUid)) await notificar(ctx, [post.autorUid], { tipo: 'comentario', titulo: `${primeiroNome(de.nome)} comentou seu post`, texto: String(c.texto).slice(0, 140), link, de, tag: `coment_${postId}` }, { idFixo: `coment_${postId}` });
@@ -227,9 +251,10 @@ export async function aoCriarMensagem(ctx, ev) {
   const sc = await ctx.db.doc(`conversas/${id}`).get(); if (!sc.exists) return;
   const c = sc.data();
   const alvos = (c.participantes || []).filter((u) => u !== m.autorUid);
-  const titulo = c.tipo === 'grupo' ? `${c.nome || 'Grupo do núcleo'}` : (m.autorNome || 'Mensagem nova');
-  const texto = c.tipo === 'grupo' ? `${primeiroNome(m.autorNome)}: ${m.texto || '📷 Foto'}` : (m.texto || '📷 Foto');
-  await notificar(ctx, alvos, { tipo: 'mensagem', titulo, texto: String(texto).slice(0, 140), link: `rede.html#mensagens/${id}`, de: { uid: m.autorUid, nome: m.autorNome || '' }, tag: `msg_${id}` }, { idFixo: `msg_${id}` });
+  const autor = await pessoaReal(ctx, m.autorUid, { nome: m.autorNome });
+  const titulo = c.tipo === 'grupo' ? `${c.nome || 'Grupo do núcleo'}` : (autor.nome || 'Mensagem nova');
+  const texto = c.tipo === 'grupo' ? `${primeiroNome(autor.nome)}: ${m.texto || '📷 Foto'}` : (m.texto || '📷 Foto');
+  await notificar(ctx, alvos, { tipo: 'mensagem', titulo, texto: String(texto).slice(0, 140), link: `rede.html#mensagens/${id}`, de: { uid: m.autorUid, nome: autor.nome }, tag: `msg_${id}` }, { idFixo: `msg_${id}` });
 }
 
 // ---------- seguir ----------
@@ -243,7 +268,7 @@ export async function aoAtualizarPerfilPublico(ctx, ev) {
   }
   const pedidos = (depois.pedidosSeguir || []).filter((u) => !(antes.pedidosSeguir || []).includes(u));
   const seguidores = (depois.seguidores || []).filter((u) => !(antes.seguidores || []).includes(u) && !(antes.pedidosSeguir || []).includes(u));
-  for (const u of pedidos) { const s = await ctx.db.doc(`perfisPublicos/${u}`).get(); const nome = s.exists ? s.data().nome : 'Alguém'; await notificar(ctx, [uid], { tipo: 'seguir', titulo: `${primeiroNome(nome)} pediu para seguir você`, texto: 'Aceite ou recuse no seu perfil.', link: 'rede.html#perfil', de: { uid: u, nome } }); }
+  for (const u of pedidos) { const s = await ctx.db.doc(`perfisPublicos/${u}`).get(); const nome = s.exists ? s.data().nome : 'Alguém'; await notificar(ctx, [uid], { tipo: 'seguir', titulo: `${primeiroNome(nome)} pediu para seguir você`, texto: 'Aceite ou recuse no seu perfil.', link: 'rede.html#perfil', de: { uid: u, nome } }, { idFixo: `seguir_${u}` }); }
   for (const u of seguidores) { const s = await ctx.db.doc(`perfisPublicos/${u}`).get(); const nome = s.exists ? s.data().nome : 'Alguém'; await notificar(ctx, [uid], { tipo: 'seguir', titulo: `${primeiroNome(nome)} começou a seguir você`, texto: '', link: `rede.html#perfil/${u}`, de: { uid: u, nome } }, { push: false }); }
 }
 
@@ -252,21 +277,23 @@ export async function aoEscreverAviso(ctx, ev) {
   await auditar(ctx, 'avisos', ev);
   if (ev.antes || !ev.depois) return;
   const a = ev.depois;
-  await notificar(ctx, await membros(ctx, a.academiaId || null), { tipo: 'aviso', titulo: a.titulo || 'Aviso do grupo', texto: String(a.texto || '').slice(0, 160), link: 'rede.html#feed', tag: `aviso_${ev.params.id}` });
+  await notificar(ctx, await membros(ctx, a.academiaId || null, a.escolaId || null), { tipo: 'aviso', titulo: a.titulo || 'Aviso do grupo', texto: String(a.texto || '').slice(0, 160), link: 'rede.html#feed', tag: `aviso_${ev.params.id}` });
 }
 export async function aoEscreverEvento(ctx, ev) {
   await auditar(ctx, 'eventos', ev);
   if (ev.antes || !ev.depois) return;
   const e = ev.depois;
   const quando = e.data ? new Date(`${e.data}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : '';
-  await notificar(ctx, await membros(ctx, e.academiaId || null), { tipo: 'evento', titulo: `Evento: ${e.nome || 'novo evento'}`, texto: `${quando}${e.local ? ` · ${e.local}` : ''} — confirme sua presença.`, link: `rede.html#agenda/${ev.params.id}`, tag: `evento_${ev.params.id}` });
+  await notificar(ctx, await membros(ctx, e.academiaId || null, e.escolaId || null), { tipo: 'evento', titulo: `Evento: ${e.nome || 'novo evento'}`, texto: `${quando}${e.local ? ` · ${e.local}` : ''} — confirme sua presença.`, link: `rede.html#agenda/${ev.params.id}`, tag: `evento_${ev.params.id}` });
 }
 
 // ---------- denúncias / solicitações ----------
 export async function aoCriarDenuncia(ctx, ev) {
   const d = ev.depois; if (!d || d.denuncianteUid === 'sistema' && d.tipoAlvo !== 'comentario') return;
-  const alvos = [...(await admins(ctx)), ...(await gestoresDoNucleo(ctx, d.autorPostAcademiaId))];
-  await notificar(ctx, alvos, { tipo: 'denuncia', titulo: 'Nova denúncia na Rede', texto: String(d.motivo || '').slice(0, 140), link: 'rede.html#moderacao', tag: 'denuncia' });
+  let nucleoAutor = null;
+  if (d.autorPostUid) nucleoAutor = (await pessoaReal(ctx, d.autorPostUid)).academiaId;
+  const alvos = [...(await admins(ctx)), ...(await gestoresDoNucleo(ctx, nucleoAutor))];
+  await notificar(ctx, alvos, { tipo: 'denuncia', titulo: 'Nova denúncia na Rede', texto: String(d.motivo || '').slice(0, 140), link: 'rede.html#moderacao', tag: 'denuncia' }, { idFixo: 'denuncias' });
 }
 export async function aoEscreverSolicitacao(ctx, ev) {
   await auditar(ctx, 'solicitacoes', ev);
@@ -303,8 +330,10 @@ export async function aoEscreverConfirmado(ctx, ev) {
 export async function aoEscreverNotificacao(ctx, ev) {
   const { uid } = ev.params; const { antes, depois } = ev;
   if (!uid || !depois || depois.tipo !== 'cordao' || !depois.compartilhadoEm || (antes && antes.compartilhadoEm)) return;
+  if (depois.compartilhamentoContado) return; // cada card conta uma vez só
   const ref = ctx.db.doc(`usuarios/${uid}`); const s = await ref.get(); if (!s.exists) return;
   await ref.update({ cardsCompartilhados: (Number(s.data().cardsCompartilhados) || 0) + 1 });
+  await ctx.db.doc(`notificacoes/${uid}/itens/${ev.params.id}`).update({ compartilhamentoContado: true }).catch(() => {});
 }
 // Vídeo de apresentação ou assinatura cadastrada/removida → brasões 64 e 67.
 export async function aoEscreverApresentacaoOuAssinatura(ctx, ev) {

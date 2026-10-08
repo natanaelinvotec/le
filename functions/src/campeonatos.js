@@ -19,7 +19,10 @@ export async function aoEscreverCampeonato(ctx, ev) {
   const inscritos = (await ctx.db.collection(`campeonatos/${id}/inscricoes`).limit(500).get()).docs.map((d) => ({ uid: d.id, ...d.data() }));
   const reais = inscritos.filter((i) => !ehDemo(i.uid) && i.demo !== true);
   const posicaoDe = {}; // uid → melhor posição (1..3)
-  podios.forEach((p) => (p.podio || []).forEach((u, i) => { if (u && !ehDemo(u)) posicaoDe[u] = Math.min(posicaoDe[u] || 9, i === 3 ? 3 : i + 1); }));
+  // Auditoria 08/10: só sobe ao pódio quem está INSCRITO (antes qualquer uid colocado no
+  // pódio ganhava brasão e a notificação "Você é campeão!").
+  const inscritosReais = new Set(reais.map((i) => i.uid));
+  podios.forEach((p) => (p.podio || []).forEach((u, i) => { if (u && !ehDemo(u) && inscritosReais.has(u)) posicaoDe[u] = Math.min(posicaoDe[u] || 9, i === 3 ? 3 : i + 1); }));
 
   let atualizados = 0;
   for (const i of reais) {
@@ -45,10 +48,15 @@ export async function aoEscreverCampeonato(ctx, ev) {
   });
   if (linhas.length) {
     const org = depois.organizadorUid ? await ctx.db.doc(`usuarios/${depois.organizadorUid}`).get() : null;
-    const o = org && org.exists ? org.data() : {};
+    // O post sai em nome do organizador só se ele for da escola do campeonato; senão, "Organização".
+    const oCru = org && org.exists ? org.data() : {};
+    const orgDaEscola = !depois.escolaId || !oCru.escolaId || oCru.escolaId === depois.escolaId;
+    const o = orgDaEscola ? oCru : {};
+    const autorUid = orgDaEscola ? (depois.organizadorUid || '') : '';
     const texto = `🏆 ${depois.nome}${depois.data ? ` — ${String(depois.data).split('-').reverse().join('/')}` : ''}\n\n${linhas.join('\n')}\n\nParabéns a todos os atletas! #campeonato #capoeira`.slice(0, 1800);
     await ctx.db.collection('posts').add({
-      autorUid: depois.organizadorUid || '', autorNome: o.nome || depois.organizadorNome || 'Organização', autorFoto: /^https:/.test(o.fotoUrl || '') ? o.fotoUrl : '',
+      ...(depois.escolaId ? { escolaId: depois.escolaId } : {}), // o post fica na escola do campeonato
+      autorUid, autorNome: o.nome || (orgDaEscola ? depois.organizadorNome : '') || 'Organização', autorFoto: /^https:/.test(o.fotoUrl || '') ? o.fotoUrl : '',
       autorAcademiaId: depois.academiaId || o.academiaId || null, autorAcademiaNome: depois.academiaNome || o.academiaNome || '', autorCordao: o.cordaoAtual || '', autorMenor: false,
       texto, fotoUrl: '', midias: [], tipo: 'aviso', comoNucleo: !!depois.academiaId, nucleoId: depois.academiaId || null, nucleoNome: depois.academiaNome || '',
       marcados: Object.keys(posicaoDe).slice(0, 12).map((u) => { const a = podios.flatMap((p) => p.atletas || []).find((x) => x.uid === u); return { uid: u, nome: a ? a.nome : 'Atleta' }; }),
