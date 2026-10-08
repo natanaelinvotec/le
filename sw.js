@@ -11,7 +11,7 @@
 // Offline: sem internet o app abre com o que já foi carregado e o Firestore
 // mostra os dados do cache local dele. Fotos já vistas ficam guardadas (até 800).
 // Push: o Firebase Cloud Messaging entrega a notificação mesmo com o app fechado.
-const VERSAO = 'le-app-v29'; // ← mude SÓ isto a cada atualização publicada (ver quadro abaixo)
+const VERSAO = 'le-app-v30'; // ← mude SÓ isto a cada atualização publicada (ver quadro abaixo)
 const CACHE_TELAS = `${VERSAO}-telas`;
 const CACHE_FOTOS = `${VERSAO}-fotos`;
 const CACHE_LIBS = 'le-libs-v1'; // não depende da VERSAO: endereços versionados não mudam

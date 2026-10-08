@@ -38,6 +38,8 @@ export const firebaseApp = app;
 // página inteira até o Auth terminar de trocar de lugar a sessão.
 // indexedDB fica como 2ª opção só para migrar sessões antigas gravadas lá.
 export const auth = initializeAuth(app, { persistence: [browserLocalPersistence, indexedDBLocalPersistence] });
+// E-mails do Firebase (nova senha) em português.
+auth.languageCode = 'pt-BR';
 // Cache local ligado - visões repetidas na mesma sessão não voltam a ler do
 // servidor o que não mudou (parte do esforço de reduzir leituras do Firestore).
 // Cache local do Firestore compartilhado entre abas (painel + Rede abertos
@@ -186,7 +188,13 @@ export async function entrar(email, senha) {
   if (!perfil.exists()) throw new Error('Conta sem perfil cadastrado. Fale com a administração.');
   return { uid: cred.user.uid, ...perfil.data() };
 }
-export const recuperarSenha = (email) => sendPasswordResetEmail(auth, email.trim().toLowerCase());
+// O link do e-mail abre a página de conta (atletapay.com.br/conta) e, no fim, volta para o login deste
+// endereço. Endereço de volta não autorizado no Authentication → manda o e-mail mesmo assim, sem a volta.
+export async function recuperarSenha(email, voltarPara = `${location.origin}${location.pathname.replace(/[^/]*$/, '')}login.html`) {
+  const em = email.trim().toLowerCase();
+  try { await sendPasswordResetEmail(auth, em, { url: voltarPara }); }
+  catch (e) { if (/unauthorized-continue-uri|invalid-continue-uri|missing-continue-uri/.test((e && e.code) || '')) await sendPasswordResetEmail(auth, em); else throw e; }
+}
 export const sair = () => { try { localStorage.removeItem('le.destino'); } catch (e) { /* ok */ } return signOut(auth); };
 
 // Troca de senha feita pela própria pessoa (Meus dados / Minha conta / Rede).

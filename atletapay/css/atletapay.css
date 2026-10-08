@@ -337,3 +337,44 @@ input[type=range] { width: 100%; accent-color: var(--laranja); height: 34px; }
   .bt.perigo { margin-left: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .escola-card { animation: none; } }
+/* Mega painel: conta sem acesso */
+.acesso-negado { max-width: 560px; padding: 64px 16px; }
+.acesso-negado .cartao { display: grid; gap: 14px; padding: 28px; }
+.acesso-negado h2 { font-size: clamp(1.3rem, 2.6vw, 1.7rem); }
+.acesso-negado .sub { margin: 0; overflow-wrap: anywhere; }
+.acesso-negado .acoes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.an-icone { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; font-size: 1.3rem; color: #fff; background: linear-gradient(135deg, var(--laranja), var(--laranja-2)); box-shadow: 0 14px 30px -14px rgba(255,90,31,.8); }
+
+/* ===== Página de conta (conta.html): nova senha, confirmar e-mail ===== */
+.pagina-conta { display: grid; grid-template-rows: auto 1fr auto; min-height: 100dvh; background:
+  radial-gradient(900px 420px at 85% -10%, rgba(30,42,120,.16), transparent 60%),
+  radial-gradient(700px 380px at -10% 110%, rgba(255,122,26,.12), transparent 60%), var(--areia); }
+.selo-conta { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; font-size: .78rem; font-weight: 800; color: var(--texto-inv-2); border: 1px solid var(--borda-inv); }
+.conta-wrap { display: grid; place-items: start center; padding: clamp(28px, 8vh, 88px) 16px 40px; }
+.conta-cartao { width: min(460px, 100%); display: grid; gap: 14px; padding: clamp(22px, 5vw, 34px); box-shadow: 0 30px 70px -40px rgba(11,14,31,.45); animation: subir .55s var(--ease) both; }
+.conta-cartao h1 { font-size: clamp(1.45rem, 4vw, 1.9rem); }
+.conta-cartao .sub { margin: 0; color: var(--texto-2); overflow-wrap: anywhere; }
+.conta-carregando { display: flex; gap: 10px; align-items: center; color: var(--texto-3); font-weight: 700; }
+.conta-icone { width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; font-size: 1.35rem; color: #fff; background: linear-gradient(135deg, var(--indigo-claro), var(--indigo)); box-shadow: 0 16px 34px -16px rgba(30,42,120,.8); }
+.conta-icone.bom { background: linear-gradient(135deg, #12B76A, #0B8F5B); box-shadow: 0 16px 34px -16px rgba(11,143,91,.8); }
+.conta-icone.ruim { background: linear-gradient(135deg, var(--laranja), var(--laranja-2)); box-shadow: 0 16px 34px -16px rgba(255,90,31,.8); }
+.conta-form { display: grid; gap: 14px; margin-top: 4px; }
+.conta-form .campo { display: grid; gap: 6px; }
+.conta-form label { font-weight: 800; font-size: .86rem; }
+.conta-form input { width: 100%; min-height: 50px; padding: 0 14px; border-radius: 13px; border: 1.5px solid var(--borda); background: #fff; font-size: 1rem; transition: border-color .25s var(--ease), box-shadow .25s var(--ease); }
+.conta-form input:focus { outline: none; border-color: var(--indigo-claro); box-shadow: 0 0 0 4px rgba(79,95,216,.16); }
+.senha-campo { position: relative; }
+.senha-campo input { padding-right: 52px; }
+.ver-senha { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; border: 0; border-radius: 10px; background: transparent; color: var(--texto-2); }
+.ver-senha:hover { background: var(--areia); }
+.ver-senha:focus-visible, .conta-cartao .bt:focus-visible { outline: 3px solid var(--ciano); outline-offset: 2px; }
+.forca { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.forca span { height: 6px; border-radius: 99px; background: var(--areia-2); transition: background .3s var(--ease); }
+.forca span.on.n1 { background: #D92D20; } .forca span.on.n2 { background: #F79009; }
+.forca span.on.n3 { background: #19C6E6; } .forca span.on.n4 { background: #12B76A; }
+.conta-cartao .acoes { display: flex; flex-wrap: wrap; gap: 10px; }
+.conta-cartao .acoes .bt { flex: 1 1 auto; }
+.conta-destino { margin: 0; font-size: .84rem; color: var(--texto-3); }
+.conta-rodape { padding: 18px 16px 26px; text-align: center; font-size: .8rem; color: var(--texto-3); }
+.conta-rodape a { color: inherit; }
+@media (prefers-reduced-motion: reduce) { .conta-cartao { animation: none; } }

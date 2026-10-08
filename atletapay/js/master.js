@@ -43,16 +43,25 @@ observarSessao(async (u) => {
   try {
     const p = await getDoc(doc(db, 'usuarios', u.uid));
     const papeis = p.exists() && Array.isArray(p.data().papeis) ? p.data().papeis : [];
-    if (!papeis.includes('admin')) { semAcesso(); return; }
-  } catch (e) { semAcesso(); return; }
+    if (!papeis.includes('admin')) { semAcesso(u.email, papeis); return; }
+  } catch (e) { semAcesso(u.email, []); return; }
   desligar = onSnapshot(collection(db, 'escolas'), (s) => {
     escolas = s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => String(b.enviadoEm || b.criadoEm || '').localeCompare(String(a.enviadoEm || a.criadoEm || '')));
     render();
   }, (e) => { console.error(e); pagina.innerHTML = `<div class="wrap" style="padding:60px 16px"><div class="erro-caixa">Não deu para listar as escolas. ${esc(erroAmigavel(e))}</div></div>`; });
 });
 
-function semAcesso() {
-  pagina.innerHTML = '<div class="wrap" style="max-width:520px;padding:60px 16px"><div class="erro-caixa"><i class="fas fa-lock"></i> Área só da equipe AtletaPay. Esta conta não tem acesso ao Mega painel.</div><p class="sub" style="margin-top:14px">É dono de escola? O painel da sua escola fica em <a href="painel.html">Minha escola</a>.</p></div>';
+// Conta logada sem papel de admin (ex.: o mesmo navegador já estava logado como aluno ou dono):
+// diz QUAL conta entrou e oferece trocar — sem revelar quem é o administrador.
+function semAcesso(email, papeis) {
+  const tipo = papeis.includes('mestre') ? 'de professor' : papeis.includes('aluno') ? 'de aluno' : 'sem papel de administrador';
+  pagina.innerHTML = `<div class="wrap acesso-negado"><div class="cartao">
+    <span class="an-icone" aria-hidden="true"><i class="fas fa-user-shield"></i></span>
+    <h2>Esta conta não é da equipe AtletaPay</h2>
+    <p class="sub">Você está conectado como <b>${esc(email || 'conta sem e-mail')}</b>, que é uma conta ${esc(tipo)}. O Mega painel só abre com a conta de administrador da plataforma.</p>
+    <div class="acoes"><button type="button" class="bt bt-laranja" id="btTrocar"><i class="fas fa-right-left"></i> Entrar com outra conta</button><a class="bt bt-branco" href="painel">Sou dono de escola</a></div>
+  </div></div>`;
+  el('btTrocar').addEventListener('click', async () => { if (desligar) { desligar(); desligar = null; } await sair(); });
 }
 
 function renderLogin() {
@@ -161,7 +170,7 @@ async function acao(ev) {
     } else if (b.dataset.senha) {
       if (!confirm(`Enviar para ${b.dataset.senha} o e-mail do Firebase com o link para criar uma senha nova?`)) return;
       b.disabled = true;
-      await recuperarSenha(b.dataset.senha);
+      await recuperarSenha(b.dataset.senha, 'https://atletapay.com.br/painel'); // o dono volta para o painel da escola dele
       toast('Link de nova senha enviado ao dono.');
       b.disabled = false;
     } else if (b.dataset.copiar) {

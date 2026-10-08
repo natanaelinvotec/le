@@ -7,6 +7,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/fireba
 import {
   initializeAuth, browserLocalPersistence, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword,
   sendPasswordResetEmail, sendEmailVerification, updateProfile, signOut,
+  verifyPasswordResetCode, confirmPasswordReset, applyActionCode, checkActionCode,
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import {
   getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, serverTimestamp, onSnapshot, writeBatch,
@@ -27,6 +28,8 @@ const APP_CHECK_SITE_KEY = '6LccBdQtAAAAANJl-I6rIh-fMLOrl-RHaikSEjfY';
 
 const app = initializeApp(FIREBASE_CONFIG);
 export const auth = initializeAuth(app, { persistence: [browserLocalPersistence] });
+// E-mails do Firebase (nova senha, confirmação) em português.
+auth.languageCode = 'pt-BR';
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export { doc, getDoc, setDoc, updateDoc, addDoc, collection, serverTimestamp, onSnapshot, writeBatch, storageRef, uploadString, getDownloadURL };
@@ -43,7 +46,19 @@ if (APP_CHECK_SITE_KEY && typeof window !== 'undefined') {
 export const observarSessao = (cb) => onAuthStateChanged(auth, cb);
 export const meuUid = () => auth.currentUser && auth.currentUser.uid;
 export const sair = () => signOut(auth);
-export const recuperarSenha = (email) => sendPasswordResetEmail(auth, String(email).trim().toLowerCase());
+// Nova senha: o link do e-mail abre atletapay.com.br/conta (Console → Authentication → Modelos →
+// URL de ação) e, no fim, devolve a pessoa para `voltarPara` (a tela de onde ela pediu).
+// Endereço de volta não autorizado no Authentication → manda o e-mail mesmo assim, sem a volta.
+export async function recuperarSenha(email, voltarPara = `${location.origin}${location.pathname}`) {
+  const em = String(email).trim().toLowerCase();
+  try { await sendPasswordResetEmail(auth, em, { url: voltarPara }); }
+  catch (e) { if (/unauthorized-continue-uri|invalid-continue-uri|missing-continue-uri/.test((e && e.code) || '')) await sendPasswordResetEmail(auth, em); else throw e; }
+}
+// Página de ação da conta (conta.html): valida e aplica o código que veio no link do e-mail.
+export const conferirCodigoSenha = (codigo) => verifyPasswordResetCode(auth, codigo);
+export const gravarNovaSenha = (codigo, senha) => confirmPasswordReset(auth, codigo, senha);
+export const aplicarCodigo = (codigo) => applyActionCode(auth, codigo);
+export const conferirCodigo = (codigo) => checkActionCode(auth, codigo);
 export async function entrar(email, senha) { return (await signInWithEmailAndPassword(auth, String(email).trim().toLowerCase(), senha)).user; }
 export async function criarConta(nome, email, senha) {
   const cred = await createUserWithEmailAndPassword(auth, String(email).trim().toLowerCase(), senha);
@@ -60,6 +75,10 @@ export function erroAmigavel(e) {
   if (/weak-password/.test(c)) return 'Senha fraca: use pelo menos 8 caracteres.';
   if (/wrong-password|invalid-credential|user-not-found/.test(c)) return 'E-mail ou senha não conferem.';
   if (/too-many-requests/.test(c)) return 'Muitas tentativas. Aguarde um minuto e tente de novo.';
+  if (/expired-action-code/.test(c)) return 'Este link expirou. Peça um link novo na tela de entrar.';
+  if (/invalid-action-code/.test(c)) return 'Este link já foi usado ou não é válido. Peça um link novo na tela de entrar.';
+  if (/user-disabled/.test(c)) return 'Esta conta está desativada. Fale com o suporte da AtletaPay.';
+  if (/password-does-not-meet-requirements/.test(c)) return 'A senha não atende às regras de segurança: use pelo menos 8 caracteres, com letras e números.';
   if (/network-request-failed/.test(c)) return 'Sem internet agora. Tente de novo.';
   if (/permission-denied/.test(c)) return 'Sem permissão para gravar. Confira se o e-mail foi verificado.';
   return (e && e.message) || 'Não deu certo agora. Tente de novo.';

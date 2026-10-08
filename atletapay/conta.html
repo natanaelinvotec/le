@@ -1,0 +1,35 @@
+<!-- conta.html — página de ação da conta (atletapay.com.br/conta).
+Os e-mails do Firebase (nova senha, confirmar e-mail, desfazer troca de e-mail)
+apontam para cá: Console → Authentication → Modelos → Personalizar URL de ação.
+Vale para todas as escolas (Liberdade incluída) e para o Mega painel. -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B0E1F">
+<meta name="robots" content="noindex, nofollow">
+<!-- O código do link fica no endereço: não vazar para fontes/ícones de outros sites. -->
+<meta name="referrer" content="no-referrer">
+<title>Sua conta — AtletaPay</title>
+<link rel="icon" type="image/svg+xml" href="assets/marca.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="css/atletapay.css?v=20261008c">
+</head>
+<body class="painel pagina-conta">
+<header class="topo">
+  <div class="wrap">
+    <a class="marca" href="index.html"><img src="assets/marca.svg" alt="">Atleta<b>Pay</b></a>
+    <span class="selo-conta"><i class="fas fa-lock"></i> Conexão segura</span>
+  </div>
+</header>
+<main id="pagina" class="conta-wrap">
+  <div class="cartao conta-cartao"><div class="conta-carregando"><i class="fas fa-spinner fa-spin"></i> Conferindo o link…</div></div>
+</main>
+<footer class="conta-rodape">AtletaPay · plataforma de gestão de escolas de artes marciais · <a href="privacidade.html">Privacidade</a></footer>
+<script type="module" src="js/conta.js?v=20261008"></script>
+</body>
+</html>
