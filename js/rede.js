@@ -32,6 +32,7 @@ arrayUnion, arrayRemove, increment, onSnapshot, storageRef, uploadString, upload
 consultaDaEscola, comMinhaEscola, ondeEscola, talvezComEscola,
 } from './firebase.js';
 import { escapeHTML, urlImagem } from './shared.js';
+import { prepararImagem, codificarCanvas, extensaoDe, PERFIS } from './imagem.js';
 import { ESCOLA, CORDOES_ADULTO, CORDOES_KIDS, ORDEM_CORDOES, IDADE_KIDS, rotuloGrad, linkMapa as linkMapaEscola, proximoCordao as proximoCordaoEscola } from './escola.js';
 import { faixaSVG, quadroGraduacoesSVG } from './faixas.js';
 import { termosOfensivos, MOTIVOS_DENUNCIA } from './moderacao.js';
@@ -39,17 +40,17 @@ import { iniciarExperiencia, abrirAcessibilidade, instalar, estaInstalado, tutor
 import { ligarContador, listar as listarNotificacoes, marcarTodasLidas, itemHTML as notificacaoHTML, CSS_NOTIF, ativarPush, desativarPush, estadoPush, ouvirPushComAppAberto } from './notificacoes.js';
 import { pedirExclusaoDaConta } from './lgpd.js';
 import { apresentacaoDe, tocarApresentacao, gerenciarApresentacao, abrirTrocaSenha, definirAutor, podeTerApresentacao } from './conta.js?v=20261006';
-import { BRASOES, SERIES, avaliar as avaliarBrasoes, consolidar as consolidarBrasoes, resumirPresencas, urlThumb, urlPng, urlGlb, textoMetrica, porId as brasaoPorId } from './brasoes.js?v=20261006';
+import { BRASOES, SERIES, avaliar as avaliarBrasoes, consolidar as consolidarBrasoes, resumirPresencas, urlThumb, urlPng, urlGlb, textoMetrica, porId as brasaoPorId } from './brasoes.js?v=20261012';
 
 /* ===================== CONSTANTES ===================== */
 // Cordões, cores e critérios ficam em escola.js (white-label).
 const PAGINA = 20;
 const LIMITE_TEXTO = 800;
 const MAX_MIDIAS = 4;
-const IMG_MAX_DIM = 1280;      // maior lado da foto de post
-const IMG_ALVO_KB = 350;       // tamanho alvo por foto — preserva o Storage
-const STORY_MAX_DIM = 1080;
-const STORY_ALVO_KB = 300;
+const IMG_MAX_DIM = PERFIS.post.lado;      // maior lado da foto de post
+const IMG_ALVO_KB = PERFIS.post.alvoKB;       // tamanho alvo por foto — preserva o Storage
+const STORY_MAX_DIM = PERFIS.story.lado;
+const STORY_ALVO_KB = PERFIS.story.alvoKB;
 const VIDEO_MAX_MB = 12;       // depois de comprimido (limite do Storage)
 const VIDEO_BRUTO_MAX_MB = 80; // o que dá pra escolher da galeria antes de comprimir
 const VIDEO_MAX_SEG = 20;
@@ -175,22 +176,9 @@ return n ? `Direto ${nomeCurtoNucleo(n.nome)}` : (pub.academiaNome ? `Direto ${n
 // Redimensiona e vai baixando a qualidade até caber no alvo. Devolve o dataURL
 // final e os tamanhos pra mostrar ao usuário ("4,2 MB → 290 KB").
 async function comprimirAdaptativo(file, maxDim, alvoKB) {
-const bruto = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(new Error('leitura')); r.readAsDataURL(file); });
-const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('imagem')); i.src = bruto; });
-let dim = maxDim; let melhor = null;
-for (let rodada = 0; rodada < 3 && !melhor; rodada++) {
-const escala = Math.min(1, dim / Math.max(img.width, img.height));
-const w = Math.max(1, Math.round(img.width * escala)); const h = Math.max(1, Math.round(img.height * escala));
-const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
-canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-for (let q = 0.85; q >= 0.5; q -= 0.07) {
-const d = canvas.toDataURL('image/jpeg', q);
-if (bytesDataUrl(d) <= alvoKB * 1024) { melhor = { dataUrl: d, w, h }; break; }
-if (q - 0.07 < 0.5 && rodada === 2) melhor = { dataUrl: d, w, h }; // último recurso: menor qualidade no menor tamanho
-}
-dim = Math.round(dim * 0.8);
-}
-return { ...melhor, original: file.size, final: bytesDataUrl(melhor.dataUrl) };
+// Regra única de imagens (js/imagem.js): WebP quando o navegador sabe, até caber no alvo.
+const r = await prepararImagem(file, { lado: maxDim, alvoKB });
+return { dataUrl: r.dataUrl, w: r.largura, h: r.altura, original: file.size, final: r.bytes };
 }
 function duracaoVideo(file) {
 return new Promise((res) => {
@@ -245,10 +233,11 @@ await new Promise((res) => { v.onseeked = res; setTimeout(res, 1500); });
 const escala = Math.min(1, 720 / Math.max(v.videoWidth, v.videoHeight));
 const c = document.createElement('canvas'); c.width = Math.round(v.videoWidth * escala); c.height = Math.round(v.videoHeight * escala);
 c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
-return c.toDataURL('image/jpeg', 0.72);
+return codificarCanvas(c, PERFIS.capaVideo).dataUrl;
 } catch (e) { return null; } finally { URL.revokeObjectURL(url); }
 }
-async function subirDataUrl(caminho, dataUrl) { const r = storageRef(storage, caminho); await uploadString(r, dataUrl, 'data_url', { cacheControl: 'public,max-age=31536000' }); return getDownloadURL(r); }
+// A extensão segue o formato que a regra de imagens gerou (webp, jpg ou png).
+async function subirDataUrl(caminho, dataUrl) { const tipo = (/^data:([^;,]+)/.exec(String(dataUrl)) || [])[1]; const r = storageRef(storage, String(caminho).replace(/\.(jpe?g|png|webp)$/i, `.${extensaoDe(tipo)}`)); await uploadString(r, dataUrl, 'data_url', { cacheControl: 'public,max-age=31536000' }); return getDownloadURL(r); }
 
 /* ===================== CARTÃO PÚBLICO (calculado no servidor) ===================== */
 // O servidor (Cloud Functions) recalcula o cartão quando algo muda: cadastro,
@@ -831,7 +820,7 @@ el('tituloTopo').textContent = meu ? 'Meus brasões' : `Brasões de ${pub.nome.s
 const av = avaliacaoDe(pub); const ganhos = av.filter((a) => a.ganho).length;
 const cordaoAtual = av.find((a) => a.serie === 'cordoes' && a.ganho && a.regra.meta === pub.cordaoAtual) || av.filter((a) => a.serie === 'cordoes' && a.ganho).pop();
 vista.innerHTML = `
-<div class="sala-topo">${cordaoAtual ? `<img src="${urlPng(cordaoAtual)}" alt="" class="sala-hero" data-brasao="${cordaoAtual.id}">` : ''}<div><span class="eyebrow">Sala de Brasões</span><h2>${escapeHTML(pub.nome)}</h2><p>${ganhos} de ${av.length} brasões conquistados${cordaoAtual ? ` · cordão ${escapeHTML(pub.cordaoAtual || 'Iniciante')}` : ''}</p><div class="barra" style="margin-top:8px"><i style="width:${Math.round(ganhos * 100 / Math.max(1, av.length))}%;--c1:#DAA520;--c2:#00B140;--c3:#002D72"></i></div></div></div>
+<div class="sala-topo">${cordaoAtual ? `<img src="${urlThumb(cordaoAtual)}" alt="" class="sala-hero" data-brasao="${cordaoAtual.id}">` : ''}<div><span class="eyebrow">Sala de Brasões</span><h2>${escapeHTML(pub.nome)}</h2><p>${ganhos} de ${av.length} brasões conquistados${cordaoAtual ? ` · cordão ${escapeHTML(pub.cordaoAtual || 'Iniciante')}` : ''}</p><div class="barra" style="margin-top:8px"><i style="width:${Math.round(ganhos * 100 / Math.max(1, av.length))}%;--c1:#DAA520;--c2:#00B140;--c3:#002D72"></i></div></div></div>
 ${Object.entries(SERIES).map(([k, sr]) => { const itens = av.filter((a) => a.serie === k); if (!itens.length) return ''; const g = itens.filter((a) => a.ganho).length; return `<div class="titulo-sec"><span><i class="fas ${sr.icone}" style="color:var(--teal);margin-right:6px"></i>${sr.nome}</span><span class="contador">${g}/${itens.length}</span></div><p class="contador" style="margin:-4px 4px 6px">${sr.sub}</p><div class="brasoes-grade">${itens.map((a) => brasaoCardHTML(a)).join('')}</div>`; }).join('')}
 <p class="contador" style="text-align:center;padding:8px 12px 0">Todo brasão é calculado de dados reais do app (presenças do Face ID, graduações registradas pelo mestre, publicações na Rede) ou concedido pelo responsável do núcleo.</p>`;
 vista.dataset.pubBrasoes = alvo;
@@ -864,7 +853,7 @@ btn3d.remove();
 }
 // Festa de brasão (e compartilhar: stories, WhatsApp, Rede) — a mesma do app (js/celebrar.js).
 function abrirFestaBrasoes(ids, soCompartilhar = false) {
-import('./celebrar.js?v=20261002').then((m) => m.abrirFesta({ tipo: 'brasao', nome: perfil.nome || (meuPub && meuPub.nome) || '', brasoes: ids, compartilhar: soCompartilhar }, { uid, perfil }))
+import('./celebrar.js?v=20261012').then((m) => m.abrirFesta({ tipo: 'brasao', nome: perfil.nome || (meuPub && meuPub.nome) || '', brasoes: ids, compartilhar: soCompartilhar }, { uid, perfil }))
 .catch(() => { if (!soCompartilhar) celebrarBrasoesSimples(ids); });
 }
 function celebrarBrasoes(ids) { abrirFestaBrasoes(ids, false); }
@@ -1073,7 +1062,7 @@ try { await updateDoc(doc(db, 'perfisPublicos', uid), dados); Object.assign(meuP
 async function trocarFotoPerfil(file) {
 toast('Comprimindo a foto…');
 try {
-const img = await comprimirAdaptativo(file, 540, 120);
+const img = await comprimirAdaptativo(file, PERFIS.perfil.lado, PERFIS.perfil.alvoKB);
 const url = await salvarFotoPerfil(uid, img.dataUrl);
 await atualizar('usuarios', uid, { fotoUrl: url }); perfil.fotoUrl = url; pubCache.delete(uid);
 toast('Foto atualizada. Em instantes aparece em todo o app.'); setTimeout(() => renderPerfil(null, el('vista')), 1500);
@@ -1082,7 +1071,7 @@ toast('Foto atualizada. Em instantes aparece em todo o app.'); setTimeout(() => 
 async function trocarCapa(file) {
 toast('Comprimindo a capa…');
 try {
-const img = await comprimirAdaptativo(file, 1400, 260);
+const img = await comprimirAdaptativo(file, PERFIS.capaRede.lado, PERFIS.capaRede.alvoKB);
 const url = await subirDataUrl(`rede/${uid}/capa_${Date.now()}.jpg`, img.dataUrl);
 await updateDoc(doc(db, 'perfisPublicos', uid), { capaUrl: url }); pubCache.delete(uid);
 toast(`Capa atualizada (${fmtKB(img.original)} → ${fmtKB(img.final)}).`); renderPerfil(null, el('vista'));
@@ -1308,7 +1297,7 @@ const peq = document.createElement('canvas'); peq.width = Math.max(2, Math.round
 peq.getContext('2d').drawImage(c, x, y, w, h, 0, 0, peq.width, peq.height);
 ctx.imageSmoothingEnabled = false; ctx.drawImage(peq, 0, 0, peq.width, peq.height, x, y, w, h); ctx.imageSmoothingEnabled = true;
 });
-m.dataUrl = c.toDataURL('image/jpeg', 0.8); m.final = bytesDataUrl(m.dataUrl);
+m.dataUrl = codificarCanvas(c, PERFIS.post).dataUrl; m.final = bytesDataUrl(m.dataUrl);
 }
 }
 async function publicar(texto) {
@@ -1447,7 +1436,7 @@ await updateDoc(doc(db, 'conversas', id), { ultimaMsg: (texto || '📷 Foto').sl
 const ta = el('msgTexto');
 el('btnEnviarMsg').addEventListener('click', () => { const t = ta.value.trim(); ta.value = ''; enviar(t); });
 ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); el('btnEnviarMsg').click(); } });
-el('btnFotoChat').addEventListener('click', () => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.onchange = async () => { const f = inp.files[0]; if (!f) return; toast('Comprimindo…'); try { const img = await comprimirAdaptativo(f, 1024, 220); const url = await subirDataUrl(`rede/${uid}/msg_${Date.now()}.jpg`, img.dataUrl); enviar('', url); } catch (e) { toast('Não foi possível enviar a foto.'); } }; inp.click(); });
+el('btnFotoChat').addEventListener('click', () => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.onchange = async () => { const f = inp.files[0]; if (!f) return; toast('Comprimindo…'); try { const img = await comprimirAdaptativo(f, PERFIS.chat.lado, PERFIS.chat.alvoKB); const url = await subirDataUrl(`rede/${uid}/msg_${Date.now()}.jpg`, img.dataUrl); enviar('', url); } catch (e) { toast('Não foi possível enviar a foto.'); } }; inp.click(); });
 }
 
 /* ===================== MODERAÇÃO ===================== */

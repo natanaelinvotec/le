@@ -162,7 +162,9 @@ b(75, 'roda-inclusiva', 'Roda Inclusiva', 'inclusao', { tipo: 'rodaInclusiva' },
 ];
 
 export const porId = (id) => BRASOES.find((x) => x.id === id) || null;
-export const urlThumb = (brasao) => `${PASTA}/thumb/${brasao.arquivo}.png`;
+// Miniatura leve (WebP 384 px, ~20 KB) para listas e telas pequenas; o PNG 1024 fica para
+// tela cheia, card de comemoração e download (regra única de imagens, 08/10).
+export const urlThumb = (brasao) => `${PASTA}/webp/${brasao.arquivo}.webp`;
 export const urlPng = (brasao) => `${PASTA}/png/${brasao.arquivo}.png`;
 export const urlGlb = (brasao) => (brasao.glb ? `${PASTA}/glb/${brasao.glb}.glb` : null);
 export const ehManual = (brasao) => brasao.regra.tipo === 'manual';

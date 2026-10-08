@@ -18,8 +18,9 @@ notificação; se não compartilhar, o servidor manda um lembrete depois
   abrirFesta(festa, { uid, perfil })     → abre a festa / o compartilhamento */
 import { db, storage, storageRef, uploadString, getDownloadURL, collection, query, where, limit, getDocs, getDoc, doc, updateDoc, addDoc, talvezComEscola } from './firebase.js';
 import { ESCOLA, coresDoCordao, nomeBonito } from './escola.js';
-import { porId as brasaoPorId, urlPng } from './brasoes.js';
+import { porId as brasaoPorId, urlPng, urlThumb } from './brasoes.js';
 import { gerarCardStory, compartilharImagem, linkWhatsApp, baixarImagem } from './card-story.js';
+import { prepararImagem } from './imagem.js';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const primeiro = (n) => String(n || '').trim().split(/\s+/)[0] || 'Atleta';
@@ -264,21 +265,17 @@ function duasLinhas(t) {
 const Y = (v) => `top:calc(var(--k)*${v})`; // posição vertical em "pontos" do card (0–1920)
 
 // ---------- postar na Rede Liberdade ----------
+// O card sai do canvas em PNG (pesado): a regra única de imagens o deixa em WebP/JPEG até 260 KB.
 async function paraJpeg(blob) {
-  const u = URL.createObjectURL(blob);
-  try {
-    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = u; });
-    const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
-    c.getContext('2d').drawImage(img, 0, 0);
-    return { dataUrl: c.toDataURL('image/jpeg', 0.88), w: img.width, h: img.height };
-  } finally { URL.revokeObjectURL(u); }
+  const r = await prepararImagem(blob, 'card');
+  return { dataUrl: r.dataUrl, w: r.largura, h: r.altura, ext: r.ext };
 }
 export async function postarNaRede({ uid, perfil, blob, texto }) {
   const sp = await getDoc(doc(db, 'perfisPublicos', uid));
   if (!sp.exists()) throw new Error('Abra a Rede Liberdade uma vez para criar o seu perfil e tente de novo.');
   const pub = sp.data();
-  const { dataUrl, w, h } = await paraJpeg(blob);
-  const r = storageRef(storage, `rede/${uid}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}.jpg`);
+  const { dataUrl, w, h, ext } = await paraJpeg(blob);
+  const r = storageRef(storage, `rede/${uid}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}.${ext}`);
   await uploadString(r, dataUrl, 'data_url', { cacheControl: 'public,max-age=31536000' });
   const url = await getDownloadURL(r);
   // Menor publicando imagem: passa pela revisão do núcleo (mesma regra da Rede).
@@ -365,7 +362,7 @@ export function abrirFesta(festa, { uid, perfil } = {}) {
           <span class="fst-pill${ehBrasao ? ' so-texto' : ''}" style="${Y(y.pill)}">${ehBrasao ? '' : '<i class="mini" aria-hidden="true"></i>'}${esc(rotuloPill)}</span>
           <div class="fst-rodape" style="${Y(y.rodape)}"><b>Grupo de Capoeira ${esc(ESCOLA.nomeCurto)}</b><span>${esc(ESCOLA.mestre)} · ${esc(ESCOLA.cidade)} / ${esc(ESCOLA.uf)}</span><i>${esc(INSTAGRAM)}</i></div>
         </article></div>
-        ${lista.length > 1 ? `<div class="fst-mini-lista">${lista.slice(1, 5).map((b) => `<span><img src="${esc(urlPng(b))}" alt="">${esc(b.nome)}</span>`).join('')}</div>` : ''}
+        ${lista.length > 1 ? `<div class="fst-mini-lista">${lista.slice(1, 5).map((b) => `<span><img src="${esc(urlThumb(b))}" alt="">${esc(b.nome)}</span>`).join('')}</div>` : ''}
         ${txt ? `<p class="fst-txt">${txt}</p>` : ''}
         <div class="fst-bts">
           <button type="button" class="principal" data-f="stories">Compartilhar (Instagram, WhatsApp…)</button>

@@ -33,6 +33,9 @@ service firebase.storage {
                 || perfilDe(request.auth.uid).get('papeis', []).hasAny(['mestre', 'instrutor'])))
           || gerenciaNucleoDe(uid);
     }
+    // Teto por pasta (regra única de imagens, 08/10): o app já envia cada foto reduzida
+    // (js/imagem.js — perfil ~60 KB, post ~220 KB, logo ~120 KB); o teto só barra quem
+    // tentar subir a foto crua. A rotina otimizarImagens do servidor reduz as antigas.
     function imagem(maxMB) {
       return request.resource.contentType.matches('image/.*') && request.resource.size < maxMB * 1024 * 1024;
     }
@@ -42,7 +45,7 @@ service firebase.storage {
     // o responsável do núcleo onde ela treina e o instrutor dela (painel). Só logado vê.
     match /fotos/{uid}/{arquivo} {
       allow get: if request.auth != null;
-      allow write: if request.auth != null && imagem(3)
+      allow write: if request.auth != null && imagem(1)
                    && (request.auth.uid == uid || souAdminOuFundadorDe(uid) || gerenciaNucleoDe(uid) || souInstrutorDe(uid));
       allow delete: if request.auth != null
                     && (request.auth.uid == uid || souAdminOuFundadorDe(uid) || gerenciaNucleoDe(uid));
@@ -56,7 +59,7 @@ service firebase.storage {
     match /onboarding/{uid}/{escolaId}/{arquivo} {
       allow get: if true;
       allow list: if false;
-      allow create, update: if request.auth != null && request.auth.uid == uid && imagem(6)
+      allow create, update: if request.auth != null && request.auth.uid == uid && imagem(2)
                             && escolaId.matches('^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$');
       allow delete: if request.auth != null && request.auth.uid == uid;
     }
@@ -65,7 +68,7 @@ service firebase.storage {
     // gravar/apagar se a leitura cruzada estiver liberada no projeto.
     match /escolas/{escolaId}/{resto=**} {
       allow read: if true;
-      allow write: if request.auth != null && imagem(6)
+      allow write: if request.auth != null && imagem(2)
                    && firestore.get(/databases/(default)/documents/escolas/$(escolaId)).data.donoUid == request.auth.uid;
       allow delete: if request.auth != null
                     && firestore.get(/databases/(default)/documents/escolas/$(escolaId)).data.donoUid == request.auth.uid;
@@ -86,7 +89,7 @@ service firebase.storage {
       allow list: if request.auth != null && request.auth.uid == uid;
       allow write: if request.auth != null
                    && request.auth.uid == uid
-                   && (imagem(2) ||
+                   && (imagem(1) ||
                        (request.resource.contentType.matches('video/.*') && request.resource.size < 12 * 1024 * 1024));
       allow delete: if request.auth != null && request.auth.uid == uid;
     }
@@ -109,9 +112,9 @@ service firebase.storage {
       allow read: if request.auth != null
                   && (request.auth.uid == uid || souResponsavelDe(uid) || souAdminOuFundadorDe(uid) || gerenciaNucleoDe(uid) || souInstrutorDe(uid));
       // Atleta/responsável só CRIAM arquivo novo (não trocam um já enviado ou aprovado).
-      allow create: if request.auth != null && imagem(2)
+      allow create: if request.auth != null && imagem(1)
                     && (request.auth.uid == uid || souResponsavelDe(uid) || souAdminOuFundadorDe(uid) || gerenciaNucleoDe(uid));
-      allow update: if request.auth != null && imagem(2) && (souAdminOuFundadorDe(uid) || gerenciaNucleoDe(uid));
+      allow update: if request.auth != null && imagem(1) && (souAdminOuFundadorDe(uid) || gerenciaNucleoDe(uid));
       allow delete: if request.auth != null && (souAdminOuFundadorDe(uid) || gerenciaNucleoDe(uid));
     }
     // Cópia pública da foto aprovada (só adulto), feita pelo servidor. O nome
@@ -137,10 +140,10 @@ service firebase.storage {
     }
 
     // Fotos do site público (painel "Gerenciar o site"): qualquer um vê,
-    // só o Admin Master grava/apaga. Até 3 MB (o painel já comprime).
+    // só o Admin Master grava/apaga. Até 2 MB (o painel já comprime para ~250 KB).
     match /site/{arquivo} {
       allow read: if true;
-      allow write: if request.auth != null && imagem(3)
+      allow write: if request.auth != null && imagem(2)
                    && 'admin' in perfilDe(request.auth.uid).get('papeis', []);
       allow delete: if request.auth != null
                     && 'admin' in perfilDe(request.auth.uid).get('papeis', []);

@@ -4,6 +4,7 @@ Mesmo projeto Firebase do app (as escolas, os donos e os leads ficam nas
 coleções escolas/, donos/, escolasSlugs/ e leads/, protegidas em
 firebase/firestore.rules do repositório le). Só chave pública entra aqui. */
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { prepararImagem, extensaoDe } from './imagem.js?v=20261011';
 import {
   initializeAuth, browserLocalPersistence, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword,
   sendPasswordResetEmail, sendEmailVerification, updateProfile, signOut,
@@ -100,18 +101,17 @@ export function erroAmigavel(e) {
   return (e && e.message) || 'Não deu certo agora. Tente de novo.';
 }
 
-// Upload de imagem (logo/fotos) já comprimida: devolve a URL pública.
-export async function comprimir(file, maxDim = 1600, qualidade = 0.86) {
-  const dataUrl = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); });
-  const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = dataUrl; });
-  const esc = Math.min(1, maxDim / Math.max(img.width, img.height));
-  const c = document.createElement('canvas'); c.width = Math.round(img.width * esc); c.height = Math.round(img.height * esc);
-  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-  const png = /png|svg/.test(file.type); // logo com transparência fica PNG
-  return c.toDataURL(png ? 'image/png' : 'image/jpeg', qualidade);
+// Regra única de imagens (js/imagem.js, cópia em ./imagem.js): logo 512 px até 120 KB
+// com transparência; fotos da escola 1600 px até 280 KB. WebP quando o navegador sabe.
+export async function comprimir(file, perfil = 'fotoEscola') {
+  const p = typeof perfil === 'number' ? (perfil >= 1400 ? 'fotoEscola' : 'logo') : perfil;
+  return (await prepararImagem(file, p)).dataUrl;
 }
+// Upload de imagem já comprimida: devolve a URL pública. A extensão do arquivo
+// segue o formato que a regra gerou (webp, jpg ou png).
 export async function enviarImagem(caminho, dataUrl) {
-  const r = storageRef(storage, caminho);
+  const tipo = (/^data:([^;,]+)/.exec(String(dataUrl)) || [])[1];
+  const r = storageRef(storage, String(caminho).replace(/\.(jpe?g|png|webp)$/i, `.${extensaoDe(tipo)}`));
   await uploadString(r, dataUrl, 'data_url', { cacheControl: 'public,max-age=31536000' });
   return getDownloadURL(r);
 }

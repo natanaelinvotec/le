@@ -23,6 +23,7 @@ import { aoEscreverCampeonato } from './src/campeonatos.js';
 import { comEscola, aoEscreverEscola } from './src/escolas.js';
 import { aoAtivarEscola } from './src/ativacao.js';
 import { atenderPedidoEmail, aoEscreverSegredo } from './src/emails.js';
+import { otimizarImagens } from './src/imagens.js';
 
 // Região: a mesma do banco (o GitHub Actions descobre e grava em .env como REGIAO).
 setGlobalOptions({ region: process.env.REGIAO || 'southamerica-east1', maxInstances: 5, memory: '256MiB' });
@@ -108,3 +109,9 @@ export const segredoEscrito = onDocumentWrittenWithAuthContext('segredos/{id}', 
 // app não precisa saber em que região as funções estão.
 export const comandoCriado = onDocumentCreatedWithAuthContext({ document: 'comandos/{id}', timeoutSeconds: 540, memory: '512MiB' },
   seguro('comando', (e) => executarComando(ctxBase(), { ...evCriado(e), authId: e.authId || null, authType: e.authType || null })));
+
+// Regra única de imagens: reduz as fotos já enviadas (e as de versões antigas do app),
+// pasta por pasta, sem trocar os links. Continua de onde parou a cada 6 horas.
+export const otimizarImagensAgendado = onSchedule({ schedule: 'every 6 hours', timeZone: 'America/Campo_Grande', timeoutSeconds: 540, memory: '1GiB', maxInstances: 1 }, async () => {
+  try { const r = await otimizarImagens(ctxBase()); console.log('otimizarImagens', JSON.stringify(r)); } catch (e) { console.error('otimizarImagens', e); }
+});

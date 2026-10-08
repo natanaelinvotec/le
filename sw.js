@@ -11,7 +11,7 @@
 // Offline: sem internet o app abre com o que já foi carregado e o Firestore
 // mostra os dados do cache local dele. Fotos já vistas ficam guardadas (até 800).
 // Push: o Firebase Cloud Messaging entrega a notificação mesmo com o app fechado.
-const VERSAO = 'le-app-v34'; // ← mude SÓ isto a cada atualização publicada (ver quadro abaixo)
+const VERSAO = 'le-app-v35'; // ← mude SÓ isto a cada atualização publicada (ver quadro abaixo)
 const CACHE_TELAS = `${VERSAO}-telas`;
 const CACHE_FOTOS = `${VERSAO}-fotos`;
 const CACHE_LIBS = 'le-libs-v1'; // não depende da VERSAO: endereços versionados não mudam
@@ -48,7 +48,7 @@ const ESSENCIAIS = [
   './', 'index.html', 'login.html', 'app.html', 'admin.html', 'rede.html', 'gerenciar.html', 'offline.html', 'instalar.html', 'instalar-rede.html',
   'brasoes.html', 'carteirinhas.html', 'carteirinha.html', 'certificado.html', 'certificados.html', 'campeonatos.html', 'master.html', 'checkin.html', 'v.html', 'inscricao.html', 'privacidade.html',
   'css/site.css', 'css/rede.css', 'css/admin.css', 'css/carteirinha.css', 'css/certificado.css', 'css/certificados.css', 'css/campeonatos.css', 'css/master.css', 'css/gerenciar.css', 'css/inscricao.css',
-  'js/firebase.js', 'js/escola.js', 'js/shared.js', 'js/support.js', 'js/experiencia.js', 'js/notificacoes.js',
+  'js/firebase.js', 'js/imagem.js', 'js/escola.js', 'js/shared.js', 'js/support.js', 'js/experiencia.js', 'js/notificacoes.js',
   'js/brasoes.js', 'js/brasoes-admin.js', 'js/inclusao.js', 'js/conta.js', 'js/apresentacao.js', 'js/moderacao.js', 'js/lgpd.js', 'js/gestao.js', 'js/login.js', 'js/admin.js', 'js/rede.js', 'js/master.js', 'js/faceid.js',
   'js/carteirinha.js', 'js/carteirinhas.js', 'js/carteirinha-comum.js', 'js/qr.js', 'js/verificar.js', 'js/checkin.js', 'js/inscricao.js', 'js/gerenciar.js',
   'js/certificado.js', 'js/certificado-render.js', 'js/certificados.js', 'js/campeonatos.js', 'js/campeonato-motor.js', 'js/celebrar.js', 'js/card-story.js', 'js/assinatura.js', 'js/aniversarios.js',

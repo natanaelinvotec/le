@@ -35,7 +35,7 @@ import { iniciarExperiencia, abrirAcessibilidade, tutorial, pedirAceiteSeNecessa
 import { ligarContador, abrirCentral, ouvirPushComAppAberto } from './notificacoes.js?v=20260926e';
 import { apresentacaoDe, migrarApresentacao, tocarApresentacao, tocarAoEntrar, gerenciarApresentacao, abrirMinhaConta, abrirTrocaSenha, definirAutor, podeTerApresentacao, formatarCelular, celularValido, celularDe } from './conta.js?v=20261006';
 import { escapeHTML, sanitizeInput, debounce, gerarSlug, urlSegura, urlImagem, argJS } from './shared.js';
-import { BRASOES, porId as brasaoPorId, urlThumb as brasaoThumb, ehManual as brasaoManual } from './brasoes.js?v=20261006';
+import { BRASOES, porId as brasaoPorId, urlThumb as brasaoThumb, ehManual as brasaoManual } from './brasoes.js?v=20261012';
 import { configurarFaceId, atualizarContextoFaceId, pararFaceId } from './faceid.js?v=20261007';
 import { conferirTempo } from './modalidades.js';
 import { ESCOLA, ORDEM_CORDOES as ORDEM_ESCOLA, CORDOES_ADULTO as ADULTO_ESCOLA, CORDOES_KIDS as KIDS_ESCOLA, CRITERIOS as CRITERIOS_ESCOLA, linkMapa as linkMapaEscola, IDADE_KIDS, rotuloGrad } from './escola.js';
@@ -337,7 +337,7 @@ return;
 try {
 await iniciarPainel();
 // Mestres e professores também treinam: troca de cordão e brasão novo saltam aqui.
-setTimeout(() => { import('./celebrar.js?v=20261002').then((m) => m.verificarCelebracoes(sessaoAtual.uid, sessaoAtual)).catch((er) => console.warn('festa', er)); }, 2200);
+setTimeout(() => { import('./celebrar.js?v=20261012').then((m) => m.verificarCelebracoes(sessaoAtual.uid, sessaoAtual)).catch((er) => console.warn('festa', er)); }, 2200);
 } catch (e) {
 console.error('Erro ao montar o painel:', e);
 const telaCarregando = document.getElementById('telaCarregando');

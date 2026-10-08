@@ -17,6 +17,7 @@ import {
 import { SITE_PADRAO } from './site-padrao.js?v=20261006';
 import { mesclar, url as urlSegura, urlLink, urlSite, esc, hojeLocal } from './site-render.js?v=20261006';
 import { CORDOES_ADULTO } from './escola.js';
+import { prepararImagem } from './imagem.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const clonar = (o) => JSON.parse(JSON.stringify(o));
@@ -263,27 +264,15 @@ document.addEventListener('click', async (e) => {
 });
 
 // ---------- fotos ----------
-function carregarImagem(arq) {
-  return new Promise((ok, erro) => { const u = URL.createObjectURL(arq); const i = new Image(); i.onload = () => { URL.revokeObjectURL(u); ok(i); }; i.onerror = () => { URL.revokeObjectURL(u); erro(new Error('Arquivo de imagem inválido.')); }; i.src = u; });
-}
+// Regra única de imagens (js/imagem.js): cada tipo de foto do site tem lado e peso-alvo.
 async function enviarFotoDoSite(arq, { larga, png, quadrada }) {
   if (!/^image\//.test(arq.type)) throw new Error('Escolha um arquivo de imagem.');
   if (arq.size > 25 * 1024 * 1024) throw new Error('Imagem muito grande (máx. 25 MB).');
-  const img = await carregarImagem(arq);
-  const max = quadrada ? 700 : larga ? 1920 : png ? 900 : 1400;
-  const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
-  const w = Math.round(img.naturalWidth * k); const h = Math.round(img.naturalHeight * k);
-  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-  const cx = cv.getContext('2d'); cx.imageSmoothingQuality = 'high';
-  if (!png) { cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, w, h); }
-  cx.drawImage(img, 0, 0, w, h);
-  const tipo = png ? 'image/png' : 'image/jpeg';
-  const blob = await new Promise((ok) => cv.toBlob(ok, tipo, 0.82));
-  if (!blob) throw new Error('Não foi possível preparar a imagem.');
-  if (blob.size > 3 * 1024 * 1024) throw new Error('Mesmo comprimida a imagem passou de 3 MB — use uma foto menor.');
-  const nome = `site/${new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14)}-${Math.random().toString(36).slice(2, 8)}.${png ? 'png' : 'jpg'}`;
+  const img = await prepararImagem(arq, quadrada ? 'siteQuadrada' : larga ? 'siteLarga' : png ? 'sitePng' : 'site');
+  if (img.bytes > 2 * 1024 * 1024) throw new Error('Mesmo comprimida a imagem passou de 2 MB — use uma foto menor.');
+  const nome = `site/${new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14)}-${Math.random().toString(36).slice(2, 8)}.${img.ext}`;
   const r = storageRef(storage, nome);
-  await uploadBytes(r, blob, { contentType: tipo, cacheControl: 'public,max-age=31536000' });
+  await uploadBytes(r, img.blob(), { contentType: img.tipo, cacheControl: 'public,max-age=31536000' });
   return getDownloadURL(r);
 }
 

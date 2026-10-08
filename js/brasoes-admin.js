@@ -12,7 +12,7 @@ Fontes: perfisPublicos (contagem real de quem já tem cada brasão e ranking),
 usuarios (concessões manuais — campo brasoesManuais), config/brasoes. */
 import { db, observarSessao, buscar, listar, listarPorAcademia, atualizar, souFundador, collection, doc, getDocs, setDoc, updateDoc, deleteField, query, where, limit, ondeEscola } from './firebase.js';
 import { escapeHTML, sanitizeInput } from './shared.js';
-import { BRASOES, SERIES, avaliar, textoMetrica, urlThumb, urlPng, ehManual, porId, podeConceder, ehPresidente } from './brasoes.js?v=20261006';
+import { BRASOES, SERIES, avaliar, textoMetrica, urlThumb, urlPng, ehManual, porId, podeConceder, ehPresidente } from './brasoes.js?v=20261012';
 
 const el = (id) => document.getElementById(id);
 let uid = null, perfil = null, config = {}, nucleos = [], pubs = [], usuarios = [];
@@ -121,7 +121,7 @@ function verBrasao(id) {
 const b = porId(id); const t = texto(b); const c = contagens()[id];
 const donos = pubs.filter((p) => p.brasoes && p.brasoes[id]).sort((a, z) => new Date((a.brasoes[id] || {}).em || 0) - new Date((z.brasoes[id] || {}).em || 0));
 const f = abrirFolha(`<h3>${escapeHTML(t.nome)} <button type="button" class="btn-mini" data-fechar><i class="fas fa-xmark"></i></button></h3>
-<div style="text-align:center"><img src="${urlPng(b)}" alt="" style="width:200px;height:200px;object-fit:contain;filter:drop-shadow(0 16px 24px rgba(0,45,114,.3))"></div>
+<div style="text-align:center"><img src="${urlThumb(b)}" alt="" style="width:200px;height:200px;object-fit:contain;filter:drop-shadow(0 16px 24px rgba(0,45,114,.3))"></div>
 <p style="font-size:.86rem;margin-top:8px"><strong>Como conquistar:</strong> ${escapeHTML(t.como || '')}</p>
 <p style="font-size:.82rem;color:var(--text-muted);margin-top:4px"><strong>Métrica:</strong> ${escapeHTML(textoMetrica(b))}${b.nivel ? ` · nível ${b.nivel}` : ''} · ${SERIES[b.serie].nome}</p>
 ${b.descricao ? `<p style="font-size:.82rem;color:var(--text-muted);margin-top:4px">${escapeHTML(b.descricao)}</p>` : ''}

@@ -3,6 +3,7 @@
 // Antes esse config estava duplicado em vários arquivos (login.js/admin.js/
 // inscricao.js), um deles até com um erro de digitação na apiKey.
 import { initializeApp, deleteApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { prepararImagem, extensaoDe, PERFIS } from './imagem.js';
 import {
   getAuth, initializeAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
   sendPasswordResetEmail, onAuthStateChanged, signOut,
@@ -135,45 +136,24 @@ export async function salvarFotoPerfil(uidAlvo, dataUrlOuLink) {
   const v = String(dataUrlOuLink || '');
   if (!v || /^https?:\/\//.test(v) || v.startsWith('assets/')) return v;
   if (!v.startsWith('data:image/')) throw new Error('Foto inválida.');
-  return enviarFoto(`fotos/${uidAlvo}/perfil_${Date.now()}.jpg`, v);
+  return enviarFoto(`fotos/${uidAlvo}/perfil_${Date.now()}.${extensaoDe((/^data:([^;,]+)/.exec(v) || [])[1])}`, v);
 }
 
-// ===== Compressão de imagem (evita que uma foto de 15MB da galeria pese o
-// banco/o storage) — redimensiona para no máximo `maxDim` no maior lado e
-// recomprime em JPEG, descartando o arquivo grande original. 540px é o
-// padrão combinado: suficiente pra reconhecer o aluno nos cards do app. =====
-export async function comprimirImagemDataUrl(dataUrl, maxDim = 540, qualidade = 0.82) {
-  const img = await new Promise((resolve, reject) => {
-    const el = new Image();
-    el.onload = () => resolve(el);
-    el.onerror = () => reject(new Error('Não foi possível ler a imagem.'));
-    el.src = dataUrl;
-  });
-  const maiorLado = Math.max(img.width, img.height);
-  const escala = maiorLado > maxDim ? maxDim / maiorLado : 1;
-  const w = Math.max(1, Math.round(img.width * escala));
-  const h = Math.max(1, Math.round(img.height * escala));
-  const canvas = document.createElement('canvas');
-  canvas.width = w;
-  canvas.height = h;
-  canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-  return canvas.toDataURL('image/jpeg', qualidade);
+// ===== Compressão de imagem: usa a REGRA ÚNICA de js/imagem.js (WebP quando o
+// navegador sabe, tamanho-alvo por tipo de foto). As duas funções abaixo continuam
+// com a mesma assinatura para não mexer em quem já chama; 540 px / 60 KB é a foto
+// de perfil, suficiente para reconhecer o aluno nos cards do app. =====
+const alvoPara = (maxDim) => (maxDim <= 600 ? PERFIS.perfil.alvoKB : maxDim <= 1100 ? 150 : 240);
+export async function comprimirImagemDataUrl(dataUrl, maxDim = 540) {
+  return (await prepararImagem(dataUrl, { lado: maxDim, alvoKB: alvoPara(maxDim) })).dataUrl;
 }
 
 // Lê um File (do input da galeria) e devolve o dataURL já comprimido —
 // usar sempre no lugar de ler o arquivo cru, tanto na inscrição quanto em
 // qualquer tela de editar foto de perfil.
-export function arquivoParaDataUrlComprimido(file, maxDim = 540, qualidade = 0.82) {
-  return new Promise((resolve, reject) => {
-    if (!file || !file.type || !file.type.startsWith('image/')) {
-      reject(new Error('Selecione um arquivo de imagem.'));
-      return;
-    }
-    const leitor = new FileReader();
-    leitor.onload = () => comprimirImagemDataUrl(leitor.result, maxDim, qualidade).then(resolve).catch(reject);
-    leitor.onerror = () => reject(new Error('Não foi possível ler o arquivo.'));
-    leitor.readAsDataURL(file);
-  });
+export async function arquivoParaDataUrlComprimido(file, maxDim = 540) {
+  if (!file || !file.type || !file.type.startsWith('image/')) throw new Error('Selecione um arquivo de imagem.');
+  return (await prepararImagem(file, { lado: maxDim, alvoKB: alvoPara(maxDim) })).dataUrl;
 }
 
 // Senha padrão sugerida quando o admin cria uma conta nova (professor/mestre) -

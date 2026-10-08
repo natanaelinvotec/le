@@ -1763,7 +1763,7 @@ class Component extends DCLogic {
           await this.montarPerfil(user.uid, perfil);
           // Troca de cordão / brasão novo "salta" na tela principal (uma vez só).
           setTimeout(() => {
-            import(new URL('js/celebrar.js?v=20261002', document.baseURI).href)
+            import(new URL('js/celebrar.js?v=20261012', document.baseURI).href)
               .then((m) => m.verificarCelebracoes(user.uid, perfil)).catch((e) => console.warn('festa', e));
           }, 1800);
         } catch (e) {

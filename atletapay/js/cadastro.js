@@ -6,7 +6,7 @@ gravada em escolas/{slug} já na etapa 2 (status 'rascunho') — é isso que
 libera o upload das fotos para escolas/{slug}/... no Storage — e vira 'fila'
 na etapa 5. escolasSlugs/{slug} garante que dois donos não peguem o mesmo
 subdomínio. donos/{uid} aponta a conta para a escola. */
-import { db, doc, getDoc, setDoc, updateDoc, writeBatch, observarSessao, criarConta, entrar, recuperarSenha, sair, erroAmigavel, comprimir, enviarImagem } from './firebase.js?v=20261010';
+import { db, doc, getDoc, setDoc, updateDoc, writeBatch, observarSessao, criarConta, entrar, recuperarSenha, sair, erroAmigavel, comprimir, enviarImagem } from './firebase.js?v=20261011';
 import { PLANO, MODALIDADES, modalidadePorId, MODELOS, FOTOS, TRIAL_DIAS, brl, slugDe, slugValido, RESERVADOS, minimoDe, fotosFaltando, juntarFotos, contagemFotos } from './catalogo.js?v=20261010';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -216,7 +216,7 @@ function passoFotos() {
       const urls = [];
       for (let i = 0; i < arquivos.length; i++) {
         prog.hidden = false; prog.textContent = `Enviando ${i + 1} de ${arquivos.length}…`;
-        const dataUrl = await comprimir(arquivos[i], id === 'logo' ? 1024 : 1600, id === 'logo' ? 1 : 0.86);
+        const dataUrl = await comprimir(arquivos[i], id === 'logo' ? 'logo' : 'fotoEscola');
         const ext = /png/.test(dataUrl.slice(0, 20)) ? 'png' : 'jpg';
         urls.push(await enviarImagem(`onboarding/${usuario.uid}/${r.escolaId}/${id}-${Date.now().toString(36)}-${i + 1}.${ext}`, dataUrl));
       }

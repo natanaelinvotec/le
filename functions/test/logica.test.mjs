@@ -1243,3 +1243,70 @@ test('v34: tempo mínimo e idade do quadro da CBJJ (só aviso)', () => {
   assert.equal(conferirTempo(e.adulto, { cordaoAtual: 'Preta', idade: 30, historicoGraduacoes: [] }, 'Preta', 1, hoje)[0].nivel, 'info', 'sem data: pede para conferir');
   assert.deepEqual(conferirTempo(e.adulto, azul, 'Azul', 2, hoje), [], 'sem mudança, sem aviso');
 });
+
+// ---------- Regra única de imagens (08/10): rotina do servidor + cópia do módulo do app ----------
+import { otimizarImagens, precisaOtimizar, regraDoArquivo } from '../src/imagens.js';
+
+test('imagens: só pastas conhecidas, só foto acima do alvo e ainda não otimizada', () => {
+  assert.equal(regraDoArquivo('fotos/u1/perfil.jpg').prefixo, 'fotos/');
+  assert.equal(regraDoArquivo('fotos_alunos/x.jpg').prefixo, 'fotos_alunos/');
+  assert.equal(regraDoArquivo('assinaturas/u1/a.png'), null, 'assinatura não entra');
+  assert.equal(regraDoArquivo('carteirinha-publica/abc.jpg'), null, 'cópia pública feita pelo servidor não entra');
+  const r = regraDoArquivo('rede/u1/1.jpg');
+  assert.equal(precisaOtimizar({ contentType: 'image/jpeg', size: 900 * 1024 }, r), true);
+  assert.equal(precisaOtimizar({ contentType: 'image/jpeg', size: 100 * 1024 }, r), false, 'já pequena');
+  assert.equal(precisaOtimizar({ contentType: 'video/mp4', size: 9e6 }, r), false, 'vídeo não');
+  assert.equal(precisaOtimizar({ contentType: 'image/gif', size: 9e6 }, r), false, 'gif não');
+  assert.equal(precisaOtimizar({ contentType: 'image/png', size: 9e6, metadata: { otimizada: '1' } }, r), false, 'já otimizada');
+});
+
+test('imagens: rotina reduz no mesmo lugar, mantém o token e continua de onde parou', async () => {
+  const { db } = criarDb();
+  const salvos = []; const marcados = [];
+  const arquivo = (name, contentType, size, extra = {}) => ({
+    name,
+    metadata: { name, contentType, size: String(size), generation: '7', cacheControl: 'public,max-age=31536000', metadata: { firebaseStorageDownloadTokens: `tk-${name}`, ...extra } },
+    async download() { return [Buffer.alloc(size)]; },
+    async save(buf, opts) { salvos.push({ name, tam: buf.length, opts }); this.metadata = { ...this.metadata, ...opts.metadata, size: String(buf.length) }; },
+    async setMetadata(m, o) { marcados.push({ name, m, o }); },
+  });
+  const pastas = {
+    'fotos/': [arquivo('fotos/a/perfil.jpg', 'image/jpeg', 600 * 1024), arquivo('fotos/b/perfil.jpg', 'image/jpeg', 40 * 1024)],
+    'rede/': [arquivo('rede/c/v.mp4', 'video/mp4', 8e6), arquivo('rede/c/1.png', 'image/png', 2e6), arquivo('rede/c/2.jpg', 'image/jpeg', 500 * 1024, { otimizada: '1' })],
+    'site/': [arquivo('site/teimosa.jpg', 'image/jpeg', 700 * 1024)],
+  };
+  const bucket = { async getFiles({ prefix }) { return [pastas[prefix] || [], null]; } };
+  // sharp falso: corta pela metade; o "site/teimosa" não diminui (fica marcado e não volta)
+  const sharp = (buf) => { const api = { rotate: () => api, resize: () => api, png: () => api, webp: () => api, jpeg: () => api,
+    toBuffer: async () => (buf.length === 700 * 1024 ? Buffer.alloc(buf.length) : Buffer.alloc(Math.floor(buf.length / 2))) }; return api; };
+  const r = await otimizarImagens({ db, bucket, sharp, log: { warn() {} } });
+  assert.equal(r.reduzidas, 2); assert.equal(r.mantidas, 1); assert.equal(r.erros, 0); assert.equal(r.voltaCompleta, true);
+  assert.deepEqual(salvos.map((s) => s.name).sort(), ['fotos/a/perfil.jpg', 'rede/c/1.png']);
+  const foto = salvos.find((s) => s.name === 'fotos/a/perfil.jpg');
+  assert.equal(foto.opts.metadata.metadata.firebaseStorageDownloadTokens, 'tk-fotos/a/perfil.jpg', 'o link salvo no banco continua valendo');
+  assert.equal(foto.opts.metadata.metadata.otimizada, '1');
+  assert.equal(foto.opts.metadata.contentType, 'image/jpeg', 'formato mantido');
+  assert.equal(foto.opts.preconditionOpts.ifGenerationMatch, '7', 'não pisa em arquivo trocado no meio');
+  assert.equal(salvos.find((s) => s.name === 'rede/c/1.png').opts.metadata.contentType, 'image/png');
+  assert.deepEqual(marcados.map((m) => m.name), ['site/teimosa.jpg']);
+  const est = db.doc('sistema/otimizacaoImagens'); const e = (await est.get()).data();
+  assert.equal(e.pasta, 0); assert.equal(e.pagina, null); assert.equal(e.totalReduzidas, 2); assert.ok(e.voltaCompletaEm);
+  assert.equal(e.economiaKB, 300 + 977, 'economia somada em KB');
+});
+
+test('imagens: tempo esgotado guarda a posição e não perde a página', async () => {
+  const { db } = criarDb({ sistema: { otimizacaoImagens: { pasta: 3, pagina: 'p2' } } });
+  let relogio = 0; const pedidos = [];
+  const bucket = { async getFiles(q) { pedidos.push(q); return [[{ name: 'rede/x/1.jpg', metadata: { contentType: 'image/jpeg', size: '1' } }], { pageToken: 'p3' }]; } };
+  await otimizarImagens({ db, bucket, sharp: null, log: { warn() {} } }, { limiteMs: 5, agora: () => { relogio += 3; return relogio; } });
+  assert.equal(pedidos[0].prefix, 'rede/'); assert.equal(pedidos[0].pageToken, 'p2', 'retoma a pasta e a página salvas');
+  const e = (await db.doc('sistema/otimizacaoImagens').get()).data();
+  assert.equal(e.pasta, 3);
+  assert.ok(['p2', 'p3'].includes(e.pagina));
+});
+
+test('imagens: o módulo do app e a cópia da AtletaPay são idênticos', () => {
+  const app = lerArquivo(new URL('../../js/imagem.js', import.meta.url), 'utf8');
+  const ap = lerArquivo(new URL('../../atletapay/js/imagem.js', import.meta.url), 'utf8');
+  assert.equal(ap, app, 'atletapay/js/imagem.js precisa ser cópia de js/imagem.js');
+});

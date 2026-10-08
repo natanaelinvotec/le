@@ -2,6 +2,8 @@
 mostram igual. A regra de validade de verdade é do servidor
 (functions/src/carteirinha.js); aqui só lemos o resultado. */
 
+import { codificarCanvas, PERFIS } from './imagem.js';
+
 export const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // "Hoje" no fuso do grupo (a carteirinha não vence às 21h por causa do UTC).
@@ -98,7 +100,7 @@ export function cartaoHtml(d, virado = false) {
   </div>`;
 }
 
-// Recorta no centro em 3:4 (retrato) e reduz para 600×800 — pesa ~80 KB.
+// Recorta no centro em 3:4 (retrato) e reduz para 600×800 — até 90 KB (js/imagem.js).
 export function prepararFoto(arquivo) {
   return new Promise((resolve, reject) => {
     if (!arquivo || !String(arquivo.type).startsWith('image/')) { reject(new Error('Escolha uma foto (imagem).')); return; }
@@ -115,7 +117,7 @@ export function prepararFoto(arquivo) {
       const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, 600, 800);
       cx.imageSmoothingQuality = 'high';
       cx.drawImage(img, sx, sy, cw, ch, 0, 0, 600, 800);
-      resolve(cv.toDataURL('image/jpeg', 0.86));
+      resolve(codificarCanvas(cv, PERFIS.carteirinha).dataUrl); // regra única de imagens: JPEG até 90 KB
     };
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Não deu para abrir essa foto. Tente outra.')); };
     img.src = url;
