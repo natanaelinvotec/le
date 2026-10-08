@@ -9,12 +9,16 @@ service firebase.storage {
   match /b/{bucket}/o {
 
     function perfilDe(id) { return firestore.get(/databases/(default)/documents/usuarios/$(id)).data; }
-    function souAdmin() { return 'admin' in perfilDe(request.auth.uid).get('papeis', []); }
+    // 'plataforma' = dono da AtletaPay (todas as escolas). 'admin' = Admin Master de UMA escola:
+    // conta como dono só dentro da própria escola (separação de 08/10/2026).
+    function souAdmin() { return 'plataforma' in perfilDe(request.auth.uid).get('papeis', []); }
+    function souAdminDaEscola() { return 'admin' in perfilDe(request.auth.uid).get('papeis', []); }
+    function mesmaEscola(uid) { return perfilDe(uid).get('escolaId', '-') == perfilDe(request.auth.uid).get('escolaId', ''); }
+    function adminDoSite() { return souAdmin() || (souAdminDaEscola() && perfilDe(request.auth.uid).get('escolaId', '') == 'liberdade'); }
     // Fundador (acessoGeral) só vale DENTRO da própria escola (auditoria 08/10: antes o
     // dono de qualquer escola da AtletaPay alcançava fotos e documentos de todas as escolas).
     function souFundadorDe(uid) {
-      return perfilDe(request.auth.uid).get('acessoGeral', false) == true
-          && perfilDe(uid).get('escolaId', '-') == perfilDe(request.auth.uid).get('escolaId', '');
+      return (perfilDe(request.auth.uid).get('acessoGeral', false) == true || souAdminDaEscola()) && mesmaEscola(uid);
     }
     function souAdminOuFundadorDe(uid) { return souAdmin() || souFundadorDe(uid); }
     function gerenciaNucleoDe(uid) {
@@ -135,8 +139,8 @@ service firebase.storage {
       allow get: if true;
       allow list: if false;
       allow write: if request.auth != null && imagem(1)
-                   && ((request.auth.uid == uid && assinaCertificados()) || 'admin' in perfilDe(request.auth.uid).get('papeis', []));
-      allow delete: if request.auth != null && (request.auth.uid == uid || 'admin' in perfilDe(request.auth.uid).get('papeis', []));
+                   && ((request.auth.uid == uid && assinaCertificados()) || souAdmin() || (souAdminDaEscola() && mesmaEscola(uid)));
+      allow delete: if request.auth != null && (request.auth.uid == uid || souAdmin() || (souAdminDaEscola() && mesmaEscola(uid)));
     }
 
     // Fotos do site público (painel "Gerenciar o site"): qualquer um vê,
@@ -144,9 +148,9 @@ service firebase.storage {
     match /site/{arquivo} {
       allow read: if true;
       allow write: if request.auth != null && imagem(2)
-                   && 'admin' in perfilDe(request.auth.uid).get('papeis', []);
+                   && adminDoSite();
       allow delete: if request.auth != null
-                    && 'admin' in perfilDe(request.auth.uid).get('papeis', []);
+                    && adminDoSite();
     }
 
     // Tudo o que não está listado acima: fechado.

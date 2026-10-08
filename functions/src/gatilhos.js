@@ -10,7 +10,7 @@ import { sincronizarCarteirinha } from './carteirinha.js';
 import { emitirCertificado, apagarCertificados, idAvisoCordao, garantirCertificados, agendarLembrete, alinharAoCordaoAtual } from './certificado.js';
 import { coresDoCordao } from './compartilhado/escola.js';
 import { aoGraduarNaEscola, ehOutraEscola } from './graduacao-escola.js';
-import { escolaDoUsuario } from './escolas.js';
+import { escolaDoUsuario, ESCOLA_PADRAO } from './escolas.js';
 
 // Campos de usuarios/{uid} que mudam a carteirinha (o próprio espelho entra:
 // se alguém mexer nele, o servidor regrava o valor certo).
@@ -149,7 +149,7 @@ export async function aoEscreverPost(ctx, ev) {
     const destino = [...(await gestoresDoNucleo(ctx, autor.academiaId || null)), ...(await gestoresDoNucleo(ctx, depois.nucleoId))];
     if (motivos.length) {
       await ref.update({ revisao: 'pendente', publico: false, moderacaoAuto: { motivos, em: new Date().toISOString() } });
-      await notificar(ctx, [...destino, ...(await admins(ctx))], { tipo: 'revisao', titulo: 'Post foi para revisão automática', texto: `${de.nome}: ${motivos.join(', ')}`, link: 'rede.html#moderacao' });
+      await notificar(ctx, [...destino, ...(await admins(ctx, escolaPost || ESCOLA_PADRAO))], { tipo: 'revisao', titulo: 'Post foi para revisão automática', texto: `${de.nome}: ${motivos.join(', ')}`, link: 'rede.html#moderacao' });
       await notificar(ctx, [autorUid], { tipo: 'revisao', titulo: 'Seu post está em revisão', texto: 'O filtro automático pediu uma olhada do responsável antes de ele aparecer na rede.', link: `rede.html#perfil/${autorUid}` });
     } else if (depois.revisao === 'pendente') {
       await notificar(ctx, destino, { tipo: 'revisao', titulo: 'Post aguardando sua revisão', texto: `${de.nome} publicou ${depois.autorMenor ? '(menor de idade) ' : ''}com foto.`, link: 'rede.html#moderacao', de });
@@ -292,14 +292,14 @@ export async function aoCriarDenuncia(ctx, ev) {
   const d = ev.depois; if (!d || d.denuncianteUid === 'sistema' && d.tipoAlvo !== 'comentario') return;
   let nucleoAutor = null;
   if (d.autorPostUid) nucleoAutor = (await pessoaReal(ctx, d.autorPostUid)).academiaId;
-  const alvos = [...(await admins(ctx)), ...(await gestoresDoNucleo(ctx, nucleoAutor))];
+  const alvos = [...(await admins(ctx, d.escolaId || ESCOLA_PADRAO)), ...(await gestoresDoNucleo(ctx, nucleoAutor))];
   await notificar(ctx, alvos, { tipo: 'denuncia', titulo: 'Nova denúncia na Rede', texto: String(d.motivo || '').slice(0, 140), link: 'rede.html#moderacao', tag: 'denuncia' }, { idFixo: 'denuncias' });
 }
 export async function aoEscreverSolicitacao(ctx, ev) {
   await auditar(ctx, 'solicitacoes', ev);
   const { antes, depois } = ev;
   if (!antes && depois && depois.tipo === 'exclusao_conta') {
-    await notificar(ctx, await admins(ctx), { tipo: 'lgpd', titulo: 'Pedido de exclusão de conta', texto: `${depois.solicitanteNome || 'Um atleta'} pediu para apagar a conta e os dados (LGPD).`, link: 'admin.html#lgpd' });
+    await notificar(ctx, await admins(ctx, depois.escolaId || (depois.solicitanteUid ? await escolaDoUsuario(ctx, depois.solicitanteUid) : null) || ESCOLA_PADRAO), { tipo: 'lgpd', titulo: 'Pedido de exclusão de conta', texto: `${depois.solicitanteNome || 'Um atleta'} pediu para apagar a conta e os dados (LGPD).`, link: 'admin.html#lgpd' });
   }
   if (antes && depois && antes.status !== depois.status && ['aprovado', 'rejeitado', 'concluida'].includes(depois.status) && depois.solicitanteUid) {
     await notificar(ctx, [depois.solicitanteUid], { tipo: 'solicitacao', titulo: depois.status === 'rejeitado' ? 'Solicitação recusada' : 'Solicitação atendida', texto: String(depois.tipo || '').replace(/_/g, ' '), link: 'admin.html' }, { push: true });

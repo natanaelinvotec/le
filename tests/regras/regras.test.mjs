@@ -15,6 +15,7 @@ let env;
 // Todo login de teste é da escola nº 1 (como o servidor grava nos custom claims), salvo quando o teste diz outra.
 const db = (uid, claims = { escolaId: 'liberdade' }) => (uid ? env.authenticatedContext(uid, claims).firestore() : env.unauthenticatedContext().firestore());
 const AGORA = new Date().toISOString();
+const plat = () => db('plat', { escolaId: '_plataforma' });
 
 before(async () => {
   env = await initializeTestEnvironment({ projectId: 'demo-le-regras', firestore: { rules: REGRAS, host, port: Number(port) } });
@@ -31,6 +32,8 @@ before(async () => {
     };
     // Como o servidor deixa depois da migração m8: todo cadastro com a escola.
     for (const [id, v] of Object.entries(u)) await setDoc(doc(d, 'usuarios', id), { ...v, escolaId: 'liberdade' });
+    // Dono da AtletaPay: papel 'plataforma', numa "escola" própria (fora de todas as escolas).
+    await setDoc(doc(d, 'usuarios', 'plat'), { nome: 'AtletaPay', papeis: ['plataforma'], escolaId: '_plataforma' });
     await setDoc(doc(d, 'usuarios', 'rafa'), { nome: 'Rafa', papeis: ['aluno', 'mestre'], academiaId: 'gracie', academiaGerenciadaId: 'gracie', acessoGeral: true, escolaId: 'gracie-cg', notas: {} });
     for (const [id, e] of [['taynara', 'liberdade'], ['profeta', 'liberdade'], ['gracie', 'gracie-cg']]) await setDoc(doc(d, 'nucleos', id), { nome: id, ativo: true, escolaId: e });
     const pp = {
@@ -137,7 +140,8 @@ test('multi-escola: escolaId é do servidor; Fundador só mexe nos núcleos da p
   // Fundador de OUTRA escola (claim) não mexe em núcleo da Liberdade.
   const outro = env.authenticatedContext('profeta', { escolaId: 'gracie-cg' }).firestore();
   await assertFails(updateDoc(doc(outro, 'nucleos', 'novo-nucleo'), { nome: 'Invadido' }));
-  await assertSucceeds(setDoc(doc(db('admin'), 'nucleos', 'gracie'), { nome: 'CT Gracie', escolaId: 'gracie-cg' }), 'Admin liga núcleo a qualquer escola');
+  await assertSucceeds(setDoc(doc(plat(), 'nucleos', 'gracie'), { nome: 'CT Gracie', escolaId: 'gracie-cg' }), 'a plataforma liga núcleo a qualquer escola');
+  await assertFails(setDoc(doc(db('admin'), 'nucleos', 'gracie'), { nome: 'Invadido', escolaId: 'gracie-cg' }), 'Admin da Liberdade não mexe em núcleo de outra escola');
   // Cartão público da escola e domínios: todo mundo lê, só o servidor escreve (nem o Admin pelo app).
   await assertSucceeds(getDoc(doc(db(null), 'escolasPublicas', 'liberdade')));
   await assertFails(setDoc(doc(db('admin'), 'escolasPublicas', 'liberdade'), { nome: 'X' }));
@@ -419,8 +423,10 @@ test('AtletaPay: dono (sem usuarios/) cria slug + escola em rascunho, edita até
   await assertFails(updateDoc(doc(dono, 'escolas', 'dragao'), { status: 'ativa' }), 'dono não ativa');
   await assertFails(updateDoc(doc(dono, 'escolas', 'dragao'), { donoUid: 'estranho' }), 'não troca de dono');
   await assertFails(updateDoc(doc(dono, 'escolas', 'dragao'), { assinatura: { status: 'ativa' } }), 'assinatura é do servidor/Admin');
-  await assertSucceeds(updateDoc(doc(db('admin'), 'escolas', 'dragao'), { status: 'ativa', ativadaEm: agora }));
-  await assertSucceeds(getDoc(doc(db('admin'), 'escolas', 'dragao')));
+  await assertFails(updateDoc(doc(db('admin'), 'escolas', 'dragao'), { status: 'ativa', ativadaEm: agora }), 'Admin de escola não ativa escola');
+  await assertFails(getDoc(doc(db('admin'), 'escolas', 'dragao')), 'Admin de escola não lê cadastro de outra escola');
+  await assertSucceeds(updateDoc(doc(plat(), 'escolas', 'dragao'), { status: 'ativa', ativadaEm: agora }));
+  await assertSucceeds(getDoc(doc(plat(), 'escolas', 'dragao')));
 });
 
 test('multi-escola (1c): cada escola só vê e escreve o próprio conteúdo; campeonato entre escolas é aberto', async () => {
@@ -465,8 +471,10 @@ test('multi-escola (1c): cada escola só vê e escreve o próprio conteúdo; cam
   await assertFails(setDoc(doc(nat, 'campeonatos/campGracie/inscricoes/nat'), insc));
   await assertFails(setDoc(doc(nat, 'campeonatos/campAberto/chaves/cat1'), { rodadas: [] }), 'não organiza campeonato de outra escola');
   await assertFails(setDoc(doc(db('profeta'), 'campeonatos/campGracie/chaves/cat1'), { rodadas: [] }), 'Fundador não mexe em campeonato de outra escola');
-  // Admin da plataforma vê tudo
-  await assertSucceeds(getDocs(collection(db('admin'), 'eventos')));
+  // A plataforma vê tudo; o Admin da Liberdade só a Liberdade
+  await assertSucceeds(getDocs(collection(plat(), 'eventos')));
+  await assertFails(getDocs(collection(db('admin'), 'eventos')), 'Admin de escola: lista sem filtro');
+  await assertSucceeds(getDocs(query(collection(db('admin'), 'eventos'), where('escolaId', '==', 'liberdade'))));
 });
 
 test('multi-escola (1c partes 2 e 3): Rede e poderes do Fundador ficam dentro da própria escola', async () => {
@@ -517,9 +525,18 @@ test('multi-escola (1c partes 2 e 3): Rede e poderes do Fundador ficam dentro da
   await assertFails(getDoc(doc(rafa, 'usuarios', 'nat')));
   await assertFails(setDoc(doc(rafa, 'config', 'brasoes'), { ativos: [] }), 'config ainda é da escola nº 1');
   await assertSucceeds(setDoc(doc(profeta, 'config', 'textos'), { x: 1 }));
-  // Dado ainda sem escola (antes da migração m11) não aparece para o Fundador; o Admin vê tudo
-  await assertSucceeds(getDoc(doc(db('admin'), 'presencas', 'presGracie')));
-  await assertSucceeds(getDocs(collection(db('admin'), 'usuarios')));
+  // Só a plataforma vê tudo; o Admin da Liberdade fica na Liberdade (separação de 08/10)
+  await assertSucceeds(getDoc(doc(plat(), 'presencas', 'presGracie')));
+  await assertSucceeds(getDocs(collection(plat(), 'usuarios')));
+  await assertFails(getDoc(doc(db('admin'), 'presencas', 'presGracie')), 'Admin da Liberdade não vê presença de outra escola');
+  await assertFails(getDoc(doc(db('admin'), 'usuarios', 'rafa')), 'nem cadastro de outra escola');
+  await assertFails(getDocs(collection(db('admin'), 'usuarios')), 'nem lista sem filtro');
+  await assertSucceeds(getDocs(query(collection(db('admin'), 'usuarios'), L)));
+  await assertFails(updateDoc(doc(db('admin'), 'usuarios', 'rafa'), { nome: 'Invadido' }));
+  await assertFails(updateDoc(doc(db('admin'), 'usuarios', 'nat'), { escolaId: 'gracie-cg' }), 'não muda ninguém de escola');
+  await assertFails(updateDoc(doc(db('admin'), 'usuarios', 'nat'), { academiaId: 'gracie' }), 'nem pelo núcleo');
+  await assertFails(updateDoc(doc(db('admin'), 'usuarios', 'admin'), { papeis: ['admin', 'plataforma'] }), 'não se dá o papel da plataforma');
+  await assertSucceeds(updateDoc(doc(db('admin'), 'usuarios', 'nat'), { nome: 'Natanael Silva' }), 'mexe à vontade na própria escola');
 });
 
 test('ativação (etapa 2): dono não se ativa nem mexe na escada; só o Admin ativa; graus são travados', async () => {
@@ -531,8 +548,10 @@ test('ativação (etapa 2): dono não se ativa nem mexe na escada; só o Admin a
   await assertFails(updateDoc(doc(dono, 'escolas', 'ct-teste'), { ativacao: { status: 'pedido' } }), 'dono não pede ativação');
   await assertFails(updateDoc(doc(dono, 'escolas', 'ct-teste'), { escada: { adulto: [{ nome: 'Preta' }] } }), 'escada é da AtletaPay/servidor');
   await assertSucceeds(updateDoc(doc(dono, 'escolas', 'ct-teste'), { modelo: 'tatame' }), 'o resto do cadastro continua dele');
-  await assertSucceeds(updateDoc(doc(db('admin'), 'escolas', 'ct-teste'), { status: 'ativa' }), 'Admin ativa');
-  await assertSucceeds(getDocs(collection(db('admin'), 'escolas')), 'Mega painel lista as escolas');
+  await assertFails(updateDoc(doc(db('admin'), 'escolas', 'ct-teste'), { status: 'ativa' }), 'Admin de escola não ativa');
+  await assertFails(getDocs(collection(db('admin'), 'escolas')), 'Admin de escola não abre o Mega painel');
+  await assertSucceeds(updateDoc(doc(plat(), 'escolas', 'ct-teste'), { status: 'ativa' }), 'a plataforma ativa');
+  await assertSucceeds(getDocs(collection(plat(), 'escolas')), 'Mega painel lista as escolas');
   await assertFails(getDocs(collection(db('profeta'), 'escolas')), 'Fundador de escola não lista as escolas da plataforma');
   await assertFails(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { grausAtual: 4 }), 'ninguém se dá grau');
   await assertSucceeds(getDocs(query(collection(db(null), 'nucleos'), where('escolaId', '==', 'gracie-cg'), where('ativo', '==', true))), 'inscrição (sem login) lista os núcleos da escola do link');
@@ -548,13 +567,17 @@ test('e-mails próprios: pedido de link público e enxuto; chave do serviço só
   await assertFails(addDoc(collection(env.authenticatedContext('nat', { escolaId: 'liberdade', email: 'nat@ex.com' }).firestore(), 'pedidosEmail'), { tipo: 'confirmar', email: 'outro@ex.com' }), 'só o próprio e-mail');
   await assertFails(getDocs(collection(db('admin'), 'pedidosEmail')), 'ninguém lê pedidos');
   const seg = { provedor: 'resend', chave: 're_1234567890abc', remetente: 'noreply@atletapay.com.br', nomeRemetente: 'AtletaPay', atualizadoEm: AGORA };
-  await assertSucceeds(setDoc(doc(db('admin'), 'segredos', 'email'), { ...seg, porUid: 'admin' }));
-  await assertFails(getDoc(doc(db('admin'), 'segredos', 'email')), 'nem o Admin lê a chave pelo app');
+  await assertFails(setDoc(doc(db('admin'), 'segredos', 'email'), { ...seg, porUid: 'admin' }), 'Admin de escola não mexe nos e-mails da plataforma');
+  await assertSucceeds(setDoc(doc(plat(), 'segredos', 'email'), { ...seg, porUid: 'plat' }));
+  await assertFails(getDoc(doc(plat(), 'segredos', 'email')), 'nem a plataforma lê a chave pelo app');
   await assertFails(setDoc(doc(db('profeta'), 'segredos', 'email'), { ...seg, porUid: 'profeta' }), 'Fundador não mexe');
-  await assertFails(setDoc(doc(db('admin'), 'segredos', 'outro'), { ...seg, porUid: 'admin' }));
+  await assertFails(setDoc(doc(plat(), 'segredos', 'outro'), { ...seg, porUid: 'plat' }));
   await assertSucceeds(getDoc(doc(anon, 'plataforma', 'publico')), 'o app lê se os e-mails próprios estão ligados');
   await assertFails(setDoc(doc(db('admin'), 'plataforma', 'publico'), { emailsProprios: true }), 'só o servidor liga');
-  await assertSucceeds(addDoc(collection(db('admin'), 'comandos'), { tipo: 'testarEmail', porUid: 'admin', status: 'pendente' }));
+  await assertFails(addDoc(collection(db('admin'), 'comandos'), { tipo: 'testarEmail', porUid: 'admin', status: 'pendente' }), 'teste de e-mail é da plataforma');
+  await assertSucceeds(addDoc(collection(plat(), 'comandos'), { tipo: 'testarEmail', porUid: 'plat', status: 'pendente' }));
+  await assertFails(addDoc(collection(db('admin'), 'comandos'), { tipo: 'migrar', porUid: 'admin', status: 'pendente' }), 'migração é da plataforma');
+  await assertFails(addDoc(collection(db('admin'), 'comandos'), { tipo: 'excluirConta', uid: 'rafa', porUid: 'admin', status: 'pendente' }), 'atleta de outra escola');
 });
 
 test('auditoria 08/10: Fundador não vira Admin nem puxa gente de outra escola; transferência só com pedido; listas e contadores sem abuso', async () => {

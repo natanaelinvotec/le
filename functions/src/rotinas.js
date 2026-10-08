@@ -237,8 +237,19 @@ export async function executarComando(ctx, ev) {
   const quemUid = ev.authId || c.porUid;
   const s = quemUid ? await ctx.db.doc(`usuarios/${quemUid}`).get() : null;
   const quem = s && s.exists ? s.data() : null;
-  if (!quem || !(quem.papeis || []).includes('admin') || (ev.authId && c.porUid !== ev.authId)) {
-    await ref.update({ status: 'negado', erro: 'Só o Admin Master pode pedir isso.', terminadoEm: new Date().toISOString() });
+  // Dono da AtletaPay ('plataforma'): qualquer pedido. Admin de UMA escola ('admin'): só pedidos
+  // sobre UM atleta da própria escola — migrar, recalcular todo mundo e testar o e-mail da
+  // plataforma mexem em todas as escolas (separação de 08/10/2026; as regras já barram, aqui confere de novo).
+  const papeisDeQuem = (quem && quem.papeis) || [];
+  const daPlataforma = papeisDeQuem.includes('plataforma');
+  let permitido = !!quem && (!ev.authId || c.porUid === ev.authId) && (daPlataforma || papeisDeQuem.includes('admin'));
+  if (permitido && !daPlataforma) {
+    const alvo = c.uid ? await ctx.db.doc(`usuarios/${String(c.uid)}`).get() : null;
+    const escolaAlvo = alvo && alvo.exists ? (alvo.data().escolaId || ESCOLA_PADRAO) : null;
+    permitido = ['excluirConta', 'recalcularAtleta', 'desfazerGraduacao'].includes(c.tipo) && !!escolaAlvo && escolaAlvo === (quem.escolaId || ESCOLA_PADRAO);
+  }
+  if (!permitido) {
+    await ref.update({ status: 'negado', erro: 'Sem permissão para este pedido.', terminadoEm: new Date().toISOString() });
     return null;
   }
   await ref.update({ status: 'executando', iniciadoEm: new Date().toISOString() });

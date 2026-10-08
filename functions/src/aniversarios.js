@@ -32,14 +32,19 @@ export function aniversariantesEm(usuarios, hoje, dias) {
     const n = lerNascimento(u.dataNasc); if (!n) return null;
     const dia = aniversarioNoAno(n, alvo.getFullYear());
     if (dia.getMonth() !== alvo.getMonth() || dia.getDate() !== alvo.getDate()) return null;
-    return { uid: u.id, nome: u.nome || 'Atleta', idade: alvo.getFullYear() - n.a, academiaId: u.academiaId || null };
+    return { uid: u.id, nome: u.nome || 'Atleta', idade: alvo.getFullYear() - n.a, academiaId: u.academiaId || null, escolaId: u.escolaId || 'liberdade' };
   }).filter(Boolean);
 }
 
 export async function processarAniversarios(ctx, hoje = new Date()) {
   const s = await ctx.db.collection('usuarios').limit(3000).get();
   const usuarios = s.docs.map((d) => ({ id: d.id, ...d.data() }));
-  const adms = await admins(ctx);
+  // Admin de cada escola recebe o resumo só da escola dele (antes: o grupo todo de todas as escolas).
+  const escolaDe = (u) => u.escolaId || 'liberdade';
+  const escolas = Array.from(new Set(usuarios.map(escolaDe)));
+  const admsPorEscola = new Map();
+  for (const e of escolas) admsPorEscola.set(e, await admins(ctx, e));
+  const adms = Array.from(admsPorEscola.values()).flat();
   let avisos = 0;
   for (const [dias, quando] of [[2, 'em 48 horas'], [0, 'hoje']]) {
     const lista = aniversariantesEm(usuarios, hoje, dias);
@@ -59,10 +64,12 @@ export async function processarAniversarios(ctx, hoje = new Date()) {
       avisos++;
     }
     // Admin Master: o resumo do grupo inteiro.
-    if (adms.length) {
-      await notificar(ctx, adms, {
-        tipo: 'aniversario', titulo: titulo(lista), texto: `${frase(lista)} — ${data}.`, link: 'admin.html#aniversarios', aniversariantes: lista.map((a) => a.uid).slice(0, 30), dias,
-      }, { idFixo: `aniv_${dias}_${ymd(hoje)}_grupo` });
+    for (const [esc, destino] of admsPorEscola) {
+      const daEscola = lista.filter((a) => a.escolaId === esc);
+      if (!destino.length || !daEscola.length) continue;
+      await notificar(ctx, destino, {
+        tipo: 'aniversario', titulo: titulo(daEscola), texto: `${frase(daEscola)} — ${data}.`, link: 'admin.html#aniversarios', aniversariantes: daEscola.map((a) => a.uid).slice(0, 30), dias,
+      }, { idFixo: `aniv_${dias}_${ymd(hoje)}_grupo${esc === 'liberdade' ? '' : `_${esc}`}` });
       avisos++;
     }
   }

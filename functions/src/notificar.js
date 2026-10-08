@@ -77,8 +77,17 @@ export async function gestoresDoNucleo(ctx, nucleoId) {
   return n.exists && n.data().professorUid ? [n.data().professorUid] : [];
 }
 
-export async function admins(ctx) {
-  const s = await ctx.db.collection('usuarios').where('papeis', 'array-contains', 'admin').limit(10).get();
+// Admin Master DE UMA ESCOLA (papel 'admin'): avisos da escola (moderação, denúncia, LGPD,
+// aniversários) vão só para os admins daquela escola. Sem escola: ninguém.
+// Separação de 08/10/2026: antes ia para todo 'admin' da plataforma (o da Liberdade via tudo).
+export async function admins(ctx, escolaId) {
+  if (!escolaId) return [];
+  const s = await ctx.db.collection('usuarios').where('papeis', 'array-contains', 'admin').limit(50).get();
+  return s.docs.filter((d) => (d.data().escolaId || 'liberdade') === escolaId).map((d) => d.id).slice(0, 10);
+}
+// Dono da AtletaPay (papel 'plataforma'): só assuntos da plataforma (e-mails, segurança).
+export async function donosDaPlataforma(ctx) {
+  const s = await ctx.db.collection('usuarios').where('papeis', 'array-contains', 'plataforma').limit(10).get();
   return s.docs.map((d) => d.id);
 }
 

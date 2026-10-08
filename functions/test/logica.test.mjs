@@ -1094,8 +1094,12 @@ test('segurança: mudar alguém de ESCOLA pelo núcleo só o Admin; vindo de out
   assert.equal(await barrarTrocaDeEscola(ctx, 'nat', { antes, depois, authId: 'dono', authType: 'unknown' }), true);
   // conta de serviço (servidor) com e-mail no authId: passa
   assert.equal(await barrarTrocaDeEscola(ctx, 'nat', { antes, depois, authId: 'firebase-adminsdk@x.iam.gserviceaccount.com', authType: 'unknown' }), false);
-  // Admin da plataforma pode; servidor (Admin SDK) também
-  assert.equal(await barrarTrocaDeEscola(ctx, 'nat', { antes, depois, authId: 'admin', authType: 'app_user' }), false);
+  // Admin de UMA escola (o da Liberdade) não muda ninguém de escola (separação de 08/10)
+  await f.db.doc('usuarios/nat').set(depois);
+  assert.equal(await barrarTrocaDeEscola(ctx, 'nat', { antes, depois, authId: 'admin', authType: 'app_user' }), true);
+  // o dono da AtletaPay ('plataforma') pode; servidor (Admin SDK) também
+  f.db.doc('usuarios/donoap').set({ nome: 'AtletaPay', papeis: ['plataforma'] });
+  assert.equal(await barrarTrocaDeEscola(ctx, 'nat', { antes, depois, authId: 'donoap', authType: 'app_user' }), false);
   assert.equal(await barrarTrocaDeEscola(ctx, 'nat', { antes, depois, authId: null, authType: 'service_account' }), false);
   // troca de núcleo DENTRO da escola não é barrada
   assert.equal(await barrarTrocaDeEscola(ctx, 'nat', { antes, depois: { ...antes, academiaId: 'profeta' }, authId: 'tay', authType: 'app_user' }), false);
@@ -1143,13 +1147,15 @@ test('segurança: e-mail de quem não tem conta não gasta a cota geral; o pedid
   assert.match(f.ler('plataforma/publico').erroEmail, /código 500/);
 });
 
-test('segurança: troca da chave de e-mail fica na auditoria (sem a chave) e avisa os Admins', async () => {
+test('segurança: troca da chave de e-mail fica na auditoria (sem a chave) e avisa só o dono da plataforma', async () => {
   const { f, ctx } = ctxDe(base());
+  f.db.doc('usuarios/donoap').set({ nome: 'AtletaPay', papeis: ['plataforma'] });
   await EM.aoEscreverSegredo(ctx, { params: { id: 'email' }, antes: null, depois: { provedor: 'resend', chave: 're_secreta_999', remetente: 'noreply@atletapay.com.br', porUid: 'admin' }, authId: 'admin' });
   const a = Object.values(f.lerCol('auditoria'))[0];
   assert.match(a.acao, /cadastrou/);
   assert.ok(!JSON.stringify(a).includes('re_secreta_999'), 'a chave não vai para a auditoria');
-  assert.equal(notifs(f, 'admin').length, 1);
+  assert.equal(notifs(f, 'donoap').length, 1);
+  assert.equal(notifs(f, 'admin').length, 0, 'o Admin da Liberdade não recebe assunto da plataforma');
 });
 
 test('segurança: pódio só com inscritos; o post do campeonato fica na escola do campeonato', async () => {
@@ -1309,4 +1315,30 @@ test('imagens: o módulo do app e a cópia da AtletaPay são idênticos', () => 
   const app = lerArquivo(new URL('../../js/imagem.js', import.meta.url), 'utf8');
   const ap = lerArquivo(new URL('../../atletapay/js/imagem.js', import.meta.url), 'utf8');
   assert.equal(ap, app, 'atletapay/js/imagem.js precisa ser cópia de js/imagem.js');
+});
+
+// ---------- Separação plataforma x escola (08/10/2026) ----------
+import { admins as adminsDaEscola, donosDaPlataforma } from '../src/notificar.js';
+import { escolaDe, ESCOLA_PLATAFORMA } from '../src/escolas.js';
+import { executarComando } from '../src/rotinas.js';
+
+test('separação: avisos de escola vão só para o Admin daquela escola; a plataforma é à parte', async () => {
+  const { f, ctx } = ctxDe(base());
+  f.db.doc('usuarios/adminct').set({ nome: 'Admin CT', papeis: ['admin'], escolaId: 'ct' });
+  f.db.doc('usuarios/donoap').set({ nome: 'AtletaPay', papeis: ['plataforma'], escolaId: ESCOLA_PLATAFORMA });
+  assert.deepEqual(await adminsDaEscola(ctx, 'liberdade'), ['admin'], 'cadastro antigo sem escolaId é da Liberdade');
+  assert.deepEqual(await adminsDaEscola(ctx, 'ct'), ['adminct']);
+  assert.deepEqual(await adminsDaEscola(ctx, null), []);
+  assert.deepEqual(await donosDaPlataforma(ctx), ['donoap']);
+  assert.equal(await escolaDe(ctx, 'usuarios', { papeis: ['plataforma'] }), ESCOLA_PLATAFORMA, 'conta da plataforma fica fora das escolas');
+});
+
+test('separação: Admin da escola só pede comando sobre atleta da própria escola; migrar é da plataforma', async () => {
+  const { f, ctx } = ctxDe(base());
+  await f.db.doc('usuarios/admin').update({ escolaId: 'liberdade' });
+  f.db.doc('usuarios/rafa').set({ nome: 'Rafa', papeis: ['aluno'], escolaId: 'gracie-cg' });
+  const pedir = async (id, c, quem) => { f.db.doc(`comandos/${id}`).set({ ...c, porUid: quem, status: 'pendente' }); await executarComando(ctx, { params: { id }, depois: f.ler(`comandos/${id}`), authId: quem }); return f.ler(`comandos/${id}`); };
+  assert.equal((await pedir('c1', { tipo: 'recalcularAtleta', uid: 'rafa' }, 'admin')).status, 'negado', 'atleta de outra escola');
+  assert.equal((await pedir('c2', { tipo: 'migrar' }, 'admin')).status, 'negado', 'migração é da plataforma');
+  assert.notEqual((await pedir('c3', { tipo: 'recalcularAtleta', uid: 'nat' }, 'admin')).status, 'negado', 'atleta da própria escola');
 });

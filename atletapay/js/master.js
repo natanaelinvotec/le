@@ -7,8 +7,9 @@ responsável, fotos, modelo) e clica em "Ativar": o servidor faz o resto
 ativação deu erro e mandar ao dono o link de nova senha (o Firebase envia o
 e-mail; ninguém vê nem define senha de ninguém).
 
-Segurança: a tela só abre para conta com papel admin (usuarios/{uid}.papeis), e
-quem garante de verdade são as regras do banco — só o Admin lista e muda escolas. */
+Segurança: a tela só abre para conta com papel 'plataforma' (usuarios/{uid}.papeis) — o
+'admin' é Admin de UMA escola e fica de fora; quem garante de verdade são as regras do
+banco — só a plataforma lista e muda escolas. */
 import { db, doc, getDoc, setDoc, addDoc, updateDoc, collection, onSnapshot, query, where, getCountFromServer, observarSessao, entrar, recuperarSenha, sair, erroAmigavel } from './firebase.js?v=20261011';
 import { modalidadePorId, porId, FOTOS, fotosFaltando } from './catalogo.js?v=20261010';
 
@@ -47,7 +48,9 @@ observarSessao(async (u) => {
   try {
     const p = await getDoc(doc(db, 'usuarios', u.uid));
     const papeis = p.exists() && Array.isArray(p.data().papeis) ? p.data().papeis : [];
-    if (!papeis.includes('admin')) { semAcesso(u.email, papeis); return; }
+    // Só o dono da AtletaPay (papel 'plataforma'). O 'admin' é o Admin Master de UMA escola
+    // (ex.: Liberdade e Expressão) e não entra aqui — separação de 08/10/2026.
+    if (!papeis.includes('plataforma')) { semAcesso(u.email, papeis); return; }
   } catch (e) { semAcesso(u.email, []); return; }
   if (desligarPlat) desligarPlat();
   desligarPlat = onSnapshot(doc(db, 'plataforma', 'publico'), (s) => { plataforma = s.exists() ? s.data() : {}; if (aba === 'config') render(); }, () => {});
@@ -60,7 +63,7 @@ observarSessao(async (u) => {
 // Conta logada sem papel de admin (ex.: o mesmo navegador já estava logado como aluno ou dono):
 // diz QUAL conta entrou e oferece trocar — sem revelar quem é o administrador.
 function semAcesso(email, papeis) {
-  const tipo = papeis.includes('mestre') ? 'de professor' : papeis.includes('aluno') ? 'de aluno' : 'sem papel de administrador';
+  const tipo = papeis.includes('admin') ? 'de administrador de escola' : papeis.includes('mestre') ? 'de professor' : papeis.includes('aluno') ? 'de aluno' : 'sem acesso à plataforma';
   pagina.innerHTML = `<div class="wrap acesso-negado"><div class="cartao">
     <span class="an-icone" aria-hidden="true"><i class="fas fa-user-shield"></i></span>
     <h2>Esta conta não é da equipe AtletaPay</h2>

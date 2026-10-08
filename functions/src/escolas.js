@@ -13,6 +13,9 @@ import { escadaLimpa } from './compartilhado/modalidades.js';
 // (fase "contrato"); até lá o app atual continua funcionando igual.
 
 export const ESCOLA_PADRAO = 'liberdade';
+// Conta do dono da AtletaPay (papel 'plataforma'): fica numa "escola" própria, fora de todas as
+// escolas — não aparece nas listas, avisos e Rede da Liberdade nem de ninguém (08/10/2026).
+export const ESCOLA_PLATAFORMA = '_plataforma';
 
 // Dados da escola nº 1 (a mesma identidade de js/escola.js). Só usados para
 // criar escolas/liberdade se ainda não existir — depois o Mega painel edita.
@@ -74,6 +77,7 @@ export async function escolaDe(ctx, colecao, d, docId = null) {
   if (!d) return null;
   if (colecao === 'nucleos') return d.escolaId || ESCOLA_PADRAO; // núcleo: definido na ativação da escola (servidor)
   if (colecao === 'usuarios') {
+    if (Array.isArray(d.papeis) && d.papeis.includes('plataforma')) return ESCOLA_PLATAFORMA;
     const pelaAcademia = await escolaDoNucleo(ctx, d.academiaId);
     if (pelaAcademia) return pelaAcademia;
     const peloNucleoGerenciado = await escolaDoNucleo(ctx, d.academiaGerenciadaId);
@@ -232,7 +236,8 @@ export const escritaDoServidor = (ev) => !ev || !ev.authId || ['service_account'
 export async function trocaDeEscolaAutorizada(ctx, ev) {
   if (escritaDoServidor(ev)) return true;
   const s = await ctx.db.doc(`usuarios/${ev.authId}`).get();
-  return !!(s.exists && Array.isArray(s.data().papeis) && s.data().papeis.includes('admin'));
+  // Só o dono da AtletaPay muda alguém de escola (o Admin de uma escola não).
+  return !!(s.exists && Array.isArray(s.data().papeis) && s.data().papeis.includes('plataforma'));
 }
 export async function barrarTrocaDeEscola(ctx, id, ev) {
   const { antes, depois } = ev;

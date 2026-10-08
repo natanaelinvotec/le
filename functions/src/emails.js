@@ -14,7 +14,7 @@
 // não tem conta não recebe nada e o app responde igual (não revela quem tem conta).
 import { createHash } from 'node:crypto';
 import { ESCOLA_PADRAO } from './escolas.js';
-import { notificar, admins } from './notificar.js';
+import { notificar, donosDaPlataforma } from './notificar.js';
 
 export const URL_CONTA = 'https://atletapay.com.br/conta';
 // Para onde o link pode devolver a pessoa (mesma lista de atletapay/js/conta.js).
@@ -211,7 +211,7 @@ export async function aoEscreverSegredo(ctx, ev) {
     resumo: desligou ? 'E-mails da plataforma desligados pelo Mega painel.' : `Serviço ${d ? d.provedor : '-'} · remetente ${d ? d.remetente || '-' : '-'} (a chave não é registrada)`,
     antes: null, depois: null,
   });
-  await notificar(ctx, await admins(ctx), {
+  await notificar(ctx, await donosDaPlataforma(ctx), {
     tipo: 'seguranca', titulo: desligou ? 'E-mails da plataforma desligados' : 'Chave de e-mail da plataforma alterada',
     texto: desligou ? 'Os pedidos de nova senha voltaram para o e-mail padrão do Firebase.' : 'Se não foi você, desligue em Configurações no Mega painel e gere outra chave no serviço.',
     link: 'admin.html', // o Mega painel fica em atletapay.com.br/master (outro site)
