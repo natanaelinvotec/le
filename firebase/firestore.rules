@@ -139,7 +139,7 @@ match /comandos/{id} {
 allow read: if ehAdmin();
 allow create: if ehAdmin() && request.resource.data.porUid == request.auth.uid &&
 request.resource.data.status == 'pendente' &&
-request.resource.data.tipo in ['excluirConta', 'recalcularAtleta', 'recalcularTodos', 'migrar', 'desfazerGraduacao'];
+request.resource.data.tipo in ['excluirConta', 'recalcularAtleta', 'recalcularTodos', 'migrar', 'desfazerGraduacao', 'testarEmail'];
 allow update, delete: if false;
 }
 
@@ -717,6 +717,41 @@ match /certificadosDe/{uid} {
 function atletaC() { return get(/databases/$(database)/documents/usuarios/$(uid)).data; }
 allow read: if logado() && (request.auth.uid == uid || atletaC().get('responsavelUid', null) == request.auth.uid ||
 ehAdmin() || fundadorDa(atletaC().get('escolaId', '')) || (ehGestor() && minhaAcademiaGerenciada() != null && atletaC().get('academiaId', null) == minhaAcademiaGerenciada()));
+allow write: if false;
+}
+
+// ===== E-mails da própria plataforma (functions/src/emails.js) =====
+// pedidosEmail: QUALQUER pessoa (até sem login, na tela "esqueci minha senha") pede
+// o link — só com estes campos e tamanhos; ninguém lê, edita nem apaga (o servidor
+// atende e apaga). Pedido de confirmação de e-mail: só do PRÓPRIO e-mail logado.
+// Limites por e-mail e geral ficam no servidor (limitesEmail, sem regra = fechado).
+match /pedidosEmail/{id} {
+allow create: if request.resource.data.keys().hasOnly(['tipo', 'email', 'voltarPara', 'criadoEm', 'origem']) &&
+request.resource.data.email is string && request.resource.data.email.size() <= 160 &&
+request.resource.data.email.matches('^[^@ ]+@[^@ ]+[.][^@ ]+$') &&
+request.resource.data.get('voltarPara', '') is string && request.resource.data.get('voltarPara', '').size() <= 300 &&
+request.resource.data.get('origem', '') is string && request.resource.data.get('origem', '').size() <= 40 &&
+(request.resource.data.tipo == 'senha' ||
+ (request.resource.data.tipo == 'confirmar' && logado() && request.auth.token.get('email', '') == request.resource.data.email));
+allow read, update, delete: if false;
+}
+// segredos/email: chave do serviço de envio. O Admin Master grava pelo Mega painel;
+// NINGUÉM lê pelo app (nem o Admin) — só o servidor.
+match /segredos/{id} {
+allow read: if false;
+allow create, update: if ehAdmin() && id == 'email' &&
+request.resource.data.keys().hasOnly(['provedor', 'chave', 'remetente', 'nomeRemetente', 'atualizadoEm', 'porUid']) &&
+request.resource.data.provedor in ['resend', 'brevo'] &&
+request.resource.data.chave is string && request.resource.data.chave.size() >= 10 && request.resource.data.chave.size() <= 300 &&
+request.resource.data.get('remetente', '') is string && request.resource.data.get('remetente', '').size() <= 120 &&
+request.resource.data.get('nomeRemetente', '') is string && request.resource.data.get('nomeRemetente', '').size() <= 60 &&
+request.resource.data.porUid == request.auth.uid;
+allow delete: if ehAdmin();
+}
+// plataforma/publico: o que o app precisa saber da plataforma (e-mails próprios ligados?).
+// Qualquer um lê; só o servidor grava.
+match /plataforma/{id} {
+allow read: if true;
 allow write: if false;
 }
 

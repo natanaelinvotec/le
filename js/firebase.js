@@ -188,10 +188,19 @@ export async function entrar(email, senha) {
   if (!perfil.exists()) throw new Error('Conta sem perfil cadastrado. Fale com a administração.');
   return { uid: cred.user.uid, ...perfil.data() };
 }
-// O link do e-mail abre a página de conta (atletapay.com.br/conta) e, no fim, volta para o login deste
-// endereço. Endereço de volta não autorizado no Authentication → manda o e-mail mesmo assim, sem a volta.
+// Nova senha. Com os e-mails próprios ligados (Mega painel → E-mails), o servidor manda um
+// e-mail com a cara da escola e o link de atletapay.com.br/conta (functions/src/emails.js);
+// senão, o e-mail padrão do Firebase. A volta é para o login deste endereço. A resposta é a
+// mesma exista ou não a conta (não revela quem tem cadastro).
+let emailsPropriosP = null;
+export const emailsProprios = () => (emailsPropriosP || (emailsPropriosP = getDoc(doc(db, 'plataforma', 'publico'))
+  .then((s) => !!(s.exists() && s.data().emailsProprios === true)).catch(() => false)));
 export async function recuperarSenha(email, voltarPara = `${location.origin}${location.pathname.replace(/[^/]*$/, '')}login.html`) {
   const em = email.trim().toLowerCase();
+  if (await emailsProprios()) {
+    await addDoc(collection(db, 'pedidosEmail'), { tipo: 'senha', email: em, voltarPara: String(voltarPara).slice(0, 300), criadoEm: new Date().toISOString(), origem: 'app' });
+    return;
+  }
   try { await sendPasswordResetEmail(auth, em, { url: voltarPara }); }
   catch (e) { if (/unauthorized-continue-uri|invalid-continue-uri|missing-continue-uri/.test((e && e.code) || '')) await sendPasswordResetEmail(auth, em); else throw e; }
 }
@@ -209,7 +218,18 @@ export async function trocarSenha(senhaAtual, novaSenha) {
   await updatePassword(u, novaSenha);
 }
 export const emailDaSessao = () => (auth.currentUser && auth.currentUser.email) || '';
-export const observarSessao = (cb) => onAuthStateChanged(auth, cb);
+// Multi-escola: antes de a tela desenhar, a página assume a identidade e a escada da escola
+// de quem entrou (js/escola-atual.js → aplicarEscola). Escola nº 1: não muda nada nem lê nada.
+// Import dinâmico: escola-atual.js importa este arquivo (evita o ciclo na carga).
+let escolaPronta = null;
+export function prepararEscolaDaPagina() {
+  if (!escolaPronta) escolaPronta = import('./escola-atual.js').then((m) => m.prepararEscola()).catch((e) => { console.warn('escola', e); return null; });
+  return escolaPronta;
+}
+export const observarSessao = (cb) => onAuthStateChanged(auth, async (u) => {
+  if (u) await prepararEscolaDaPagina();
+  return cb(u);
+});
 export const meuUid = () => auth.currentUser && auth.currentUser.uid;
 
 // Autocadastro (inscrição pública) - cria a conta de verdade no Firebase Auth

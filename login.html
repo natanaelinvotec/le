@@ -42,8 +42,8 @@ fundo menta, cartão branco de canto largo, Sora/Manrope, botão verde. -->
         .input-group input:focus { border-color: var(--teal-light); box-shadow: 0 0 0 3px rgba(56, 158, 146, 0.16); }
         .input-group:focus-within i { color: var(--primary-teal); }
 
-        .btn-login { width: 100%; padding: 14px; margin-top: 6px; background: var(--green); color: #fff; border: none; border-radius: 14px; font-size: 0.98rem; font-weight: 800; cursor: pointer; transition: 0.2s var(--ease); display: flex; justify-content: center; align-items: center; gap: 10px; }
-        .btn-login:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 12px 24px -12px rgba(0,177,64,.8); }
+        .btn-login { width: 100%; padding: 14px; margin-top: 6px; background: var(--btn-principal, var(--green)); color: #fff; border: none; border-radius: 14px; font-size: 0.98rem; font-weight: 800; cursor: pointer; transition: 0.2s var(--ease); display: flex; justify-content: center; align-items: center; gap: 10px; }
+        .btn-login:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 12px 24px -12px var(--btn-sombra, rgba(0,177,64,.8)); }
         .btn-login:disabled { opacity: 0.7; cursor: progress; }
 
         .error-msg { color: var(--accent-red); background: var(--red-soft); border: 1px solid #F5C2C2; font-size: 0.84rem; text-align: center; padding: 11px 12px; border-radius: 12px; margin-bottom: 14px; display: none; font-weight: 700; }
@@ -93,6 +93,6 @@ fundo menta, cartão branco de canto largo, Sora/Manrope, botão verde. -->
         </div>
         <p class="rodape-login"><a href="index.html"><i class="fas fa-arrow-left"></i> Voltar ao site</a></p>
     </div>
-    <script type="module" src="js/login.js?v=20260927b"></script>
+    <script type="module" src="js/login.js?v=20261009"></script>
 </body>
 </html>

@@ -13,7 +13,7 @@ import { MODALIDADES } from './modalidades.js';
 // Multi-escola: o link de inscrição de cada escola é inscricao.html?escola=<id> (o
 // Mega painel e o painel do dono mostram o link). Sem ?escola, é a escola do endereço
 // (liberdadeeexpressao.com.br → Liberdade). Núcleos, nome nos termos e logo seguem a escola.
-const ESCOLA_ID = escolaIdDoEndereco() || ESCOLA_PADRAO;
+const ESCOLA_ID = escolaIdDoEndereco(location, { usarUltima: false }) || ESCOLA_PADRAO;
 let escolaCfg = null;
 import { CONDICOES, SEM_LIMITACOES, nomeDe, siglaDe, lacoSVG, lacosHTML, normalizarInclusao, apoiosChecklistHTML, ligarChecklist, apoiosMarcados, garantirEstilos } from './inclusao.js?v=20261006';
 

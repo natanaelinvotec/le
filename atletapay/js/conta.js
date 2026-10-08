@@ -7,7 +7,7 @@ Segurança:
   • a página não manda "Referer" para ninguém (meta referrer = no-referrer);
   • a volta (continueUrl) só vale para endereços da plataforma e das escolas — nada de
     redirecionar para site de fora (golpe de "link de recuperação" falso). */
-import { conferirCodigoSenha, gravarNovaSenha, aplicarCodigo, conferirCodigo, erroAmigavel } from './firebase.js?v=20261008';
+import { conferirCodigoSenha, gravarNovaSenha, aplicarCodigo, conferirCodigo, erroAmigavel } from './firebase.js?v=20261009';
 
 const el = (id) => document.getElementById(id);
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

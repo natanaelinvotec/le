@@ -37,7 +37,10 @@ import { apresentacaoDe, migrarApresentacao, tocarApresentacao, tocarAoEntrar, g
 import { escapeHTML, sanitizeInput, debounce, gerarSlug } from './shared.js';
 import { BRASOES, porId as brasaoPorId, urlThumb as brasaoThumb, ehManual as brasaoManual } from './brasoes.js?v=20261006';
 import { configurarFaceId, atualizarContextoFaceId, pararFaceId } from './faceid.js?v=20261007';
-import { ESCOLA, ORDEM_CORDOES as ORDEM_ESCOLA, CORDOES_ADULTO as ADULTO_ESCOLA, CORDOES_KIDS as KIDS_ESCOLA, CRITERIOS as CRITERIOS_ESCOLA, linkMapa as linkMapaEscola } from './escola.js';
+import { ESCOLA, ORDEM_CORDOES as ORDEM_ESCOLA, CORDOES_ADULTO as ADULTO_ESCOLA, CORDOES_KIDS as KIDS_ESCOLA, CRITERIOS as CRITERIOS_ESCOLA, linkMapa as linkMapaEscola, IDADE_KIDS, rotuloGrad } from './escola.js';
+// Escada infantil: idade da escola (Liberdade 12; Jiu-Jitsu 16; sem escada infantil = nunca).
+// Mesmo critério de antes (idade não informada conta como infantil quando a escola tem infantil).
+const ehKids = (idade) => (Number(idade) || 0) < IDADE_KIDS;
 
 let sessaoAtual = null; // { uid, nome, email, papeis, academiaId, academiaGerenciadaId, ... }
 
@@ -113,7 +116,7 @@ return String(nome || '?').replace(/^(mestre|prof\.?|profª|professora?|instruto
 function arvCorAvatar(id) { return CORES_AVATAR[[...String(id || '')].reduce((sm, c) => sm + c.charCodeAt(0), 0) % CORES_AVATAR.length]; }
 function arvCoresCordao(pessoa) {
 const idade = Number(pessoa.idade) || 0;
-const lista = idade < 12 ? cordoesKids : cordoesAdulto;
+const lista = ehKids(idade) ? cordoesKids : cordoesAdulto;
 const item = lista.find((c) => c.nome === (pessoa.cordaoAtual || 'Iniciante')) || lista[0];
 return item.cor;
 }
@@ -1157,7 +1160,7 @@ return mestre ? `Direto ${mestre}` : ESCOLA.rotuloLinhagem;
 function construirHeroCardHTML(a, todosUsuarios, mostrarTotalGrupo) {
 
 const idade = Number(a.idade) || 0;
-const lista = idade < 12 ? cordoesKids : cordoesAdulto;
+const lista = ehKids(idade) ? cordoesKids : cordoesAdulto;
 let idx = lista.findIndex((c) => c.nome === (a.cordaoAtual || 'Iniciante'));
 if (idx === -1) idx = 0;
 const cor = lista[idx].cor;
@@ -1326,9 +1329,9 @@ function calcularPorcentagemEvolucaoDe(usuario) {
 if (!usuario) return 0;
 const idade = Number(usuario.idade) || 0;
 const rank = usuario.cordaoAtual || 'Iniciante';
-let idx = (idade < 12 ? cordoesKids : cordoesAdulto).findIndex((c) => c.nome === rank);
+let idx = (ehKids(idade) ? cordoesKids : cordoesAdulto).findIndex((c) => c.nome === rank);
 if (idx === -1) idx = 0;
-const ativos = criteriosRegras.filter((crit) => (idade < 12 ? crit.reqKids : idx >= (crit.reqAdulto - 1)));
+const ativos = criteriosRegras.filter((crit) => (ehKids(idade) ? crit.reqKids : idx >= (crit.reqAdulto - 1)));
 const maxPontos = ativos.length * 10;
 if (maxPontos === 0) return 0;
 let total = 0;
@@ -1438,7 +1441,7 @@ document.getElementById('tituloCriteriosModal').textContent = 'Critérios de Evo
 const selCordao = document.getElementById('modCordao');
 selCordao.innerHTML = '';
 const idadeNumero = Number(usuarioSelecionado.idade) || 0;
-const listaCordoesBase = idadeNumero < 12 ? cordoesKids : cordoesAdulto;
+const listaCordoesBase = ehKids(idadeNumero) ? cordoesKids : cordoesAdulto;
 // "Mestre/Presidente" é o rank mais alto, exclusivo do fundador do grupo
 // (acessoGeral) — some da lista de opções pra qualquer outra pessoa.
 const listaCordoesLocal = usuarioSelecionado.acessoGeral
@@ -1446,6 +1449,25 @@ const listaCordoesLocal = usuarioSelecionado.acessoGeral
 : listaCordoesBase.filter((c) => c.nome !== 'Mestre/Presidente');
 listaCordoesLocal.forEach((c, index) => { selCordao.innerHTML += `<option value="${escapeHTML(c.nome)}" data-idx="${index}">${escapeHTML(c.nome)}</option>`; });
 selCordao.value = usuarioSelecionado.cordaoAtual || 'Iniciante';
+// Escola nova: quem ainda está como "Iniciante" aparece na 1ª graduação da escada dela.
+if (!selCordao.value && listaCordoesLocal.length) selCordao.value = listaCordoesLocal[0].nome;
+// Graus (Jiu-Jitsu e outras artes com graus): só aparece quando a graduação escolhida tem graus.
+const desenharGraus = () => {
+  let wrap = document.getElementById('wrapModGraus');
+  if (!wrap) {
+    wrap = document.createElement('div'); wrap.id = 'wrapModGraus'; wrap.className = 'form-group-mod'; wrap.style.marginBottom = '12px';
+    wrap.innerHTML = '<label for="modGraus">Graus na ponteira:</label><select id="modGraus" class="input-padrao mod-input"></select>';
+    document.getElementById('wrapModCordao').insertAdjacentElement('afterend', wrap);
+  }
+  const item = listaCordoesLocal.find((c) => c.nome === selCordao.value);
+  const max = item && Number(item.graus) > 0 ? Number(item.graus) : 0;
+  wrap.hidden = !max;
+  const sel = document.getElementById('modGraus');
+  const atual = selCordao.value === (usuarioSelecionado.cordaoAtual || '') ? Math.min(max, Number(usuarioSelecionado.grausAtual) || 0) : 0;
+  sel.innerHTML = Array.from({ length: max + 1 }, (_, g) => `<option value="${g}">${g ? rotuloGrad(selCordao.value, g) : `${escapeHTML(selCordao.value)} (lisa)`}</option>`).join('');
+  sel.value = String(atual);
+};
+desenharGraus();
 notasAtuais = { ...(usuarioSelecionado.notas || {}) };
 gerarCriteriosUI(listaCordoesLocal, idadeNumero);
 // Subiu o cordão aqui no prontuário: se pulou mais de um degrau é quase sempre
@@ -1463,7 +1485,7 @@ const conferirLegado = () => {
 };
 if (cxLegado) { cxLegado.checked = false; delete cxLegado.dataset.mexeu; cxLegado.onchange = () => { cxLegado.dataset.mexeu = '1'; }; }
 conferirLegado();
-selCordao.onchange = () => { gerarCriteriosUI(listaCordoesLocal, idadeNumero); conferirLegado(); };
+selCordao.onchange = () => { gerarCriteriosUI(listaCordoesLocal, idadeNumero); conferirLegado(); desenharGraus(); };
 
 const wrapFormador = document.getElementById('wrapCriteriosFormador');
 if (avaliandoFormador) {
@@ -1514,7 +1536,7 @@ cssCordao.style.setProperty('--c1', proximoCordao.cor[0]);
 cssCordao.style.setProperty('--c2', proximoCordao.cor[1]);
 cssCordao.style.setProperty('--c3', proximoCordao.cor[2]);
 
-criteriosAtivos = criteriosRegras.filter((crit) => (idadeNumero < 12 ? crit.reqKids : idxCordaoAtual >= (crit.reqAdulto - 1)));
+criteriosAtivos = criteriosRegras.filter((crit) => (ehKids(idadeNumero) ? crit.reqKids : idxCordaoAtual >= (crit.reqAdulto - 1)));
 
 grid.innerHTML = criteriosAtivos.map((crit) => {
 if (notasAtuais[crit.id] === undefined) notasAtuais[crit.id] = 0;
@@ -1686,12 +1708,25 @@ dadosAtualizados.notas = notasAtuais;
 // Rede Liberdade): guarda cordão novo, anterior, data e quem graduou.
 // Só SUBIR vira marco. Baixar o cordão não entra na trajetória: o servidor tira
 // os certificados, as trocas e as festas acima do cordão que ficou.
-const idxCordaoNovo = cordoesAdulto.findIndex((c) => c.nome === dadosAtualizados.cordaoAtual);
-const idxCordaoVelho = cordoesAdulto.findIndex((c) => c.nome === (usuarioSelecionado.cordaoAtual || 'Iniciante'));
+// A escada certa pela idade (faixas infantis não estão na lista adulta).
+const escadaDoAluno = ehKids(usuarioSelecionado.idade) ? cordoesKids : cordoesAdulto;
+const idxCordaoNovo = escadaDoAluno.findIndex((c) => c.nome === dadosAtualizados.cordaoAtual);
+const idxCordaoVelho = escadaDoAluno.findIndex((c) => c.nome === (usuarioSelecionado.cordaoAtual || 'Iniciante'));
+// Graus: gravados junto; subir de grau na mesma faixa também vira marco na trajetória.
+const selGraus = document.getElementById('modGraus');
+const usaGraus = !!selGraus && !document.getElementById('wrapModGraus').hidden;
+const grausNovos = usaGraus ? Number(selGraus.value) || 0 : 0;
+const grausVelhos = Number(usuarioSelecionado.grausAtual) || 0;
+if (usaGraus || usuarioSelecionado.grausAtual !== undefined) dadosAtualizados.grausAtual = grausNovos; // capoeira: não grava campo à toa
+if (dadosAtualizados.cordaoAtual === (usuarioSelecionado.cordaoAtual || 'Iniciante') && grausNovos > grausVelhos) {
+const historico = Array.isArray(usuarioSelecionado.historicoGraduacoes) ? usuarioSelecionado.historicoGraduacoes.slice() : [];
+historico.push({ cordao: dadosAtualizados.cordaoAtual, grau: grausNovos, anterior: dadosAtualizados.cordaoAtual, anteriorGrau: grausVelhos, em: new Date().toISOString(), por: sessaoAtual.uid, porNome: sessaoAtual.nome || '' });
+dadosAtualizados.historicoGraduacoes = historico.slice(-30);
+}
 if (dadosAtualizados.cordaoAtual !== (usuarioSelecionado.cordaoAtual || 'Iniciante') && idxCordaoNovo > idxCordaoVelho) {
 const historico = Array.isArray(usuarioSelecionado.historicoGraduacoes) ? usuarioSelecionado.historicoGraduacoes.slice() : [];
 const jaTinha = !!(document.getElementById('modCordaoLegado') && document.getElementById('modCordaoLegado').checked && !document.getElementById('wrapModLegado').hidden);
-historico.push({ cordao: dadosAtualizados.cordaoAtual, anterior: usuarioSelecionado.cordaoAtual || 'Iniciante', em: new Date().toISOString(), por: sessaoAtual.uid, porNome: sessaoAtual.nome || '', ...(jaTinha ? { legado: true } : {}) });
+historico.push({ cordao: dadosAtualizados.cordaoAtual, ...(grausNovos ? { grau: grausNovos } : {}), anterior: usuarioSelecionado.cordaoAtual || 'Iniciante', em: new Date().toISOString(), por: sessaoAtual.uid, porNome: sessaoAtual.nome || '', ...(jaTinha ? { legado: true } : {}) });
 dadosAtualizados.historicoGraduacoes = historico.slice(-30);
 }
 // Avaliação de formador: grava só pra quem tem o papel de mestre/instrutor
@@ -2513,9 +2548,9 @@ function nomeCurto(nome) { const partes = String(nome || 'Aluno').trim().split(/
 function prontidaoDe(a) {
 const idadeAluno = Number(a.idade) || 0;
 const rank = a.cordaoAtual || 'Iniciante';
-let idxCordao = (idadeAluno < 12 ? cordoesKids : cordoesAdulto).findIndex((c) => c.nome === rank);
+let idxCordao = (ehKids(idadeAluno) ? cordoesKids : cordoesAdulto).findIndex((c) => c.nome === rank);
 if (idxCordao === -1) idxCordao = 0;
-const crit = criteriosRegras.filter((c) => (idadeAluno < 12 ? c.reqKids : idxCordao >= (c.reqAdulto - 1)));
+const crit = criteriosRegras.filter((c) => (ehKids(idadeAluno) ? c.reqKids : idxCordao >= (c.reqAdulto - 1)));
 if (!a.notas || !crit.length) return { pct: null, crit, avaliado: false };
 let total = 0; let avaliados = 0;
 crit.forEach((c) => { if (a.notas[c.id] !== undefined) { total += Number(a.notas[c.id]) || 0; avaliados++; } });

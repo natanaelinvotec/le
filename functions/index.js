@@ -22,6 +22,7 @@ import { processarAniversarios } from './src/aniversarios.js';
 import { aoEscreverCampeonato } from './src/campeonatos.js';
 import { comEscola, aoEscreverEscola } from './src/escolas.js';
 import { aoAtivarEscola } from './src/ativacao.js';
+import { atenderPedidoEmail } from './src/emails.js';
 
 // Região: a mesma do banco (o GitHub Actions descobre e grava em .env como REGIAO).
 setGlobalOptions({ region: process.env.REGIAO || 'southamerica-east1', maxInstances: 5, memory: '256MiB' });
@@ -97,6 +98,9 @@ export const aniversariosDoDia = onSchedule({ schedule: 'every day 07:00', timeZ
   const n = await processarAniversarios(ctxBase());
   console.log('avisos de aniversário', n);
 });
+
+// E-mails da plataforma (nova senha / confirmar e-mail): o app grava o pedido, o servidor envia e apaga.
+export const pedidoEmailCriado = onDocumentCreated('pedidosEmail/{id}', seguro('pedidoEmail', (e) => atenderPedidoEmail(ctxBase(), e.params.id, e.data ? e.data.data() : null)));
 
 // ---------- Pedidos do painel (só Admin Master) ----------
 // O painel grava um documento em comandos/{id} e o servidor executa. Assim o

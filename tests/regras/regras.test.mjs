@@ -529,3 +529,22 @@ test('ativação (etapa 2): dono não se ativa nem mexe na escada; só o Admin a
   await assertFails(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { grausAtual: 4 }), 'ninguém se dá grau');
   await assertSucceeds(getDocs(query(collection(db(null), 'nucleos'), where('escolaId', '==', 'gracie-cg'), where('ativo', '==', true))), 'inscrição (sem login) lista os núcleos da escola do link');
 });
+
+test('e-mails próprios: pedido de link público e enxuto; chave do serviço só o Admin grava e ninguém lê', async () => {
+  const anon = db(null);
+  await assertSucceeds(addDoc(collection(anon, 'pedidosEmail'), { tipo: 'senha', email: 'nat@ex.com', voltarPara: 'https://atletapay.com.br/master', criadoEm: AGORA }));
+  await assertFails(addDoc(collection(anon, 'pedidosEmail'), { tipo: 'senha', email: 'nat@ex.com', extra: 'x' }), 'campo a mais');
+  await assertFails(addDoc(collection(anon, 'pedidosEmail'), { tipo: 'senha', email: 'não é email' }));
+  await assertFails(addDoc(collection(anon, 'pedidosEmail'), { tipo: 'confirmar', email: 'nat@ex.com' }), 'confirmação só logado');
+  await assertSucceeds(addDoc(collection(env.authenticatedContext('nat', { escolaId: 'liberdade', email: 'nat@ex.com' }).firestore(), 'pedidosEmail'), { tipo: 'confirmar', email: 'nat@ex.com' }));
+  await assertFails(addDoc(collection(env.authenticatedContext('nat', { escolaId: 'liberdade', email: 'nat@ex.com' }).firestore(), 'pedidosEmail'), { tipo: 'confirmar', email: 'outro@ex.com' }), 'só o próprio e-mail');
+  await assertFails(getDocs(collection(db('admin'), 'pedidosEmail')), 'ninguém lê pedidos');
+  const seg = { provedor: 'resend', chave: 're_1234567890abc', remetente: 'noreply@atletapay.com.br', nomeRemetente: 'AtletaPay', atualizadoEm: AGORA };
+  await assertSucceeds(setDoc(doc(db('admin'), 'segredos', 'email'), { ...seg, porUid: 'admin' }));
+  await assertFails(getDoc(doc(db('admin'), 'segredos', 'email')), 'nem o Admin lê a chave pelo app');
+  await assertFails(setDoc(doc(db('profeta'), 'segredos', 'email'), { ...seg, porUid: 'profeta' }), 'Fundador não mexe');
+  await assertFails(setDoc(doc(db('admin'), 'segredos', 'outro'), { ...seg, porUid: 'admin' }));
+  await assertSucceeds(getDoc(doc(anon, 'plataforma', 'publico')), 'o app lê se os e-mails próprios estão ligados');
+  await assertFails(setDoc(doc(db('admin'), 'plataforma', 'publico'), { emailsProprios: true }), 'só o servidor liga');
+  await assertSucceeds(addDoc(collection(db('admin'), 'comandos'), { tipo: 'testarEmail', porUid: 'admin', status: 'pendente' }));
+});

@@ -6,7 +6,7 @@ gravada em escolas/{slug} já na etapa 2 (status 'rascunho') — é isso que
 libera o upload das fotos para escolas/{slug}/... no Storage — e vira 'fila'
 na etapa 5. escolasSlugs/{slug} garante que dois donos não peguem o mesmo
 subdomínio. donos/{uid} aponta a conta para a escola. */
-import { db, doc, getDoc, setDoc, updateDoc, writeBatch, observarSessao, criarConta, entrar, recuperarSenha, sair, erroAmigavel, comprimir, enviarImagem } from './firebase.js?v=20261002';
+import { db, doc, getDoc, setDoc, updateDoc, writeBatch, observarSessao, criarConta, entrar, recuperarSenha, sair, erroAmigavel, comprimir, enviarImagem } from './firebase.js?v=20261009';
 import { PLANOS, porId, MODALIDADES, modalidadePorId, MODELOS, FOTOS, TRIAL_DIAS, brl, slugDe, slugValido, RESERVADOS, minimoDe, fotosFaltando, juntarFotos, contagemFotos } from './catalogo.js?v=20261007';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

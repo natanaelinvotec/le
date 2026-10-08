@@ -18,7 +18,7 @@ import { notificar } from './notificar.js';
 // Campos de usuarios/{uid} que mudam o cartão público. Mudança só em outros
 // campos (seguindo, salvos, faceDescriptor, brasoesTotal…) não recalcula nada.
 export const CAMPOS_DO_CARTAO = [
-  'nome', 'fotoUrl', 'cordaoAtual', 'idade', 'academiaId', 'academiaNome', 'academiaGerenciadaId', 'papeis',
+  'nome', 'fotoUrl', 'cordaoAtual', 'grausAtual', 'idade', 'academiaId', 'academiaNome', 'academiaGerenciadaId', 'papeis',
   'acessoGeral', 'usoImagem', 'historicoGraduacoes', 'notas', 'criadoEm', 'brasoesManuais', 'brasoesAdmin', 'brasoesBloqueados', 'ativo',
   'carteirinha', 'dataNasc', 'isentoMensalidade', 'eventosConfirmados', 'cardsCompartilhados', // brasões 46–71
   'competicoes', // brasões 72–74 (campeonatos)
@@ -150,10 +150,11 @@ export async function sincronizarPerfil(ctx, uid, refazer = {}) {
   if (!u.academiaGerenciadaId) resumoFormacao = null;
 
   const dados = {
-    nome: u.nome || 'Capoeirista',
+    nome: u.nome || ((u.escolaId || ESCOLA_PADRAO) === ESCOLA_PADRAO ? 'Capoeirista' : 'Atleta'),
     nomeBusca: semAcento(u.nome),
     fotoUrl: /^(https:\/\/|data:image\/)/.test(u.fotoUrl || '') ? u.fotoUrl : '',
     cordaoAtual: u.cordaoAtual || 'Iniciante',
+    grausAtual: Math.max(0, Math.min(10, Number(u.grausAtual) || 0)), // faixas com graus (Jiu-Jitsu…)
     idade: menor ? (Number(u.idade) || 0) : null, // idade só escolhe a escada kids; adulto não expõe
     menor,
     escolaId: u.escolaId || ESCOLA_PADRAO, // rede da escola x aba Global

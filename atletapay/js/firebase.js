@@ -11,6 +11,7 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import {
   getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, serverTimestamp, onSnapshot, writeBatch,
+  query, where, getCountFromServer,
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getStorage, ref as storageRef, uploadString, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 
@@ -32,7 +33,7 @@ export const auth = initializeAuth(app, { persistence: [browserLocalPersistence]
 auth.languageCode = 'pt-BR';
 export const db = getFirestore(app);
 export const storage = getStorage(app);
-export { doc, getDoc, setDoc, updateDoc, addDoc, collection, serverTimestamp, onSnapshot, writeBatch, storageRef, uploadString, getDownloadURL };
+export { doc, getDoc, setDoc, updateDoc, addDoc, collection, serverTimestamp, onSnapshot, writeBatch, storageRef, uploadString, getDownloadURL, query, where, getCountFromServer };
 
 if (APP_CHECK_SITE_KEY && typeof window !== 'undefined') {
   const ligar = () => import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-check.js').then(({ initializeAppCheck, ReCaptchaEnterpriseProvider }) => {
@@ -46,11 +47,19 @@ if (APP_CHECK_SITE_KEY && typeof window !== 'undefined') {
 export const observarSessao = (cb) => onAuthStateChanged(auth, cb);
 export const meuUid = () => auth.currentUser && auth.currentUser.uid;
 export const sair = () => signOut(auth);
-// Nova senha: o link do e-mail abre atletapay.com.br/conta (Console → Authentication → Modelos →
-// URL de ação) e, no fim, devolve a pessoa para `voltarPara` (a tela de onde ela pediu).
-// Endereço de volta não autorizado no Authentication → manda o e-mail mesmo assim, sem a volta.
+// Nova senha. Com os e-mails próprios ligados (Mega painel → E-mails), o servidor manda um
+// e-mail com a cara da escola e o link de atletapay.com.br/conta; senão, o do Firebase (o link
+// do e-mail do Firebase também passa a abrir atletapay.com.br/conta quando o Console permitir).
+// No fim, a página devolve a pessoa para `voltarPara`. Resposta igual exista ou não a conta.
+let emailsPropriosP = null;
+export const emailsProprios = () => (emailsPropriosP || (emailsPropriosP = getDoc(doc(db, 'plataforma', 'publico'))
+  .then((s) => !!(s.exists() && s.data().emailsProprios === true)).catch(() => false)));
 export async function recuperarSenha(email, voltarPara = `${location.origin}${location.pathname}`) {
   const em = String(email).trim().toLowerCase();
+  if (await emailsProprios()) {
+    await addDoc(collection(db, 'pedidosEmail'), { tipo: 'senha', email: em, voltarPara: String(voltarPara).slice(0, 300), criadoEm: new Date().toISOString(), origem: 'atletapay' });
+    return;
+  }
   try { await sendPasswordResetEmail(auth, em, { url: voltarPara }); }
   catch (e) { if (/unauthorized-continue-uri|invalid-continue-uri|missing-continue-uri/.test((e && e.code) || '')) await sendPasswordResetEmail(auth, em); else throw e; }
 }
@@ -63,7 +72,11 @@ export async function entrar(email, senha) { return (await signInWithEmailAndPas
 export async function criarConta(nome, email, senha) {
   const cred = await createUserWithEmailAndPassword(auth, String(email).trim().toLowerCase(), senha);
   try { await updateProfile(cred.user, { displayName: String(nome).trim().slice(0, 80) }); } catch (e) { /* ok */ }
-  try { await sendEmailVerification(cred.user); } catch (e) { /* ok */ }
+  // Confirmação de e-mail: com os e-mails próprios ligados, sai com a cara da AtletaPay.
+  try {
+    if (await emailsProprios()) await addDoc(collection(db, 'pedidosEmail'), { tipo: 'confirmar', email: cred.user.email, voltarPara: `${location.origin}/painel`, criadoEm: new Date().toISOString(), origem: 'cadastro' });
+    else await sendEmailVerification(cred.user);
+  } catch (e) { /* ok — a conta já foi criada */ }
   return cred.user;
 }
 

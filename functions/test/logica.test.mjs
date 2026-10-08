@@ -954,3 +954,103 @@ test('cartão público da escola leva a escada e a sede', async () => {
   assert.equal(pub.escada.adulto[0].nome, 'Branca');
   assert.equal(pub.nucleoSede, 'ct-sede');
 });
+
+/* ===================== graduação nas outras escolas (etapa 2b) ===================== */
+import { aoGraduarNaEscola } from '../src/graduacao-escola.js';
+
+test('2b: aluno novo do CT começa na faixa inicial pela idade; faixa e grau novos avisam com as cores; capoeira não passa por aqui', async () => {
+  const escada = MOD.escadaPadrao('jiujitsu');
+  const { f, ctx } = ctxDe(base({
+    escolas: { ct: { nome: 'CT', modalidade: 'jiujitsu', status: 'ativa', escada } },
+    nucleos: { 'ct-sede': { nome: 'CT', escolaId: 'ct' }, taynara: { nome: 'Academia Professora Taynara', professorUid: 'tay', escolaId: 'liberdade' } },
+  }));
+  const adulto = { nome: 'Rafa', papeis: ['aluno'], academiaId: 'ct-sede', escolaId: 'ct', cordaoAtual: 'Iniciante', idade: 25 };
+  const kid = { nome: 'Kid CT', papeis: ['aluno'], academiaId: 'ct-sede', escolaId: 'ct', cordaoAtual: 'Iniciante', idade: 9, responsavelUid: 'mae' };
+  f.db.doc('usuarios/rafa').set(adulto); f.db.doc('usuarios/kidct').set(kid);
+  assert.equal(await aoGraduarNaEscola(ctx, 'rafa', null, adulto), 'inicial');
+  assert.equal(await aoGraduarNaEscola(ctx, 'kidct', null, kid), 'inicial');
+  assert.equal(f.ler('usuarios/rafa').cordaoAtual, 'Branca'); assert.equal(f.ler('usuarios/kidct').cordaoAtual, 'Branca');
+  // Iniciante → Branca não é festa
+  const branca = f.ler('usuarios/rafa');
+  assert.equal(await aoGraduarNaEscola(ctx, 'rafa', adulto, branca), null);
+  // Grau novo na mesma faixa
+  const grau1 = { ...branca, grausAtual: 1 };
+  assert.equal(await aoGraduarNaEscola(ctx, 'rafa', branca, grau1), 'grau');
+  // Faixa nova
+  const azul = { ...grau1, cordaoAtual: 'Azul', grausAtual: 0 };
+  assert.equal(await aoGraduarNaEscola(ctx, 'rafa', grau1, azul), 'faixa');
+  const n = notifs(f, 'rafa');
+  assert.ok(n.some((x) => x.titulo === 'Faixa Azul!' && x.cores[0] === '#1E4FD8'), JSON.stringify(n.map((x) => x.titulo)));
+  assert.ok(n.some((x) => x.titulo === 'Novo grau: Branca · 1º grau!'));
+  // Infantil: Branca → Cinza avisa o atleta e o responsável legal
+  const kidB = f.ler('usuarios/kidct');
+  assert.equal(await aoGraduarNaEscola(ctx, 'kidct', kidB, { ...kidB, cordaoAtual: 'Cinza' }), 'faixa');
+  assert.ok(notifs(f, 'mae').some((x) => /Kid: faixa Cinza/.test(x.titulo)));
+  // Escola nº 1 (capoeira): nada aqui (segue a lógica de certificados de sempre)
+  const nat = f.ler('usuarios/nat');
+  assert.equal(await aoGraduarNaEscola(ctx, 'nat', nat, { ...nat, escolaId: 'liberdade', cordaoAtual: 'Vagante' }), null);
+});
+
+/* ===================== e-mails próprios da plataforma ===================== */
+import * as EM from '../src/emails.js';
+
+test('e-mails: link vira atletapay.com.br/conta; volta só para endereços da plataforma; limites por e-mail', async () => {
+  const l = EM.linkDaPlataforma('https://capoeira-liberdade.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=ABC123&apiKey=x&continueUrl=https%3A%2F%2Fatletapay.com.br%2Fmaster&lang=en', 'resetPassword');
+  const u = new URL(l);
+  assert.equal(u.origin + u.pathname, 'https://atletapay.com.br/conta');
+  assert.equal(u.searchParams.get('oobCode'), 'ABC123'); assert.equal(u.searchParams.get('continueUrl'), 'https://atletapay.com.br/master');
+  assert.equal(u.searchParams.get('apiKey'), null, 'não carrega a chave no link');
+  const fora = new URL(EM.linkDaPlataforma('https://x.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=Z&continueUrl=https%3A%2F%2Fgolpe.com%2F', 'resetPassword'));
+  assert.equal(fora.searchParams.get('continueUrl'), null, 'volta para site de fora é descartada');
+  const { f, ctx } = ctxDe(base());
+  const t0 = Date.parse('2026-10-08T12:00:00Z');
+  assert.equal(await EM.dentroDoLimite(ctx, 'a@b.com', t0), true);
+  assert.equal(await EM.dentroDoLimite(ctx, 'A@B.com', t0 + 1000), true);
+  assert.equal(await EM.dentroDoLimite(ctx, 'a@b.com', t0 + 2000), true);
+  assert.equal(await EM.dentroDoLimite(ctx, 'a@b.com', t0 + 3000), false, '4º pedido na mesma hora');
+  assert.equal(await EM.dentroDoLimite(ctx, 'a@b.com', t0 + 3700000), true, 'na hora seguinte libera');
+  assert.ok(f.ler(`limitesEmail/${EM.hashEmail('a@b.com')}`).envios.length >= 4);
+});
+
+test('e-mails: pedido sem serviço configurado não envia; com serviço, envia com a cara da escola e apaga o pedido', async () => {
+  const { f, ctx, auth } = ctxDe(base({ escolasPublicas: { liberdade: { nome: 'Capoeira Liberdade e Expressão', nomeCurto: 'Liberdade e Expressão', cores: null } } }));
+  auth.usuarios.set('nat', { uid: 'nat', email: 'nat@ex.com', customClaims: {} });
+  f.db.doc('usuarios/nat').update({ escolaId: 'liberdade', email: 'nat@ex.com' });
+  ctx.auth.getUserByEmail = async (e) => { const u = Array.from(auth.usuarios.values()).find((x) => x.email === e); if (!u) { const er = new Error('no user'); er.code = 'auth/user-not-found'; throw er; } return u; };
+  ctx.auth.generatePasswordResetLink = async (e, s) => `https://capoeira-liberdade.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=OOB-${e}&continueUrl=${encodeURIComponent((s && s.url) || '')}`;
+  const enviados = [];
+  ctx.fetch = async (url, op) => { enviados.push({ url, corpo: JSON.parse(op.body), headers: op.headers }); return { ok: true, status: 200, text: async () => '' }; };
+  f.db.doc('pedidosEmail/p1').set({ tipo: 'senha', email: 'nat@ex.com', voltarPara: 'https://liberdadeeexpressao.com.br/login.html' });
+  assert.equal(await EM.atenderPedidoEmail(ctx, 'p1', f.ler('pedidosEmail/p1')), 'sem-servico');
+  assert.equal(f.ler('pedidosEmail/p1'), undefined, 'pedido apagado');
+  f.db.doc('segredos/email').set({ provedor: 'resend', chave: 're_teste', remetente: 'noreply@atletapay.com.br', nomeRemetente: 'AtletaPay' });
+  f.db.doc('pedidosEmail/p2').set({ tipo: 'senha', email: 'NAT@ex.com', voltarPara: 'https://liberdadeeexpressao.com.br/login.html' });
+  assert.equal(await EM.atenderPedidoEmail(ctx, 'p2', f.ler('pedidosEmail/p2')), 'enviado');
+  assert.equal(enviados.length, 1);
+  const c = enviados[0].corpo;
+  assert.equal(enviados[0].url, 'https://api.resend.com/emails');
+  assert.deepEqual(c.to, ['nat@ex.com']); assert.equal(c.from, 'AtletaPay <noreply@atletapay.com.br>');
+  assert.match(c.subject, /Crie uma senha nova · Liberdade e Expressão/);
+  assert.match(c.html, /https:\/\/atletapay\.com\.br\/conta\?mode=resetPassword&amp;oobCode=OOB-nat%40ex\.com/);
+  assert.match(c.html, /continueUrl=https%3A%2F%2Fliberdadeeexpressao\.com\.br%2Flogin\.html/);
+  // E-mail sem conta: nada sai (e o app responde igual)
+  f.db.doc('pedidosEmail/p3').set({ tipo: 'senha', email: 'ninguem@ex.com' });
+  assert.equal(await EM.atenderPedidoEmail(ctx, 'p3', f.ler('pedidosEmail/p3')), 'sem-conta');
+  assert.equal(enviados.length, 1);
+  // E-mail inválido
+  assert.equal(await EM.atenderPedidoEmail(ctx, 'p4', { tipo: 'senha', email: 'x<script>@' }), 'email-invalido');
+});
+
+test('e-mails: Testar no Mega painel liga os e-mails próprios só se o envio funcionar', async () => {
+  const { f, ctx } = ctxDe(base());
+  f.db.doc('segredos/email').set({ provedor: 'brevo', chave: 'xkeysib-teste' });
+  ctx.fetch = async () => ({ ok: false, status: 401, text: async () => 'chave inválida' });
+  await assert.rejects(() => EM.testarEmail(ctx, 'admin@ex.com'), /401/);
+  assert.equal(f.ler('plataforma/publico').emailsProprios, false);
+  let corpo = null;
+  ctx.fetch = async (url, op) => { corpo = { url, b: JSON.parse(op.body), h: op.headers }; return { ok: true, status: 201, text: async () => '' }; };
+  await EM.testarEmail(ctx, 'admin@ex.com');
+  assert.equal(f.ler('plataforma/publico').emailsProprios, true);
+  assert.equal(corpo.url, 'https://api.brevo.com/v3/smtp/email'); assert.equal(corpo.h['api-key'], 'xkeysib-teste');
+  assert.deepEqual(corpo.b.to, [{ email: 'admin@ex.com' }]);
+});

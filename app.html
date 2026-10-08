@@ -1574,7 +1574,17 @@ const CORDOES_KIDS = [
   { nome: 'Iniciante', cor: ['#CCC', '#CCC', '#CCC'] }, { nome: 'Escravo', cor: ['#D3D3D3', '#D3D3D3', '#D3D3D3'] },
   { nome: 'Fugitivo', cor: ['#D3D3D3', '#EEDC82', '#D3D3D3'] }, { nome: 'Quilombola', cor: ['#EEDC82', '#EEDC82', '#EEDC82'] },
 ];
-function cordoesPorIdade(idade) { return (Number(idade) || 0) < 12 ? CORDOES_KIDS : CORDOES_ADULTO; }
+// Multi-escola: idade da escada infantil e as listas acima são trocadas pelas da escola
+// de quem entrou (sincronizarEscolaApp, logo depois do login). Escola nº 1: 12 anos.
+let IDADE_KIDS_APP = 12;
+function sincronizarEscolaApp(E) {
+  if (!E || !E.ESCOLA || E.ESCOLA.id === 'liberdade') return;
+  CORDOES_ADULTO.splice(0, CORDOES_ADULTO.length, ...E.CORDOES_ADULTO);
+  CORDOES_KIDS.splice(0, CORDOES_KIDS.length, ...E.CORDOES_KIDS);
+  CRITERIOS_REGRAS.splice(0, CRITERIOS_REGRAS.length, ...E.CRITERIOS);
+  IDADE_KIDS_APP = E.IDADE_KIDS;
+}
+function cordoesPorIdade(idade) { return (Number(idade) || 0) < IDADE_KIDS_APP ? CORDOES_KIDS : CORDOES_ADULTO; }
 function idxCordaoDe(idade, nomeCordao) {
   const idx = cordoesPorIdade(idade).findIndex((c) => c.nome === (nomeCordao || 'Iniciante'));
   return idx === -1 ? 0 : idx;
@@ -1653,7 +1663,7 @@ const CRITERIOS_REGRAS = [
   { id:'c15', txt:'Fundamentos', reqAdulto:0, reqKids:true },
 ];
 function criteriosAtivosPara(idade, idxCordao) {
-  return CRITERIOS_REGRAS.filter((c) => (idade < 12 ? c.reqKids : idxCordao >= (c.reqAdulto - 1)));
+  return CRITERIOS_REGRAS.filter((c) => (idade < IDADE_KIDS_APP ? c.reqKids : idxCordao >= (c.reqAdulto - 1)));
 }
 function progressoDe(idade, idxCordao, notasObj) {
   const ativos = criteriosAtivosPara(idade, idxCordao);
@@ -1721,8 +1731,10 @@ class Component extends DCLogic {
     try {
       const FB = await import(new URL('js/firebase.js', document.baseURI).href);
       this._FB = FB;
+      const ESC = await import(new URL('js/escola.js', document.baseURI).href);
       FB.observarSessao(async (user) => {
         if (!user) { window.location.href = 'login.html'; return; }
+        sincronizarEscolaApp(ESC); // a escola da conta já foi aplicada pelo observarSessao
         try {
           const perfil = await FB.buscar('usuarios', user.uid);
           const papeis = (perfil && perfil.papeis) || [];
@@ -1782,6 +1794,7 @@ class Component extends DCLogic {
       curto: (u.nome || 'Aluno').split(' ')[0],
       foto: u.fotoUrl || 'assets/logo-liberdade.png',
       cordao: u.cordaoAtual || 'Iniciante',
+      grausAtual: Number(u.grausAtual) || 0, // faixas com graus (Jiu-Jitsu…)
       idxCordao: idx,
       idade,
       academia: u.academiaNome || u.academiaId || '-',
@@ -2370,7 +2383,7 @@ class Component extends DCLogic {
     const listaAlunos = this.state.alunos.filter((a) => {
       if (termo && a.nome.toLowerCase().indexOf(termo) < 0) return false;
       if (this.state.filtro === 'Aptos (70%+)') return a.percentual >= 70;
-      if (this.state.filtro === 'Kids (sub-12)') return a.idade < 12;
+      if (this.state.filtro === 'Kids (sub-12)') return a.idade < IDADE_KIDS_APP;
       if (this.state.filtro === 'Adultos') return a.idade >= 12;
       return true;
     });
@@ -2590,7 +2603,7 @@ class Component extends DCLogic {
       semApresentacaoNucleo: !(atleta.apresentacao && atleta.apresentacao.videoUrl),
       verApresentacaoNucleo: () => this.verApresentacaoNucleo(),
       atletaCordao: 'Cordão ' + atleta.cordao,
-      cordaoAtualNome: atleta.cordao,
+      cordaoAtualNome: atleta.grausAtual ? `${atleta.cordao} · ${atleta.grausAtual}º grau` : atleta.cordao,
       proximoCordao: (listaCordoes[Math.min(listaCordoes.length - 1, atleta.idxCordao + 1)] || { nome: atleta.cordao }).nome,
       barraCordaoEstilo: barraCordaoEstilo,
       barraProximoCordaoEstilo: (() => {

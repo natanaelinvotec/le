@@ -32,7 +32,8 @@ arrayUnion, arrayRemove, increment, onSnapshot, storageRef, uploadString, upload
 consultaDaEscola, comMinhaEscola, ondeEscola, talvezComEscola,
 } from './firebase.js';
 import { escapeHTML } from './shared.js';
-import { ESCOLA, CORDOES_ADULTO, CORDOES_KIDS, ORDEM_CORDOES, linkMapa as linkMapaEscola, proximoCordao as proximoCordaoEscola } from './escola.js';
+import { ESCOLA, CORDOES_ADULTO, CORDOES_KIDS, ORDEM_CORDOES, IDADE_KIDS, rotuloGrad, linkMapa as linkMapaEscola, proximoCordao as proximoCordaoEscola } from './escola.js';
+import { faixaSVG } from './faixas.js';
 import { termosOfensivos, MOTIVOS_DENUNCIA } from './moderacao.js';
 import { iniciarExperiencia, abrirAcessibilidade, instalar, estaInstalado, tutorial, pedirAceiteSeNecessario } from './experiencia.js';
 import { ligarContador, listar as listarNotificacoes, marcarTodasLidas, itemHTML as notificacaoHTML, CSS_NOTIF, ativarPush, desativarPush, estadoPush, ouvirPushComAppAberto } from './notificacoes.js';
@@ -100,7 +101,7 @@ return foto ? `<img class="avatar ${classe}" src="${escapeHTML(foto)}" alt="" lo
 : `<span class="avatar ${classe}" style="background:${corAvatar(pessoa && (pessoa.id || pessoa.uid || pessoa.nome))}">${escapeHTML(iniciais(pessoa && pessoa.nome))}</span>`;
 }
 function coresCordao(pessoa) {
-const lista = pessoa && pessoa.menor && (Number(pessoa.idade) || 0) > 0 && (Number(pessoa.idade) || 0) < 12 ? CORDOES_KIDS : CORDOES_ADULTO;
+const lista = pessoa && pessoa.menor && (Number(pessoa.idade) || 0) > 0 && (Number(pessoa.idade) || 0) < IDADE_KIDS ? CORDOES_KIDS : CORDOES_ADULTO;
 const item = lista.find((c) => c.nome === (pessoa && pessoa.cordaoAtual || 'Iniciante')) || lista[0];
 return item.cor;
 }
@@ -872,7 +873,7 @@ f.querySelector('.conteudo').classList.add('celebra-folha');
 }
 // Certificados publicados no perfil (servidor: perfisPublicos.certificados).
 const certsDe = (pub) => (Array.isArray(pub.certificados) ? pub.certificados : []).filter((c) => c && /^[A-Z0-9]{6,20}$/.test(String(c.codigo || '')));
-const escadaPub = (pub) => (pub.menor && (pub.idade || 0) < 12 ? CORDOES_KIDS : CORDOES_ADULTO);
+const escadaPub = (pub) => (pub.menor && (pub.idade || 0) < IDADE_KIDS ? CORDOES_KIDS : CORDOES_ADULTO);
 const corDoCordaoPub = (nome, pub) => (escadaPub(pub).find((c) => c.nome === nome) || CORDOES_ADULTO.find((c) => c.nome === nome) || CORDOES_KIDS.find((c) => c.nome === nome) || { cor: coresCordao(pub) }).cor;
 const linkCertificado = (codigo) => `certificado.html#${encodeURIComponent(codigo)}`;
 function trajetoriaHTML(pub) {
@@ -905,6 +906,17 @@ return `<div class="titulo-sec">Certificados <span class="contador">${certs.leng
 <span class="corpo"><small>CERTIFICADO</small><b>Cordão ${escapeHTML(c.cordao)}</b><em>${leg ? 'anterior ao app' : escapeHTML(c.data.split('-').reverse().join('/'))}${c.evento && !leg ? ` · ${escapeHTML(String(c.evento).slice(0, 26))}` : ''}</em></span>
 <span class="selo" aria-hidden="true"><i class="fas fa-award"></i></span></a>`; }).join('')}</div>`;
 }
+// Escolas de faixa (Jiu-Jitsu, Judô, Karatê…): a faixa desenhada em vetor no perfil,
+// com os graus na ponteira. A escola nº 1 (cordão de capoeira) segue só com a pílula.
+function faixaDoPerfil(pub) {
+  if (!pub || !pub.cordaoAtual || !['faixa', 'prajied'].includes(String(ESCOLA.peca || ''))) return '';
+  const g = CORDOES_ADULTO.find((c) => c.nome === pub.cordaoAtual) || CORDOES_KIDS.find((c) => c.nome === pub.cordaoAtual);
+  if (!g) return '';
+  try {
+    const svg = faixaSVG(g, { graus: Number(pub.grausAtual) || 0, largura: 300, altura: 26, titulo: rotuloGrad(pub.cordaoAtual, pub.grausAtual) });
+    return `<div class="faixa-perfil" style="margin:10px 0 2px;max-width:300px;line-height:0;filter:drop-shadow(0 4px 10px rgba(0,0,0,.12))">${svg.replace('<svg ', '<svg style="width:100%;height:auto" ')}</div>`;
+  } catch (e) { return ''; }
+}
 async function renderPerfil(param, vista) {
 const alvo = param || uid; const meu = alvo === uid;
 if (meu) await sincronizarPerfilPublico();
@@ -915,7 +927,7 @@ const podeVer = podeVerPerfil(pub);
 const sigo = seguindo.has(alvo); const pedi = (pub.pedidosSeguir || []).includes(uid);
 const nuc = nucleoDe(pub.academiaId); const gerenciado = pub.academiaGerenciadaId ? nucleoDe(pub.academiaGerenciadaId) : null;
 const aprPerfil = await apresentacaoDe(pub.id || alvo);
-const titulo = [pub.cordaoAtual ? `${escapeHTML(pub.cordaoAtual)}${nuc ? ` no núcleo ${escapeHTML(nomeCurtoNucleo(nuc.nome))}` : ''}` : '', gerenciado ? `Responsável pelo núcleo ${escapeHTML(nomeCurtoNucleo(gerenciado.nome))}` : '', pub.resumoPresencas && pub.resumoPresencas.total ? `${pub.resumoPresencas.total} presença${pub.resumoPresencas.total === 1 ? '' : 's'} registrada${pub.resumoPresencas.total === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ');
+const titulo = [pub.cordaoAtual ? `${escapeHTML(rotuloGrad(pub.cordaoAtual, pub.grausAtual))}${nuc ? ` no núcleo ${escapeHTML(nomeCurtoNucleo(nuc.nome))}` : ''}` : '', gerenciado ? `Responsável pelo núcleo ${escapeHTML(nomeCurtoNucleo(gerenciado.nome))}` : '', pub.resumoPresencas && pub.resumoPresencas.total ? `${pub.resumoPresencas.total} presença${pub.resumoPresencas.total === 1 ? '' : 's'} registrada${pub.resumoPresencas.total === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ');
 let lista = []; try { lista = podeVer ? (await postsDoAutor(alvo)).filter(visivelParaMim) : []; } catch (e) { lista = []; }
 const momentos = lista.filter((p) => p.melhorMomento && midiasDe(p).length);
 const comMidia = lista.filter((p) => midiasDe(p).length);
@@ -926,7 +938,7 @@ vista.innerHTML = `
 <div class="perfil-nome"><h2>${escapeHTML(pub.nome)} ${pub.fundador ? '<i class="fas fa-crown verif" title="Fundador" style="color:var(--gold)"></i>' : (pub.mestre || pub.instrutor) ? '<i class="fas fa-circle-check verif" title="Responsável de núcleo"></i>' : ''}</h2>
 ${pub.apelido ? `<div class="apelido">"${escapeHTML(pub.apelido)}"</div>` : ''}
 ${titulo ? `<div class="titulo">${titulo}</div>` : ''}
-<div class="pills">${pub.cordaoAtual ? `<span class="pill teal">${escapeHTML(pub.cordaoAtual)}</span>` : ''}${nuc ? `<button type="button" class="pill navy" data-nucleo="${escapeHTML(nuc.id)}"><i class="fas fa-location-dot"></i> ${escapeHTML(nomeCurtoNucleo(nuc.nome))}</button>` : ''}${pub.fundador ? '<span class="pill gold"><i class="fas fa-crown"></i> Fundador</span>' : (rotuloDiretoDe(pub) ? `<span class="pill gold"><i class="fas fa-link"></i> ${escapeHTML(rotuloDiretoDe(pub))}</span>` : '')}${r && r.semanasSeguidas >= 2 ? `<span class="pill verde"><i class="fas fa-fire"></i> ${r.semanasSeguidas} semanas seguidas</span>` : ''}${(pub.funcoes || []).map((f) => `<span class="pill roxo">${escapeHTML(f)}</span>`).join('')}${pub.privado ? '<span class="pill neutra"><i class="fas fa-lock"></i> privado</span>' : ''}</div></div>
+<div class="pills">${pub.cordaoAtual ? `<span class="pill teal">${escapeHTML(rotuloGrad(pub.cordaoAtual, pub.grausAtual))}</span>` : ''}${nuc ? `<button type="button" class="pill navy" data-nucleo="${escapeHTML(nuc.id)}"><i class="fas fa-location-dot"></i> ${escapeHTML(nomeCurtoNucleo(nuc.nome))}</button>` : ''}${pub.fundador ? '<span class="pill gold"><i class="fas fa-crown"></i> Fundador</span>' : (rotuloDiretoDe(pub) ? `<span class="pill gold"><i class="fas fa-link"></i> ${escapeHTML(rotuloDiretoDe(pub))}</span>` : '')}${r && r.semanasSeguidas >= 2 ? `<span class="pill verde"><i class="fas fa-fire"></i> ${r.semanasSeguidas} semanas seguidas</span>` : ''}${(pub.funcoes || []).map((f) => `<span class="pill roxo">${escapeHTML(f)}</span>`).join('')}${pub.privado ? '<span class="pill neutra"><i class="fas fa-lock"></i> privado</span>' : ''}</div>${faixaDoPerfil(pub)}</div>
 <div class="stats"><div class="stat"><b>${podeVer ? lista.length : '—'}</b><small>posts</small></div><div class="stat"><b>${(pub.seguidores || []).length}</b><small>seguidores</small></div><button type="button" class="stat" data-brasoes="${escapeHTML(pub.id)}" style="cursor:pointer"><b>${pub.brasoesTotal ?? '—'}</b><small>brasões</small></button><div class="stat"><b>${r ? r.total : '—'}</b><small>presenças</small></div></div>
 ${meu ? `<div class="priv"><i class="fas fa-lock"></i><div class="tx"><b>Perfil privado</b><span id="privTxt">${pub.privado ? 'Só quem você aceitar vê seus posts e momentos' : 'Toda a rede vê seus posts e momentos'}</span></div><button type="button" class="switch ${pub.privado ? 'on' : ''}" id="swPriv" aria-label="Perfil privado"></button></div>` : ''}
 ${meu && (pub.pedidosSeguir || []).length ? `<div class="card" id="pedidos"><div class="titulo-sec" style="padding:0 0 8px">Pedidos pra seguir <span class="pill gold">${pub.pedidosSeguir.length}</span></div><div id="listaPedidos"><p class="contador">Carregando…</p></div></div>` : ''}

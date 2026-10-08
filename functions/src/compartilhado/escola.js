@@ -9,10 +9,14 @@ Só entra aqui informação PÚBLICA (vai para o navegador de qualquer visitante
 Chave de conta de serviço, senha ou token secreto NUNCA entram neste arquivo. */
 
 export const ESCOLA = {
+  id: 'liberdade', // escola nº 1 da plataforma (multi-escola: aplicarEscola troca tudo abaixo)
   nome: 'Capoeira Liberdade e Expressão',
   nomeCurto: 'Liberdade e Expressão',
   nomeRede: 'Rede Liberdade',
   modalidade: 'capoeira',
+  // Como a arte chama a graduação e quem lidera (Jiu-Jitsu: 'faixa' / 'Professor').
+  peca: 'cordão',
+  lider: 'Mestre',
   mestre: 'Mestre Profeta',
   cidade: 'Campo Grande',
   uf: 'MS',
@@ -73,8 +77,8 @@ export const CORDOES_KIDS = [
   { nome: 'Quilombola', cor: ['#EEDC82', '#EEDC82', '#EEDC82'] },
 ];
 export const ORDEM_CORDOES = CORDOES_ADULTO.map((c) => c.nome);
-// Idade abaixo da qual vale a escada infantil.
-export const IDADE_KIDS = 12;
+// Idade abaixo da qual vale a escada infantil (multi-escola: vem da escada da escola).
+export let IDADE_KIDS = 12;
 
 // Critérios avaliados pelo responsável (notas 0–10). reqAdulto = índice mínimo
 // do cordão a partir do qual o critério conta; reqKids = conta na escada infantil.
@@ -126,4 +130,53 @@ export function nomeBonito(nome) {
   const t = String(nome || '').trim().replace(/\s+/g, ' ');
   if (!t || t !== t.toUpperCase() || !/\p{Lu}/u.test(t)) return t;
   return t.toLowerCase().split(' ').map((p, i) => (i > 0 && /^(da|de|do|das|dos|e|d')$/.test(p) ? p : p.charAt(0).toUpperCase() + p.slice(1))).join(' ');
+}
+
+// ===== Multi-escola (AtletaPay) =====
+// O app nasce com a Liberdade (escola nº 1). Depois do login, js/escola-atual.js
+// carrega o cartão público da escola de quem entrou e chama esta função: a
+// identidade e a escada de graduação passam a ser as dela EM TODAS AS TELAS, sem
+// mexer em cada uma — as listas são trocadas no lugar (mesmas referências que
+// admin.js, gestao.js, rede.js… já importaram). Chamada uma vez por página.
+export function aplicarEscola(cfg) {
+  if (!cfg || !cfg.id || cfg.id === ESCOLA.id) return false;
+  const nome = cfg.nome || cfg.nomeCurto || 'Escola';
+  const curto = cfg.nomeCurto || nome;
+  const e = cfg.escada || null;
+  const resp = cfg.responsavel && cfg.responsavel.nome ? cfg.responsavel.nome : '';
+  Object.assign(ESCOLA, {
+    id: cfg.id, nome, nomeCurto: curto, nomeRede: `Rede ${curto}`, modalidade: cfg.modalidade || 'outra',
+    peca: (e && e.peca) || cfg.pecaGraduacao || 'graduação', lider: (e && e.lider) || cfg.lider || 'Professor',
+    mestre: resp, cidade: cfg.cidade || '', uf: cfg.uf || '',
+    cidadeParaMapa: cfg.cidade ? `${cfg.cidade}${cfg.uf ? ` - ${cfg.uf}` : ''}` : '',
+    rotuloLinhagem: `Direto ${curto}`,
+    fraseCelebracao: cfg.modalidade === 'jiujitsu' || cfg.modalidade === 'judo' ? 'Oss!' : 'Parabéns!',
+    frasePublicado: 'Publicado!',
+    logo: cfg.logo || 'assets/app-icon-192.png', logoPequeno: cfg.logo || 'assets/app-icon-192.png',
+    cores: { ...ESCOLA.cores, ...(cfg.cores || {}) },
+    contatoPrivacidade: '',
+  });
+  if (e && Array.isArray(e.adulto) && e.adulto.length) {
+    const copia = (l) => l.map((g) => ({ ...g, cor: Array.isArray(g.cor) ? g.cor.slice(0, 3) : [g.cor, g.cor, g.cor] }));
+    const adulto = copia(e.adulto);
+    const kids = Array.isArray(e.kids) && e.kids.length ? copia(e.kids) : null;
+    CORDOES_ADULTO.splice(0, CORDOES_ADULTO.length, ...adulto);
+    CORDOES_KIDS.splice(0, CORDOES_KIDS.length, ...(kids || adulto));
+    ORDEM_CORDOES.splice(0, ORDEM_CORDOES.length, ...adulto.map((g) => g.nome));
+    IDADE_KIDS = kids ? (Number(e.idadeKids) || 16) : 0;
+    if (Array.isArray(e.criterios) && e.criterios.length) {
+      CRITERIOS.splice(0, CRITERIOS.length, ...e.criterios.map((txt, i) => ({ id: `c${i + 1}`, txt, reqAdulto: 0, reqKids: true })));
+    }
+  }
+  return true;
+}
+// Faixa/cordão com graus: "Azul · 2º grau" (sem graus, só o nome).
+export function rotuloGrad(nome, graus) {
+  const g = Math.max(0, Math.floor(Number(graus) || 0));
+  return g ? `${nome} · ${g}º grau` : String(nome || '');
+}
+// Quantos graus a graduação admite na escada atual (0 = não usa graus).
+export function grausPossiveis(nome, pessoa) {
+  const item = (pessoa ? escadaDe(pessoa) : CORDOES_ADULTO).find((c) => c.nome === nome) || CORDOES_ADULTO.find((c) => c.nome === nome);
+  return item && Number(item.graus) > 0 ? Number(item.graus) : 0;
 }

@@ -9,6 +9,7 @@ import { checarTexto, checarImagens } from './moderacao.js';
 import { sincronizarCarteirinha } from './carteirinha.js';
 import { emitirCertificado, apagarCertificados, idAvisoCordao, garantirCertificados, agendarLembrete, alinharAoCordaoAtual } from './certificado.js';
 import { coresDoCordao } from './compartilhado/escola.js';
+import { aoGraduarNaEscola, ehOutraEscola } from './graduacao-escola.js';
 
 // Campos de usuarios/{uid} que mudam a carteirinha (o próprio espelho entra:
 // se alguém mexer nele, o servidor regrava o valor certo).
@@ -30,6 +31,12 @@ export async function aoEscreverUsuario(ctx, ev) {
   await auditar(ctx, 'usuarios', ev);
   if (!depois) { await sincronizarPerfil(ctx, uid); await carteirinhaSegura(ctx, uid); await apagarCertificados(ctx, uid).catch(() => {}); return; }
   const criado = !antes;
+  // Escolas da plataforma com outra arte (Jiu-Jitsu…): faixa inicial e festa de faixa/grau pela escada DELAS.
+  const outraEscola = ehOutraEscola(depois);
+  if (outraEscola) {
+    // (a correção para a faixa inicial é uma nova escrita: o gatilho roda de novo e atualiza o cartão)
+    try { await aoGraduarNaEscola(ctx, uid, antes, depois); } catch (e) { (ctx.log || console).warn('graduação (escola)', uid, e && e.message); }
+  }
   if (criado || mudouAlgum(antes, depois, CAMPOS_DA_CARTEIRINHA)) await carteirinhaSegura(ctx, uid);
   if (criado || mudouAlgum(antes, depois, CAMPOS_DO_CARTAO)) {
     const gerenciadoMudou = mudouAlgum(antes, depois, ['academiaGerenciadaId']);
@@ -62,10 +69,10 @@ export async function aoEscreverUsuario(ctx, ev) {
   }
   // Cadastro já nasce num cordão (atleta que já era graduado antes do app):
   // certificados de todos os cordões até o atual, sem data e sem festa.
-  if (criado && (depois.cordaoAtual || 'Iniciante') !== 'Iniciante') {
+  if (!outraEscola && criado && (depois.cordaoAtual || 'Iniciante') !== 'Iniciante') {
     try { await garantirCertificados(ctx, uid, depois); } catch (e) { (ctx.log || console).warn('certificados legados', uid, e && e.message); }
   }
-  if (!criado && antes.cordaoAtual !== depois.cordaoAtual && ORDEM.indexOf(depois.cordaoAtual) > ORDEM.indexOf(antes.cordaoAtual)) {
+  if (!outraEscola && !criado && antes.cordaoAtual !== depois.cordaoAtual && ORDEM.indexOf(depois.cordaoAtual) > ORDEM.indexOf(antes.cordaoAtual)) {
     // Certificado de graduação (servidor) + aviso que vira a festa "Troquei de
     // cordão!" na tela principal do atleta no próximo acesso.
     const velhos = new Set((antes.historicoGraduacoes || []).map((h) => JSON.stringify(h)));
@@ -95,7 +102,7 @@ export async function aoEscreverUsuario(ctx, ev) {
     }
   }
   // Cordão VOLTOU: certificados, trocas da trajetória e festas acima do cordão atual saem.
-  if (!criado && antes.cordaoAtual !== depois.cordaoAtual && ORDEM.indexOf(depois.cordaoAtual || 'Iniciante') < ORDEM.indexOf(antes.cordaoAtual || 'Iniciante')) {
+  if (!outraEscola && !criado && antes.cordaoAtual !== depois.cordaoAtual && ORDEM.indexOf(depois.cordaoAtual || 'Iniciante') < ORDEM.indexOf(antes.cordaoAtual || 'Iniciante')) {
     try { await alinharAoCordaoAtual(ctx, uid, depois, `Cordão voltou de ${antes.cordaoAtual} para ${depois.cordaoAtual || 'Iniciante'}`); } catch (e) { (ctx.log || console).warn('cordão voltou', uid, e && e.message); }
   }
   if (!criado && mudouAlgum(antes, depois, ['responsavelUid', 'idade'])) await atualizarResponsaveisDasConversas(ctx, uid);

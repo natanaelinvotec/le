@@ -1,6 +1,10 @@
 // login.js — v3: autenticação real via Firebase Authentication.
 // Substitui o esquema antigo (hash SHA-256 comparado direto no Firestore).
-import { entrar, recuperarSenha } from './firebase.js';
+import { entrar, recuperarSenha, prepararEscolaDaPagina } from './firebase.js';
+
+// Multi-escola: a tela de entrar já mostra a escola do link (login.html?escola=<id>)
+// ou a última escola usada neste aparelho; depois do login vale a escola da conta.
+prepararEscolaDaPagina();
 
 const form = document.getElementById('loginForm');
 const campoEmail = document.getElementById('loginIdentificador');

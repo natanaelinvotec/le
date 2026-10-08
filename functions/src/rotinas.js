@@ -6,6 +6,7 @@ import { apagarCertificados, conferirCertificados, cancelarCertificado, cancelar
 import { notificar, gestoresDoNucleo } from './notificar.js';
 import { responsaveisDe, apagarSubcolecao, apagarArquivosDoStorage } from './gatilhos.js';
 import { migrarEscolaId, migrarClaims, migrarEscolasPublicas, migrarEscolaId1c, ESCOLA_PADRAO } from './escolas.js';
+import { testarEmail } from './emails.js';
 
 const DIA = 86400000;
 
@@ -236,6 +237,12 @@ export async function executarComando(ctx, ev) {
       resultado = await desfazerGraduacao(ctx, c, { porUid: quemUid, porNome: quem.nome || '' });
     } else if (c.tipo === 'migrar') {
       resultado = await executarMigracoes(ctx);
+    } else if (c.tipo === 'testarEmail') {
+      // E-mails próprios (nova senha com a cara da escola): teste para o e-mail do próprio Admin.
+      let para = quem.email || '';
+      if (!para && ctx.auth) { try { para = (await ctx.auth.getUser(quemUid)).email || ''; } catch (e) { /* ok */ } }
+      if (!para) throw new Error('Conta do Admin sem e-mail para o teste.');
+      resultado = await testarEmail(ctx, para);
     } else throw new Error(`Pedido desconhecido: ${c.tipo}`);
     await ref.update({ status: 'ok', resultado, terminadoEm: new Date().toISOString() });
     return resultado;
