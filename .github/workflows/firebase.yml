@@ -3,8 +3,8 @@
 # Roda quando você envia (upload) algo em firebase/, functions/ ou tests/regras/
 # pelo GitHub — ou pelo botão "Run workflow" na aba Actions.
 # Antes de publicar, roda os testes; se algum falhar, NADA é publicado.
-# Precisa de UM segredo no repositório: FIREBASE_SERVICE_ACCOUNT
-# (passo a passo em docs/SERVIDOR.md).
+# Precisa de UM segredo no repositório: ATLETAPAY_SERVICE_ACCOUNT (conta github-deploy do
+# projeto atletapay-br — passo a passo em docs/SERVIDOR.md).
 name: Firebase (regras, índices e funções)
 
 on:
@@ -31,7 +31,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  PROJETO: capoeira-liberdade
+  PROJETO: atletapay-br
 
 jobs:
   testar:
@@ -47,7 +47,7 @@ jobs:
           distribution: temurin
           java-version: 21
       - name: Copiar os módulos que o app e o servidor compartilham
-        run: cp js/brasoes.js js/escola.js js/moderacao.js functions/src/compartilhado/
+        run: cp js/brasoes.js js/escola.js js/moderacao.js js/campeonato-motor.js functions/src/compartilhado/
       - name: Testes da lógica das funções
         working-directory: functions
         run: node --test test/logica.test.mjs
@@ -69,11 +69,11 @@ jobs:
         with:
           node-version: 22
       - name: Copiar os módulos que o app e o servidor compartilham
-        run: cp js/brasoes.js js/escola.js js/moderacao.js functions/src/compartilhado/
+        run: cp js/brasoes.js js/escola.js js/moderacao.js js/campeonato-motor.js functions/src/compartilhado/
       - name: Entrar no Google Cloud com a conta de serviço
         uses: google-github-actions/auth@v3
         with:
-          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          credentials_json: ${{ secrets.ATLETAPAY_SERVICE_ACCOUNT }}
       - uses: google-github-actions/setup-gcloud@v3
       - name: Descobrir a região do banco (as funções ficam na mesma)
         run: |
