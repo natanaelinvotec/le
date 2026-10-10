@@ -146,9 +146,16 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.novo.outputs.credentials_file_path }}
           CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE: ${{ steps.novo.outputs.credentials_file_path }}
         run: |
+          set -o pipefail
+          CONTA=$(jq -r .client_email "$GOOGLE_APPLICATION_CREDENTIALS")
+          if ! gcloud storage ls "gs://$BUCKET_ANTIGO" >/dev/null; then
+            echo "::error::A conta $CONTA não consegue ler gs://$BUCKET_ANTIGO. No IAM do projeto capoeira-liberdade (https://console.cloud.google.com/iam-admin/iam?project=capoeira-liberdade) → Conceder acesso → principal $CONTA → papel 'Leitor de objetos do Storage'."
+            exit 1
+          fi
+          echo "Origem: $(gcloud storage ls -r "gs://$BUCKET_ANTIGO/**" | grep -vc '/$') arquivos"
           # rsync cópia nuvem→nuvem mantém o metadata (inclusive o token de download dos links).
-          gcloud storage rsync --recursive "gs://$BUCKET_ANTIGO" "gs://$BUCKET_NOVO" 2>&1 | tail -n 5
-          echo "Arquivos no destino: $(gcloud storage ls -r "gs://$BUCKET_NOVO/**" 2>/dev/null | wc -l)"
+          gcloud storage rsync --recursive "gs://$BUCKET_ANTIGO" "gs://$BUCKET_NOVO"
+          echo "Destino: $(gcloud storage ls -r "gs://$BUCKET_NOVO/**" | grep -vc '/$') arquivos"
 
       # ---------- 5. Ajustes no projeto novo ----------
       - name: Links das fotos, logins com escola (claims) e endereço da Liberdade
