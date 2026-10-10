@@ -1,0 +1,3 @@
+rules_version = '2';
+// Projeto antigo (capoeira-liberdade) depois da migração: fechado.
+service firebase.storage { match /b/{bucket}/o { match /{allPaths=**} { allow read, write: if false; } } }

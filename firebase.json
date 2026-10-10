@@ -11,58 +11,326 @@
       "source": "functions",
       "codebase": "default",
       "runtime": "nodejs22",
-      "ignore": ["node_modules", "test", "scripts", ".git", "*.log"]
+      "ignore": [
+        "node_modules",
+        "test",
+        "scripts",
+        ".git",
+        "*.log"
+      ]
     }
   ],
   "hosting": [
     {
-      "site": "capoeira-liberdade",
+      "site": "atletapay-br",
+      "public": "dist",
+      "ignore": [
+        "**/.*",
+        "**/node_modules/**",
+        "**/*.md"
+      ],
+      "cleanUrls": true,
+      "trailingSlash": false,
+      "rewrites": [
+        {
+          "source": "/*/admin",
+          "destination": "/app/admin.html"
+        },
+        {
+          "source": "/*/app",
+          "destination": "/app/app.html"
+        },
+        {
+          "source": "/*/brasoes",
+          "destination": "/app/brasoes.html"
+        },
+        {
+          "source": "/*/campeonatos",
+          "destination": "/app/campeonatos.html"
+        },
+        {
+          "source": "/*/carteirinha",
+          "destination": "/app/carteirinha.html"
+        },
+        {
+          "source": "/*/carteirinhas",
+          "destination": "/app/carteirinhas.html"
+        },
+        {
+          "source": "/*/certificado",
+          "destination": "/app/certificado.html"
+        },
+        {
+          "source": "/*/certificados",
+          "destination": "/app/certificados.html"
+        },
+        {
+          "source": "/*/checkin",
+          "destination": "/app/checkin.html"
+        },
+        {
+          "source": "/*/gerenciar",
+          "destination": "/app/gerenciar.html"
+        },
+        {
+          "source": "/*/inscricao",
+          "destination": "/app/inscricao.html"
+        },
+        {
+          "source": "/*/instalar-rede",
+          "destination": "/app/instalar-rede.html"
+        },
+        {
+          "source": "/*/instalar",
+          "destination": "/app/instalar.html"
+        },
+        {
+          "source": "/*/login",
+          "destination": "/app/login.html"
+        },
+        {
+          "source": "/*/offline",
+          "destination": "/app/offline.html"
+        },
+        {
+          "source": "/*/privacidade",
+          "destination": "/app/privacidade.html"
+        },
+        {
+          "source": "/*/rede",
+          "destination": "/app/rede.html"
+        },
+        {
+          "source": "/*/v",
+          "destination": "/app/v.html"
+        },
+        {
+          "source": "/*",
+          "destination": "/app/login.html"
+        }
+      ],
+      "headers": [
+        {
+          "source": "/app/sw.js",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache"
+            },
+            {
+              "key": "Service-Worker-Allowed",
+              "value": "/"
+            }
+          ]
+        },
+        {
+          "source": "**/*.webmanifest",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/manifest+json"
+            }
+          ]
+        },
+        {
+          "source": "**/*.@(html|json)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=0, must-revalidate"
+            }
+          ]
+        },
+        {
+          "source": "**/*.@(js|css)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=3600"
+            }
+          ]
+        },
+        {
+          "source": "**/*.@(png|jpg|jpeg|webp|svg|ico|woff2|mp4|pdf)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=604800"
+            }
+          ]
+        },
+        {
+          "source": "/app/**",
+          "headers": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "Referrer-Policy",
+              "value": "strict-origin-when-cross-origin"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "SAMEORIGIN"
+            },
+            {
+              "key": "Permissions-Policy",
+              "value": "camera=(self), microphone=(), geolocation=(self)"
+            }
+          ]
+        },
+        {
+          "source": "/*/**",
+          "headers": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "Referrer-Policy",
+              "value": "strict-origin-when-cross-origin"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "SAMEORIGIN"
+            },
+            {
+              "key": "Permissions-Policy",
+              "value": "camera=(self), microphone=(), geolocation=(self)"
+            }
+          ]
+        },
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "Referrer-Policy",
+              "value": "strict-origin-when-cross-origin"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Permissions-Policy",
+              "value": "camera=(), microphone=(), geolocation=()"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "site": "liberdadeeexpressao",
       "public": ".",
       "ignore": [
-        "firebase.json", ".firebaserc", "**/.*", "**/node_modules/**",
-        "functions/**", "tests/**", "firebase/**", "docs/**", "tools/**",
-        "atletapay/**", "**/*.md", "**/*.mjs", "**/*.zip", "**/*.rar", "**/*.psd"
+        "firebase.json",
+        ".firebaserc",
+        "**/.*",
+        "**/node_modules/**",
+        "functions/**",
+        "tests/**",
+        "firebase/**",
+        "docs/**",
+        "tools/**",
+        "atletapay/**",
+        "**/*.md",
+        "**/*.mjs",
+        "**/*.zip",
+        "**/*.rar",
+        "**/*.psd",
+        "dist/**",
+        "apresentacoes/**"
       ],
       "cleanUrls": false,
       "trailingSlash": false,
       "headers": [
-        { "source": "sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
-        { "source": "**/*.webmanifest", "headers": [{ "key": "Content-Type", "value": "application/manifest+json" }] },
-        { "source": "**/*.@(html|json)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }] },
-        { "source": "**/*.@(js|css)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }] },
-        { "source": "**/*.@(png|jpg|jpeg|webp|svg|ico|woff2|mp4|pdf)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }] },
-        { "source": "**", "headers": [
-          { "key": "X-Content-Type-Options", "value": "nosniff" },
-          { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
-          { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-          { "key": "Permissions-Policy", "value": "camera=(self), microphone=(), geolocation=(self)" }
-        ] }
-      ]
-    },
-    {
-      "site": "atletapay",
-      "public": "atletapay",
-      "ignore": ["**/.*", "**/node_modules/**", "**/*.md", "CNAME"],
-      "cleanUrls": true,
-      "trailingSlash": false,
-      "headers": [
-        { "source": "**/*.@(html|json)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }] },
-        { "source": "**/*.@(js|css)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }] },
-        { "source": "**/*.@(png|jpg|jpeg|webp|svg|ico|woff2)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }] },
-        { "source": "**", "headers": [
-          { "key": "X-Content-Type-Options", "value": "nosniff" },
-          { "key": "X-Frame-Options", "value": "DENY" },
-          { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-          { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
-        ] }
+        {
+          "source": "sw.js",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache"
+            }
+          ]
+        },
+        {
+          "source": "**/*.webmanifest",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/manifest+json"
+            }
+          ]
+        },
+        {
+          "source": "**/*.@(html|json)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=0, must-revalidate"
+            }
+          ]
+        },
+        {
+          "source": "**/*.@(js|css)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=3600"
+            }
+          ]
+        },
+        {
+          "source": "**/*.@(png|jpg|jpeg|webp|svg|ico|woff2|mp4|pdf)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=604800"
+            }
+          ]
+        },
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "SAMEORIGIN"
+            },
+            {
+              "key": "Referrer-Policy",
+              "value": "strict-origin-when-cross-origin"
+            },
+            {
+              "key": "Permissions-Policy",
+              "value": "camera=(self), microphone=(), geolocation=(self)"
+            }
+          ]
+        }
       ]
     }
   ],
   "emulators": {
-    "firestore": { "port": 8080 },
-    "storage": { "port": 9199 },
-    "auth": { "port": 9099 },
-    "ui": { "enabled": false },
+    "firestore": {
+      "port": 8080
+    },
+    "storage": {
+      "port": 9199
+    },
+    "auth": {
+      "port": 9099
+    },
+    "ui": {
+      "enabled": false
+    },
     "singleProjectMode": true
   }
 }

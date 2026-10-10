@@ -23,12 +23,13 @@ emulador). **Se um teste falhar, nada é publicado.**
 
 ### 1. Criar a conta de serviço no Google Cloud
 
-1. Abra https://console.cloud.google.com/iam-admin/serviceaccounts?project=capoeira-liberdade
+1. Abra https://console.cloud.google.com/iam-admin/serviceaccounts?project=atletapay-br
 2. **Criar conta de serviço** → nome `github-deploy` → Criar e continuar.
 3. Em **Conceder acesso**, adicione estes papéis:
    - **Editor**
    - **Administrador do Cloud Functions**
    - **Usuário da conta de serviço**
+   - **Administrador do Storage** (a cópia das fotos na migração precisa dele)
    - **Administrador do IAM do projeto** — só é necessário na **primeira** publicação
      (o Firebase libera permissões internas do Eventarc e do Pub/Sub). Depois que a
      primeira publicação der certo, pode remover esse papel.
@@ -43,7 +44,8 @@ emulador). **Se um teste falhar, nada é publicado.**
 ### 2. Guardar a chave no GitHub
 
 1. No repositório: **Settings → Secrets and variables → Actions → New repository secret**.
-2. Nome: `FIREBASE_SERVICE_ACCOUNT`
+2. Nome: `ATLETAPAY_SERVICE_ACCOUNT` (o `FIREBASE_SERVICE_ACCOUNT` antigo é do projeto
+   capoeira-liberdade e só serve para a migração e para desligar o projeto antigo)
 3. Valor: abra o `.json` baixado num editor de texto e cole **o conteúdo inteiro**.
 4. **Add secret**. Pode apagar o `.json` do computador depois.
 

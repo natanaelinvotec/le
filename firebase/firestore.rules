@@ -767,7 +767,7 @@ return request.resource.data.keys().hasOnly(['url', 'caminho', 'status', 'academ
 request.resource.data.caminho is string && request.resource.data.caminho.matches('carteirinha/' + uid + '/[A-Za-z0-9_.-]+') &&
 request.resource.data.url is string && request.resource.data.url.size() < 1500 &&
 // o link tem que ser do MESMO arquivo de "caminho" (o núcleo aprova o que vê)
-request.resource.data.url.matches('https://firebasestorage[.]googleapis[.]com/v0/b/(capoeira-liberdade[.]firebasestorage[.]app|capoeira-liberdade[.]appspot[.]com)/o/carteirinha%2F' + uid + '%2F' + request.resource.data.caminho.split('/')[2] + '[?].*') &&
+request.resource.data.url.matches('https://firebasestorage[.]googleapis[.]com/v0/b/(atletapay-br[.]firebasestorage[.]app|capoeira-liberdade[.]firebasestorage[.]app)/o/carteirinha%2F' + uid + '%2F' + request.resource.data.caminho.split('/')[2] + '[?].*') &&
 request.resource.data.enviadoPorUid == request.auth.uid && nucleoCerto() &&
 request.resource.data.get('alunoNome', '').size() <= 120;
 }
@@ -824,7 +824,7 @@ allow create, update: if logado() && (ehPlataforma() || adminDa(escolaDoUsuario(
 request.resource.data.keys().hasOnly(['url', 'nome', 'atualizadoEm', 'porUid']) &&
 request.resource.data.porUid == request.auth.uid &&
 request.resource.data.url is string && request.resource.data.url.size() < 1500 &&
-request.resource.data.url.matches('https://firebasestorage[.]googleapis[.]com/v0/b/(capoeira-liberdade[.]firebasestorage[.]app|capoeira-liberdade[.]appspot[.]com)/o/assinaturas%2F' + uid + '%2F.*');
+request.resource.data.url.matches('https://firebasestorage[.]googleapis[.]com/v0/b/(atletapay-br[.]firebasestorage[.]app|capoeira-liberdade[.]firebasestorage[.]app)/o/assinaturas%2F' + uid + '%2F.*');
 allow delete: if logado() && (ehPlataforma() || adminDa(escolaDoUsuario(uid)) || request.auth.uid == uid);
 }
 // certificadosDe/{uid}: a lista da pessoa (app) — ela, o responsável legal e o núcleo.

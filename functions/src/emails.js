@@ -19,7 +19,8 @@ import { notificar, donosDaPlataforma } from './notificar.js';
 export const URL_CONTA = 'https://atletapay.com.br/conta';
 // Para onde o link pode devolver a pessoa (mesma lista de atletapay/js/conta.js).
 export const HOSTS_VOLTA = ['atletapay.com.br', 'www.atletapay.com.br', 'atletapay.web.app', 'atletapay.firebaseapp.com',
-  'liberdadeeexpressao.com.br', 'www.liberdadeeexpressao.com.br', 'capoeira-liberdade.web.app', 'capoeira-liberdade.firebaseapp.com'];
+  'atletapay-br.web.app', 'atletapay-br.firebaseapp.com', 'liberdadeeexpressao.com.br', 'www.liberdadeeexpressao.com.br', 'liberdadeeexpressao.web.app',
+  'capoeira-liberdade.web.app', 'natanaelinvotec.github.io'];
 const EMAIL_OK = /^[^\s@<>()[\]\\,;:"]{1,64}@[a-z0-9.-]{1,180}\.[a-z]{2,24}$/i;
 const LIMITE = { hora: 3, dia: 6, geralHora: 300 };
 const LOGO_LIBERDADE = 'https://liberdadeeexpressao.com.br/assets/logo-liberdade150.png';

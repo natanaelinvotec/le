@@ -8,7 +8,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { executarMigracoes } from '../src/rotinas.js';
 
 process.env.TZ = 'America/Campo_Grande';
-const projeto = process.env.PROJETO || 'capoeira-liberdade';
+const projeto = process.env.PROJETO || 'atletapay-br';
 const bucket = process.env.BUCKET || `${projeto}.firebasestorage.app`;
 initializeApp({ projectId: projeto, storageBucket: bucket });
 

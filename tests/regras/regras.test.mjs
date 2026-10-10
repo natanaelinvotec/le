@@ -271,7 +271,7 @@ test('LGPD e coleções antigas', async () => {
 });
 
 // ---------- Carteirinha virtual ----------
-const BUCKET = 'capoeira-liberdade.firebasestorage.app'; // links do Storage presos ao bucket do projeto (auditoria 08/10)
+const BUCKET = 'atletapay-br.firebasestorage.app'; // links do Storage presos ao bucket do projeto (auditoria 08/10)
 const urlFoto = (uid, arq = '1.jpg', bucket = BUCKET) => `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/carteirinha%2F${uid}%2F${arq}?alt=media&token=t`;
 const fotoDe = (uid, porUid, extra = {}) => ({
   url: urlFoto(uid), caminho: `carteirinha/${uid}/1.jpg`, status: 'pendente', academiaId: 'taynara', alunoNome: 'Atleta',

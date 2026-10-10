@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>O app mudou de endereço</title>
+<style>
+  body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#EAF2F1;color:#002D72}
+  main{text-align:center;padding:32px;max-width:520px}
+  h1{font-size:1.4rem;margin:0 0 8px}
+  a{display:inline-block;margin-top:16px;padding:12px 20px;border-radius:12px;background:#389E92;color:#fff;text-decoration:none;font-weight:700}
+</style>
+<script>
+// O app agora mora em atletapay.com.br/<escola>/… — leva a pessoa para a mesma tela, na escola certa.
+(function () {
+  var p = new URLSearchParams(location.search);
+  var escola = p.get('escola') || 'liberdadeeexpressao';
+  if (escola === 'liberdade') escola = 'liberdadeeexpressao';
+  if (!/^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$/.test(escola)) escola = 'liberdadeeexpressao';
+  var pagina = (location.pathname.split('/').pop() || '').replace(/\.html$/, '');
+  if (location.hostname.indexOf('atletapay') === 0) { location.replace('https://atletapay.com.br' + location.pathname + location.search); return; }
+  if (!pagina || pagina === 'index') pagina = 'login';
+  p.delete('escola');
+  var resto = p.toString();
+  var destino = 'https://atletapay.com.br/' + escola + '/' + pagina + (resto ? '?' + resto : '') + location.hash;
+  document.addEventListener('DOMContentLoaded', function () { var a = document.getElementById('ir'); if (a) a.href = destino; });
+  // Service worker antigo guardado no aparelho: tira antes de ir, senão ele mostra a versão velha.
+  var ir = function () { location.replace(destino); };
+  if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+    navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); })
+      .then(function () { return caches && caches.keys ? caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }) : null; })
+      .then(ir, ir);
+    setTimeout(ir, 4000);
+  } else ir();
+})();
+</script>
+</head>
+<body>
+<main>
+  <h1>O app mudou de endereço</h1>
+  <p>Agora ele fica em <b>atletapay.com.br</b>. Você vai ser levado para lá em instantes.</p>
+  <a id="ir" href="https://atletapay.com.br/liberdadeeexpressao/login">Abrir o app</a>
+</main>
+</body>
+</html>
