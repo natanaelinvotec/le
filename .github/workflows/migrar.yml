@@ -85,12 +85,15 @@ jobs:
         run: |
           gcloud storage buckets describe "gs://$BUCKET_TEMP" --project "$NOVO" >/dev/null 2>&1 \
             || gcloud storage buckets create "gs://$BUCKET_TEMP" --project "$NOVO" --location=southamerica-east1 --uniform-bucket-level-access
-          for AG in "$AGENTE_FS_ANTIGO" "$AGENTE_FS_NOVO"; do
+          # Quem precisa mexer no bucket: os agentes do Firestore dos dois projetos (gravam/leem o
+          # export) e as duas contas github-deploy (quem dá a ordem também é conferido pelo Google).
+          CONTA_ANTIGA=$(jq -r .client_email "${{ steps.antigo.outputs.credentials_file_path }}")
+          CONTA_NOVA=$(jq -r .client_email "$GOOGLE_APPLICATION_CREDENTIALS")
+          for M in "$AGENTE_FS_ANTIGO" "$AGENTE_FS_NOVO" "$CONTA_ANTIGA" "$CONTA_NOVA"; do
             gcloud storage buckets add-iam-policy-binding "gs://$BUCKET_TEMP" \
-              --member="serviceAccount:$AG" --role=roles/storage.objectAdmin >/dev/null
+              --member="serviceAccount:$M" --role=roles/storage.admin >/dev/null
           done
-          gcloud storage buckets add-iam-policy-binding "gs://$BUCKET_TEMP" \
-            --member="serviceAccount:$(jq -r .client_email "$GOOGLE_APPLICATION_CREDENTIALS")" --role=roles/storage.objectAdmin >/dev/null
+          sleep 20 # o IAM do bucket leva alguns segundos para valer
           echo "Bucket gs://$BUCKET_TEMP pronto."
 
       # ---------- 2. Exportar do projeto antigo ----------
