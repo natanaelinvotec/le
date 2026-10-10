@@ -153,8 +153,10 @@ jobs:
             exit 1
           fi
           echo "Origem: $(gcloud storage ls -r "gs://$BUCKET_ANTIGO/**" | grep -vc '/$') arquivos"
-          # rsync cópia nuvem→nuvem mantém o metadata (inclusive o token de download dos links).
-          gcloud storage rsync --recursive "gs://$BUCKET_ANTIGO" "gs://$BUCKET_NOVO"
+          # Cópia nuvem→nuvem mantém o metadata (inclusive o token de download dos links).
+          # cp em vez de rsync: rsync exige storage.buckets.get no bucket de origem (papel de bucket
+          # legado); cp só precisa ler e listar os objetos. --no-clobber pula o que já foi copiado.
+          gcloud storage cp --recursive --no-clobber "gs://$BUCKET_ANTIGO/*" "gs://$BUCKET_NOVO/"
           echo "Destino: $(gcloud storage ls -r "gs://$BUCKET_NOVO/**" | grep -vc '/$') arquivos"
 
       # ---------- 5. Ajustes no projeto novo ----------
