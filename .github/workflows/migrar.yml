@@ -1,5 +1,3 @@
-teste: 1
-  sub: 2
 # Migração capoeira-liberdade → atletapay-br (10/10/2026). Só roda pelo botão
 # Actions → "Migrar para o projeto atletapay-br" → Run workflow.
 #
