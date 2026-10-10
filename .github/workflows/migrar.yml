@@ -1,0 +1,179 @@
+teste: 1
+  sub: 2
+# Migração capoeira-liberdade → atletapay-br (10/10/2026). Só roda pelo botão
+# Actions → "Migrar para o projeto atletapay-br" → Run workflow.
+#
+#   ensaio  copia tudo (logins com senha, banco, fotos) para o projeto novo e confere.
+#           Pode repetir quantas vezes quiser: o projeto novo é limpo antes de cada cópia.
+#   final   a mesma cópia, feita na hora da virada (o app antigo em "manutenção" por ~30 min);
+#           logo depois você envia o pacote do código que aponta para o projeto novo.
+#
+# Segredos do repositório (Settings → Secrets → Actions):
+#   FIREBASE_SERVICE_ACCOUNT   conta github-deploy do projeto ANTIGO (já existia) — exporta
+#   ATLETAPAY_SERVICE_ACCOUNT  conta github-deploy do projeto NOVO — importa, copia fotos, ajusta
+#   AUTH_HASH_ANTIGO           Authentication → Usuários → ⋮ → "Parâmetros de hash de senha" (o JSON inteiro)
+# Permissões (IAM):
+#   no projeto NOVO:   github-deploy@atletapay-br… = Editor + Administrador do Storage (+ os do deploy)
+#   no projeto ANTIGO: github-deploy@atletapay-br… = Leitor de objetos do Storage (para copiar as fotos)
+#                      github-deploy@capoeira-liberdade… já é Editor (exporta banco e logins)
+name: Migrar para o projeto atletapay-br
+
+on:
+  workflow_dispatch:
+    inputs:
+      etapa:
+        description: 'ensaio (pode repetir) ou final (na virada)'
+        type: choice
+        options: [ensaio, final]
+        default: ensaio
+      confirmo:
+        description: 'Digite MIGRAR para confirmar (o projeto novo é LIMPO antes da cópia)'
+        type: string
+        required: true
+
+concurrency:
+  group: migracao
+  cancel-in-progress: false
+
+env:
+  ANTIGO: capoeira-liberdade
+  NOVO: atletapay-br
+  BUCKET_ANTIGO: capoeira-liberdade.firebasestorage.app
+  BUCKET_NOVO: atletapay-br.firebasestorage.app
+  BUCKET_TEMP: atletapay-br-migracao
+  # Agente do Firestore do projeto antigo: é ele quem grava o export no bucket temporário.
+  AGENTE_FS_ANTIGO: service-492022804215@gcp-sa-firestore.iam.gserviceaccount.com
+  AGENTE_FS_NOVO: service-366402154655@gcp-sa-firestore.iam.gserviceaccount.com
+
+jobs:
+  migrar:
+    name: ${{ github.event.inputs.etapa }} — copiar capoeira-liberdade → atletapay-br
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Confirmação
+        if: github.event.inputs.confirmo != 'MIGRAR'
+        run: echo "::error::Digite MIGRAR no campo de confirmação." && exit 1
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Copiar os módulos que o app e o servidor compartilham
+        run: cp js/brasoes.js js/escola.js js/moderacao.js functions/src/compartilhado/
+      - name: Instalar o Firebase CLI e o Admin SDK
+        run: |
+          npm install -g firebase-tools --no-audit --no-fund
+          (cd functions && npm install --omit=dev --no-audit --no-fund)
+
+      - name: Credencial do projeto ANTIGO
+        id: antigo
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          export_environment_variables: false
+      - name: Credencial do projeto NOVO
+        id: novo
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.ATLETAPAY_SERVICE_ACCOUNT }}
+          export_environment_variables: false
+      - uses: google-github-actions/setup-gcloud@v3
+
+      # ---------- 1. Bucket temporário no projeto novo (o export do Firestore passa por ele) ----------
+      - name: Bucket temporário para o export
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.novo.outputs.credentials_file_path }}
+          CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE: ${{ steps.novo.outputs.credentials_file_path }}
+        run: |
+          gcloud storage buckets describe "gs://$BUCKET_TEMP" --project "$NOVO" >/dev/null 2>&1 \
+            || gcloud storage buckets create "gs://$BUCKET_TEMP" --project "$NOVO" --location=southamerica-east1 --uniform-bucket-level-access
+          for AG in "$AGENTE_FS_ANTIGO" "$AGENTE_FS_NOVO"; do
+            gcloud storage buckets add-iam-policy-binding "gs://$BUCKET_TEMP" \
+              --member="serviceAccount:$AG" --role=roles/storage.objectAdmin >/dev/null
+          done
+          gcloud storage buckets add-iam-policy-binding "gs://$BUCKET_TEMP" \
+            --member="serviceAccount:$(jq -r .client_email "$GOOGLE_APPLICATION_CREDENTIALS")" --role=roles/storage.objectAdmin >/dev/null
+          echo "Bucket gs://$BUCKET_TEMP pronto."
+
+      # ---------- 2. Exportar do projeto antigo ----------
+      - name: Exportar o banco (Firestore) do projeto antigo
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.antigo.outputs.credentials_file_path }}
+          CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE: ${{ steps.antigo.outputs.credentials_file_path }}
+        run: |
+          gcloud services enable firestore.googleapis.com --project "$ANTIGO" >/dev/null 2>&1 || true
+          gcloud firestore export "gs://$BUCKET_TEMP/fs-${{ github.run_id }}" --project "$ANTIGO" --database='(default)'
+      - name: Exportar os logins (Authentication) do projeto antigo
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.antigo.outputs.credentials_file_path }}
+        run: |
+          firebase auth:export logins.json --format=json --project "$ANTIGO"
+          echo "Logins exportados: $(jq '.users | length' logins.json)"
+
+      # ---------- 3. Limpar o projeto novo e importar ----------
+      - name: Limpar o projeto novo (logins e banco)
+        working-directory: functions
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.novo.outputs.credentials_file_path }}
+          PROJETO: ${{ env.NOVO }}
+        run: node scripts/migrar-projeto.mjs limpar
+      - name: Importar o banco no projeto novo
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.novo.outputs.credentials_file_path }}
+          CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE: ${{ steps.novo.outputs.credentials_file_path }}
+        run: gcloud firestore import "gs://$BUCKET_TEMP/fs-${{ github.run_id }}" --project "$NOVO" --database='(default)'
+      - name: Importar os logins no projeto novo (mesmas senhas, mesmos uids)
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.novo.outputs.credentials_file_path }}
+          AUTH_HASH_ANTIGO: ${{ secrets.AUTH_HASH_ANTIGO }}
+        run: |
+          # O segredo é o quadro "Parâmetros de hash de senha" do Console, colado como está
+          # (hash_config { algorithm: SCRYPT, base64_signer_key: …, … }) — ou o mesmo em JSON.
+          campo() { printf '%s' "$AUTH_HASH_ANTIGO" | tr -d '"\n\r' | grep -o "$1[[:space:]]*:[[:space:]]*[^,}[:space:]]*" | head -n1 | sed 's/^[^:]*:[[:space:]]*//'; }
+          ALG=$(campo algorithm); ALG=${ALG:-SCRYPT}
+          KEY=$(campo base64_signer_key)
+          SEP=$(campo base64_salt_separator); SEP=${SEP:-Bw==}
+          ROUNDS=$(campo rounds); ROUNDS=${ROUNDS:-8}
+          MEM=$(campo mem_cost); MEM=${MEM:-14}
+          if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then echo "::error::Segredo AUTH_HASH_ANTIGO sem base64_signer_key."; exit 1; fi
+          firebase auth:import logins.json --project "$NOVO" --hash-algo="$ALG" --hash-key="$KEY" --salt-separator="$SEP" --rounds="$ROUNDS" --mem-cost="$MEM"
+          rm -f logins.json
+
+      # ---------- 4. Fotos e arquivos ----------
+      - name: Copiar o Storage (fotos, brasões, carteirinhas, materiais)
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.novo.outputs.credentials_file_path }}
+          CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE: ${{ steps.novo.outputs.credentials_file_path }}
+        run: |
+          # rsync cópia nuvem→nuvem mantém o metadata (inclusive o token de download dos links).
+          gcloud storage rsync --recursive "gs://$BUCKET_ANTIGO" "gs://$BUCKET_NOVO" 2>&1 | tail -n 5
+          echo "Arquivos no destino: $(gcloud storage ls -r "gs://$BUCKET_NOVO/**" 2>/dev/null | wc -l)"
+
+      # ---------- 5. Ajustes no projeto novo ----------
+      - name: Links das fotos, logins com escola (claims) e endereço da Liberdade
+        working-directory: functions
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.novo.outputs.credentials_file_path }}
+          PROJETO: ${{ env.NOVO }}
+          ETAPA: ${{ github.event.inputs.etapa }}
+        run: node scripts/migrar-projeto.mjs ajustar
+
+      # ---------- 6. Conferência ----------
+      - name: Conferir o projeto novo
+        working-directory: functions
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.novo.outputs.credentials_file_path }}
+          PROJETO: ${{ env.NOVO }}
+        run: node scripts/migrar-projeto.mjs conferir
+      - name: Conferir o projeto antigo (para comparar)
+        working-directory: functions
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.antigo.outputs.credentials_file_path }}
+          PROJETO: ${{ env.ANTIGO }}
+          BUCKET_ANTIGO: nada.invalido # no antigo os links são do próprio bucket: não contar como "antigos"
+        run: node scripts/migrar-projeto.mjs conferir
+      - name: Apagar o export temporário
+        if: always()
+        env:
+          CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE: ${{ steps.novo.outputs.credentials_file_path }}
+        run: gcloud storage rm -r "gs://$BUCKET_TEMP/fs-${{ github.run_id }}" >/dev/null 2>&1 || true
