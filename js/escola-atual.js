@@ -111,7 +111,9 @@ export async function carregarEscola(id) {
   if (naMemoria.has(alvo)) return naMemoria.get(alvo);
   let pub = null;
   if (alvo === ESCOLA_NEUTRA) {
-    const cfg = { ...ESCOLA, ...NEUTRO, id: alvo, nome: 'AtletaPay', nomeCurto: 'AtletaPay', mestre: '', rotuloLinhagem: '', ativa: true, logo: '', logoPequeno: '' };
+    // Marca da plataforma (atletapay/assets/marca.svg, publicada na raiz do site): o A-faixa com o octógono verde.
+    const marca = typeof location !== 'undefined' && /^https:/.test(location.protocol) && HOSTS_PLATAFORMA.includes(host()) ? `${location.origin}/assets/marca.svg` : '';
+    const cfg = { ...ESCOLA, ...NEUTRO, id: alvo, nome: 'AtletaPay', nomeCurto: 'AtletaPay', mestre: '', rotuloLinhagem: '', ativa: true, logo: marca, logoPequeno: marca, cores: { ...NEUTRO.cores, navy: '#002D72', teal: '#389E92', verde: '#00E676' } };
     naMemoria.set(alvo, cfg);
     return cfg;
   }
