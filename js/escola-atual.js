@@ -19,23 +19,30 @@ import { MODALIDADES } from './modalidades.js';
 const ORIGINAL = { nome: ESCOLA.nome, nomeCurto: ESCOLA.nomeCurto, nomeRede: ESCOLA.nomeRede, mestre: ESCOLA.mestre };
 
 export const ESCOLA_PADRAO = 'liberdade';
+// Em atletapay.com.br sem escola no endereço (e sem login), o app veste a marca AtletaPay —
+// nunca a de outra escola. Não é uma escola de verdade: não existe no banco.
+export const ESCOLA_NEUTRA = 'atletapay';
 const SLUG = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])$/;
 // Endereços que já sabemos de cor (sem consultar o banco).
 const HOSTS = {
   'liberdadeeexpressao.com.br': ESCOLA_PADRAO,
-  'capoeira-liberdade.web.app': ESCOLA_PADRAO,
-  'capoeira-liberdade.firebaseapp.com': ESCOLA_PADRAO,
+  'liberdadeeexpressao.web.app': ESCOLA_PADRAO,
+  'liberdadeeexpressao.firebaseapp.com': ESCOLA_PADRAO,
   'natanaelinvotec.github.io': ESCOLA_PADRAO,
 };
-// Hosts da plataforma: a escola vem do 1º pedaço do caminho (atletapay.com.br/<slug>/...).
-const HOSTS_PLATAFORMA = ['atletapay.com.br', 'atletapay.web.app', 'atletapay.firebaseapp.com'];
+// Hosts da plataforma: a escola vem do 1º pedaço do caminho (atletapay.com.br/<endereço>/...).
+const HOSTS_PLATAFORMA = ['atletapay.com.br', 'atletapay-br.web.app', 'atletapay-br.firebaseapp.com'];
 // Pedaços de caminho que são páginas da plataforma, não escolas (mesma ideia de RESERVADOS).
-const ROTAS = new Set(['cadastro', 'painel', 'privacidade', 'termos', 'index', 'css', 'js', 'img', 'assets', 'fotos', 'global', 'rede', 'escolas', 'inscricao', 'entrar', 'sair', 'login', 'admin', 'app', 'master']);
+const ROTAS = new Set(['cadastro', 'painel', 'privacidade', 'termos', 'index', 'css', 'js', 'img', 'assets', 'fotos', 'global', 'rede', 'escolas', 'inscricao', 'entrar', 'sair', 'login', 'admin', 'app', 'master', 'conta']);
+// Endereço no site ≠ id da escola: a Liberdade é a escola `liberdade` mas mora em
+// atletapay.com.br/liberdadeeexpressao. (Outros apelidos: escolasSlugs/{endereço} → escolaId.)
+const APELIDOS = { liberdadeeexpressao: ESCOLA_PADRAO };
+const deApelido = (s) => APELIDOS[s] || s;
 
 const host = () => String(location.hostname || '').toLowerCase().replace(/^www\./, '');
 // Endereços do APP compartilhados por todas as escolas (não são "o site" de nenhuma):
 // sem ?escola, a tela de entrar lembra a última escola usada neste aparelho.
-const HOSTS_APP = ['capoeira-liberdade.web.app', 'capoeira-liberdade.firebaseapp.com', 'natanaelinvotec.github.io'];
+const HOSTS_APP = ['natanaelinvotec.github.io'];
 const CHAVE_ULTIMA = 'le.ultimaEscola';
 const ultimaEscola = () => { try { const v = localStorage.getItem(CHAVE_ULTIMA); return v && SLUG.test(v) ? v : null; } catch (e) { return null; } };
 const lembrarEscola = (id) => { try { if (id && SLUG.test(id)) localStorage.setItem(CHAVE_ULTIMA, id); } catch (e) { /* ok */ } };
@@ -46,17 +53,21 @@ const lembrarEscola = (id) => { try { if (id && SLUG.test(id)) localStorage.setI
 export function escolaIdDoEndereco(url = location, { usarUltima = true } = {}) {
   try {
     const q = new URLSearchParams(url.search).get('escola');
-    if (q && SLUG.test(q)) return q;
+    if (q && SLUG.test(q)) return deApelido(q);
   } catch (e) { /* ok */ }
   const h = host();
-  if (usarUltima && HOSTS_APP.includes(h)) { const u = ultimaEscola(); if (u) return u; }
   if (HOSTS[h]) return HOSTS[h];
-  if (HOSTS_PLATAFORMA.includes(h)) {
+  const plataforma = HOSTS_PLATAFORMA.includes(h);
+  if (plataforma) {
     const primeiro = String(url.pathname || '').split('/').filter(Boolean)[0] || '';
-    if (SLUG.test(primeiro) && !ROTAS.has(primeiro)) return primeiro;
+    if (SLUG.test(primeiro) && !ROTAS.has(primeiro)) return deApelido(primeiro);
   }
+  if (usarUltima && (plataforma || HOSTS_APP.includes(h))) { const u = ultimaEscola(); if (u) return u; }
   return null;
 }
+
+// Sem nada que diga a escola: na plataforma é a marca neutra; nos outros endereços, a escola nº 1.
+export const escolaIdPadrao = () => (HOSTS_PLATAFORMA.includes(host()) ? ESCOLA_NEUTRA : ESCOLA_PADRAO);
 
 async function escolaIdDoDominio() {
   const h = host();
@@ -72,7 +83,7 @@ async function escolaIdDoLogin() {
 
 // A escola em que o app deve abrir agora.
 export async function resolverEscolaId() {
-  return (await escolaIdDoLogin()) || escolaIdDoEndereco() || (await escolaIdDoDominio()) || ESCOLA_PADRAO;
+  return (await escolaIdDoLogin()) || escolaIdDoEndereco() || (await escolaIdDoDominio()) || escolaIdPadrao();
 }
 
 // Padrões neutros para escola que não é a Liberdade (marca AtletaPay até ela subir a própria).
@@ -95,6 +106,11 @@ export async function carregarEscola(id) {
   const alvo = id || (await resolverEscolaId());
   if (naMemoria.has(alvo)) return naMemoria.get(alvo);
   let pub = null;
+  if (alvo === ESCOLA_NEUTRA) {
+    const cfg = { ...ESCOLA, ...NEUTRO, id: alvo, nome: 'AtletaPay', nomeCurto: 'AtletaPay', mestre: '', rotuloLinhagem: '', ativa: true, logo: '', logoPequeno: '' };
+    naMemoria.set(alvo, cfg);
+    return cfg;
+  }
   try {
     const c = JSON.parse(sessionStorage.getItem(CHAVE(alvo)) || 'null');
     if (c && Date.now() - c.em < VALIDADE_MS) pub = c.pub;
@@ -154,7 +170,7 @@ export function prepararEscola() {
   if (!preparo) {
     preparo = (async () => {
       const id = await resolverEscolaId();
-      lembrarEscola(id);
+      if (id !== ESCOLA_NEUTRA) lembrarEscola(id);
       if (id === ESCOLA_PADRAO) return { id, aplicada: false };
       const cfg = await carregarEscola(id);
       if (!cfg.ativa) return { id, aplicada: false };

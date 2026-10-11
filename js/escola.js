@@ -41,17 +41,17 @@ export const ESCOLA = {
 
 // Chaves públicas do Firebase deste grupo (Console → Configurações do projeto).
 export const FIREBASE_CONFIG = {
-  apiKey: 'AIzaSyBkwCDziIv-Uh7MLzsy9OYJmA_LMnn7jbg',
-  authDomain: 'capoeira-liberdade.firebaseapp.com',
-  projectId: 'capoeira-liberdade',
-  storageBucket: 'capoeira-liberdade.firebasestorage.app',
-  messagingSenderId: '492022804215',
-  appId: '1:492022804215:web:c61aed556d9f1aa9576df2',
+  apiKey: 'AIzaSyDSbgJEbbWSM8ZzKF0EQ7h9x415RTYGyyw',
+  authDomain: 'atletapay-br.firebaseapp.com',
+  projectId: 'atletapay-br',
+  storageBucket: 'atletapay-br.firebasestorage.app',
+  messagingSenderId: '366402154655',
+  appId: '1:366402154655:web:048c92b623a9df27cb32aa',
 };
 
 // App Check (reCAPTCHA Enterprise / Fraud Defense). Vazio = desligado. Cole aqui a CHAVE DO SITE (a
 // pública) depois de registrar o app em Console → App Check (docs/SEGURANCA.md).
-export const APP_CHECK_SITE_KEY = '6LccBdQtAAAAANJl-I6rIh-fMLOrl-RHaikSEjfY';
+export const APP_CHECK_SITE_KEY = '';
 
 // Notificações push (Console → Cloud Messaging → Certificados push da Web).
 // Vazio = usa a chave padrão do Firebase, que já funciona.

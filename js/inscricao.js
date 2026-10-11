@@ -7,13 +7,24 @@ sem precisar de uma inscrição separada).
 */
 import { criarConta, listarNucleosAtivos, comprimirImagemDataUrl, arquivoParaDataUrlComprimido, registroConsentimento } from './firebase.js';
 import { sanitizeInput, gerarSlug } from './shared.js';
-import { escolaIdDoEndereco, carregarEscola, aplicarCores, ESCOLA_PADRAO } from './escola-atual.js';
+import { escolaIdDoEndereco, carregarEscola, aplicarCores, ESCOLA_PADRAO, escolaIdPadrao, ESCOLA_NEUTRA } from './escola-atual.js';
 import { MODALIDADES } from './modalidades.js';
 
 // Multi-escola: o link de inscrição de cada escola é inscricao.html?escola=<id> (o
 // Mega painel e o painel do dono mostram o link). Sem ?escola, é a escola do endereço
 // (liberdadeeexpressao.com.br → Liberdade). Núcleos, nome nos termos e logo seguem a escola.
-const ESCOLA_ID = escolaIdDoEndereco(location, { usarUltima: false }) || ESCOLA_PADRAO;
+const ESCOLA_ID = escolaIdDoEndereco(location, { usarUltima: false }) || escolaIdPadrao();
+// Em atletapay.com.br sem a escola no endereço não dá para matricular ninguém: peça o link certo.
+if (ESCOLA_ID === ESCOLA_NEUTRA) {
+  document.addEventListener('DOMContentLoaded', () => {
+    const f = document.querySelector('form') || document.body;
+    const aviso = document.createElement('div');
+    aviso.setAttribute('role', 'alert');
+    aviso.style.cssText = 'margin:24px auto;max-width:520px;padding:18px 20px;border-radius:14px;background:#fff4e6;color:#7a3e00;font-weight:600;text-align:center';
+    aviso.textContent = 'Este link de inscrição está sem a escola. Peça ao seu professor o link certo (atletapay.com.br/nome-da-escola/inscricao).';
+    f.parentNode.insertBefore(aviso, f); f.style.display = 'none';
+  });
+}
 let escolaCfg = null;
 import { CONDICOES, SEM_LIMITACOES, nomeDe, siglaDe, lacoSVG, lacosHTML, normalizarInclusao, apoiosChecklistHTML, ligarChecklist, apoiosMarcados, garantirEstilos } from './inclusao.js?v=20261006';
 

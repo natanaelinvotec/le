@@ -15,7 +15,9 @@ import { modalidadePorId, porId, FOTOS, fotosFaltando } from './catalogo.js?v=20
 
 // Onde o app das escolas está publicado hoje (a inscrição de cada escola é ?escola=<id>).
 // Quando o app for servido em atletapay.com.br/<escola>, troca aqui.
-const APP_URL = 'https://capoeira-liberdade.web.app';
+// O app de cada escola mora em atletapay.com.br/<endereço>/… (login, inscricao, app…).
+const APP_URL = 'https://atletapay.com.br';
+const enderecoDe = (e) => e.slug || (e.id === 'liberdade' ? 'liberdadeeexpressao' : e.id);
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const urlSegura = (u) => (/^https:\/\/[^\s"'<>]+$/.test(String(u || '')) ? String(u) : '');
@@ -233,8 +235,8 @@ function cartaoEscola(e) {
   const faltando = fotosFaltando(e.fotos);
   const fotos = FOTOS.flatMap((x) => ((e.fotos && e.fotos[x.id]) || []).map((u) => ({ u: urlSegura(u), tipo: x.id }))).filter((x) => x.u);
   const logo = urlSegura(e.fotos && e.fotos.logo && e.fotos.logo[0]);
-  const endereco = e.dominio ? e.dominio : `atletapay.com.br/${e.slug || e.id}`;
-  const linkInscricao = `${APP_URL}/inscricao.html?escola=${encodeURIComponent(e.id)}`;
+  const endereco = e.dominio ? e.dominio : `atletapay.com.br/${enderecoDe(e)}`;
+  const linkInscricao = `${APP_URL}/${encodeURIComponent(enderecoDe(e))}/inscricao`;
   const resp = e.responsavel || {};
   const checks = [
     [faltando.length ? `Fotos: falta ${faltando.map((x) => x.nome.toLowerCase()).join(', ')}` : `Fotos completas (${fotos.length})`, !faltando.length],
@@ -252,7 +254,7 @@ function cartaoEscola(e) {
   if (e.status === 'ativa' && a.status === 'erro') bts.push(`<button type="button" class="bt bt-laranja bt-sm" data-tentar="${esc(e.id)}"><i class="fas fa-rotate-right"></i> Tentar de novo</button>`);
   if (e.status === 'ativa' && a.status === 'ok') bts.push(`<button type="button" class="bt bt-branco bt-sm" data-copiar="${esc(linkInscricao)}"><i class="fas fa-link"></i> Copiar link de inscrição</button>`);
   if (e.donoEmail) bts.push(`<button type="button" class="bt bt-branco bt-sm" data-senha="${esc(e.donoEmail)}"><i class="fas fa-key"></i> Enviar link de nova senha ao dono</button>`);
-  if (e.status === 'ativa' && a.status === 'ok') bts.push(`<a class="bt bt-branco bt-sm" href="${esc(`${APP_URL}/login.html?escola=${encodeURIComponent(e.id)}`)}" target="_blank" rel="noopener"><i class="fas fa-arrow-up-right-from-square"></i> Abrir o app da escola</a>`);
+  if (e.status === 'ativa' && a.status === 'ok') bts.push(`<a class="bt bt-branco bt-sm" href="${esc(`${APP_URL}/${encodeURIComponent(enderecoDe(e))}/login`)}" target="_blank" rel="noopener"><i class="fas fa-arrow-up-right-from-square"></i> Abrir o app da escola</a>`);
   bts.push(`<button type="button" class="bt bt-branco bt-sm" data-numeros="${esc(e.id)}"><i class="fas fa-chart-simple"></i> Números</button>`);
   bts.push(`<button type="button" class="bt bt-branco bt-sm" data-editar="${esc(e.id)}"><i class="fas fa-pen"></i> Editar dados</button>`);
   if (e.status === 'ativa') bts.push(`<button type="button" class="bt bt-branco bt-sm perigo" data-pausar="${esc(e.id)}"><i class="fas fa-pause"></i> Pausar</button>`);

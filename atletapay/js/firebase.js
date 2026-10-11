@@ -17,16 +17,16 @@ import {
 import { getStorage, ref as storageRef, uploadString, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 
 export const FIREBASE_CONFIG = {
-  apiKey: 'AIzaSyBkwCDziIv-Uh7MLzsy9OYJmA_LMnn7jbg',
-  authDomain: 'capoeira-liberdade.firebaseapp.com',
-  projectId: 'capoeira-liberdade',
-  storageBucket: 'capoeira-liberdade.firebasestorage.app',
-  messagingSenderId: '492022804215',
-  appId: '1:492022804215:web:c61aed556d9f1aa9576df2',
+  apiKey: 'AIzaSyDSbgJEbbWSM8ZzKF0EQ7h9x415RTYGyyw',
+  authDomain: 'atletapay-br.firebaseapp.com',
+  projectId: 'atletapay-br',
+  storageBucket: 'atletapay-br.firebasestorage.app',
+  messagingSenderId: '366402154655',
+  appId: '1:366402154655:web:048c92b623a9df27cb32aa',
 };
 // App Check (reCAPTCHA Enterprise / "Fraud Defense"): a mesma chave e o mesmo provedor do
 // app — o provedor registrado no Console → App Check é Enterprise. Monitoramento por enquanto.
-const APP_CHECK_SITE_KEY = '6LccBdQtAAAAANJl-I6rIh-fMLOrl-RHaikSEjfY';
+const APP_CHECK_SITE_KEY = '';
 
 const app = initializeApp(FIREBASE_CONFIG);
 export const auth = initializeAuth(app, { persistence: [browserLocalPersistence] });

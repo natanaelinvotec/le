@@ -11,7 +11,7 @@
 // Offline: sem internet o app abre com o que já foi carregado e o Firestore
 // mostra os dados do cache local dele. Fotos já vistas ficam guardadas (até 800).
 // Push: o Firebase Cloud Messaging entrega a notificação mesmo com o app fechado.
-const VERSAO = 'le-app-v35'; // ← mude SÓ isto a cada atualização publicada (ver quadro abaixo)
+const VERSAO = 'le-app-v36'; // ← mude SÓ isto a cada atualização publicada (ver quadro abaixo)
 const CACHE_TELAS = `${VERSAO}-telas`;
 const CACHE_FOTOS = `${VERSAO}-fotos`;
 const CACHE_LIBS = 'le-libs-v1'; // não depende da VERSAO: endereços versionados não mudam
@@ -20,12 +20,12 @@ const MAX_LIBS = 120;
 
 // Mesmo projeto de js/escola.js (FIREBASE_CONFIG). Ao clonar para outra escola, troque aqui também.
 const FIREBASE_CONFIG = {
-  apiKey: 'AIzaSyBkwCDziIv-Uh7MLzsy9OYJmA_LMnn7jbg',
-  authDomain: 'capoeira-liberdade.firebaseapp.com',
-  projectId: 'capoeira-liberdade',
-  storageBucket: 'capoeira-liberdade.firebasestorage.app',
-  messagingSenderId: '492022804215',
-  appId: '1:492022804215:web:c61aed556d9f1aa9576df2',
+  apiKey: 'AIzaSyDSbgJEbbWSM8ZzKF0EQ7h9x415RTYGyyw',
+  authDomain: 'atletapay-br.firebaseapp.com',
+  projectId: 'atletapay-br',
+  storageBucket: 'atletapay-br.firebasestorage.app',
+  messagingSenderId: '366402154655',
+  appId: '1:366402154655:web:048c92b623a9df27cb32aa',
 };
 try {
   importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js', 'https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');

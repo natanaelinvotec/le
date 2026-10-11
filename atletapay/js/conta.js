@@ -23,7 +23,8 @@ try { history.replaceState(null, '', location.pathname); } catch (e) { /* ok */ 
 // Endereços para onde a página pode devolver a pessoa depois de terminar.
 function voltaSegura(url) {
   const HOSTS = ['atletapay.com.br', 'www.atletapay.com.br', 'atletapay.web.app', 'atletapay.firebaseapp.com',
-    'liberdadeeexpressao.com.br', 'www.liberdadeeexpressao.com.br', 'capoeira-liberdade.web.app', 'capoeira-liberdade.firebaseapp.com', 'natanaelinvotec.github.io'];
+    'atletapay-br.web.app', 'atletapay-br.firebaseapp.com', 'liberdadeeexpressao.com.br', 'www.liberdadeeexpressao.com.br', 'liberdadeeexpressao.web.app',
+    'capoeira-liberdade.web.app', 'natanaelinvotec.github.io'];
   try {
     const u = new URL(url);
     if (u.protocol !== 'https:' || !HOSTS.includes(u.hostname)) return null;
