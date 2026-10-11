@@ -166,14 +166,28 @@ export function aplicarCores(cfg, raiz = document.documentElement) {
 // sem login (entrar, inscrição). Escola nº 1: nada muda (zero leituras a mais).
 // Outra escola: troca nome, logo, cores, termos e a escada (aplicarEscola) — uma vez por página.
 let preparo = null;
+// Telas do app que o Hosting reescreve em atletapay.com.br/<escola>/<tela> (firebase.json).
+const TELAS_COM_ENDERECO = new Set(['admin', 'app', 'brasoes', 'campeonatos', 'carteirinha', 'carteirinhas', 'certificado', 'certificados', 'checkin', 'gerenciar', 'inscricao', 'instalar-rede', 'instalar', 'login', 'master', 'offline', 'privacidade', 'rede', 'v']);
+export const enderecoDaEscola = (id, cfg) => (cfg && cfg.slug) || Object.keys(APELIDOS).find((k) => APELIDOS[k] === id) || id;
+// Na plataforma o endereço "de verdade" é atletapay.com.br/<escola>/<tela>; os links relativos do
+// app (com <base href="/app/">) caem em /app/<tela>.html. Corrige só a barra de endereço, sem recarregar.
+function arrumarEndereco(id, cfg) {
+  try {
+    if (typeof location === 'undefined' || !HOSTS_PLATAFORMA.includes(host()) || id === ESCOLA_NEUTRA) return;
+    const m = /^\/app\/([a-z-]+)\.html$/.exec(location.pathname);
+    if (!m || !TELAS_COM_ENDERECO.has(m[1])) return;
+    history.replaceState(history.state, '', `/${enderecoDaEscola(id, cfg)}/${m[1]}${location.search}${location.hash}`);
+  } catch (e) { /* ok */ }
+}
 export function prepararEscola() {
   if (!preparo) {
     preparo = (async () => {
       const id = await resolverEscolaId();
       if (id !== ESCOLA_NEUTRA) lembrarEscola(id);
-      if (id === ESCOLA_PADRAO) return { id, aplicada: false };
+      if (id === ESCOLA_PADRAO) { arrumarEndereco(id, null); return { id, aplicada: false }; }
       const cfg = await carregarEscola(id);
       if (!cfg.ativa) return { id, aplicada: false };
+      arrumarEndereco(id, cfg);
       aplicarEscola(cfg);
       // Escola sem logo: o monograma (iniciais na cor da escola) em vez do ícone da escola nº 1.
       if (!/^https:\/\//.test(String(cfg.logo || ''))) { const m = monograma(cfg); ESCOLA.logo = m; ESCOLA.logoPequeno = m; }

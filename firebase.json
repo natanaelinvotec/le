@@ -89,6 +89,10 @@
           "destination": "/app/login.html"
         },
         {
+          "source": "/*/master",
+          "destination": "/app/master.html"
+        },
+        {
           "source": "/*/offline",
           "destination": "/app/offline.html"
         },

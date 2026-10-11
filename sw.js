@@ -11,7 +11,7 @@
 // Offline: sem internet o app abre com o que já foi carregado e o Firestore
 // mostra os dados do cache local dele. Fotos já vistas ficam guardadas (até 800).
 // Push: o Firebase Cloud Messaging entrega a notificação mesmo com o app fechado.
-const VERSAO = 'le-app-v36'; // ← mude SÓ isto a cada atualização publicada (ver quadro abaixo)
+const VERSAO = 'le-app-v37'; // ← mude SÓ isto a cada atualização publicada (ver quadro abaixo)
 const CACHE_TELAS = `${VERSAO}-telas`;
 const CACHE_FOTOS = `${VERSAO}-fotos`;
 const CACHE_LIBS = 'le-libs-v1'; // não depende da VERSAO: endereços versionados não mudam
@@ -69,7 +69,10 @@ const LIBS_ESSENCIAIS = [
 self.addEventListener('install', (e) => {
   self.skipWaiting();
   // Guarda o essencial sem travar a instalação se um arquivo falhar.
-  const guardar = (nome, lista, opcoes) => caches.open(nome).then((c) => Promise.all(lista.map((u) => fetch(new Request(u, opcoes)).then((r) => { if (guardavel(r)) return c.put(chaveDe(new Request(u)), r); return null; }).catch(() => null))));
+  // No Firebase Hosting (cleanUrls) "rede.html" responde com redirecionamento para "rede":
+  // uma resposta redirecionada guardada no cache NÃO pode ser devolvida a uma navegação
+  // (o navegador mostra ERR_FAILED). semRedirecionamento() guarda só o conteúdo.
+  const guardar = (nome, lista, opcoes) => caches.open(nome).then((c) => Promise.all(lista.map((u) => fetch(new Request(u, opcoes)).then(async (r) => { if (guardavel(r)) return c.put(chaveDe(new Request(u)), await semRedirecionamento(r)); return null; }).catch(() => null))));
   e.waitUntil(Promise.all([
     guardar(CACHE_TELAS, ESSENCIAIS, { cache: 'reload', credentials: 'same-origin' }),
     guardar(CACHE_FOTOS, IMAGENS_ESSENCIAIS, { cache: 'reload' }),
@@ -106,6 +109,24 @@ async function limitar(nome, max) {
   for (let i = 0; i < ks.length - max; i++) await c.delete(ks[i]);
 }
 const guardavel = (r) => r && (r.ok || r.type === 'opaque');
+// Cópia "limpa" de uma resposta que veio de redirecionamento (redirected=true): mesmo
+// conteúdo e cabeçalhos, sem a marca de redirecionada — serve para navegação e para o cache.
+async function semRedirecionamento(r) {
+  if (!r || !r.redirected) return r;
+  try { return new Response(await r.blob(), { status: r.status, statusText: r.statusText, headers: r.headers }); } catch (e) { return r; }
+}
+// Telas do app: "/teamigor/rede", "/app/rede.html", "/rede" → a mesma chave de cache (rede.html
+// ao lado deste sw.js). Assim a tela guardada na instalação serve qualquer endereço de escola.
+const BASE_APP = new URL('./', self.location.href).pathname;
+const PAGINAS = new Set(ESSENCIAIS.filter((x) => x.endsWith('.html')).map((x) => x.slice(0, -5)));
+function chaveDeTela(url) {
+  const partes = url.pathname.split('/').filter(Boolean);
+  const ultimo = (partes[partes.length - 1] || '').replace(/\.html$/, '');
+  // Na plataforma (sw em /app/) um endereço de um pedaço só ("/privacidade") é do SITE da AtletaPay, não do app.
+  const doApp = partes.length === 2 || (partes.length === 1 && BASE_APP === '/');
+  if (doApp && PAGINAS.has(ultimo)) return new Request(`${url.origin}${BASE_APP}${ultimo}.html`);
+  return null;
+}
 // Chave de cache dos arquivos do próprio site: sem ?v=... e sem #. Assim o
 // pré-cache da instalação serve os pedidos reais (que vêm com ?v=) e uma
 // mudança de ?v= não força download — a versão é a VERSAO deste arquivo.
@@ -186,14 +207,14 @@ self.addEventListener('fetch', (e) => {
   // arquivo a cada abertura. A atualização é pela VERSAO (ver o quadro no topo).
   const navegacao = req.mode === 'navigate';
   if (navegacao) { novidadePendente = false; e.waitUntil(checarVersaoNoServidor()); }
-  const chave = chaveDe(req);
+  const chave = (navegacao && chaveDeTela(url)) || chaveDe(req);
   e.respondWith(caches.open(CACHE_TELAS).then(async (c) => {
     const guardada = await c.match(chave);
-    if (guardada) return guardada;
+    if (guardada) return semRedirecionamento(guardada);
     // Arquivo que não estava no pré-cache: baixa uma vez e guarda.
     try {
-      const r = await fetch(req);
-      if (r && r.ok && r.status === 200 && r.type === 'basic' && !r.redirected) c.put(chave, r.clone()).catch(() => {});
+      const r = await semRedirecionamento(await fetch(req));
+      if (r && r.ok && r.status === 200 && r.type === 'basic') c.put(chave, r.clone()).catch(() => {});
       return r;
     } catch (err) {
       if (navegacao) return (await c.match('offline.html')) || Response.error();
