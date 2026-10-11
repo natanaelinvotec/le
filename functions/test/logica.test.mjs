@@ -1380,3 +1380,22 @@ test('v37: turmaId e grausVermelhos vão para o cartão público (limpos) e reca
   assert.equal(await aoGraduarNaEscola(t.ctx, 'kidct', antes, depois), 'faixa');
   assert.equal(t.f.ler('usuarios/kidct').grausVermelhos, 0, 'faixa nova zera os graus vermelhos');
 });
+
+// v40 — critérios por arte: 20+ em cada uma; escolas com a lista antiga ganham os novos NO FIM (notas c1..cN não mudam de lugar).
+import { MODALIDADES as MOD_CRIT, escadaPadrao as padraoCrit, completarCriterios } from '../src/compartilhado/modalidades.js';
+test('critérios: toda arte (menos capoeira) tem pelo menos 20', () => {
+  for (const k of Object.keys(MOD_CRIT)) {
+    const n = padraoCrit(k).criterios.length;
+    if (k === 'capoeira') assert.equal(n, 15, 'capoeira mantém os 15 do Liberdade');
+    else assert.ok(n >= 20, `${k} tem ${n}`);
+  }
+});
+test('critérios: lista antiga é completada no fim; lista editada e capoeira ficam como estão', () => {
+  const jj = padraoCrit('jiujitsu').criterios;
+  const antiga = jj.slice(0, 13);
+  assert.deepEqual(completarCriterios(antiga, 'jiujitsu'), jj);
+  const editada = [...antiga.slice(0, 12), 'Critério próprio da escola'];
+  assert.deepEqual(completarCriterios(editada, 'jiujitsu'), editada);
+  const cap = padraoCrit('capoeira').criterios.slice(0, 10);
+  assert.deepEqual(completarCriterios(cap, 'capoeira'), cap);
+});

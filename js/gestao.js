@@ -9,7 +9,7 @@ import {
   db, collection, doc, query, where, orderBy, limit, getDocs, updateDoc, addDoc, deleteDoc, setDoc, arrayUnion,
   listar, listarPagamentosDoNucleo, lancarPagamento, pedirAoServidor, getDoc, comMinhaEscola, ondeEscola,
 } from './firebase.js';
-import { ESCOLA, CORDOES_ADULTO, CORDOES_KIDS, prontidao, proximoCordao, coresDoCordao, META_PRONTIDAO, escadaDe } from './escola.js';
+import { ESCOLA, CORDOES_ADULTO, CORDOES_KIDS, prontidao, proximoCordao, coresDoCordao, META_PRONTIDAO, escadaDe, criteriosAvaliados } from './escola.js';
 import { situacao as situacaoCarteirinha, textoValidade } from './carteirinha-comum.js';
 import { CONDICOES, lacosHTML, lacoSVG, normalizarInclusao, resumoInclusao, SEM_LIMITACOES, apoiosHTML, apoioDe, materiaisHTML } from './inclusao.js?v=20261006';
 import { carregarTurmas, turmaAtivaId, turmaPadrao, corOk } from './turmas.js';
@@ -354,8 +354,11 @@ async function renderInteligenciaTurma(box, { nid, alunos, ativos, pres, pags })
 
 // ================= GRADUAÇÃO (batizado / troca de cordão) =================
 let gradMostrarTodos = false; const gradSel = new Set(); let gradFeitos = [];
+// Nome da peça na escola atual (cordão, faixa, prajied…) — evita "cordão" no jiu-jitsu.
+const pecaGrad = () => String(ESCOLA.peca || 'graduação').toLowerCase();
 async function renderGraduacao() {
   const box = el('gsGraduacao'); if (!box) return;
+  const sob = el('gsGradEyebrow'); if (sob && pecaGrad() !== 'cordão') sob.textContent = `Troca de ${pecaGrad()} e certificado`;
   const nid = C.ehAdmin() || C.fundador() ? (el('gsNucGrad') ? el('gsNucGrad').value : nucleoPadrao()) : C.sessao().academiaGerenciadaId;
   if (!C.ehAdmin() && !C.fundador() && !nid && !C.instrutor()) { box.innerHTML = '<div class="empty-state"><i class="fas fa-ribbon"></i>A graduação em lote aparece quando você for responsável por um núcleo.</div>'; return; }
   let eventos = []; try { eventos = (await listar('eventos')).filter((e) => e.data && e.data >= new Date(Date.now() - 60 * DIA).toISOString().slice(0, 10)).sort((a, b) => a.data.localeCompare(b.data)); } catch (e) { eventos = []; }
@@ -367,12 +370,12 @@ async function renderGraduacao() {
   box.innerHTML = `
   <div class="gs-barra">${seletorNucleo('gsNucGrad', nid)}<label class="gs-check"><input type="checkbox" id="gsGradTodos" ${gradMostrarTodos ? 'checked' : ''}> Mostrar também quem ainda não atingiu ${META_PRONTIDAO}%</label></div>
   <div class="card-padrao">
-    <h3><i class="fas fa-ribbon"></i> ${gradMostrarTodos ? 'Alunos ativos' : `Aptos à troca de cordão (prontidão ≥ ${META_PRONTIDAO}%)`} <span class="pill pill-aprovado">${lista.length}</span></h3>
-    <p class="gs-ajuda">A prontidão vem das notas lançadas no prontuário. Marque quem vai graduar, confirme a data e o evento e registre — o cordão, a linha do tempo e os brasões atualizam sozinhos.</p>
+    <h3><i class="fas fa-ribbon"></i> ${gradMostrarTodos ? 'Alunos ativos' : `Aptos à troca de ${pecaGrad()} (prontidão ≥ ${META_PRONTIDAO}%)`} <span class="pill pill-aprovado">${lista.length}</span></h3>
+    <p class="gs-ajuda">A prontidão vem das notas lançadas no prontuário. Marque quem vai graduar, confirme a data e o evento e registre — ${pecaGrad() === 'cordão' ? 'o cordão' : `a ${pecaGrad()}`}, a linha do tempo e os brasões atualizam sozinhos.</p>
     <div class="gs-grad-lista">${lista.map(({ a, p, prox }) => `<label class="gs-grad"><input type="checkbox" data-grad="${esc(a.id)}" ${gradSel.has(a.id) ? 'checked' : ''}>
       <span class="gs-grad-nome"><b>${esc(a.nome)}</b><small>${esc(nomeNucleo(a.academiaId))}${a.idade ? ` · ${esc(a.idade)} anos` : ''}</small></span>
       <span class="gs-grad-troca">${faixa(coresDoCordao(a.cordaoAtual || 'Iniciante', a))}<small>${esc(a.cordaoAtual || 'Iniciante')}</small><i class="fas fa-arrow-right"></i>${faixa(prox.cor)}<small><b>${esc(prox.nome)}</b></small></span>
-      <span class="gs-pront ${p != null && p >= META_PRONTIDAO ? 'ok' : ''}"><i style="width:${p || 0}%"></i><small>${p == null ? 'sem notas' : `${p}%`}</small></span></label>`).join('') || `<div class="empty-state"><i class="fas fa-hourglass-half"></i>${gradMostrarTodos ? 'Nenhum aluno ativo.' : `Ninguém atingiu ${META_PRONTIDAO}% ainda. Lance as notas no prontuário ou marque "Mostrar também".`}</div>`}</div>
+      ${(() => { const av = criteriosAvaliados(a); return `<span class="gs-pront-bloco"><span class="gs-pront ${p != null && p >= META_PRONTIDAO ? 'ok' : ''}" title="${av.feitos} de ${av.total} critérios avaliados · meta ${META_PRONTIDAO}%"><i style="width:${p || 0}%"></i><b class="gs-pront-meta" style="left:${META_PRONTIDAO}%"></b><small>${p == null ? 'sem notas' : `${p}%`}</small></span><small class="gs-pront-av">${av.feitos}/${av.total} critérios</small></span>`; })()}</label>`).join('') || `<div class="empty-state"><i class="fas fa-hourglass-half"></i>${gradMostrarTodos ? 'Nenhum aluno ativo.' : `Ninguém atingiu ${META_PRONTIDAO}% ainda. Lance as notas no prontuário ou marque "Mostrar também".`}</div>`}</div>
     <div class="gs-grad-form">
       <label><span>Data da graduação</span><input type="date" id="gsGradData" class="input-padrao" value="${hojeISO()}"></label>
       <label><span>Evento (opcional)</span><select id="gsGradEvento" class="input-padrao"><option value="">—</option>${eventos.map((e) => `<option value="${esc(e.id)}">${esc(e.nome || 'Evento')} · ${esc(e.data.slice(8, 10) + '/' + e.data.slice(5, 7))}</option>`).join('')}</select></label>

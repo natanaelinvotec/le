@@ -8,6 +8,8 @@ arquivo e siga docs/WHITE-LABEL.md. Nenhum outro arquivo de lógica precisa muda
 Só entra aqui informação PÚBLICA (vai para o navegador de qualquer visitante).
 Chave de conta de serviço, senha ou token secreto NUNCA entram neste arquivo. */
 
+import { completarCriterios } from './modalidades.js';
+
 export const ESCOLA = {
   id: 'liberdade', // escola nº 1 da plataforma (multi-escola: aplicarEscola troca tudo abaixo)
   nome: 'Capoeira Liberdade e Expressão',
@@ -172,8 +174,10 @@ export function aplicarEscada(e) {
   CORDOES_KIDS.splice(0, CORDOES_KIDS.length, ...(kids || adulto));
   ORDEM_CORDOES.splice(0, ORDEM_CORDOES.length, ...adulto.map((g) => g.nome));
   IDADE_KIDS = kids ? (Number(e.idadeKids) || 16) : 0;
-  if (Array.isArray(e.criterios) && e.criterios.length) {
-    CRITERIOS.splice(0, CRITERIOS.length, ...e.criterios.map((c, i) => (typeof c === 'string' ? { id: `c${i + 1}`, txt: c, reqAdulto: 0, reqKids: true } : { ...c })));
+  // Mesma regra do app: escola com a lista padrão antiga ganha os critérios novos no fim.
+  const criterios = completarCriterios(e.criterios, e.modalidade);
+  if (Array.isArray(criterios) && criterios.length) {
+    CRITERIOS.splice(0, CRITERIOS.length, ...criterios.map((c, i) => (typeof c === 'string' ? { id: `c${i + 1}`, txt: c, reqAdulto: 0, reqKids: true } : { ...c })));
   }
   if (e.peca) ESCOLA.peca = e.peca;
   if (e.lider) ESCOLA.lider = e.lider;

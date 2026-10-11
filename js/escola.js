@@ -8,6 +8,8 @@ arquivo e siga docs/WHITE-LABEL.md. Nenhum outro arquivo de lógica precisa muda
 Só entra aqui informação PÚBLICA (vai para o navegador de qualquer visitante).
 Chave de conta de serviço, senha ou token secreto NUNCA entram neste arquivo. */
 
+import { completarCriterios } from './modalidades.js';
+
 export const ESCOLA = {
   id: 'liberdade', // escola nº 1 da plataforma (multi-escola: aplicarEscola troca tudo abaixo)
   nome: 'Capoeira Liberdade e Expressão',
@@ -120,6 +122,14 @@ export function prontidao(u) {
   let total = 0; ativos.forEach((c) => { if (u.notas[c.id] !== undefined) total += Number(u.notas[c.id]) || 0; });
   return Math.min(100, Math.floor((total / (ativos.length * 10)) * 100));
 }
+// Quantos critérios da graduação atual já têm nota (para explicar a porcentagem).
+export function criteriosAvaliados(u) {
+  const idade = Number(u && u.idade) || 0; const kids = idade > 0 && idade < IDADE_KIDS;
+  let idx = (kids ? CORDOES_KIDS : CORDOES_ADULTO).findIndex((c) => c.nome === ((u && u.cordaoAtual) || 'Iniciante')); if (idx === -1) idx = 0;
+  const ativos = CRITERIOS.filter((c) => (kids ? c.reqKids : idx >= (c.reqAdulto - 1)));
+  const notas = (u && u.notas) || {};
+  return { feitos: ativos.filter((c) => Number(notas[c.id]) > 0).length, total: ativos.length };
+}
 export function proximoCordao(pessoa) {
   const lista = escadaDe(pessoa);
   const i = lista.findIndex((c) => c.nome === ((pessoa && pessoa.cordaoAtual) || 'Iniciante'));
@@ -181,8 +191,9 @@ export function aplicarEscada(e) {
   CORDOES_KIDS.splice(0, CORDOES_KIDS.length, ...(kids || adulto));
   ORDEM_CORDOES.splice(0, ORDEM_CORDOES.length, ...adulto.map((g) => g.nome));
   IDADE_KIDS = kids ? (Number(e.idadeKids) || 16) : 0;
-  if (Array.isArray(e.criterios) && e.criterios.length) {
-    CRITERIOS.splice(0, CRITERIOS.length, ...e.criterios.map((c, i) => (typeof c === 'string' ? { id: `c${i + 1}`, txt: c, reqAdulto: 0, reqKids: true } : { ...c })));
+  const criterios = completarCriterios(e.criterios, e.modalidade);
+  if (Array.isArray(criterios) && criterios.length) {
+    CRITERIOS.splice(0, CRITERIOS.length, ...criterios.map((c, i) => (typeof c === 'string' ? { id: `c${i + 1}`, txt: c, reqAdulto: 0, reqKids: true } : { ...c })));
   }
   if (e.peca) ESCOLA.peca = e.peca;
   if (e.lider) ESCOLA.lider = e.lider;

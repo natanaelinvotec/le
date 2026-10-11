@@ -53,7 +53,8 @@ const JIUJITSU = {
     faixa('Verde', C.verde, { titulo: 'Aluno', ponteira: C.preta, graus: 4, idadeMin: 13, idadeMax: 15 }),
   ],
   criterios: ['Postura e base', 'Quedas', 'Guarda', 'Passagem de guarda', 'Raspagens', 'Finalizações', 'Defesa pessoal',
-    'Respeito', 'Disciplina', 'Pontualidade', 'Frequência', 'Higiene', 'Aprendizado'],
+    'Respeito', 'Disciplina', 'Pontualidade', 'Frequência', 'Higiene', 'Aprendizado',
+    'Pegadas (grips)', 'Controle e transições', 'Montada e costas', 'Fuga de posições', 'Defesa de finalizações', 'Jogo em pé (quedas e defesas)', 'Estratégia e leitura do rola', 'Condicionamento', 'Aplicação no rola', 'Regras de competição'],
 };
 
 // Judô — Regulamento de Graduação da CBJ (09/02/2011). Uma única sequência de kyu com idade
@@ -92,7 +93,8 @@ const JUDO = {
     kyu('Roxa', C.roxa, '2º kyu', 13, 12, { idadeMax: 14 }),
     kyu('Marrom', C.marrom, '1º kyu', 14, 12, { idadeMax: 14 }),
   ],
-  criterios: ['Ukemi (quedas)', 'Nage-waza (projeções)', 'Ne-waza (solo)', 'Kumi-kata (pegada)', 'Randori', 'Etiqueta (rei) e disciplina', 'Frequência', 'Aprendizado'],
+  criterios: ['Ukemi (quedas)', 'Nage-waza (projeções)', 'Ne-waza (solo)', 'Kumi-kata (pegada)', 'Randori', 'Etiqueta (rei) e disciplina', 'Frequência', 'Aprendizado',
+    'Tai-sabaki (deslocamento)', 'Kuzushi (desequilíbrio)', 'Renraku-waza (combinações)', 'Kaeshi-waza (contragolpes)', 'Osaekomi-waza (imobilizações)', 'Shime-waza (estrangulamentos)', 'Kansetsu-waza (chaves de braço)', 'Kata', 'Nomenclatura japonesa', 'Condicionamento', 'Regras e arbitragem', 'Cuidado com o parceiro'],
 };
 
 // Karatê — sistema de kyu/dan. A sequência de cores muda conforme o estilo e a federação
@@ -111,7 +113,8 @@ const KARATE = {
     faixa('Preta', C.preta, { codigo: '1º dan', titulo: 'Sensei', ponteira: C.vermelha, grauDan: 1, graus: 4, idadeMin: 16 }),
   ],
   kids: null,
-  criterios: ['Kihon (fundamentos)', 'Kata', 'Kumite', 'Postura (dachi)', 'Kime (potência)', 'Etiqueta e disciplina', 'Frequência', 'Aprendizado'],
+  criterios: ['Kihon (fundamentos)', 'Kata', 'Kumite', 'Postura (dachi)', 'Kime (potência)', 'Etiqueta e disciplina', 'Frequência', 'Aprendizado',
+    'Kiai e espírito', 'Maai (distância)', 'Bunkai (aplicação do kata)', 'Uke (bloqueios)', 'Tsuki (socos)', 'Geri (chutes)', 'Velocidade e reação', 'Equilíbrio', 'Respiração', 'Nomenclatura japonesa', 'Condicionamento', 'Dojo kun e conduta'],
 };
 
 // Taekwondo (WT/Kukkiwon, como a CBTKD usa) — gub do 10º ao 1º com as "pontas" entre as cores,
@@ -134,7 +137,8 @@ const TAEKWONDO = {
   idadeKids: 15,
   adulto: [...TKD_CORES, faixa('Preta', C.preta, { codigo: '1º dan', titulo: 'Sabom', ponteira: C.amarela, grauDan: 1, graus: 8, idadeMin: 15 })],
   kids: [...TKD_CORES.map((g) => ({ ...g, idadeMax: 14 })), { nome: 'Poom', cor: [C.vermelha, C.preta, C.vermelha], padrao: 'blocos', codigo: '1º poom', titulo: 'Aluno', grauDan: 1, graus: 3, idadeMax: 14, nota: 'Poom: faixa preta dos menores de 15 anos; vira dan ao completar 15.' }],
-  criterios: ['Chutes (chagi)', 'Poomsae', 'Kyorugi (combate)', 'Base e postura', 'Flexibilidade', 'Etiqueta e disciplina', 'Frequência', 'Aprendizado'],
+  criterios: ['Chutes (chagi)', 'Poomsae', 'Kyorugi (combate)', 'Base e postura', 'Flexibilidade', 'Etiqueta e disciplina', 'Frequência', 'Aprendizado',
+    'Chutes giratórios', 'Chutes saltados', 'Makgi (defesas)', 'Deslocamento (step)', 'Equilíbrio', 'Velocidade e precisão', 'Hosinsul (defesa pessoal)', 'Kyokpa (quebramento)', 'Terminologia coreana', 'Condicionamento', 'Regras e pontuação', 'Cortesia e respeito'],
 };
 
 // Muay Thai — na Tailândia não há graduação; no Brasil a Confederação Brasileira de Muay Thai (CBMT)
@@ -159,7 +163,8 @@ const MUAYTHAI = {
     { nome: 'Preta, branca e vermelha', cor: [C.preta, C.branca, C.vermelha], padrao: 'blocos', titulo: 'Grão-mestre' },
   ],
   kids: null,
-  criterios: ['Base e guarda', 'Socos e cotovelos', 'Chutes e joelhadas', 'Clinch', 'Defesas e esquivas', 'Condicionamento', 'Wai Kru e respeito', 'Frequência'],
+  criterios: ['Base e guarda', 'Socos e cotovelos', 'Chutes e joelhadas', 'Clinch', 'Defesas e esquivas', 'Condicionamento', 'Wai Kru e respeito', 'Frequência',
+    'Teep (chute frontal)', 'Combinações', 'Joelhadas no clinch', 'Cotoveladas', 'Chute baixo (low kick)', 'Checagem (bloqueio de chute)', 'Ritmo e movimentação', 'Contra-ataques', 'Sparring técnico', 'Respiração e controle', 'Disciplina', 'Pontualidade'],
 };
 
 // Kickboxing — graduação da CBKB (WAKO): branca, laranja, azul, amarela, verde, marrom,
@@ -177,7 +182,8 @@ const KICKBOXING = {
     faixa('Preta', C.preta, { codigo: '1º dan', titulo: 'Instrutor', ponteira: C.vermelha, grauDan: 1, graus: 4, idadeMin: 16 }),
   ],
   kids: null,
-  criterios: ['Guarda e base', 'Socos', 'Chutes', 'Defesas e esquivas', 'Combinações', 'Condicionamento', 'Sparring', 'Frequência'],
+  criterios: ['Guarda e base', 'Socos', 'Chutes', 'Defesas e esquivas', 'Combinações', 'Condicionamento', 'Sparring', 'Frequência',
+    'Chute baixo', 'Chute alto', 'Chute frontal', 'Joelhadas', 'Controle de distância', 'Contra-ataques', 'Trabalho na manopla', 'Movimentação de pés', 'Ritmo e cardio', 'Regras (light, full e K-1)', 'Disciplina', 'Pontualidade'],
 };
 
 // Krav Maga — escolhido o sistema de NÍVEIS da IKMF (International Krav Maga Federation):
@@ -197,7 +203,8 @@ const KRAVMAGA = {
     nivel('Expert 4', C.preta, 'E4', 'Expert'), nivel('Expert 5', C.preta, 'E5', 'Expert'),
   ],
   kids: null,
-  criterios: ['Postura e base', 'Golpes (socos e chutes)', 'Defesas contra agarrões', 'Defesa contra armas', 'Consciência situacional', 'Condicionamento', 'Controle emocional', 'Frequência'],
+  criterios: ['Postura e base', 'Golpes (socos e chutes)', 'Defesas contra agarrões', 'Defesa contra armas', 'Consciência situacional', 'Condicionamento', 'Controle emocional', 'Frequência',
+    'Defesa contra socos', 'Defesa contra chutes', 'Defesa contra estrangulamento', 'Defesa no chão', 'Vários agressores', 'Objetos do ambiente', 'Reação sob estresse', 'Fuga e evasão', 'Golpes em pontos vulneráveis', 'Agressividade controlada', 'Legítima defesa (lei)', 'Disciplina'],
 };
 
 // Artes sem faixa (boxe, MMA, wrestling): níveis que o treinador reconhece.
@@ -277,7 +284,9 @@ function escadaDeNomes(nomes, graus = 0) {
   const cor = (n) => { const k = Object.keys(C).find((c) => String(n).toLowerCase().startsWith(c)); return C[k || 'neutra']; };
   return nomes.map((n) => lisa(n, cor(n), graus));
 }
-const CRITERIOS_GERAIS = ['Técnica', 'Condicionamento', 'Respeito', 'Disciplina', 'Pontualidade', 'Frequência', 'Eventos e competições', 'Higiene', 'Aprendizado', 'Fundamentos'];
+const CRITERIOS_GERAIS = ['Técnica', 'Condicionamento', 'Respeito', 'Disciplina', 'Pontualidade', 'Frequência', 'Eventos e competições', 'Higiene', 'Aprendizado', 'Fundamentos',
+  'Coordenação motora', 'Flexibilidade', 'Força', 'Agilidade', 'Equilíbrio', 'Defesa', 'Ataque', 'Trabalho em equipe',
+  'Regras da modalidade', 'Cuidado com o material'];
 
 // Identidade de cada arte para as telas: ícone (classe do Font Awesome 6 já carregado no app),
 // termoTreino (como se chama a sessão), termoLuta (o combate de treino), termoLocal (onde se treina)
@@ -285,7 +294,9 @@ const CRITERIOS_GERAIS = ['Técnica', 'Condicionamento', 'Respeito', 'Disciplina
 const identidade = (icone, termoTreino, termoLuta, termoLocal, saudacao) => ({ icone, termoTreino, termoLuta, termoLocal, saudacao });
 
 export const MODALIDADES = {
-  capoeira: { nome: 'Capoeira', lider: 'Mestre', peca: 'cordão', idadeKids: 12, adulto: null, kids: null, criterios: null, // a Liberdade usa js/escola.js
+  capoeira: { nome: 'Capoeira', lider: 'Mestre', peca: 'cordão', idadeKids: 12, adulto: null, kids: null, // a Liberdade usa js/escola.js
+    // Critérios da capoeira (os mesmos da escola nº 1, js/escola.js CRITERIOS): ficam amarrados às escolas de capoeira.
+    criterios: ['Ginga e Base', 'Acrobacias', 'Respeito', 'Disciplina', 'Pontualidade', 'Freq. Aulas', 'Freq. Rodas', 'Eventos', 'Pandeiro', 'Atabaque', 'Berimbau', 'Canta/Responde', 'Higiene', 'Aprendizado', 'Fundamentos'],
     identidade: identidade('fa-drum', 'treino', 'jogo', 'roda', 'Salve') },
   jiujitsu: { nome: 'Jiu-jitsu', lider: 'Professor', peca: 'faixa', ...JIUJITSU, identidade: identidade('fa-user-ninja', 'treino', 'rola', 'tatame', 'Oss') },
   judo: { nome: 'Judô', lider: 'Sensei', peca: 'faixa', ...JUDO, identidade: identidade('fa-people-arrows', 'treino', 'randori', 'tatame', 'Oss') },
@@ -293,18 +304,22 @@ export const MODALIDADES = {
   taekwondo: { nome: 'Taekwondo', lider: 'Sabom', peca: 'faixa', ...TAEKWONDO, identidade: identidade('fa-shoe-prints', 'treino', 'kyorugi', 'dojang', 'Taekwon') },
   muaythai: { nome: 'Muay Thai', lider: 'Kru', peca: 'prajied', ...MUAYTHAI, identidade: identidade('fa-hand-fist', 'treino', 'sparring', 'ringue', 'Sawasdee') },
   boxe: { nome: 'Boxe', lider: 'Treinador', peca: 'nível', idadeKids: 0, adulto: niveis(NIVEIS_LUTA), kids: null,
-    criterios: ['Guarda e base', 'Jab e direto', 'Ganchos e uppercuts', 'Esquivas e bloqueios', 'Movimentação de pés', 'Condicionamento', 'Sparring', 'Frequência'],
+    criterios: ['Guarda e base', 'Jab e direto', 'Ganchos e uppercuts', 'Esquivas e bloqueios', 'Movimentação de pés', 'Condicionamento', 'Sparring', 'Frequência',
+    'Combinações', 'Contra-ataque', 'Trabalho no saco', 'Trabalho na manopla', 'Pular corda e coordenação', 'Pêndulo e bloqueios', 'Leitura do adversário', 'Controle de distância', 'Golpes na linha de cintura', 'Resistência por round', 'Disciplina', 'Cuidado com bandagem e luvas'],
     identidade: identidade('fa-hand-back-fist', 'treino', 'sparring', 'ringue', 'Bom treino') },
   kickboxing: { nome: 'Kickboxing', lider: 'Treinador', peca: 'faixa', ...KICKBOXING, identidade: identidade('fa-bolt', 'treino', 'sparring', 'ringue', 'Bom treino') },
   mma: { nome: 'MMA', lider: 'Coach', peca: 'nível', idadeKids: 0, adulto: niveis(NIVEIS_LUTA), kids: null,
-    criterios: ['Striking (luta em pé)', 'Wrestling e quedas', 'Grappling (solo)', 'Defesa de queda', 'Clinch e grade', 'Condicionamento', 'Sparring', 'Disciplina'],
+    criterios: ['Striking (luta em pé)', 'Wrestling e quedas', 'Grappling (solo)', 'Defesa de queda', 'Clinch e grade', 'Condicionamento', 'Sparring', 'Disciplina',
+    'Transição em pé e chão', 'Ground and pound', 'Finalizações', 'Defesa de finalizações', 'Raspar e levantar', 'Chutes e joelhadas', 'Controle de distância', 'Estratégia de luta', 'Resistência por round', 'Peso e nutrição', 'Regras e segurança', 'Frequência'],
     identidade: identidade('fa-shield-halved', 'treino', 'sparring', 'tatame', 'Bom treino') },
   wrestling: { nome: 'Wrestling (luta olímpica)', lider: 'Treinador', peca: 'nível', idadeKids: 0, adulto: niveis(['Iniciante', 'Intermediário', 'Avançado', 'Competidor']), kids: null,
-    criterios: ['Base e postura', 'Quedas (takedowns)', 'Defesa de queda (sprawl)', 'Pegadas e controle', 'Trabalho de solo', 'Condicionamento', 'Disciplina', 'Frequência'],
+    criterios: ['Base e postura', 'Quedas (takedowns)', 'Defesa de queda (sprawl)', 'Pegadas e controle', 'Trabalho de solo', 'Condicionamento', 'Disciplina', 'Frequência',
+    'Penetração (shot)', 'Elevação e projeção', 'Nível e movimentação', 'Controle de cabeça (tie-ups)', 'Fuga e reversão', 'Imobilização (fall)', 'Exposição (giro)', 'Explosão', 'Regras e pontuação', 'Peso e preparo', 'Respeito', 'Pontualidade'],
     identidade: identidade('fa-people-arrows', 'treino', 'combate', 'tatame', 'Bom treino') },
   kravmaga: { nome: 'Krav Maga', lider: 'Instrutor', peca: 'nível', ...KRAVMAGA, identidade: identidade('fa-shield-halved', 'treino', 'simulação', 'tatame', 'Kida') },
   kungfu: { nome: 'Kung Fu', lider: 'Sifu', peca: 'faixa', idadeKids: 0, adulto: escadaDeNomes(['Branca', 'Amarela', 'Verde', 'Azul', 'Marrom', 'Preta']), kids: null,
-    criterios: ['Posturas (bases)', 'Formas (taolu)', 'Golpes de mão', 'Chutes', 'Sanda (combate)', 'Flexibilidade', 'Disciplina', 'Frequência'],
+    criterios: ['Posturas (bases)', 'Formas (taolu)', 'Golpes de mão', 'Chutes', 'Sanda (combate)', 'Flexibilidade', 'Disciplina', 'Frequência',
+    'Equilíbrio', 'Saltos e acrobacias', 'Defesas e bloqueios', 'Armas tradicionais', 'Chi kung (respiração)', 'Velocidade', 'Força e explosão', 'Coordenação', 'Aplicação das formas', 'Filosofia e história', 'Respeito ao Sifu', 'Pontualidade'],
     identidade: identidade('fa-dragon', 'treino', 'sanda', 'kwoon', 'Ni hao') },
   outra: { nome: 'Outra arte marcial', lider: 'Professor', peca: 'graduação', idadeKids: 0, adulto: escadaDeNomes(['Iniciante', 'Intermediário', 'Avançado']), kids: null, criterios: CRITERIOS_GERAIS,
     identidade: identidade('fa-medal', 'treino', 'sparring', 'tatame', 'Bom treino') },
@@ -361,6 +376,21 @@ export function graduacaoDoTexto(escada, texto) {
   return { nome: g.nome, graus };
 }
 
+// Critérios de avaliação (v40): cada arte ganhou 20+ critérios. Escolas e turmas criadas antes
+// guardaram a lista antiga; como as notas ficam por POSIÇÃO (c1, c2…), os novos critérios só
+// entram NO FIM e só quando a lista guardada é exatamente o começo da lista padrão (a escola não
+// editou). Assim nenhuma nota muda de critério. A capoeira usa a lista dela (js/escola.js).
+export function completarCriterios(lista, modalidade = null) {
+  if (!Array.isArray(lista) || !lista.length || modalidade === 'capoeira') return lista;
+  const textos = lista.map((c) => (typeof c === 'string' ? c : c && c.txt));
+  const chaves = modalidade && MODALIDADES[modalidade] ? [modalidade] : Object.keys(MODALIDADES).filter((k) => k !== 'capoeira');
+  for (const k of chaves) {
+    const padrao = escadaPadrao(k).criterios;
+    if (padrao.length > textos.length && textos.every((t, i) => t === padrao[i])) return [...lista, ...padrao.slice(textos.length)];
+  }
+  return lista;
+}
+
 // Limpa uma escada vinda do banco (escola pode ter editado): só campos conhecidos e tamanhos razoáveis.
 export function escadaLimpa(e) {
   if (!e || typeof e !== 'object') return null;
@@ -385,6 +415,6 @@ export function escadaLimpa(e) {
   return {
     modalidade: String(e.modalidade || 'outra').slice(0, 30), peca: String(e.peca || 'graduação').slice(0, 20), lider: String(e.lider || 'Professor').slice(0, 30),
     idadeKids: Math.min(18, Math.max(0, Math.floor(Number(e.idadeKids) || 0))), adulto, kids: kids && kids.length ? kids : null,
-    criterios: Array.isArray(e.criterios) ? e.criterios.filter((c) => typeof c === 'string').slice(0, 20).map((c) => c.slice(0, 40)) : CRITERIOS_GERAIS,
+    criterios: Array.isArray(e.criterios) ? completarCriterios(e.criterios.filter((c) => typeof c === 'string').slice(0, 30).map((c) => c.slice(0, 48)), e.modalidade) : CRITERIOS_GERAIS,
   };
 }

@@ -26,7 +26,7 @@ lancarPagamento, listarPagamentosDoNucleo, marcarPagamento,
 lancarDespesaComRateio, todosRateios, marcarRateioPago,
   presencasDoNucleo, presencasVisitantesDoNucleo, salvarFotoPerfil, comMinhaEscola,
 } from './firebase.js';
-import { iniciarGestao, abrirTela as abrirTelaGestao, renderRelatoriosGerais, exportarExcel, exportarPDF } from './gestao.js?v=20261011';
+import { iniciarGestao, abrirTela as abrirTelaGestao, renderRelatoriosGerais, exportarExcel, exportarPDF } from './gestao.js?v=20261011b';
 import { iniciarAniversarios, renderAniversarios, lembrete48h } from './aniversarios.js?v=20261001';
 import { CONDICOES, lacosHTML, lacoSVG, normalizarInclusao, temInclusao, resumoInclusao, apoiosChecklistHTML, ligarChecklist, apoiosMarcados, materiaisHTML, garantirEstilos as estilosInclusao } from './inclusao.js?v=20261011';
 estilosInclusao();
@@ -38,7 +38,7 @@ import { escapeHTML, sanitizeInput, debounce, gerarSlug, urlSegura, urlImagem, a
 import { BRASOES, porId as brasaoPorId, urlThumb as brasaoThumb, ehManual as brasaoManual } from './brasoes.js?v=20261011b';
 import { configurarFaceId, atualizarContextoFaceId, pararFaceId } from './faceid.js?v=20261007';
 import { conferirTempo } from './modalidades.js';
-import { ESCOLA, ORDEM_CORDOES as ORDEM_ESCOLA, CORDOES_ADULTO as ADULTO_ESCOLA, CORDOES_KIDS as KIDS_ESCOLA, CRITERIOS as CRITERIOS_ESCOLA, linkMapa as linkMapaEscola, IDADE_KIDS, rotuloGrad } from './escola.js';
+import { ESCOLA, ORDEM_CORDOES as ORDEM_ESCOLA, CORDOES_ADULTO as ADULTO_ESCOLA, CORDOES_KIDS as KIDS_ESCOLA, CRITERIOS as CRITERIOS_ESCOLA, linkMapa as linkMapaEscola, IDADE_KIDS, rotuloGrad, META_PRONTIDAO } from './escola.js';
 import { faixaSVG } from './faixas.js';
 import { turmaPadrao, carregarTurmas, criarTurma, turmaAtivaId, definirTurmaAtiva, turmaIdDe, turmaDe, filtrarPorTurma, contarPorTurma, usarEscadaDa, seletorTurmaHTML, escolherNucleoTurmaHTML, formTurmaHTML, lerFormTurma, ligarFormTurma, etiquetaTurmaHTML, garantirEstilosTurma } from './turmas.js';
 // Escada infantil: idade da escola (Liberdade 12; Jiu-Jitsu 16; sem escada infantil = nunca).
@@ -1793,7 +1793,7 @@ if (lacosMod) lacosMod.innerHTML = lacosHTML(usuarioSelecionado.inclusao, { px: 
 const caixa = document.getElementById('modInclusaoLista');
 const incl = normalizarInclusao(usuarioSelecionado.inclusao);
 if (caixa) {
-caixa.innerHTML = CONDICOES.map((c) => `<label class="mod-inclusao-item${incl.condicoes.includes(c.id) ? ' on' : ''}" title="${escapeHTML(c.nome)}"><input type="checkbox" value="${c.id}" ${incl.condicoes.includes(c.id) ? 'checked' : ''}>${lacoSVG(c.id, 22)}<span><b>${escapeHTML(c.sigla)}</b><small>${escapeHTML(c.nome)}</small></span></label>`).join('');
+caixa.innerHTML = CONDICOES.map((c) => `<label class="mod-inclusao-item${incl.condicoes.includes(c.id) ? ' on' : ''}" title="${escapeHTML(c.nome)}"><input type="checkbox" value="${c.id}" ${incl.condicoes.includes(c.id) ? 'checked' : ''}>${lacoSVG(c.id, 20)}<span><b>${escapeHTML(c.sigla)}</b><small> — ${escapeHTML(c.nome)}</small></span></label>`).join('');
 // Ficha de adaptação (apoios): aparece quando há alguma condição marcada; os sugeridos acompanham as condições.
 const wrapApoios = document.getElementById('wrapModApoios');
 const caixaApoios = document.getElementById('modInclusaoApoios');
@@ -1806,8 +1806,15 @@ if (wrapApoios) wrapApoios.hidden = marcadas.length === 0;
 if (caixaApoios && caixaApoios.atualizarSugeridos) caixaApoios.atualizarSugeridos();
 if (materiais) materiais.innerHTML = materiaisHTML(marcadas, { arte: arteDoAlunoSelecionado() });
 };
-caixa.querySelectorAll('input').forEach((i) => i.addEventListener('change', () => { i.closest('label').classList.toggle('on', i.checked); const sem = document.getElementById('modInclusaoSem'); if (sem) sem.textContent = caixa.querySelectorAll('input:checked').length ? '' : 'Sem limitações'; atualizarApoios(); }));
-const sem = document.getElementById('modInclusaoSem'); if (sem) sem.textContent = incl.condicoes.length ? '' : 'Sem limitações';
+// Resumo no título fechado: "Sem limitações" ou as siglas marcadas (TEA · TDAH).
+function atualizarResumoInclusao() {
+const sem = document.getElementById('modInclusaoSem'); if (!sem) return;
+const siglas = [...caixa.querySelectorAll('input:checked')].map((i) => (CONDICOES.find((c) => c.id === i.value) || {}).sigla).filter(Boolean);
+sem.textContent = siglas.length ? siglas.join(' · ') : 'Sem limitações';
+}
+caixa.querySelectorAll('input').forEach((i) => i.addEventListener('change', () => { i.closest('label').classList.toggle('on', i.checked); atualizarResumoInclusao(); atualizarApoios(); }));
+atualizarResumoInclusao();
+const box = document.getElementById('modInclusaoBox'); if (box) box.open = incl.condicoes.length > 0;
 const obs = document.getElementById('modInclusaoObs'); if (obs) obs.value = incl.observacoes || '';
 const dicas = document.getElementById('modInclusaoDicas');
 if (dicas) dicas.innerHTML = incl.condicoes.length ? `<b>Orientações gerais:</b> ${incl.condicoes.map((id) => { const c = CONDICOES.find((x) => x.id === id); return c ? `<span>${escapeHTML(c.sigla)}: ${escapeHTML(c.dica)}</span>` : ''; }).join(' ')}` : '';
@@ -1970,10 +1977,21 @@ criteriosAtivos.forEach((c) => { if (notasAtuais[c.id]) totalPontos += Number(no
 const maxPontos = criteriosAtivos.length * 10;
 const porc = maxPontos > 0 ? (totalPontos / maxPontos) * 100 : 0;
 
-document.getElementById('porcentagemEvolucao').textContent = `${Math.floor(porc > 100 ? 100 : porc)}%`;
+const pct = Math.floor(porc > 100 ? 100 : porc);
+const elPct = document.getElementById('porcentagemEvolucao');
+elPct.textContent = `${pct}%`;
+elPct.classList.toggle('ok', pct >= META_PRONTIDAO); elPct.classList.toggle('abaixo', pct < META_PRONTIDAO);
 const cssCordao = document.getElementById('cordaoTrancado');
-cssCordao.style.width = `${porc > 100 ? 100 : porc}%`;
-cssCordao.style.boxShadow = porc >= 70 ? '0 0 15px rgba(0, 230, 118, 0.8)' : 'none';
+cssCordao.style.width = `${pct}%`;
+cssCordao.style.boxShadow = pct >= META_PRONTIDAO ? '0 0 15px rgba(0, 230, 118, 0.8)' : 'none';
+// Cada critério vale o mesmo peso: soma das notas ÷ (critérios da graduação atual × 10).
+// Critério sem nota conta 0 — por isso mostramos quantos já foram avaliados.
+const avaliados = criteriosAtivos.filter((c) => Number(notasAtuais[c.id]) > 0).length;
+const elAv = document.getElementById('critAvaliados');
+if (elAv) elAv.textContent = `${avaliados} de ${criteriosAtivos.length} critérios avaliados`;
+const elMeta = document.getElementById('critMeta');
+if (elMeta) elMeta.textContent = pct >= META_PRONTIDAO ? `meta de ${META_PRONTIDAO}% atingida` : `faltam ${META_PRONTIDAO - pct} pontos para a meta de ${META_PRONTIDAO}%`;
+const marca = document.getElementById('cordaoMeta'); if (marca) marca.style.left = `${META_PRONTIDAO}%`;
 }
 
 window.alternarStatusAlunoBtn = async function () {

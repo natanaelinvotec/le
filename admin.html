@@ -16,7 +16,7 @@ por Firebase Authentication (usuarios/{uid}.papeis). -->
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js">
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js">
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js">
-<link rel="stylesheet" href="css/admin.css?v=20261011">
+<link rel="stylesheet" href="css/admin.css?v=20261011b">
 </head>
 <body>
 <noscript>Este painel exige JavaScript habilitado para funcionar.</noscript>
@@ -565,7 +565,7 @@ enviada nem guardada — só as presenças confirmadas (origem 'faceid-foto'). -
 <div id="gsIndicadores"></div>
 </section>
 <section id="aba-graduacao" class="aba-content">
-<div class="section-header"><div><span class="eyebrow">Batizado e troca de cordão</span><h2><i class="fas fa-ribbon"></i> Graduação</h2></div></div>
+<div class="section-header"><div><span class="eyebrow" id="gsGradEyebrow">Batizado e troca de cordão</span><h2><i class="fas fa-ribbon"></i> Graduação</h2></div></div>
 <div id="gsGraduacao"></div>
 </section>
 <section id="aba-eventos" class="aba-content">
@@ -625,7 +625,8 @@ enviada nem guardada — só as presenças confirmadas (origem 'faceid-foto'). -
 </div>
 <div class="cordao-container" id="cordaoContainerWrap">
 <div class="cordao-header"><span id="textoEvolucao">Progresso</span><span id="porcentagemEvolucao">0%</span></div>
-<div class="cordao-track"><div class="cordao-fill" id="cordaoTrancado"></div></div>
+<div class="cordao-track"><div class="cordao-fill" id="cordaoTrancado"></div><span class="cordao-meta" id="cordaoMeta" style="left:70%" aria-hidden="true"></span></div>
+<div class="cordao-rodape"><span id="critAvaliados">—</span><span id="critMeta">meta 70%</span></div>
 </div>
 <div class="modal-body-split">
 <div class="mod-left">
@@ -652,19 +653,6 @@ enviada nem guardada — só as presenças confirmadas (origem 'faceid-foto'). -
 <input type="file" id="modInputGaleria" accept="image/*" style="display:none;">
 <span id="modFotoStatus" style="font-size:0.75rem; color:var(--text-muted); align-self:center;"></span>
 </div>
-</div>
-<div class="form-group-mod mod-inclusao" style="margin-bottom: 14px;">
-<label><i class="fas fa-ribbon"></i> Atenção e inclusão <span id="modInclusaoSem" class="mod-inclusao-sem"></span></label>
-<div id="modInclusaoLista" class="mod-inclusao-lista"></div>
-<div id="wrapModApoios" hidden>
-<label style="margin-top:8px;"><i class="fas fa-clipboard-check"></i> Ficha de adaptação <small style="font-weight:600;color:var(--text-muted)">— o que funciona com este atleta na aula (o pontinho verde é o sugerido pela condição)</small></label>
-<div id="modInclusaoApoios"></div>
-</div>
-<label for="modInclusaoObs" style="margin-top:8px;">Orientações para o professor</label>
-<textarea id="modInclusaoObs" class="input-padrao" rows="2" maxlength="400" placeholder="Ex.: avisar antes de mudar a atividade; sensível a som alto."></textarea>
-<p id="modInclusaoDicas" class="mod-inclusao-dicas"></p>
-<p id="modInclusaoMateriais" class="mod-inclusao-dicas"></p>
-<small class="mod-inclusao-lgpd"><i class="fas fa-lock"></i> Dado sensível (LGPD): visível só ao núcleo e à administração; não vai para a Rede, carteirinha ou perfil público.</small>
 </div>
 <div class="form-group-mod" style="margin-bottom: 12px;">
 <label for="modStatus">Status:</label>
@@ -743,6 +731,19 @@ pendente até "Atualizar Prontuário" (grausPendentes/cordaoPendente em admin.js
 <h3 class="mod-title-right"><i class="fas fa-chalkboard-teacher"></i> Avaliação de Formador (0 a 10)</h3>
 <div class="criterios-grid" id="gridCriteriosFormador"></div>
 </div>
+<details class="form-group-mod mod-inclusao" id="modInclusaoBox">
+<summary class="mod-inclusao-resumo"><span><i class="fas fa-ribbon" aria-hidden="true"></i> Atenção e inclusão</span><span id="modInclusaoSem" class="mod-inclusao-sem"></span><i class="fas fa-chevron-down mod-inclusao-seta" aria-hidden="true"></i></summary>
+<div id="modInclusaoLista" class="mod-inclusao-lista"></div>
+<div id="wrapModApoios" hidden>
+<label style="margin-top:8px;"><i class="fas fa-clipboard-check"></i> Ficha de adaptação <small style="font-weight:600;color:var(--text-muted)">— o que funciona com este atleta na aula (o pontinho verde é o sugerido pela condição)</small></label>
+<div id="modInclusaoApoios"></div>
+</div>
+<label for="modInclusaoObs" style="margin-top:8px;">Orientações para o professor</label>
+<textarea id="modInclusaoObs" class="input-padrao" rows="2" maxlength="400" placeholder="Ex.: avisar antes de mudar a atividade; sensível a som alto."></textarea>
+<p id="modInclusaoDicas" class="mod-inclusao-dicas"></p>
+<p id="modInclusaoMateriais" class="mod-inclusao-dicas"></p>
+<small class="mod-inclusao-lgpd"><i class="fas fa-lock"></i> Dado sensível (LGPD): visível só ao núcleo e à administração; não vai para a Rede, carteirinha ou perfil público.</small>
+</details>
 </div>
 </div>
 <div class="modal-footer-centered" style="margin-top: 20px;">
@@ -799,6 +800,6 @@ admin.js preenche #formTurmaWrap ao abrir e lê com lerFormTurma() ao criar. -->
 </div>
 </div>
 
-<script type="module" src="js/admin.js?v=20261011"></script>
+<script type="module" src="js/admin.js?v=20261011b"></script>
 </body>
 </html>
