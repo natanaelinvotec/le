@@ -179,6 +179,10 @@
           "source": "/app/**",
           "headers": [
             {
+              "key": "X-Robots-Tag",
+              "value": "noindex, nofollow, noai, noimageai"
+            },
+            {
               "key": "X-Content-Type-Options",
               "value": "nosniff"
             },
@@ -200,6 +204,10 @@
           "source": "/*/**",
           "headers": [
             {
+              "key": "X-Robots-Tag",
+              "value": "noindex, nofollow, noai, noimageai"
+            },
+            {
               "key": "X-Content-Type-Options",
               "value": "nosniff"
             },
@@ -220,6 +228,10 @@
         {
           "source": "**",
           "headers": [
+            {
+              "key": "X-Robots-Tag",
+              "value": "noai, noimageai"
+            },
             {
               "key": "X-Content-Type-Options",
               "value": "nosniff"
@@ -313,6 +325,10 @@
         {
           "source": "**",
           "headers": [
+            {
+              "key": "X-Robots-Tag",
+              "value": "noai, noimageai"
+            },
             {
               "key": "X-Content-Type-Options",
               "value": "nosniff"

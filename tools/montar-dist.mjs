@@ -10,7 +10,7 @@ import { join } from 'node:path';
 const RAIZ = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
 const DIST = join(RAIZ, 'dist');
 // O que NÃO é o app (fica fora de dist/app). apresentacoes/ e docs/ são pesados e não são servidos.
-const FORA = new Set(['.git', '.github', 'atletapay', 'dist', 'docs', 'firebase', 'functions', 'node_modules', 'tests', 'tools', 'apresentacoes', 'firebase.json', '.firebaserc', 'README.md', 'CNAME']);
+const FORA = new Set(['.git', '.github', 'atletapay', 'dist', 'docs', 'firebase', 'functions', 'node_modules', 'tests', 'tools', 'apresentacoes', 'firebase.json', '.firebaserc', 'README.md', 'CNAME', 'robots.txt']);
 const EXT_FORA = /\.(md|mjs|zip|rar|psd|log)$/i;
 
 rmSync(DIST, { recursive: true, force: true });
