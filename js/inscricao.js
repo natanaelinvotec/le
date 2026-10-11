@@ -7,7 +7,7 @@ sem precisar de uma inscrição separada).
 */
 import { criarConta, listarNucleosAtivos, comprimirImagemDataUrl, arquivoParaDataUrlComprimido, registroConsentimento } from './firebase.js';
 import { sanitizeInput, gerarSlug } from './shared.js';
-import { escolaIdDoEndereco, carregarEscola, aplicarCores, ESCOLA_PADRAO, escolaIdPadrao, ESCOLA_NEUTRA } from './escola-atual.js';
+import { escolaIdDoEndereco, carregarEscola, aplicarCores, ESCOLA_PADRAO, escolaIdPadrao, ESCOLA_NEUTRA, escolaIdDoLoginPronto, enderecoDaEscola } from './escola-atual.js';
 import { MODALIDADES } from './modalidades.js';
 import { buscarTurma, turmasPublicas, corOk, nomeArte, descricaoHorario } from './turmas.js';
 
@@ -17,6 +17,13 @@ import { buscarTurma, turmasPublicas, corOk, nomeArte, descricaoHorario } from '
 const ESCOLA_ID = escolaIdDoEndereco(location, { usarUltima: false }) || escolaIdPadrao();
 // Em atletapay.com.br sem a escola no endereço não dá para matricular ninguém: peça o link certo.
 if (ESCOLA_ID === ESCOLA_NEUTRA) {
+  // Professor logado que abriu "inscrição" por um link sem a escola: vai para o endereço certo
+  // da escola DELE (a claim do login — nunca a "última escola" do aparelho, que pode ser de outro).
+  escolaIdDoLoginPronto().then(async (id) => {
+    if (!id || id === ESCOLA_NEUTRA) return;
+    const cfg = await carregarEscola(id).catch(() => null);
+    location.replace(`/${enderecoDaEscola(id, cfg)}/inscricao${location.search}${location.hash}`);
+  }).catch(() => {});
   document.addEventListener('DOMContentLoaded', () => {
     const f = document.querySelector('form') || document.body;
     const aviso = document.createElement('div');

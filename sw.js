@@ -52,7 +52,7 @@ const ESSENCIAIS = [
   'js/brasoes.js', 'js/brasoes-admin.js', 'js/inclusao.js', 'js/conta.js', 'js/apresentacao.js', 'js/moderacao.js', 'js/lgpd.js', 'js/gestao.js', 'js/login.js', 'js/admin.js', 'js/rede.js', 'js/master.js', 'js/faceid.js',
   'js/carteirinha.js', 'js/carteirinhas.js', 'js/carteirinha-comum.js', 'js/qr.js', 'js/verificar.js', 'js/checkin.js', 'js/inscricao.js', 'js/gerenciar.js',
   'js/certificado.js', 'js/certificado-render.js', 'js/certificados.js', 'js/campeonatos.js', 'js/campeonato-motor.js', 'js/celebrar.js', 'js/card-story.js', 'js/assinatura.js', 'js/aniversarios.js',
-  'js/site.js', 'js/site-render.js', 'js/site-padrao.js', 'js/escola-atual.js', 'js/modalidades.js', 'js/faixas.js', 'js/turmas.js',
+  'js/site.js', 'js/site-render.js', 'js/site-padrao.js', 'js/escola-atual.js', 'js/modalidades.js', 'js/faixas.js', 'js/turmas.js', 'js/marca-cedo.js',
   'manifest.webmanifest', 'rede.webmanifest',
 ];
 // Imagens essenciais vão para o cache de fotos (é lá que as imagens são procuradas).

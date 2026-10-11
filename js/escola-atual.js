@@ -75,6 +75,10 @@ async function escolaIdDoDominio() {
   try { const s = await getDoc(doc(db, 'dominios', h)); return s.exists() ? s.data().escolaId || null : null; } catch (e) { return null; }
 }
 
+export async function escolaIdDoLoginPronto() {
+  try { if (typeof auth.authStateReady === 'function') await auth.authStateReady(); } catch (e) { /* ok */ }
+  return escolaIdDoLogin();
+}
 async function escolaIdDoLogin() {
   const u = auth.currentUser;
   if (!u) return null;
@@ -179,21 +183,48 @@ function arrumarEndereco(id, cfg) {
     history.replaceState(history.state, '', `/${enderecoDaEscola(id, cfg)}/${m[1]}${location.search}${location.hash}`);
   } catch (e) { /* ok */ }
 }
+// js/marca-cedo.js esconde as logos até a identidade da escola chegar: aqui elas voltam.
+function marcaPronta() {
+  if (typeof document === 'undefined') return;
+  const tirar = () => document.documentElement.classList.remove('marca-pendente');
+  if (document.body) requestAnimationFrame(tirar); else document.addEventListener('DOMContentLoaded', tirar, { once: true });
+}
+// Links relativos do app ("inscricao.html") viram /app/inscricao.html na plataforma — sem a escola.
+// Reescreve os links da página (e os que forem criados depois) para atletapay.com.br/<escola>/<tela>,
+// assim "Fazer inscrição", o rodapé do site e qualquer atalho levam para a escola certa.
+function manterEscolaNosLinks(id, cfg) {
+  if (typeof document === 'undefined' || !HOSTS_PLATAFORMA.includes(host()) || id === ESCOLA_NEUTRA) return;
+  const slug = enderecoDaEscola(id, cfg);
+  const corrigir = (a) => {
+    const bruto = a.getAttribute('href') || '';
+    if (!bruto || /^(#|javascript:|mailto:|tel:|https?:\/\/)/i.test(bruto) || a.target === '_blank' || a.hasAttribute('download')) return;
+    let u; try { u = new URL(a.href, location.href); } catch (e) { return; }
+    if (u.origin !== location.origin) return;
+    const m = /^\/app\/([a-z-]+)\.html$/.exec(u.pathname);
+    if (!m || !TELAS_COM_ENDERECO.has(m[1])) return;
+    a.setAttribute('href', `/${slug}/${m[1]}${u.search}${u.hash}`);
+  };
+  const todos = () => document.querySelectorAll('a[href]').forEach(corrigir);
+  if (document.body) todos(); else document.addEventListener('DOMContentLoaded', todos, { once: true });
+  // Links criados depois (cartões, menus): corrige no clique, antes de navegar.
+  document.addEventListener('click', (e) => { const a = e.target && e.target.closest ? e.target.closest('a[href]') : null; if (a && !e.defaultPrevented) corrigir(a); }, true);
+}
 export function prepararEscola() {
   if (!preparo) {
     preparo = (async () => {
       const id = await resolverEscolaId();
       if (id !== ESCOLA_NEUTRA) lembrarEscola(id);
-      if (id === ESCOLA_PADRAO) { arrumarEndereco(id, null); return { id, aplicada: false }; }
+      if (id === ESCOLA_PADRAO) { arrumarEndereco(id, null); manterEscolaNosLinks(id, null); marcaPronta(); return { id, aplicada: false }; }
       const cfg = await carregarEscola(id);
-      if (!cfg.ativa) return { id, aplicada: false };
+      if (!cfg.ativa) { marcaPronta(); return { id, aplicada: false }; }
       arrumarEndereco(id, cfg);
+      manterEscolaNosLinks(id, cfg);
       aplicarEscola(cfg);
       // Escola sem logo: o monograma (iniciais na cor da escola) em vez do ícone da escola nº 1.
       if (!/^https:\/\//.test(String(cfg.logo || ''))) { const m = monograma(cfg); ESCOLA.logo = m; ESCOLA.logoPequeno = m; }
       if (typeof document !== 'undefined') aplicarIdentidade(cfg);
       return { ...cfg, aplicada: true };
-    })().catch((e) => { console.warn('escola atual', e); return { id: ESCOLA_PADRAO, aplicada: false }; });
+    })().catch((e) => { console.warn('escola atual', e); marcaPronta(); return { id: ESCOLA_PADRAO, aplicada: false }; });
   }
   return preparo;
 }
@@ -307,4 +338,5 @@ export function aplicarIdentidade(cfg) {
     }).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['src', 'placeholder', 'title', 'aria-label'] });
   };
   if (document.body) comecar(); else document.addEventListener('DOMContentLoaded', comecar, { once: true });
+  marcaPronta();
 }
