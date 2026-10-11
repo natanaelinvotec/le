@@ -37,3 +37,15 @@ O site antigo (`css/atletapay.css`, `js/site.js`) continua servindo as outras p�
 - Texto de consentimento da biometria.
 - Fontes servidas pelo próprio site (woff2 em `/assets/fontes/`) para não depender do Google.
 - Loop do vídeo gerado com o primeiro e o último quadro iguais (a emenda atual usa crossfade de 0,5 s).
+
+## Site da escola, domínio e marketing (11/10/2026)
+- Nova seção `#site-escola` com três cartões:
+  - Incluso no plano: o endereço atletapay.com.br/suaescola, com identidade, inscrição e app.
+  - Domínio profissional: www.suaescola.com.br por **R$ 129,99/ano**. Inclui o registro .com.br (R$ 40,00/ano, conferido em registro.br/dominio/valores) e a hospedagem com HTTPS. Exemplo no ar: liberdadeeexpressao.com.br.
+  - Marketing: redes sociais e Perfil da Empresa no Google (Google Maps). Contato por contato@atletapay.com.br.
+- O card "Uma escola real no ar" leva ao site (liberdadeeexpressao.com.br) e ao app (/liberdadeeexpressao).
+- ATENÇÃO, o produto ainda não acompanha a promessa:
+  - Hoje só a Liberdade tem site público completo (index.html + siteConteudo/site, uma escola só).
+  - Para as outras escolas, atletapay.com.br/<escola> abre a tela de entrada/login com a identidade da escola. O modelo de site escolhido no cadastro (5 modelos) é gravado, mas ainda não há gerador de site por escola.
+  - Domínio próprio de outra escola hoje cairia na landing da AtletaPay na raiz.
+  - Para vender o pacote de R$ 129,99, falta: site público por escola (site-render multi-escola lendo escolasPublicas + siteConteudo/{escolaId}) e a raiz do domínio próprio abrindo o site da escola.

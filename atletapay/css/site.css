@@ -438,3 +438,16 @@ html:not(.js) .menu-btn,html:not(.js) .heroi__pausa{ display:none; }
 @media (max-width:1199px){ html:not(.js) .topo-acoes .btn{ display:inline-flex; } }
 .faq-titulo{ font:700 .75rem/1.2 var(--fonte-texto); font-stretch:75%; letter-spacing:.22em; text-transform:uppercase; color:var(--c-teal-tinta); margin:0 0 10px; }
 .selo-breve{ display:inline-block; margin-left:8px; padding:4px 8px; background:var(--c-fogo); color:var(--c-navy-900); font:800 .66rem/1 var(--fonte-texto); letter-spacing:.12em; text-transform:uppercase; vertical-align:middle; clip-path:polygon(4px 0,calc(100% - 4px) 0,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0 calc(100% - 4px),0 4px); }
+
+/* ================= SITE DA ESCOLA, DOMÍNIO E MARKETING ================= */
+.prova__links{ margin-top:auto; display:flex; flex-wrap:wrap; gap:6px 22px; }
+.site-plano{ padding:28px; gap:14px; }
+.site-plano h3{ font-size:clamp(1.35rem,1.05rem + 1vw,1.85rem); color:#fff; overflow-wrap:break-word; }
+.site-plano > .btn,.site-plano > .link-seta{ margin-top:auto; align-self:flex-start; }
+.site-plano__selo{ align-self:flex-start; padding:6px 10px; background:rgba(0,230,118,.14); color:var(--c-verde); font:800 .7rem/1 var(--fonte-texto); letter-spacing:.14em; text-transform:uppercase;
+  clip-path:polygon(4px 0,calc(100% - 4px) 0,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0 calc(100% - 4px),0 4px); }
+.site-plano__selo--fogo{ background:rgba(255,138,61,.16); color:var(--c-fogo); }
+.site-plano--destaque{ background:linear-gradient(160deg,rgba(0,45,114,.85),rgba(14,42,92,.6)); box-shadow:inset 0 0 0 1px rgba(0,230,118,.35),0 40px 80px -40px rgba(0,230,118,.35); }
+.site-plano__preco{ display:flex; align-items:baseline; gap:8px; }
+.site-plano__preco b{ font:900 clamp(2.6rem,2rem + 2vw,3.6rem)/.9 var(--fonte-display); color:#fff; white-space:nowrap; }
+.site-plano__preco span{ color:var(--c-t2); }
