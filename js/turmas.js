@@ -19,7 +19,7 @@ Turma ativa no painel: guardada por núcleo em localStorage ('le.turma.<academia
 (aplicarEscadaDaTurma) e TODO o painel filtra por ela (filtrarPorTurma). */
 import { db, collection, doc, getDoc, getDocs, addDoc, updateDoc, query, where, minhaEscolaId } from './firebase.js';
 import { MODALIDADES, escadaPadrao, escadaLimpa } from './modalidades.js';
-import { ESCOLA, aplicarEscadaDaTurma, escadaDaEscola } from './escola.js';
+import { ESCOLA, aplicarEscadaDaTurma, escadaDaEscola, ESCADA_CAPOEIRA } from './escola.js';
 
 // Cores fixas de turma (contrastam entre si também para daltônicos: azul/laranja antes de verde/vermelho).
 export const PALETA_TURMAS = [
@@ -32,13 +32,40 @@ export const COR_PADRAO = '#389E92'; // turma padrão (sem turmaId) usa a cor da
 const HEX = /^#[0-9a-f]{6}$/i;
 export const corOk = (c, padrao = COR_PADRAO) => (HEX.test(String(c || '')) ? String(c) : padrao);
 
-// Sistema de graduação pela arte: cordões (capoeira), níveis (boxe, mma…) ou faixas.
-export function graduacaoDaArte(arte) {
+// Sistemas de graduação (v38). `peca` é a palavra usada em todas as telas da turma
+// ("Trocar corda", "Corda Instrutor", "Prajied vermelho"…).
+export const SISTEMAS = {
+  faixas: { rotulo: 'Faixas', peca: 'faixa' },
+  cordoes: { rotulo: 'Cordões', peca: 'cordão' },
+  cordas: { rotulo: 'Cordas', peca: 'corda' },
+  prajied: { rotulo: 'Prajied', peca: 'prajied' },
+  niveis: { rotulo: 'Níveis / sem graduação', peca: 'nível' },
+};
+// Quais sistemas cada arte usa de verdade (o 1º é o padrão). Capoeira: cada grupo chama de um jeito —
+// "cordões" (ex.: Capitães da Areia) ou "cordas" (capoeira contemporânea); a escada é a mesma.
+export const SISTEMAS_DA_ARTE = {
+  capoeira: ['cordoes', 'cordas'],
+  jiujitsu: ['faixas'], judo: ['faixas'], karate: ['faixas'], taekwondo: ['faixas'],
+  muaythai: ['prajied', 'niveis'], kickboxing: ['faixas', 'niveis'], kungfu: ['faixas', 'niveis'],
+  kravmaga: ['niveis', 'faixas'], mma: ['niveis', 'faixas'], boxe: ['niveis'], wrestling: ['niveis'],
+  outra: ['faixas', 'cordoes', 'cordas', 'prajied', 'niveis'],
+};
+export const sistemasDaArte = (arte) => SISTEMAS_DA_ARTE[arte] || SISTEMAS_DA_ARTE.outra;
+export const graduacaoDaArte = (arte) => sistemasDaArte(arte)[0];
+export const pecaDoSistema = (sistema, arte) => (SISTEMAS[sistema] ? SISTEMAS[sistema].peca : ((MODALIDADES[arte] || MODALIDADES.outra).peca || 'graduação'));
+// Dica embaixo do sistema de graduação, na linguagem de cada arte.
+export function dicaGraduacao(arte) {
   const m = MODALIDADES[arte] || MODALIDADES.outra;
-  if (arte === 'capoeira') return 'cordoes';
-  return m.peca === 'nível' || m.peca === 'graduação' ? 'niveis' : 'faixas';
+  if (arte === 'capoeira') return 'Escolha como o seu grupo chama: Cordões (ex.: Capitães da Areia) ou Cordas (capoeira contemporânea). A escada de capoeira já vem preenchida; você ajusta em Graduação.';
+  if (['boxe', 'mma', 'wrestling'].includes(arte)) return `${m.nome} não usa faixa: os alunos sobem por níveis (Iniciante → Competidor). Se a sua academia usa faixas, escolha Faixas e monte a escada em Graduação.`;
+  if (arte === 'muaythai') return 'Prajied: a braçadeira do muay thai, na ordem da Confederação Brasileira (branca → vermelha → azul → preta). Você ajusta em Graduação.';
+  if (arte === 'kravmaga') return 'Krav Maga: níveis P1–P5, G1–G5, E1–E5 (IKMF). Se a sua linha usa faixas, escolha Faixas.';
+  if (arte === 'outra') return 'Escolha o sistema e monte a escada depois em Graduação.';
+  return `A escada oficial de ${m.nome.toLowerCase()} já vem preenchida${m.adulto && m.adulto.some((g) => Number(g.graus) > 0) ? ', com os graus de cada faixa' : ''}; você pode ajustar em Graduação.`;
 }
-export const ARTES = Object.entries(MODALIDADES).map(([id, m]) => ({ id, nome: m.nome, peca: m.peca, lider: m.lider }));
+// Artes em ordem alfabética, "Outra" no fim.
+export const ARTES = Object.entries(MODALIDADES).map(([id, m]) => ({ id, nome: m.nome, peca: m.peca, lider: m.lider }))
+  .sort((a, b) => (a.id === 'outra') - (b.id === 'outra') || a.nome.localeCompare(b.nome, 'pt-BR'));
 
 // ---------- turma padrão (virtual) ----------
 // A turma "padrão" representa o núcleo como ele sempre foi: usa a escada da escola.
@@ -84,14 +111,28 @@ export const limparCacheTurmas = (academiaId) => { if (academiaId) cache.delete(
 // ---------- escrita ----------
 const DIAS = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
 export const NOME_DIA = { seg: 'Seg', ter: 'Ter', qua: 'Qua', qui: 'Qui', sex: 'Sex', sab: 'Sáb', dom: 'Dom' };
+// Horários da turma: [{ dias: ['seg','qua'], hora: '19:30' }, { dias: ['sex'], hora: '18:00' }].
+// Turmas antigas (só dias + hora) viram uma linha. Linhas vazias somem.
+export const MAX_HORARIOS = 8;
+export function horariosDe(t) {
+  const lista = t && Array.isArray(t.horarios) && t.horarios.length ? t.horarios : (t && ((Array.isArray(t.dias) && t.dias.length) || t.hora) ? [{ dias: t.dias || [], hora: t.hora || '' }] : []);
+  return lista.map((h) => ({ dias: Array.isArray(h && h.dias) ? h.dias.filter((x) => typeof x === 'string') : [], hora: String((h && h.hora) || '') }))
+    .filter((h) => h.dias.length || h.hora);
+}
 export function validarTurma(d) {
   const erros = [];
   if (!d.nome || String(d.nome).trim().length < 2) erros.push('Dê um nome à turma (ex.: "Boxe · Adultos").');
   if (!MODALIDADES[d.arte]) erros.push('Escolha a arte marcial.');
   if (!HEX.test(String(d.cor || ''))) erros.push('Escolha a cor da turma.');
   if (d.mensalidade != null && (!Number.isFinite(Number(d.mensalidade)) || Number(d.mensalidade) < 0)) erros.push('Mensalidade inválida.');
-  if (d.hora && !/^\d{2}:\d{2}$/.test(String(d.hora))) erros.push('Horário no formato 19:30.');
-  if (Array.isArray(d.dias) && d.dias.some((x) => !DIAS.includes(x))) erros.push('Dia da semana inválido.');
+  if (d.graduacao && !SISTEMAS[d.graduacao]) erros.push('Sistema de graduação inválido.');
+  const horarios = horariosDe(d);
+  if (horarios.length > MAX_HORARIOS) erros.push(`No máximo ${MAX_HORARIOS} horários por turma.`);
+  horarios.forEach((h, i) => {
+    if (h.hora && !/^\d{2}:\d{2}$/.test(String(h.hora))) erros.push(`Horário ${i + 1}: use o formato 19:30.`);
+    if (h.dias.some((x) => !DIAS.includes(x))) erros.push(`Horário ${i + 1}: dia da semana inválido.`);
+    if (h.hora && !h.dias.length) erros.push(`Horário ${i + 1}: marque pelo menos um dia.`);
+  });
   return erros;
 }
 export async function criarTurma(academia, dados, sessao) {
@@ -100,13 +141,17 @@ export async function criarTurma(academia, dados, sessao) {
   const e = await minhaEscolaId();
   if (!e) throw new Error('Sua conta ainda está sendo preparada. Tente de novo em alguns segundos.');
   const arte = dados.arte;
-  const escada = escadaLimpa(escadaPadrao(arte));
+  const sistema = SISTEMAS[dados.graduacao] ? dados.graduacao : graduacaoDaArte(arte);
+  // Capoeira: a escada de cordões da escola nº 1 (escadaPadrao('capoeira') é genérica).
+  const escada = escadaLimpa(arte === 'capoeira' ? ESCADA_CAPOEIRA : escadaPadrao(arte));
+  if (escada) escada.peca = pecaDoSistema(sistema, arte);
+  const horarios = horariosDe(dados).map((h) => ({ dias: h.dias.filter((x) => DIAS.includes(x)), hora: h.hora })).slice(0, MAX_HORARIOS);
   const turma = {
     escolaId: e, academiaId: academia.id, nome: String(dados.nome).trim().slice(0, 60), arte, cor: dados.cor,
-    graduacao: dados.graduacao || graduacaoDaArte(arte), escada,
+    graduacao: sistema, escada,
     professorUid: dados.professorUid || (sessao && sessao.uid) || null, professorNome: dados.professorNome || (sessao && sessao.nome) || '',
     mensalidade: dados.mensalidade != null && dados.mensalidade !== '' ? Number(dados.mensalidade) : null,
-    dias: Array.isArray(dados.dias) ? dados.dias.filter((x) => DIAS.includes(x)) : [], hora: dados.hora || '',
+    horarios, dias: horarios[0] ? horarios[0].dias : [], hora: horarios[0] ? horarios[0].hora : '', // dias/hora: compatibilidade
     ativa: true, padrao: false, criadoEm: new Date().toISOString(), criadoPor: (sessao && sessao.uid) || null,
   };
   const ref = await addDoc(collection(db, 'turmas'), turma);
@@ -114,9 +159,13 @@ export async function criarTurma(academia, dados, sessao) {
   return { id: ref.id, ...turma };
 }
 export async function atualizarTurma(id, academiaId, dados) {
-  const permitidos = ['nome', 'cor', 'professorUid', 'professorNome', 'mensalidade', 'dias', 'hora', 'ativa', 'escada'];
+  const permitidos = ['nome', 'cor', 'professorUid', 'professorNome', 'mensalidade', 'dias', 'hora', 'horarios', 'graduacao', 'ativa', 'escada'];
   const limpo = {};
   permitidos.forEach((k) => { if (dados[k] !== undefined) limpo[k] = dados[k]; });
+  if (limpo.horarios !== undefined) {
+    const h = horariosDe({ horarios: limpo.horarios }).slice(0, MAX_HORARIOS);
+    limpo.horarios = h; limpo.dias = h[0] ? h[0].dias : []; limpo.hora = h[0] ? h[0].hora : '';
+  }
   if (limpo.mensalidade !== undefined && limpo.mensalidade !== null) limpo.mensalidade = Number(limpo.mensalidade);
   limpo.atualizadoEm = new Date().toISOString();
   await updateDoc(doc(db, 'turmas', id), limpo);
@@ -160,7 +209,8 @@ export { escadaDaEscola };
 
 // Rótulos
 export const rotuloTurma = (t) => (t ? `${t.nome}${t.padrao ? '' : ''}` : 'Turma');
-export const descricaoHorario = (t) => (t && Array.isArray(t.dias) && t.dias.length ? `${t.dias.map((d) => NOME_DIA[d] || d).join(' · ')}${t.hora ? `, ${t.hora}` : ''}` : (t && t.hora ? t.hora : ''));
+// "Seg · Qua 19:30  |  Sex 18:00"
+export const descricaoHorario = (t) => horariosDe(t).map((h) => [h.dias.map((d) => NOME_DIA[d] || d).join(' · '), h.hora].filter(Boolean).join(' ')).join('  |  ');
 export const nomeArte = (arte) => ((MODALIDADES[arte] || MODALIDADES.outra).nome);
 
 // ---------- UI: bloco "Turma ativa" da barra lateral (admin.html) ----------
@@ -171,7 +221,7 @@ export function seletorTurmaHTML({ turmas, ativaId, contagem = {}, academia, pod
   const ativa = todas.find((t) => (t.id || '') === (ativaId || '')) || padrao;
   const item = (t) => `<button type="button" class="turma-item${(t.id || '') === (ativa.id || '') ? ' ativa' : ''}" data-turma="${X(t.id || '')}" title="${X(t.nome)}${t.padrao ? ' (turma do núcleo)' : ''}">
     <span class="turma-cor" style="background:${X(corOk(t.cor))}"></span><span class="turma-nome">${X(t.nome)}</span><span class="turma-qtd">${Number(contagem[t.id || ''] || 0)}</span></button>`;
-  return `<div class="turma-bloco" id="turmaBloco">
+  return `<div class="turma-bloco" id="turmaBloco" data-sem-trocas>
     <span class="nav-grupo">Turma ativa</span>
     <button type="button" class="turma-atual" id="turmaAtualBtn" aria-expanded="false" aria-controls="turmaLista" style="border-color:${X(corOk(ativa.cor))}">
       <span class="turma-cor" style="background:${X(corOk(ativa.cor))}"></span>
@@ -184,60 +234,105 @@ export function seletorTurmaHTML({ turmas, ativaId, contagem = {}, academia, pod
 }
 
 // Formulário "Nova turma" (conteúdo de um modal). O chamador liga os botões e lê lerFormTurma().
+// data-sem-trocas: a identidade da escola (escola-atual.js) troca "capoeira"/"cordão" pelos termos da
+// arte da ESCOLA em todo texto da página — aqui não, senão "Capoeira" vira "Jiu-jitsu" no seletor.
+const radiosGraduacao = (arte, marcado) => {
+  const lista = sistemasDaArte(arte);
+  const escolhido = lista.includes(marcado) ? marcado : lista[0];
+  return lista.map((id) => `<label><input type="radio" name="turmaGrad" value="${id}" ${id === escolhido ? 'checked' : ''}> ${X(SISTEMAS[id].rotulo)}</label>`).join('');
+};
+const linhaHorario = (n, h = { dias: [], hora: '' }) => `<div class="turma-horario" data-linha="${n}" role="group" aria-label="Horário ${n + 1}">
+    <div class="turma-dias">${DIAS.map((d) => `<label class="turma-dia"><input type="checkbox" name="turmaDia-${n}" value="${d}" ${h.dias.includes(d) ? 'checked' : ''}><span>${NOME_DIA[d]}</span></label>`).join('')}</div>
+    <label class="turma-hora">às <input type="time" class="turma-hora-input" aria-label="Horário ${n + 1}" value="${X(h.hora)}"></label>
+    <button type="button" class="turma-rem-horario" aria-label="Remover o horário ${n + 1}" title="Remover este horário"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+  </div>`;
 export function formTurmaHTML({ professores = [], sessao = null, academia = null } = {}) {
-  const opcoesArte = ARTES.filter((a) => a.id !== 'outra').map((a) => `<option value="${X(a.id)}">${X(a.nome)}</option>`).join('') + '<option value="outra">Outra arte marcial</option>';
+  const opcoesArte = '<option value="" disabled selected>Escolha a arte marcial</option>' + ARTES.map((a) => `<option value="${X(a.id)}">${X(a.nome)}</option>`).join('');
   const profs = (professores || []).map((p) => `<option value="${X(p.id)}" ${sessao && p.id === sessao.uid ? 'selected' : ''}>${X(p.nome)}${sessao && p.id === sessao.uid ? ' (eu)' : ''}</option>`).join('');
-  const cores = PALETA_TURMAS.map((c, i) => `<label class="turma-swatch" title="${X(c.nome)}"><input type="radio" name="turmaCor" value="${X(c.hex)}" ${i === 0 ? 'checked' : ''}><span style="background:${X(c.hex)}"></span></label>`).join('');
-  const dias = DIAS.map((d) => `<label class="turma-dia"><input type="checkbox" name="turmaDia" value="${d}"><span>${NOME_DIA[d]}</span></label>`).join('');
-  return `<form id="formTurma" class="form-turma" autocomplete="off">
+  const cores = PALETA_TURMAS.map((c, i) => `<label class="turma-swatch" title="${X(c.nome)}"><input type="radio" name="turmaCor" value="${X(c.hex)}" ${i === 0 ? 'checked' : ''} aria-label="${X(c.nome)}"><span style="background:${X(c.hex)}"></span></label>`).join('');
+  return `<form id="formTurma" class="form-turma" autocomplete="off" data-sem-trocas>
     <p class="form-turma-intro">Uma turma é uma arte marcial com os próprios alunos, graduação e mensalidade. A Rede e os avisos continuam sendo do núcleo${academia && academia.nome ? ` ${X(academia.nome)}` : ''}.</p>
     <div class="form-turma-grid">
       <label>Arte marcial<select id="turmaArte" required>${opcoesArte}</select></label>
       <label>Nome da turma<input id="turmaNome" type="text" maxlength="60" placeholder="Ex.: Boxe · Adultos" required></label>
     </div>
     <div class="form-turma-campo"><span>Cor da turma <small>— aparece no cartão, nos gráficos e na etiqueta dos posts</small></span><div class="turma-swatches">${cores}</div></div>
-    <div class="form-turma-campo"><span>Sistema de graduação</span><div class="turma-radios">
-      <label><input type="radio" name="turmaGrad" value="faixas" checked> Faixas</label>
-      <label><input type="radio" name="turmaGrad" value="cordoes"> Cordões</label>
-      <label><input type="radio" name="turmaGrad" value="niveis"> Níveis / sem graduação</label></div>
-      <small id="turmaGradDica">Jiu-jitsu, judô, karatê, taekwondo e capoeira já vêm com a escada preenchida; as outras você monta depois em Graduação.</small></div>
+    <div class="form-turma-campo"><span>Sistema de graduação</span>
+      <div class="turma-radios" id="turmaGradOpcoes" role="radiogroup" aria-label="Sistema de graduação">${radiosGraduacao('outra', 'faixas')}</div>
+      <small id="turmaGradDica">Escolha a arte marcial: o sistema de graduação acompanha a arte.</small></div>
     <div class="form-turma-grid">
       <label>Professor responsável<select id="turmaProfessor">${profs || '<option value="">Eu</option>'}</select></label>
       <label>Mensalidade (R$)<input id="turmaMensalidade" type="number" min="0" step="0.01" placeholder="Ex.: 130"></label>
     </div>
-    <div class="form-turma-campo"><span>Dias e horário</span><div class="turma-dias">${dias}<label class="turma-hora">às <input id="turmaHora" type="time"></label></div></div>
+    <div class="form-turma-campo"><span>Dias e horários <small>— um horário por linha: ex. Seg e Qua às 19:30, Sex às 18:00</small></span>
+      <div class="turma-horarios" id="turmaHorarios">${linhaHorario(0)}</div>
+      <button type="button" class="turma-add-horario" id="turmaAddHorario"><i class="fas fa-plus" aria-hidden="true"></i> Adicionar horário</button>
+    </div>
   </form>`;
 }
 export function lerFormTurma(raiz = document) {
   const q = (id) => raiz.querySelector(`#${id}`);
-  const arte = q('turmaArte') ? q('turmaArte').value : 'outra';
+  const arte = q('turmaArte') ? q('turmaArte').value : '';
   const corEl = raiz.querySelector('input[name="turmaCor"]:checked');
   const gradEl = raiz.querySelector('input[name="turmaGrad"]:checked');
   const profSel = q('turmaProfessor');
+  const horarios = [...raiz.querySelectorAll('.turma-horario')].map((linha) => ({
+    dias: [...linha.querySelectorAll('input[type="checkbox"]:checked')].map((i) => i.value),
+    hora: (linha.querySelector('.turma-hora-input') || {}).value || '',
+  })).filter((h) => h.dias.length || h.hora);
   return {
     arte, nome: q('turmaNome') ? q('turmaNome').value : '', cor: corEl ? corEl.value : '',
     graduacao: gradEl ? gradEl.value : graduacaoDaArte(arte),
     professorUid: profSel && profSel.value ? profSel.value : null,
     professorNome: profSel && profSel.selectedOptions[0] ? profSel.selectedOptions[0].textContent.replace(/\s*\(eu\)$/, '') : '',
     mensalidade: q('turmaMensalidade') && q('turmaMensalidade').value !== '' ? Number(q('turmaMensalidade').value) : null,
-    dias: [...raiz.querySelectorAll('input[name="turmaDia"]:checked')].map((i) => i.value),
-    hora: q('turmaHora') ? q('turmaHora').value : '',
+    horarios, dias: horarios[0] ? horarios[0].dias : [], hora: horarios[0] ? horarios[0].hora : '',
   };
 }
-// Ao trocar a arte no formulário: sugere nome e sistema de graduação.
+// Ao trocar a arte: sugere o nome e troca as opções do sistema de graduação (as da arte).
+// "Adicionar horário" cria uma linha nova (dias + hora); cada linha tem o seu "remover".
 export function ligarFormTurma(raiz = document) {
   const arte = raiz.querySelector('#turmaArte'); const nome = raiz.querySelector('#turmaNome');
-  if (!arte) return;
-  const sugerir = () => {
-    const g = graduacaoDaArte(arte.value);
-    const r = raiz.querySelector(`input[name="turmaGrad"][value="${g}"]`); if (r) r.checked = true;
-    if (nome && (!nome.value || nome.dataset.sugerido === nome.value)) { nome.value = `${nomeArte(arte.value)} · Adultos`; nome.dataset.sugerido = nome.value; }
+  const opcoes = raiz.querySelector('#turmaGradOpcoes'); const dica = raiz.querySelector('#turmaGradDica');
+  if (arte) {
+    const sugerir = () => {
+      if (!arte.value) return;
+      const marcado = (raiz.querySelector('input[name="turmaGrad"]:checked') || {}).value;
+      if (opcoes) opcoes.innerHTML = radiosGraduacao(arte.value, marcado);
+      if (dica) dica.textContent = dicaGraduacao(arte.value);
+      if (nome && (!nome.value || nome.dataset.sugerido === nome.value)) { nome.value = `${nomeArte(arte.value)} · Adultos`; nome.dataset.sugerido = nome.value; }
+    };
+    arte.addEventListener('change', sugerir); sugerir();
+  }
+  const lista = raiz.querySelector('#turmaHorarios'); const add = raiz.querySelector('#turmaAddHorario');
+  if (!lista || !add) return;
+  const renumerar = () => {
+    const linhas = [...lista.querySelectorAll('.turma-horario')];
+    linhas.forEach((l, n) => {
+      l.dataset.linha = String(n); l.setAttribute('aria-label', `Horário ${n + 1}`);
+      l.querySelectorAll('input[type="checkbox"]').forEach((c) => { c.name = `turmaDia-${n}`; });
+      const h = l.querySelector('.turma-hora-input'); if (h) h.setAttribute('aria-label', `Horário ${n + 1}`);
+      const r = l.querySelector('.turma-rem-horario'); if (r) { r.hidden = linhas.length === 1; r.setAttribute('aria-label', `Remover o horário ${n + 1}`); }
+    });
+    add.disabled = linhas.length >= MAX_HORARIOS;
   };
-  arte.addEventListener('change', sugerir); sugerir();
+  add.addEventListener('click', () => {
+    const n = lista.querySelectorAll('.turma-horario').length;
+    if (n >= MAX_HORARIOS) return;
+    lista.insertAdjacentHTML('beforeend', linhaHorario(n));
+    renumerar();
+    const nova = lista.lastElementChild; const primeiro = nova && nova.querySelector('input');
+    if (primeiro) primeiro.focus();
+  });
+  lista.addEventListener('click', (e) => {
+    const bt = e.target.closest('.turma-rem-horario'); if (!bt) return;
+    const linha = bt.closest('.turma-horario'); if (linha && lista.children.length > 1) { linha.remove(); renumerar(); add.focus(); }
+  });
+  renumerar();
 }
 
 // Etiqueta pequena da turma (cartões, Rede, carteirinha).
-export const etiquetaTurmaHTML = (t) => (t && !t.padrao ? `<span class="turma-etiqueta" style="--turma:${X(corOk(t.cor))}"><span class="turma-cor"></span>${X(t.nome)}</span>` : '');
+export const etiquetaTurmaHTML = (t) => (t && !t.padrao ? `<span class="turma-etiqueta" data-sem-trocas style="--turma:${X(corOk(t.cor))}"><span class="turma-cor"></span>${X(t.nome)}</span>` : '');
 
 // CSS do bloco (injetado uma vez; admin.css pode sobrescrever).
 let cssPronto = false;
@@ -275,7 +370,7 @@ export function garantirEstilosTurma() {
 .turma-swatch span{display:block;width:40px;height:40px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px #D9E5E3;cursor:pointer;transition:transform .25s cubic-bezier(.16,1,.3,1)}
 .turma-swatch input:checked+span{border-color:#0F2340;transform:scale(1.08)}
 .turma-swatch input:focus-visible+span{outline:2px solid #0F2340;outline-offset:2px}
-.turma-radios{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.turma-radios{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
 .turma-radios label{flex-direction:row;align-items:center;gap:8px;padding:10px 12px;border:1px solid #C9D6D4;border-radius:10px;font-weight:500;cursor:pointer}
 .turma-radios label:has(input:checked){border:2px solid #0F2340;background:#F6FAF9}
 .turma-dias{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -283,6 +378,15 @@ export function garantirEstilosTurma() {
 .turma-dia span{display:inline-block;padding:8px 13px;border:1px solid #C9D6D4;border-radius:999px;font-weight:500;cursor:pointer}
 .turma-dia input:checked+span{background:#0F2340;border-color:#0F2340;color:#fff}
 .turma-hora{flex-direction:row;align-items:center;gap:8px;font-weight:500;margin-left:6px}
+.turma-horarios{display:flex;flex-direction:column;gap:10px}
+.turma-horario{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:10px 12px;border:1px solid #D9E5E3;border-radius:12px;background:#F8FBFA;animation:turmaEntra .35s cubic-bezier(.16,1,.3,1)}
+.turma-horario .turma-dias{flex:1 1 320px}
+.turma-rem-horario{width:36px;height:36px;border:0;border-radius:50%;background:transparent;color:#5B6B7F;cursor:pointer;font-size:1rem;transition:background .25s cubic-bezier(.16,1,.3,1),color .25s}
+.turma-rem-horario:hover{background:#FDECEC;color:#A32D2D}
+.turma-add-horario{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1.5px dashed var(--primary-teal,#389E92);border-radius:10px;background:#F3FAF9;color:#1F7A70;font:inherit;font-weight:600;font-size:.88rem;cursor:pointer}
+.turma-add-horario:disabled{opacity:.5;cursor:not-allowed}
+@keyframes turmaEntra{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.turma-horario{animation:none}}
 @media (max-width:640px){.form-turma-grid,.turma-radios{grid-template-columns:1fr}}`;
   document.head.appendChild(s);
 }

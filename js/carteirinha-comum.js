@@ -77,9 +77,13 @@ export const IC = {
 // ---------- graduação desenhada no cartão ----------
 // Sistema de graduação a partir da "peça" da arte: cordão (capoeira), nível ou faixa.
 export function tipoGraduacao(peca, graduacao = null) {
-  if (['faixas', 'cordoes', 'niveis'].includes(String(graduacao || ''))) return graduacao;
+  // Desenho: cordas (capoeira contemporânea) = cordões (3 cores); prajied (muay thai) = faixa colorida.
+  const g = String(graduacao || '');
+  if (g === 'cordas') return 'cordoes';
+  if (g === 'prajied') return 'faixas';
+  if (['faixas', 'cordoes', 'niveis'].includes(g)) return g;
   const p = String(peca || '').toLowerCase();
-  if (p === 'cordão' || p === 'cordao') return 'cordoes';
+  if (p === 'cordão' || p === 'cordao' || p === 'corda') return 'cordoes';
   if (p === 'nível' || p === 'nivel' || p === 'graduação' || p === 'graduacao') return 'niveis';
   return 'faixas';
 }

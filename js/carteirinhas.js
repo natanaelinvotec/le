@@ -176,7 +176,7 @@ function desenhar() {
   const contagem = contarPorTurma(todos, turmas);
   const padrao = turmaPadrao(nucleoAtual());
   const seletorTurma = turmas.length
-    ? `<label class="sel-turma" style="--turma:${esc(corOk(turmaAtiva().cor))}"><span class="turma-cor"></span><span class="sr" style="position:absolute;left:-9999px">Turma</span><select id="selTurma">${[padrao, ...turmas].map((t) => `<option value="${esc(t.id || '')}"${(t.id || '') === turmaId ? ' selected' : ''}>${esc(t.nome)}${t.padrao ? ' (turma do núcleo)' : ''} · ${Number(contagem[t.id || ''] || 0)}</option>`).join('')}</select></label>`
+    ? `<label class="sel-turma" data-sem-trocas style="--turma:${esc(corOk(turmaAtiva().cor))}"><span class="turma-cor"></span><span class="sr" style="position:absolute;left:-9999px">Turma</span><select id="selTurma">${[padrao, ...turmas].map((t) => `<option value="${esc(t.id || '')}"${(t.id || '') === turmaId ? ' selected' : ''}>${esc(t.nome)}${t.padrao ? ' (turma do núcleo)' : ''} · ${Number(contagem[t.id || ''] || 0)}</option>`).join('')}</select></label>`
     : '';
   pagina.innerHTML = `<div class="barra-nucleo"><div><h2>${esc(nomeCurto(nomeNucleo))}</h2><p>${atletas.length} atletas ativos${turmas.length ? ` na turma ${esc(turmaAtiva().nome)}` : ''} · foto de documento separada da foto de perfil da Rede</p></div><div class="barra-seletores">${seletorTurma}${seletor}</div></div>
     <div class="abas" role="tablist" aria-label="Carteirinhas">

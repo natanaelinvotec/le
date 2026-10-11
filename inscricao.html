@@ -26,7 +26,7 @@
 <h1>Ficha de Inscrição</h1>
 <p>Grupo de Capoeira Liberdade e Expressão — leva uns 3 minutos.</p>
 <!-- Turma do link (?turma=): etiqueta na cor da turma, preenchida por inscricao.js -->
-<div id="turmaEtiqueta" class="turma-etiqueta-ficha" hidden aria-live="polite"></div>
+<div id="turmaEtiqueta" data-sem-trocas class="turma-etiqueta-ficha" hidden aria-live="polite"></div>
 </div>
 
 <div class="container">
@@ -85,7 +85,7 @@
 </select>
 </div>
 <!-- Turma (v37): só aparece quando a escola tem turmas públicas; com ?turma= no link vem travada -->
-<div class="form-group" id="wrapTurma" hidden>
+<div class="form-group" id="wrapTurma" data-sem-trocas hidden>
 <label for="turmaSelect">Turma:</label>
 <select name="turma" id="turmaSelect">
 <option value="">Turma do núcleo</option>

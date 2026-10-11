@@ -262,6 +262,9 @@ export function trocasDeTexto(cfg) {
   return t;
 }
 const PULAR = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT', 'CODE', 'PRE', 'NOSCRIPT', 'SVG']);
+// Áreas com nomes que NÃO podem ser traduzidos para a arte da escola: turmas de outras artes
+// ("Capoeira · Adultos" numa escola de jiu-jitsu), o formulário de turma, a lista de artes.
+const semTrocas = (el) => !!(el && el.closest && el.closest('[data-sem-trocas]'));
 function trocarTexto(v, trocas) { let r = v; for (const [rx, por] of trocas) r = r.replace(rx, por); return r; }
 
 // Monograma (quando a escola ainda não tem logo): iniciais sobre a cor da escola.
@@ -310,13 +313,14 @@ export function aplicarIdentidade(cfg) {
   const trocas = trocasDeTexto(cfg);
   const logo = /^https:\/\//.test(cfg.logo || '') ? cfg.logo : monograma(cfg);
   const tratarEl = (el) => {
+    if (semTrocas(el)) return;
     if (el.tagName === 'IMG' && /logo-liberdade|app-icon|brasao-1024/.test(el.getAttribute('src') || '')) { el.src = logo; el.alt = `Logo ${cfg.nomeCurto || cfg.nome}`; }
     ['placeholder', 'title', 'aria-label', 'alt'].forEach((a) => { const v = el.getAttribute && el.getAttribute(a); if (v) { const n = trocarTexto(v, trocas); if (n !== v) el.setAttribute(a, n); } });
   };
   const tratar = (raiz) => {
     if (!raiz) return;
-    if (raiz.nodeType === 3) { const p = raiz.parentElement; if (p && !PULAR.has(p.tagName) && !p.isContentEditable) { const n = trocarTexto(raiz.nodeValue, trocas); if (n !== raiz.nodeValue) raiz.nodeValue = n; } return; }
-    if (raiz.nodeType !== 1 || PULAR.has(raiz.tagName) || raiz.isContentEditable) return;
+    if (raiz.nodeType === 3) { const p = raiz.parentElement; if (p && !PULAR.has(p.tagName) && !p.isContentEditable && !semTrocas(p)) { const n = trocarTexto(raiz.nodeValue, trocas); if (n !== raiz.nodeValue) raiz.nodeValue = n; } return; }
+    if (raiz.nodeType !== 1 || PULAR.has(raiz.tagName) || raiz.isContentEditable || semTrocas(raiz)) return;
     tratarEl(raiz);
     raiz.querySelectorAll('img,[placeholder],[title],[aria-label]').forEach(tratarEl);
     const w = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT);

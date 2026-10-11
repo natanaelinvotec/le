@@ -281,7 +281,8 @@ function turmaValida(d) {
 return d.nome is string && d.nome.size() >= 2 && d.nome.size() <= 60 &&
 d.arte is string && d.arte.size() <= 30 &&
 d.cor is string && d.cor.matches('^#[0-9a-fA-F]{6}$') &&
-d.get('graduacao', 'faixas') in ['faixas', 'cordoes', 'niveis'] &&
+d.get('graduacao', 'faixas') in ['faixas', 'cordoes', 'cordas', 'prajied', 'niveis'] &&
+d.get('horarios', []) is list && d.get('horarios', []).size() <= 8 &&
 d.get('professorNome', '') is string && d.get('professorNome', '').size() <= 120 &&
 d.get('hora', '') is string && d.get('hora', '').size() <= 5 &&
 d.get('dias', []) is list && d.get('dias', []).size() <= 7 &&

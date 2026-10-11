@@ -1,4 +1,4 @@
-# Contrato técnico — Turmas por arte marcial (v37)
+# Contrato técnico — Turmas por arte marcial (v38.1)
 
 Repositório: este diretório (`le-v4`). App: HTML + CSS + JavaScript vanilla (ES modules, sem build),
 Firebase (Auth, Firestore, Storage, Functions). Idioma de tudo (código, comentários, UI): português do Brasil.
@@ -32,6 +32,17 @@ import { PALETA_TURMAS, COR_PADRAO, corOk, graduacaoDaArte, ARTES, turmaPadrao, 
   (`#turmaBloco`, `#turmaAtualBtn`, `#turmaLista` com `.turma-item[data-turma]`, `#turmaNovaBtn`). CSS vem de `garantirEstilosTurma()`.
 - `formTurmaHTML({professores, sessao, academia})` + `ligarFormTurma(raiz)` + `lerFormTurma(raiz)` → formulário "Nova turma".
 - `etiquetaTurmaHTML(turma)` → pílula pequena na cor da turma (vazia para a padrão).
+
+### Sistemas de graduação e horários (v38.1)
+- `SISTEMAS` = `faixas | cordoes | cordas | prajied | niveis`; `SISTEMAS_DA_ARTE[arte]` diz quais aparecem no
+  formulário (Capoeira: cordões — linha Capitães da Areia — ou cordas — capoeira contemporânea; Muay Thai: prajied
+  ou níveis; MMA/Krav Maga: níveis ou faixas; Boxe/Wrestling: níveis; artes de faixa: faixas; "Outra": todos).
+  O 1º da lista é o padrão (`graduacaoDaArte`). `escada.peca` = `pecaDoSistema(sistema, arte)` (corda/cordão/faixa/prajied/nível).
+- Turma de Capoeira usa `ESCADA_CAPOEIRA` (`js/escola.js`) mesmo em escola de outra arte.
+- `horarios: [{ dias:['seg','qua'], hora:'19:30' }, …]` (até 8 linhas, botão "Adicionar horário").
+  Para compatibilidade, `dias`/`hora` continuam gravados com a 1ª linha; `horariosDe(t)` lê os dois formatos.
+- Áreas de turma levam `data-sem-trocas`: a troca automática de textos da identidade (capoeira→arte, cordão→peça)
+  em `js/escola-atual.js` NÃO mexe nelas (era o "Jiu-jitsu duplicado" no seletor de arte).
 
 ## `js/escola.js` (já alterado)
 - `aplicarEscada(e)`, `escadaAtual()`, `escadaDaEscola()`, `aplicarEscadaDaTurma(escadaOuNull)`.

@@ -92,6 +92,15 @@ export const CRITERIOS = [
   { id: 'c13', txt: 'Higiene', reqAdulto: 0, reqKids: true }, { id: 'c14', txt: 'Aprendizado', reqAdulto: 0, reqKids: true },
   { id: 'c15', txt: 'Fundamentos', reqAdulto: 0, reqKids: true },
 ];
+// Escada de capoeira para TURMAS de capoeira em escolas de outra arte (v38): cópia dos cordões da
+// escola nº 1 feita AGORA, antes de aplicarEscola trocar as listas acima pela escada da escola.
+// Sem o "Mestre/Presidente" (exclusivo do fundador do grupo). Formato de modalidades.js (escadaLimpa).
+export const ESCADA_CAPOEIRA = {
+  modalidade: 'capoeira', peca: 'cordão', lider: 'Mestre', idadeKids: 12,
+  adulto: CORDOES_ADULTO.filter((c) => c.nome !== 'Mestre/Presidente').map((c) => ({ nome: c.nome, cor: c.cor.slice(0, 3) })),
+  kids: CORDOES_KIDS.map((c) => ({ nome: c.nome, cor: c.cor.slice(0, 3) })),
+  criterios: CRITERIOS.map((c) => c.txt),
+};
 // Prontidão mínima (%) para aparecer na lista de aptos à troca de cordão.
 export const META_PRONTIDAO = 70;
 
