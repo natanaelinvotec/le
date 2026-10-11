@@ -13,7 +13,7 @@ Visual: "App Capoeira Liberdade — Mockup Visual", tela "Painel do Fundador". -
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="css/admin.css?v=20260926e">
-<link rel="stylesheet" href="css/master.css?v=20260927a">
+<link rel="stylesheet" href="css/master.css?v=20261011">
 </head>
 <body>
 <noscript>Este painel exige JavaScript habilitado para funcionar.</noscript>
@@ -89,6 +89,14 @@ Visual: "App Capoeira Liberdade — Mockup Visual", tela "Painel do Fundador". -
 <div class="secao-titulo"><h3>Núcleos da rede</h3></div>
 <div class="academias-grid" id="tabelaNucleosMaster" style="margin-top:0;"></div>
 
+<!-- v37: turmas por arte marcial — visão de todos os núcleos da escola, por turma -->
+<div class="secao-titulo">
+<h3>Visão global por turma</h3>
+<label class="vt-filtro"><span>Turma:</span><select id="filtroTurmaMaster" class="input-padrao" aria-label="Filtrar por turma"><option value="">todas</option></select></label>
+</div>
+<p style="font-size:0.84rem; margin:-4px 0 12px;">Cada turma é uma arte marcial dentro do núcleo, com os próprios alunos e mensalidade. Quem não tem turma conta na turma do núcleo. Valores do mês atual; previsto = mensalidade da turma (ou do núcleo) × alunos ativos não isentos.</p>
+<div id="visaoTurmas" aria-live="polite"></div>
+
 <div class="secao-titulo"><h3>Contas com Acesso Geral</h3></div>
 <p style="font-size:0.84rem; margin:-4px 0 12px;">Concedido/removido em cada cadastro, dentro do painel de gestão (aba Alunos → Avaliar/Editar → Papéis especiais).</p>
 <div class="lista-simples" id="listaFundadores"></div>
@@ -97,6 +105,6 @@ Visual: "App Capoeira Liberdade — Mockup Visual", tela "Painel do Fundador". -
 </div>
 </div>
 
-<script type="module" src="js/master.js?v=20261009"></script>
+<script type="module" src="js/master.js?v=20261011"></script>
 </body>
 </html>

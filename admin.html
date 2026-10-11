@@ -15,7 +15,7 @@ por Firebase Authentication (usuarios/{uid}.papeis). -->
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js">
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js">
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js">
-<link rel="stylesheet" href="css/admin.css?v=20261001b">
+<link rel="stylesheet" href="css/admin.css?v=20261011">
 </head>
 <body>
 <noscript>Este painel exige JavaScript habilitado para funcionar.</noscript>
@@ -47,10 +47,16 @@ agrupados; a visibilidade por papel continua por data-papel (admin.js). -->
 <img src="assets/logo-liberdade150.png" alt="" class="admin-avatar nav-eu-foto" id="navEuFoto">
 <span><b id="navEuNome">—</b><small id="navEuPapel">Painel</small></span>
 </div>
-<span class="nav-grupo" data-papel="all">Núcleo</span>
+<!-- Turma ativa (v37): uma arte marcial dentro do núcleo. Montado por admin.js
+com seletorTurmaHTML() de js/turmas.js; trocar a turma filtra o painel inteiro. -->
+<div id="turmaSeletor" data-papel="all"></div>
+<span class="nav-grupo" id="navGrupoNucleo" data-papel="all">Núcleo</span>
 <a href="#" class="nav-item active" data-papel="all" onclick="mudarAba('alunos', event)"><i class="fas fa-users"></i><span>Alunos</span></a>
 <a href="#" class="nav-item" data-papel="admin" onclick="mudarAba('nucleos', event)"><i class="fas fa-location-dot"></i><span>Núcleos</span></a>
 <a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('solicitacoes', event)"><i class="fas fa-clipboard-check"></i><span>Solicitações</span></a>
+<!-- Avisos e Materiais são do núcleo inteiro (não filtram por turma). O rótulo
+do grupo só aparece quando há uma turma ativa diferente da padrão. -->
+<span class="nav-grupo" id="navGrupoCompartilhado" data-papel="all" hidden>Núcleo · todas as turmas</span>
 <a href="#" class="nav-item" data-papel="all" onclick="mudarAba('avisos', event)"><i class="fas fa-bullhorn"></i><span>Avisos</span></a>
 <a href="#" class="nav-item" data-papel="all" onclick="mudarAba('materiais', event)"><i class="fas fa-book-open"></i><span>Materiais</span></a>
 <span class="nav-grupo" data-papel="formacao">Treino</span>
@@ -665,9 +671,35 @@ enviada nem guardada — só as presenças confirmadas (origem 'faceid-foto'). -
 <option value="Ativo">Ativo</option><option value="Inativo">Inativo</option><option value="Pausa">Pausa</option><option value="Lesionado">Lesionado</option>
 </select>
 </div>
+<!-- Turma do atleta (v37): a padrão do núcleo + as turmas criadas. Só aparece
+quando o núcleo tem turmas; só gestor, Fundador e Admin alteram. -->
+<div class="form-group-mod" style="margin-bottom: 12px;" id="wrapModTurma" hidden>
+<label for="modTurma">Turma:</label>
+<select id="modTurma" class="input-padrao mod-input"></select>
+<small class="mod-turma-dica" id="modTurmaDica">A graduação e a mensalidade seguem a arte da turma.</small>
+</div>
 <div class="form-group-mod" style="margin-bottom: 12px;" id="wrapModCordao">
-<label for="modCordao">Graduação Atual:</label>
+<label id="modGradLabel">Graduação Atual:</label>
+<!-- Bloco visual da graduação (v37): a faixa/cordão desenhado, o rótulo com os
+graus e dois botões simples — "+ Adicionar grau" e "Trocar faixa". Tudo fica
+pendente até "Atualizar Prontuário" (grausPendentes/cordaoPendente em admin.js). -->
+<div class="grad-visual" id="gradVisual">
+<div class="grad-faixa" id="gradFaixa" aria-hidden="true"></div>
+<div class="grad-texto"><strong id="gradRotulo">—</strong><small id="gradDesde"></small></div>
+</div>
+<div class="grad-botoes">
+<button type="button" class="btn-grau" id="btnAddGrau"><i class="fas fa-plus" aria-hidden="true"></i> Adicionar grau</button>
+<button type="button" class="btn-trocar" id="btnTrocarFaixa" aria-expanded="false" aria-controls="gradTroca"><i class="fas fa-arrows-rotate" aria-hidden="true"></i> <span id="btnTrocarFaixaTxt">Trocar faixa</span></button>
+</div>
+<p class="grad-dica" id="gradDica" role="status" hidden></p>
+<div class="grad-troca" id="gradTroca" hidden>
+<label for="modCordao" id="modCordaoLabel">Nova graduação:</label>
+<div class="grad-troca-linha">
 <select id="modCordao" class="input-padrao mod-input"></select>
+<button type="button" class="btn-mini btn-mini-aprovar" id="btnConfirmarTroca"><i class="fas fa-check" aria-hidden="true"></i> Confirmar troca</button>
+<button type="button" class="btn-mini" id="btnCancelarTroca">Cancelar</button>
+</div>
+</div>
 <!-- Atleta que já era graduado antes do app: certificados sem data, sem festa. -->
 <label class="mod-checkbox-linha mod-legado" id="wrapModLegado" hidden>
 <input type="checkbox" id="modCordaoLegado"> <span>O aluno já tinha este cordão antes do app <small>(certificados sem data, sem festa "Troquei de cordão")</small></span>
@@ -748,8 +780,24 @@ enviada nem guardada — só as presenças confirmadas (origem 'faceid-foto'). -
 </form>
 </div>
 </div>
+
+<!-- MODAL NOVA TURMA (v37) — o formulário vem de formTurmaHTML() em js/turmas.js;
+admin.js preenche #formTurmaWrap ao abrir e lê com lerFormTurma() ao criar. -->
+<div class="modal-overlay" id="modalNovaTurma" role="dialog" aria-modal="true" aria-labelledby="tituloNovaTurma">
+<div class="modal-content modal-turma">
+<button class="close-modal" onclick="fecharModalTurma()" aria-label="Fechar"><i class="fas fa-times"></i></button>
+<span class="eyebrow">Turmas</span>
+<h2 id="tituloNovaTurma">Nova turma</h2>
+<p class="modal-turma-sub" id="modalNovaTurmaSub">Uma nova arte marcial dentro do núcleo, com os próprios alunos, graduação e mensalidade.</p>
+<div id="formTurmaWrap"></div>
+<div class="modal-turma-rodape">
+<button type="button" class="btn-detalhes btn-soft" onclick="fecharModalTurma()">Cancelar</button>
+<button type="button" class="btn-salvar-modal" id="btnCriarTurma"><i class="fas fa-plus"></i> Criar turma</button>
+</div>
+</div>
+</div>
 </div>
 
-<script type="module" src="js/admin.js?v=20261009"></script>
+<script type="module" src="js/admin.js?v=20261011"></script>
 </body>
 </html>

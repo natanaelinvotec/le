@@ -14,7 +14,7 @@ import { escolaDoUsuario, ESCOLA_PADRAO } from './escolas.js';
 
 // Campos de usuarios/{uid} que mudam a carteirinha (o próprio espelho entra:
 // se alguém mexer nele, o servidor regrava o valor certo).
-const CAMPOS_DA_CARTEIRINHA = ['nome', 'cordaoAtual', 'grausAtual', 'idade', 'academiaId', 'academiaNome', 'papeis', 'ativo', 'statusAtual', 'isentoMensalidade', 'carteirinha', 'sincronizarEm'];
+const CAMPOS_DA_CARTEIRINHA = ['nome', 'cordaoAtual', 'grausAtual', 'grausVermelhos', 'turmaId', 'idade', 'academiaId', 'academiaNome', 'papeis', 'ativo', 'statusAtual', 'isentoMensalidade', 'carteirinha', 'sincronizarEm'];
 
 const mudouAlgum = (antes, depois, campos) => campos.some((k) => JSON.stringify((antes || {})[k] ?? null) !== JSON.stringify((depois || {})[k] ?? null));
 const primeiroNome = (n) => String(n || 'Alguém').split(' ')[0];

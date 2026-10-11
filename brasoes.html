@@ -3,7 +3,9 @@ de núcleo). Mostra o catálogo real (brasoes.js), quantos atletas têm cada
 brasão, permite ativar/desativar e editar textos (Admin/Fundador), conceder e
 revogar os brasões manuais (responsável do núcleo para o próprio núcleo) e
 acompanhar o ranking. Nada aqui é estimado: as contagens vêm de perfisPublicos
-(o que cada atleta já consolidou) e as concessões de usuarios.brasoesManuais. -->
+(o que cada atleta já consolidou) e as concessões de usuarios.brasoesManuais.
+Turmas por arte (v37): o catálogo mostra os brasões GERAIS + os da ARTE da turma
+ativa, agrupados; o seletor "Turma / arte" troca a turma ativa deste aparelho. -->
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -27,6 +29,15 @@ acompanhar o ranking. Nada aqui é estimado: as contagens vêm de perfisPublicos
 .bra-card .acoes button { font-size: .64rem; padding: 5px 8px; }
 .bra-card .tag { position: absolute; top: 8px; left: 8px; }
 .bra-card .tag-off { position: absolute; top: 8px; right: 8px; }
+.grupo-escopo { margin: 30px 0 4px; padding: 14px 18px; border-radius: var(--radius-lg); background: linear-gradient(135deg, rgba(56,158,146,.12), rgba(0,45,114,.07)); border: 1px solid rgba(56,158,146,.3); animation: slideUp .35s var(--ease-standard); }
+.grupo-escopo h2 { font-size: 1.05rem; display: flex; align-items: center; gap: 8px; margin: 0; }
+.grupo-escopo h2 i { color: var(--primary-blue); }
+.grupo-escopo p { margin: 4px 0 0; font-size: .8rem; color: var(--text-muted); }
+.filtro-arte { display: inline-flex; align-items: center; gap: 8px; font-size: .78rem; font-weight: 700; color: var(--text-muted); }
+.filtro-arte select { font: inherit; font-weight: 600; color: var(--text-dark); padding: 8px 10px; border: 1.5px solid var(--primary-teal); border-radius: 10px; background: var(--card-bg); max-width: 260px; cursor: pointer; transition: box-shadow .25s var(--ease-standard); }
+.filtro-arte select:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0,230,118,.45); }
+.conc-escopo { font-weight: 600; color: var(--primary-teal); font-size: .72rem; margin-left: 6px; }
+.escolha-brasao small.da-arte { color: var(--primary-teal); }
 .serie-cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 26px 0 10px; }
 .serie-cab h3 { font-size: 1rem; display: flex; align-items: center; gap: 8px; }
 .serie-cab h3 i { color: var(--primary-teal); }
@@ -116,13 +127,13 @@ acompanhar o ranking. Nada aqui é estimado: as contagens vêm de perfisPublicos
 <div class="main-layout" style="max-width: 1180px;">
 <main class="content-area">
 
-<div class="hero-brasoes"><img src="brasoes/png/brasao-04-quilombola.png" alt=""><div><span class="eyebrow" style="color:rgba(255,255,255,.75)">Gamificação do grupo</span><h2>Brasões do Capoeira Liberdade</h2><p id="heroTexto">75 brasões em 13 séries. Os automáticos vêm dos dados reais do app; os manuais o responsável do núcleo concede aos alunos dele. O Admin Master concede qualquer brasão — só o de Presidente do Grupo é único, travado no Mestre Profeta.</p></div></div>
+<div class="hero-brasoes"><img src="brasoes/png/brasao-04-quilombola.png" alt=""><div><span class="eyebrow" style="color:rgba(255,255,255,.75)">Gamificação do grupo</span><h2>Brasões do Capoeira Liberdade</h2><p id="heroTexto">Os automáticos vêm dos dados reais do app; os manuais o responsável do núcleo concede aos alunos dele. Cada turma vê os brasões gerais e os da própria arte. O Admin Master concede qualquer brasão — só o de Presidente do Grupo é único, travado em uma pessoa.</p></div></div>
 
 <div class="kpi-grid" id="kpis"></div>
 
 <div class="section-header">
 <div><span class="eyebrow">Catálogo</span><h2><i class="fas fa-medal"></i> Todos os brasões</h2><p id="escopoTexto"></p></div>
-<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn-detalhes" id="btnConceder"><i class="fas fa-award"></i> Conceder brasão</button><button type="button" class="btn-mini oculto" id="btnConfig"><i class="fas fa-sliders"></i> Configurações</button></div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label class="filtro-arte" for="filtroArte"><i class="fas fa-layer-group" aria-hidden="true"></i> Turma / arte <select id="filtroArte" aria-label="Turma ativa ou arte do catálogo"></select></label><button type="button" class="btn-detalhes" id="btnConceder"><i class="fas fa-award"></i> Conceder brasão</button><button type="button" class="btn-mini oculto" id="btnConfig"><i class="fas fa-sliders"></i> Configurações</button></div>
 </div>
 <div id="catalogo"></div>
 

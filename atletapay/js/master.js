@@ -121,7 +121,7 @@ function painelConfig() {
       <header class="ce-topo"><span class="conta-icone ${ligado ? 'bom' : ''}" aria-hidden="true"><i class="fas fa-envelope-open-text"></i></span>
         <div><h3>E-mails da plataforma</h3><p class="sub">Nova senha e confirmação de e-mail saindo de <b>${esc(p.remetenteEmail || 'noreply@atletapay.com.br')}</b>, com o nome, o logo e a cor de cada escola — e o link abrindo atletapay.com.br/conta.</p></div>
         <span class="status ${ligado ? 'ok' : 'pausada'}">${ligado ? '<i class="fas fa-circle-check"></i> Ligado' : 'Desligado'}</span></header>
-      ${ligado ? `<p class="ok-caixa"><i class="fas fa-paper-plane"></i> Funcionando pelo ${esc(p.provedorEmail === 'brevo' ? 'Brevo' : 'Resend')} · testado em ${dataBR(p.testadoEm)}.</p>` : '<p class="ok-caixa espera"><i class="fas fa-circle-info"></i> Desligado: o app usa o e-mail padrão do Firebase (link capoeira-liberdade.firebaseapp.com).</p>'}
+      ${ligado ? `<p class="ok-caixa"><i class="fas fa-paper-plane"></i> Funcionando pelo ${esc(p.provedorEmail === 'brevo' ? 'Brevo' : 'Resend')} · testado em ${dataBR(p.testadoEm)}.</p>` : '<p class="ok-caixa espera"><i class="fas fa-circle-info"></i> Desligado: o app usa o e-mail padrão do Firebase (link atletapay-br.firebaseapp.com).</p>'}
       ${p.erroEmail ? `<div class="erro-caixa"><i class="fas fa-triangle-exclamation"></i> Último teste falhou: ${esc(p.erroEmail)}</div>` : ''}
       <form class="form ce-form" id="formEmail" autocomplete="off">
         <div class="ce-campos">

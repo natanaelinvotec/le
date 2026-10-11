@@ -18,7 +18,34 @@ import { coresDoCordao } from './compartilhado/escola.js';
 import { ehMenor, usoImagemOk, pagamentosValidos } from './perfil.js';
 import { notificar, gestoresDoNucleo } from './notificar.js';
 import { escadaDaEscola } from './escada-escola.js';
-import { listaDa, rotuloGraduacao } from './compartilhado/modalidades.js';
+import { listaDa, rotuloGraduacao, escadaLimpa } from './compartilhado/modalidades.js';
+
+// v37: escada da TURMA do aluno (turmas/{turmaId}.escada), com cache por execução. null = sem turma
+// ou turma sem escada válida (vale a escada da escola, como sempre).
+export async function escadaDaTurma(ctx, turmaId) {
+  const id = typeof turmaId === 'string' ? turmaId.trim() : '';
+  if (!id || id.includes('/')) return null;
+  if (!ctx._escadasTurma) ctx._escadasTurma = new Map();
+  if (ctx._escadasTurma.has(id)) return ctx._escadasTurma.get(id);
+  let escada = null;
+  try {
+    const s = await ctx.db.doc(`turmas/${id}`).get();
+    if (s.exists) escada = escadaLimpa(s.data().escada);
+  } catch (e) { (ctx.log || console).warn('carteirinha: escada da turma', id, e && e.message); }
+  ctx._escadasTurma.set(id, escada);
+  return escada;
+}
+
+// "Faixa Amarela · 4º grau + 2 vermelhos": o rótulo da graduação com os graus vermelhos (infantil).
+// Vermelhos só valem onde a graduação tem graus e não é faixa de mestre (grauDan).
+export function rotuloComVermelhos(peca, nome, graus, grausVermelhos, g) {
+  const p = String(peca || 'faixa');
+  const base = rotuloGraduacao(nome, graus, g);
+  const temGraus = g && Number(g.graus) > 0 && !(g && g.grauDan);
+  const v = temGraus ? Math.min(Math.max(0, Math.floor(Number(graus) || 0)), Math.max(0, Math.floor(Number(grausVermelhos) || 0))) : 0;
+  const sufixo = v ? ` + ${v} vermelho${v === 1 ? '' : 's'}` : '';
+  return `${p.charAt(0).toUpperCase()}${p.slice(1)} ${base}${sufixo}`;
+}
 
 // Sem 0/O e 1/I: dá para ditar o código por telefone sem confusão.
 const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -189,12 +216,20 @@ export async function sincronizarCarteirinha(ctx, uid) {
   const ativo = u.ativo !== false && u.statusAtual !== 'Inativo';
 
   // v34: escola de faixa — cores da escada da escola e o rótulo "Faixa Azul · 2º grau" para a conferência pública.
+  // v37: aluno com TURMA — a escada é a da turma (em qualquer escola, inclusive a nº 1), com graus vermelhos.
   let cores = coresDoCordao(cordao, u); let rotulo = null; let escola = null;
+  const escadaTurma = await escadaDaTurma(ctx, u.turmaId);
+  if (escadaTurma) {
+    const g = listaDa(escadaTurma, u.idade).find((x) => x.nome === cordao) || (escadaTurma.adulto || []).find((x) => x.nome === cordao) || (escadaTurma.kids || []).find((x) => x.nome === cordao);
+    if (g) { cores = g.cor; rotulo = rotuloComVermelhos(escadaTurma.peca || 'faixa', cordao, u.grausAtual, u.grausVermelhos, g); }
+  }
   if (u.escolaId && u.escolaId !== 'liberdade') {
     try {
-      const escada = await escadaDaEscola(ctx, u.escolaId);
-      const g = listaDa(escada, u.idade).find((x) => x.nome === cordao) || (escada.adulto || []).find((x) => x.nome === cordao);
-      if (g) { cores = g.cor; const peca = String(escada.peca || 'faixa'); rotulo = `${peca.charAt(0).toUpperCase()}${peca.slice(1)} ${rotuloGraduacao(cordao, u.grausAtual, g)}`; }
+      if (!escadaTurma) {
+        const escada = await escadaDaEscola(ctx, u.escolaId);
+        const g = listaDa(escada, u.idade).find((x) => x.nome === cordao) || (escada.adulto || []).find((x) => x.nome === cordao);
+        if (g) { cores = g.cor; rotulo = rotuloComVermelhos(escada.peca || 'faixa', cordao, u.grausAtual, u.grausVermelhos, g); }
+      }
       const sp = await ctx.db.doc(`escolasPublicas/${u.escolaId}`).get();
       if (sp.exists) {
         const e = sp.data();

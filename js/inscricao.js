@@ -9,6 +9,7 @@ import { criarConta, listarNucleosAtivos, comprimirImagemDataUrl, arquivoParaDat
 import { sanitizeInput, gerarSlug } from './shared.js';
 import { escolaIdDoEndereco, carregarEscola, aplicarCores, ESCOLA_PADRAO, escolaIdPadrao, ESCOLA_NEUTRA } from './escola-atual.js';
 import { MODALIDADES } from './modalidades.js';
+import { buscarTurma, turmasPublicas, corOk, nomeArte, descricaoHorario } from './turmas.js';
 
 // Multi-escola: o link de inscrição de cada escola é inscricao.html?escola=<id> (o
 // Mega painel e o painel do dono mostram o link). Sem ?escola, é a escola do endereço
@@ -83,7 +84,7 @@ btnPrev.addEventListener('click', () => {
 // funcione mesmo se o Firestore estiver fora do ar) com os núcleos ativos
 // cadastrados pelo admin no sistema novo (mesmo id/slug reaproveitado). =====
 const selectNucleo = document.getElementById('localTreinoSelect');
-(async function popularNucleos() {
+const nucleosProntos = (async function popularNucleos() {
   try {
     const nucleos = (await listarNucleosAtivos(ESCOLA_ID)).sort((a, b) => Number(!!b.sede) - Number(!!a.sede) || String(a.nome || '').localeCompare(String(b.nome || '')));
     nucleos.forEach((n) => {
@@ -103,6 +104,98 @@ const selectNucleo = document.getElementById('localTreinoSelect');
     console.warn('Não foi possível carregar núcleos do Firestore, usando lista padrão.', e);
   }
 })();
+
+// ===== Turmas (v37) =====
+// Link da turma: inscricao.html?escola=<id>&turma=<id> (o painel gera). A turma pertence a um
+// núcleo: com ?turma o núcleo vem travado no da turma e o cadastro nasce com turmaId. Sem
+// ?turma, se a escola tem turmas públicas aparece o seletor opcional "Turma" ("Turma do núcleo"
+// = sem turmaId, como sempre foi). Sem turma nenhuma, nada muda na tela.
+const TURMA_ID_DO_LINK = (() => {
+  try { const t = new URLSearchParams(location.search).get('turma') || ''; return /^[A-Za-z0-9_-]{1,80}$/.test(t) ? t : ''; } catch (e) { return ''; }
+})();
+const wrapTurma = document.getElementById('wrapTurma');
+const selectTurma = document.getElementById('turmaSelect');
+const turmaEtiqueta = document.getElementById('turmaEtiqueta');
+const turmaDica = document.getElementById('turmaDica');
+let turmaDoLink = null;   // turma vinda pela URL (trava núcleo e turma)
+let turmasDaEscola = [];  // turmas públicas da escola (seletor opcional)
+
+function mostrarEtiquetaTurma(t) {
+  if (!turmaEtiqueta) return;
+  if (!t) { turmaEtiqueta.hidden = true; turmaEtiqueta.innerHTML = ''; return; }
+  const cor = corOk(t.cor);
+  turmaEtiqueta.style.setProperty('--turma', cor);
+  turmaEtiqueta.innerHTML = '';
+  const bola = document.createElement('span'); bola.className = 'turma-cor';
+  const nome = document.createElement('span'); nome.textContent = `Turma ${String(t.nome || '').trim()}`;
+  turmaEtiqueta.appendChild(bola); turmaEtiqueta.appendChild(nome);
+  const horario = descricaoHorario(t);
+  const detalhe = [nomeArte(t.arte), horario].filter(Boolean).join(' · ');
+  if (detalhe) { const s = document.createElement('small'); s.textContent = `· ${detalhe}`; turmaEtiqueta.appendChild(s); }
+  turmaEtiqueta.hidden = false;
+}
+// Garante a opção do núcleo da turma no seletor (a lista do banco pode não ter chegado).
+function garantirOpcaoNucleo(id, nome) {
+  if (!id) return;
+  let o = Array.from(selectNucleo.options).find((x) => x.value === id);
+  if (!o) { o = document.createElement('option'); o.value = id; o.textContent = nome || id; selectNucleo.appendChild(o); }
+}
+function preencherSeletorTurma(turmas, academiaId) {
+  if (!selectTurma) return;
+  const atual = selectTurma.value;
+  selectTurma.innerHTML = '';
+  const padrao = document.createElement('option'); padrao.value = ''; padrao.textContent = 'Turma do núcleo'; selectTurma.appendChild(padrao);
+  const visiveis = turmas.filter((t) => !academiaId || !t.academiaId || t.academiaId === academiaId)
+    .sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || '')));
+  visiveis.forEach((t) => {
+    const o = document.createElement('option'); o.value = t.id;
+    const horario = descricaoHorario(t);
+    o.textContent = `${String(t.nome || '').trim()}${horario ? ` (${horario})` : ''}`;
+    o.dataset.academia = t.academiaId || '';
+    selectTurma.appendChild(o);
+  });
+  if (visiveis.some((t) => t.id === atual)) selectTurma.value = atual;
+  // Sem turma neste núcleo: o seletor não tem o que oferecer.
+  wrapTurma.hidden = visiveis.length === 0;
+}
+(async function prepararTurmas() {
+  if (!wrapTurma || !selectTurma) return;
+  try {
+    if (TURMA_ID_DO_LINK) {
+      const t = await buscarTurma(TURMA_ID_DO_LINK);
+      // Turma de outra escola ou desativada: ignora o parâmetro e segue como inscrição comum.
+      if (t && t.ativa !== false && (!t.escolaId || t.escolaId === ESCOLA_ID)) {
+        turmaDoLink = t;
+        await nucleosProntos;
+        garantirOpcaoNucleo(t.academiaId, t.academiaNome);
+        if (t.academiaId) { selectNucleo.value = t.academiaId; selectNucleo.disabled = true; }
+        selectTurma.innerHTML = '';
+        const o = document.createElement('option'); o.value = t.id; o.textContent = String(t.nome || '').trim(); o.selected = true; selectTurma.appendChild(o);
+        selectTurma.disabled = true;
+        if (turmaDica) turmaDica.textContent = 'Turma definida pelo link de inscrição que você recebeu.';
+        wrapTurma.hidden = false;
+        mostrarEtiquetaTurma(t);
+        return;
+      }
+    }
+    turmasDaEscola = await turmasPublicas(ESCOLA_ID);
+    if (!turmasDaEscola.length) return;
+    await nucleosProntos;
+    preencherSeletorTurma(turmasDaEscola, selectNucleo.value);
+    selectNucleo.addEventListener('change', () => { preencherSeletorTurma(turmasDaEscola, selectNucleo.value); mostrarEtiquetaTurma(turmasDaEscola.find((t) => t.id === selectTurma.value) || null); });
+    selectTurma.addEventListener('change', () => {
+      const t = turmasDaEscola.find((x) => x.id === selectTurma.value) || null;
+      // Escolheu a turma antes do núcleo: o núcleo passa a ser o da turma.
+      if (t && t.academiaId && selectNucleo.value !== t.academiaId) { garantirOpcaoNucleo(t.academiaId, t.academiaNome); selectNucleo.value = t.academiaId; }
+      mostrarEtiquetaTurma(t);
+    });
+  } catch (e) { console.warn('turmas da inscrição', e); }
+})();
+// turmaId que vai no cadastro ('' = turma do núcleo) e o núcleo efetivo (o da turma, quando ela veio pelo link).
+function turmaEscolhida() {
+  if (turmaDoLink) return turmaDoLink;
+  return (selectTurma && selectTurma.value && turmasDaEscola.find((t) => t.id === selectTurma.value)) || null;
+}
 
 // Identidade da escola do link (só quando não é a Liberdade: a página já nasce com a dela).
 if (ESCOLA_ID !== ESCOLA_PADRAO) {
@@ -354,8 +447,12 @@ form.addEventListener('submit', async (e) => {
   const data = {};
   Object.keys(dataRaw).forEach(k => { data[k] = sanitizeInput(dataRaw[k]); });
 
+  // Turma (v37): com ?turma no link o núcleo é o da turma (o seletor fica travado e um
+  // select desabilitado não entra no FormData — por isso o valor sai do próprio select).
+  const turma = turmaEscolhida();
   const nomeAcademiaSelecionada = selectNucleo.selectedOptions[0] ? selectNucleo.selectedOptions[0].textContent : data.localTreino;
-  const academiaId = data.localTreino || gerarSlug(nomeAcademiaSelecionada);
+  const academiaId = (turma && turma.academiaId) || data.localTreino || selectNucleo.value || gerarSlug(nomeAcademiaSelecionada);
+  const turmaId = turma && typeof turma.id === 'string' ? turma.id : '';
 
   try {
     const dadosPerfil = {
@@ -369,6 +466,8 @@ form.addEventListener('submit', async (e) => {
       cidade: data.cidade,
       academiaId,
       academiaNome: nomeAcademiaSelecionada,
+      // Turma escolhida (link ?turma= ou seletor). Só grava quando há turma: sem o campo = turma do núcleo.
+      ...(turmaId ? { turmaId } : {}),
       cordaoAtual: 'Iniciante',
       statusAtual: 'Ativo',
       saude: {

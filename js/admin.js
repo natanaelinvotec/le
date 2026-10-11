@@ -26,24 +26,206 @@ lancarPagamento, listarPagamentosDoNucleo, marcarPagamento,
 lancarDespesaComRateio, todosRateios, marcarRateioPago,
   presencasDoNucleo, presencasVisitantesDoNucleo, salvarFotoPerfil, comMinhaEscola,
 } from './firebase.js';
-import { iniciarGestao, abrirTela as abrirTelaGestao, renderRelatoriosGerais, exportarExcel, exportarPDF } from './gestao.js?v=20261009';
+import { iniciarGestao, abrirTela as abrirTelaGestao, renderRelatoriosGerais, exportarExcel, exportarPDF } from './gestao.js?v=20261011';
 import { iniciarAniversarios, renderAniversarios, lembrete48h } from './aniversarios.js?v=20261001';
-import { CONDICOES, lacosHTML, lacoSVG, normalizarInclusao, temInclusao, resumoInclusao, apoiosChecklistHTML, ligarChecklist, apoiosMarcados, materiaisHTML, garantirEstilos as estilosInclusao } from './inclusao.js?v=20261006';
+import { CONDICOES, lacosHTML, lacoSVG, normalizarInclusao, temInclusao, resumoInclusao, apoiosChecklistHTML, ligarChecklist, apoiosMarcados, materiaisHTML, garantirEstilos as estilosInclusao } from './inclusao.js?v=20261011';
 estilosInclusao();
-{ const mi = document.getElementById('materiaisInclusao'); if (mi) mi.innerHTML = materiaisHTML([], { modo: 'cards' }); }
+{ const mi = document.getElementById('materiaisInclusao'); if (mi) mi.innerHTML = materiaisHTML([], { modo: 'cards' }); } // repintado por turma em pintarMateriaisInclusao()
 import { iniciarExperiencia, abrirAcessibilidade, tutorial, pedirAceiteSeNecessario } from './experiencia.js';
 import { ligarContador, abrirCentral, ouvirPushComAppAberto } from './notificacoes.js?v=20260926e';
 import { apresentacaoDe, migrarApresentacao, tocarApresentacao, tocarAoEntrar, gerenciarApresentacao, abrirMinhaConta, abrirTrocaSenha, definirAutor, podeTerApresentacao, formatarCelular, celularValido, celularDe } from './conta.js?v=20261006';
 import { escapeHTML, sanitizeInput, debounce, gerarSlug, urlSegura, urlImagem, argJS } from './shared.js';
-import { BRASOES, porId as brasaoPorId, urlThumb as brasaoThumb, ehManual as brasaoManual } from './brasoes.js?v=20261012';
+import { BRASOES, porId as brasaoPorId, urlThumb as brasaoThumb, ehManual as brasaoManual } from './brasoes.js?v=20261011b';
 import { configurarFaceId, atualizarContextoFaceId, pararFaceId } from './faceid.js?v=20261007';
 import { conferirTempo } from './modalidades.js';
 import { ESCOLA, ORDEM_CORDOES as ORDEM_ESCOLA, CORDOES_ADULTO as ADULTO_ESCOLA, CORDOES_KIDS as KIDS_ESCOLA, CRITERIOS as CRITERIOS_ESCOLA, linkMapa as linkMapaEscola, IDADE_KIDS, rotuloGrad } from './escola.js';
+import { faixaSVG } from './faixas.js';
+import { turmaPadrao, carregarTurmas, criarTurma, turmaAtivaId, definirTurmaAtiva, turmaIdDe, turmaDe, filtrarPorTurma, contarPorTurma, usarEscadaDa, seletorTurmaHTML, formTurmaHTML, lerFormTurma, ligarFormTurma, etiquetaTurmaHTML, garantirEstilosTurma } from './turmas.js';
 // Escada infantil: idade da escola (Liberdade 12; Jiu-Jitsu 16; sem escada infantil = nunca).
 // Mesmo critério de antes (idade não informada conta como infantil quando a escola tem infantil).
 const ehKids = (idade) => (Number(idade) || 0) < IDADE_KIDS;
 
 let sessaoAtual = null; // { uid, nome, email, papeis, academiaId, academiaGerenciadaId, ... }
+
+/* ---------------------- TURMAS (v37) ----------------------
+   Uma TURMA é uma arte marcial dentro do núcleo (js/turmas.js). O painel tem uma
+   turma ATIVA por núcleo (localStorage); trocar a turma troca a escada em uso
+   (usarEscadaDa) e filtra alunos, presenças, financeiro, árvore, KPIs e gráficos.
+   Sem turmaId = turma PADRÃO (a que sempre existiu) — a Liberdade não muda nada. */
+let turmasDoNucleo = []; // turmas do núcleo em foco (sem a padrão)
+let turmaAtiva = null;   // objeto da turma ativa (padrão → turmaPadrao(academia))
+
+// Núcleo em foco para as turmas: o gerenciado pelo gestor; Admin Master usa o
+// filtro de núcleo ('' = todos os núcleos → sem turma, sem seletor).
+function nucleoDaTurma() {
+  if (!sessaoAtual) return null;
+  if (ehAdmin()) { const f = document.getElementById('filtroAcademia'); return (f && f.value) || null; }
+  return sessaoAtual.academiaGerenciadaId || null;
+}
+function academiaAtual() {
+  const id = nucleoDaTurma();
+  if (!id) return null;
+  const n = (todosNucleos || []).find((x) => x.id === id);
+  return n ? { id: n.id, nome: n.nome || '', mensalidade: n.mensalidadeValor } : { id, nome: '' };
+}
+function turmaAtivaObj() {
+  const id = nucleoDaTurma();
+  const academia = academiaAtual();
+  const ativaId = id ? turmaAtivaId(id) : '';
+  return (ativaId && turmasDoNucleo.find((t) => t.id === ativaId)) || turmaPadrao(academia);
+}
+// Arte marcial em uso: a da turma do aluno aberto no modal (ou da turma ativa) — define os
+// textos/PDFs de inclusão ("no tatame" em vez de "na roda") e os termos das telas.
+function arteDaTurma(t) { return (t && t.arte) || (ESCOLA && ESCOLA.modalidade) || 'capoeira'; }
+function arteDoAlunoSelecionado() {
+  const t = usuarioSelecionado ? turmaDe(usuarioSelecionado, turmasDoNucleo, academiaAtual()) : (turmaAtiva || turmaAtivaObj());
+  return arteDaTurma(t);
+}
+function pintarMateriaisInclusao() {
+  const mi = document.getElementById('materiaisInclusao');
+  if (mi) mi.innerHTML = materiaisHTML([], { modo: 'cards', arte: arteDaTurma(turmaAtiva || turmaAtivaObj()) });
+}
+const turmaAtivaEhPadrao = () => { const t = turmaAtiva || turmaAtivaObj(); return !t || !!t.padrao; };
+// Núcleo com turmas criadas: aí sim o painel filtra (a padrão fica só com quem não tem turmaId).
+const nucleoTemTurmas = () => turmasDoNucleo.length > 0;
+// Filtra uma lista de usuários pela turma ativa. Sem núcleo em foco (Admin em
+// "todos") ou sem turmas criadas, devolve a lista como está — zero mudança para quem não usa turmas.
+function alunosDaTurma(lista) {
+  const id = nucleoDaTurma();
+  if (!id || !nucleoTemTurmas()) return lista || [];
+  return filtrarPorTurma(lista, turmaAtivaId(id), turmasDoNucleo);
+}
+// A escada em uso tem graus (faixas com ponteira) — capoeira não tem.
+const escadaUsaGraus = () => cordoesAdulto.some((g) => Number(g.graus) > 0 || g.ponteira) || cordoesKids.some((g) => Number(g.graus) > 0 || g.ponteira);
+// Lista para gestao.js/aniversários: alunos da turma ativa + quem não é só aluno
+// (responsáveis, instrutores, Fundador, a própria sessão), para assinaturas e nomes não sumirem.
+function usuariosParaGestao() {
+  if (!nucleoTemTurmas()) return todosUsuarios;
+  const daTurma = new Set(alunosDaTurma(todosUsuarios).map((u) => u.id));
+  return todosUsuarios.filter((u) => daTurma.has(u.id) || u.acessoGeral === true || (u.papeis || []).some((p) => p === 'mestre' || p === 'instrutor' || p === 'admin') || (sessaoAtual && u.id === sessaoAtual.uid));
+}
+
+// Lê as turmas do núcleo em foco e aplica a escada da turma ativa (ANTES de desenhar).
+async function carregarTurmasDoPainel(opts = {}) {
+  const id = nucleoDaTurma();
+  if (!id) { turmasDoNucleo = []; turmaAtiva = turmaPadrao(null); usarEscadaDa(null); return; }
+  try { turmasDoNucleo = await carregarTurmas(id, opts); } catch (e) { console.warn('turmas', e); turmasDoNucleo = []; }
+  turmaAtiva = turmaAtivaObj();
+  usarEscadaDa(turmaAtiva);
+}
+
+// Quem pode criar turma: Fundador, Admin Master ou o gestor do núcleo. Instrutor solo não.
+function podeCriarTurma() {
+  if (!sessaoAtual) return false;
+  if (ehAdmin() || souFundador(sessaoAtual)) return !!nucleoDaTurma();
+  return ehGestor() && !!sessaoAtual.academiaGerenciadaId && nucleoDaTurma() === sessaoAtual.academiaGerenciadaId;
+}
+
+// Bloco "Turma ativa" da barra lateral + rótulos dos grupos do menu.
+function montarSeletorTurma() {
+  const wrap = document.getElementById('turmaSeletor');
+  if (!wrap) return;
+  garantirEstilosTurma();
+  const id = nucleoDaTurma();
+  const grupoNucleo = document.getElementById('navGrupoNucleo');
+  const grupoComp = document.getElementById('navGrupoCompartilhado');
+  if (!id) {
+    wrap.innerHTML = ''; wrap.hidden = true;
+    if (grupoNucleo) grupoNucleo.textContent = 'Núcleo';
+    if (grupoComp) grupoComp.hidden = true;
+    return;
+  }
+  const academia = academiaAtual();
+  turmaAtiva = turmaAtivaObj();
+  const contagem = contarPorTurma(todosUsuarios.filter((u) => (u.papeis || []).includes('aluno') && u.academiaId === id), turmasDoNucleo);
+  wrap.hidden = false;
+  wrap.innerHTML = seletorTurmaHTML({ turmas: turmasDoNucleo, ativaId: turmaAtiva.padrao ? '' : turmaAtiva.id, contagem, academia, podeCriar: podeCriarTurma() });
+  const btn = wrap.querySelector('#turmaAtualBtn');
+  const lista = wrap.querySelector('#turmaLista');
+  if (btn && lista) {
+    btn.addEventListener('click', () => { const aberto = btn.getAttribute('aria-expanded') === 'true'; btn.setAttribute('aria-expanded', String(!aberto)); lista.hidden = aberto; });
+    lista.querySelectorAll('.turma-item').forEach((item) => item.addEventListener('click', () => { trocarTurmaAtiva(item.dataset.turma || ''); }));
+  }
+  const nova = wrap.querySelector('#turmaNovaBtn');
+  if (nova) nova.addEventListener('click', () => abrirModalTurma());
+  // Contexto no menu: "Turma · Boxe" quando a ativa não é a padrão; Avisos e Materiais ficam em "Núcleo · todas as turmas".
+  if (grupoNucleo) grupoNucleo.textContent = turmaAtiva.padrao ? 'Núcleo' : `Turma · ${turmaAtiva.nome || ''}`;
+  if (grupoComp) grupoComp.hidden = !!turmaAtiva.padrao;
+}
+
+// Troca a turma ativa e redesenha tudo que depende dela.
+async function trocarTurmaAtiva(turmaId) {
+  const id = nucleoDaTurma();
+  if (!id) return;
+  definirTurmaAtiva(id, turmaId || '');
+  await redesenharPorTurma();
+  if (window.__fecharMenu && window.matchMedia('(max-width: 900px)').matches) window.__fecharMenu();
+}
+async function redesenharPorTurma() {
+  turmaAtiva = turmaAtivaObj();
+  usarEscadaDa(turmaAtiva);
+  montarSeletorTurma();
+  pintarMateriaisInclusao();
+  aplicarFiltros(); // grid, cartão de destaque, árvore, KPIs e gráficos
+  preencherAlunosFinanceiro();
+  definirTipoLancamento(tipoLancamento);
+  const abaAtiva = document.querySelector('.aba-content.active');
+  const abaId = abaAtiva ? String(abaAtiva.id || '').replace(/^aba-/, '') : '';
+  try { await Promise.all([carregarFinanceiro(), carregarPresencas()]); } catch (e) { console.warn('redesenho por turma', e); }
+  if (['indicadores', 'graduacao', 'eventos', 'auditoria', 'lgpd'].includes(abaId)) { try { abrirTelaGestao(abaId); } catch (e) { /* ok */ } }
+  if (abaId === 'aniversarios') { try { renderAniversarios(); } catch (e) { /* ok */ } }
+}
+
+/* Modal "Nova turma" */
+let modalTurmaLigado = false;
+function abrirModalTurma() {
+  const modal = document.getElementById('modalNovaTurma');
+  const wrap = document.getElementById('formTurmaWrap');
+  const academia = academiaAtual();
+  if (!modal || !wrap || !academia || !podeCriarTurma()) return;
+  garantirEstilosTurma();
+  const professores = todosUsuarios
+    .filter((u) => (u.papeis || []).some((p) => p === 'mestre' || p === 'instrutor') && (u.academiaId === academia.id || u.academiaGerenciadaId === academia.id))
+    .map((u) => ({ id: u.id, nome: u.nome || u.email || 'Professor' }))
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  if (sessaoAtual && !professores.some((p) => p.id === sessaoAtual.uid)) professores.unshift({ id: sessaoAtual.uid, nome: sessaoAtual.nome || sessaoAtual.email || 'Eu' });
+  wrap.innerHTML = formTurmaHTML({ professores, sessao: sessaoAtual, academia });
+  ligarFormTurma(wrap);
+  const sub = document.getElementById('modalNovaTurmaSub');
+  if (sub) sub.textContent = `Uma nova arte marcial dentro do núcleo ${academia.nome || ''}, com os próprios alunos, graduação e mensalidade. A Rede, os avisos e os materiais continuam sendo do núcleo.`;
+  if (!modalTurmaLigado) {
+    modalTurmaLigado = true;
+    const btn = document.getElementById('btnCriarTurma');
+    if (btn) btn.addEventListener('click', salvarNovaTurma);
+    wrap.addEventListener('submit', (ev) => { ev.preventDefault(); salvarNovaTurma(); });
+    modal.addEventListener('click', (ev) => { if (ev.target === modal) window.fecharModalTurma(); });
+  }
+  modal.style.display = 'flex';
+  const primeiro = wrap.querySelector('#turmaArte'); if (primeiro) primeiro.focus({ preventScroll: true });
+}
+window.fecharModalTurma = () => { const m = document.getElementById('modalNovaTurma'); if (m) m.style.display = 'none'; };
+async function salvarNovaTurma() {
+  const btn = document.getElementById('btnCriarTurma');
+  const wrap = document.getElementById('formTurmaWrap');
+  const academia = academiaAtual();
+  if (!btn || !wrap || !academia || !podeCriarTurma()) return;
+  btn.disabled = true;
+  try {
+    const dados = lerFormTurma(wrap);
+    dados.nome = sanitizeInput(dados.nome || '');
+    const turma = await criarTurma(academia, dados, sessaoAtual);
+    toast(`Turma "${turma.nome}" criada!`);
+    window.fecharModalTurma();
+    turmasDoNucleo = await carregarTurmas(academia.id, { forcar: true });
+    definirTurmaAtiva(academia.id, turma.id);
+    await redesenharPorTurma();
+  } catch (e) {
+    console.error(e);
+    toast(e && e.message && !/permission|insufficient/i.test(e.message) ? e.message : 'Não foi possível criar a turma (confira a permissão do núcleo).', 'error', 6000);
+  } finally {
+    btn.disabled = false;
+  }
+}
 
 const ehAdmin = () => !!sessaoAtual && (sessaoAtual.papeis || []).includes('admin');
 const ehMestre = () => !!sessaoAtual && (sessaoAtual.papeis || []).includes('mestre');
@@ -107,6 +289,16 @@ let arvoreSelecionado = null;
 // (souFundador() lê usuarios). Se essa leitura falhar, cai pra lista do núcleo.
 let arvoreUsuarios = null;
 const arvUsuarios = () => arvoreUsuarios || todosUsuarios;
+// Turma ativa diferente da padrão: a árvore mostra só quem é da turma, mais o
+// professor responsável por ela e a raiz (o gestor/fundador). Padrão: árvore inteira.
+function arvUsuariosVisiveis() {
+  const t = turmaAtiva || turmaAtivaObj();
+  if (!t || t.padrao || !nucleoTemTurmas()) return arvUsuarios();
+  const ids = new Set(alunosDaTurma(arvUsuarios()).map((u) => u.id));
+  if (t.professorUid) ids.add(t.professorUid);
+  const raiz = arvRaizUid(); if (raiz) ids.add(raiz);
+  return arvUsuarios().filter((u) => ids.has(u.id));
+}
 let arvoreIndice = {};
 let arvorePais = {};
 const CORES_AVATAR = ['#002D72', '#0B5C52', '#8E44AD', '#B9770E', '#1B5FC2', '#00794F'];
@@ -185,7 +377,7 @@ return;
 }
 arvoreIndice = {}; arvorePais = {};
 if (!arvoreAbertos.size) arvoreAbertos.add(raiz.id); // o topo já começa aberto
-wrap.innerHTML = `<div class="arv-arvore">${arvNoHTML(raiz, arvUsuarios(), todosNucleos, true)}</div>`;
+wrap.innerHTML = `<div class="arv-arvore">${arvNoHTML(raiz, arvUsuariosVisiveis(), todosNucleos, true)}</div>`;
 if (!wrap.dataset.ligado) {
 wrap.dataset.ligado = '1';
 wrap.addEventListener('click', (ev) => { const c = ev.target.closest('.arv-pessoa'); if (c) arvAlternar(c.dataset.arvId); });
@@ -202,7 +394,7 @@ if (arvoreSelecionado && arvoreIndice[arvoreSelecionado]) arvMostrarDetalhe(arvo
 function arvAlternar(id) {
 const pessoa = arvoreIndice[id];
 if (!pessoa) return;
-const temFilhos = obterFilhosDiretosFormacao(id, arvUsuarios(), todosNucleos).length > 0;
+const temFilhos = obterFilhosDiretosFormacao(id, arvUsuariosVisiveis(), todosNucleos).length > 0;
 if (temFilhos) { if (arvoreAbertos.has(id)) arvoreAbertos.delete(id); else arvoreAbertos.add(id); }
 arvoreSelecionado = id;
 renderizarArvoreFormacao();
@@ -222,7 +414,7 @@ if (!det) return;
 const cor = arvCoresCordao(pessoa);
 const temNotas = !!(pessoa.notas && Object.keys(pessoa.notas).length);
 const porc = temNotas ? calcularPorcentagemEvolucaoDe(pessoa) : null;
-const filhos = arvOrdenar(obterFilhosDiretosFormacao(pessoa.id, arvUsuarios(), todosNucleos));
+const filhos = arvOrdenar(obterFilhosDiretosFormacao(pessoa.id, arvUsuariosVisiveis(), todosNucleos));
 const prontos = filhos.filter((f) => f.notas && calcularPorcentagemEvolucaoDe(f) >= 70).length;
 const nucleo = pessoa.academiaGerenciadaId ? todosNucleos.find((n) => n.id === pessoa.academiaGerenciadaId) : null;
 // Escopo honesto: admin/fundador leem o grupo todo; um mestre só lê o próprio
@@ -230,7 +422,7 @@ const nucleo = pessoa.academiaGerenciadaId ? todosNucleos.find((n) => n.id === p
 const escopoCompleto = ehAdmin() || souFundador(sessaoAtual);
 const leNucleo = (id) => escopoCompleto || id === sessaoAtual.academiaGerenciadaId;
 const alunosAtivos = nucleo && leNucleo(nucleo.id) ? arvUsuarios().filter((u) => (u.papeis || []).includes('aluno') && u.academiaId === nucleo.id && u.statusAtual !== 'Inativo').length : null;
-const descendentes = coletarDescendentesFormacao(pessoa.id, arvUsuarios(), todosNucleos);
+const descendentes = coletarDescendentesFormacao(pessoa.id, arvUsuariosVisiveis(), todosNucleos);
 const redeCompleta = escopoCompleto || !descendentes.some((d) => d.academiaGerenciadaId && !leNucleo(d.academiaGerenciadaId)) && !(nucleo && !leNucleo(nucleo.id));
 const rede = redeCompleta ? descendentes.length : '—';
 // presenças no mês: só quando as presenças do núcleo dessa pessoa já foram lidas
@@ -246,7 +438,7 @@ const podeEditar = ehAdmin() || ehGestor() || ehInstrutorLogado();
 det.innerHTML = `
 <div class="arv-det-topo">
 ${arvFotoHTML(pessoa, 'arv-foto-g')}
-<div><h3>${escapeHTML(pessoa.nome || 'Sem nome')}</h3><div class="arv-grad">Cordão ${escapeHTML(pessoa.cordaoAtual || 'Iniciante')}${pessoa.idade ? ` · ${escapeHTML(pessoa.idade)} anos` : ''}</div></div>
+<div><h3>${escapeHTML(pessoa.nome || 'Sem nome')}</h3><div class="arv-grad">${escapeHTML(rotuloGrad(pessoa.cordaoAtual || 'Iniciante', pessoa.grausAtual, pessoa.grausVermelhos))}${pessoa.idade ? ` · ${escapeHTML(pessoa.idade)} anos` : ''}</div></div>
 </div>
 <div class="arv-chips">
 <span class="pill ${status.k}">${status.t}</span>
@@ -467,14 +659,19 @@ nav.querySelectorAll('.nav-item').forEach((a) => { if (!a.title) a.title = (a.qu
 mostrarSkeletons();
 renderizarKpisGestao();
 // 1) Pinta na hora com o que o aparelho já tem da última visita (0 leituras).
+//    As turmas do núcleo entram aqui também: a escada da turma ativa precisa
+//    estar aplicada (usarEscadaDa) ANTES de qualquer cartão ser desenhado.
 try {
-const [nucCache, usuCache] = await Promise.all([listarDoCache('nucleos'), ehAdmin() ? listarDoCache('usuarios') : (ehGestor() ? listarDoCache('usuarios', sessaoAtual.academiaGerenciadaId || '__none__') : Promise.resolve([]))]);
+const [nucCache, usuCache] = await Promise.all([listarDoCache('nucleos'), ehAdmin() ? listarDoCache('usuarios') : (ehGestor() ? listarDoCache('usuarios', sessaoAtual.academiaGerenciadaId || '__none__') : Promise.resolve([])), carregarTurmasDoPainel()]);
 if (nucCache.length) todosNucleos = nucCache;
 if (usuCache.length) { todosUsuarios = usuCache; aplicarFiltros(); renderizarNucleosUI(); renderizarKpisGestao(); }
 } catch (e) { /* sem cache ainda: segue para o servidor */ }
 // 2) Núcleos e alunos do servidor — é o que o painel precisa para abrir de verdade.
 await Promise.all([carregarNucleos(), carregarUsuarios()]);
+usarEscadaDa(turmaAtivaObj());
 renderizarNucleosUI();
+montarSeletorTurma(); pintarMateriaisInclusao();
+aplicarFiltros();
 atualizarEstrelaHeader();
 renderizarKpisGestao();
 // 3) O resto (solicitações, avisos, materiais, financeiro, presenças, eventos)
@@ -494,8 +691,9 @@ carregarEventosResumo(),
 migrarApresentacoesDosNucleos().catch(() => {});
 renderizarCardRedeBrasoes().catch((e) => console.warn('card rede/brasões', e));
 // Indicadores, graduação, eventos, exportações, auditoria e LGPD (gestao.js).
+// usuarios(): filtrados pela turma ativa (responsáveis, Fundador e a sessão ficam sempre).
 iniciarGestao({
-sessao: () => sessaoAtual, usuarios: () => todosUsuarios, nucleos: () => todosNucleos, toast,
+sessao: () => sessaoAtual, usuarios: () => usuariosParaGestao(), nucleos: () => todosNucleos, toast,
 ehAdmin, ehGestor, fundador: () => souFundador(sessaoAtual), instrutor: ehInstrutorLogado, recarregarUsuarios: carregarUsuarios,
 });
 try { renderRelatoriosGerais(ehAdmin() && selectFiltroAcademia ? (selectFiltroAcademia.value || null) : null); } catch (e) { /* ok */ }
@@ -503,7 +701,7 @@ try { renderRelatoriosGerais(ehAdmin() && selectFiltroAcademia ? (selectFiltroAc
 if (ehGestor() || ehAdmin() || souFundador(sessaoAtual)) {
 try {
 iniciarAniversarios({
-usuarios: () => (souFundador(sessaoAtual) && !ehAdmin() && Array.isArray(arvoreUsuarios) ? arvoreUsuarios : todosUsuarios), nucleos: () => todosNucleos, sessao: () => sessaoAtual,
+usuarios: () => (souFundador(sessaoAtual) && !ehAdmin() && Array.isArray(arvoreUsuarios) ? arvoreUsuarios : usuariosParaGestao()), nucleos: () => todosNucleos, sessao: () => sessaoAtual,
 ehAdmin, fundador: () => souFundador(sessaoAtual), toast, salvarUsuario: (id, dados) => atualizar('usuarios', id, dados), exportarExcel, exportarPDF,
 });
 } catch (e) { console.warn('aniversários', e); }
@@ -597,7 +795,7 @@ alunos = todosUsuarios.filter((u) => (u.papeis || []).includes('aluno') && u.aca
 const nucleoDoc = nucleoAlvo ? todosNucleos.find((n) => n.id === nucleoAlvo) : null;
 let presencasHoje = [];
 if (nucleoAlvo) {
-if (presencasNucleoCache && presencasNucleoCache.nucleoId === nucleoAlvo) presencasHoje = presencasNucleoCache.itens;
+if (presencasNucleoCache && presencasNucleoCache.nucleoId === nucleoAlvo) presencasHoje = presencasNucleoCache.itensTodos || presencasNucleoCache.itens;
 else { try { presencasHoje = await presencasDoNucleo(nucleoAlvo, 200); } catch (e) { presencasHoje = []; } }
 }
 return {
@@ -632,8 +830,11 @@ const wrap = document.getElementById('kpisGestao');
 if (!wrap || !sessaoAtual) return;
 const instrutorSolo = !ehGestor() && ehInstrutorLogado();
 const hoje = new Date().toISOString().slice(0, 10);
-const alunos = todosUsuarios.filter((u) => (u.papeis || []).includes('aluno'));
+// Admin com núcleo escolhido no filtro: conta só esse núcleo (e a turma ativa dele).
+const nucleoKpi = ehAdmin() ? nucleoDaTurma() : null;
+const alunos = alunosDaTurma(todosUsuarios.filter((u) => (u.papeis || []).includes('aluno') && (!nucleoKpi || u.academiaId === nucleoKpi)));
 const alunosAtivos = alunos.filter((a) => a.statusAtual !== 'Inativo');
+const emTurma = !turmaAtivaEhPadrao();
 const pendentes = solicitacoesCache.filter((s) => s.status === 'pendente');
 const eventosFuturos = eventosCache ? eventosCache.filter((e) => (e.data || '') >= hoje) : null;
 const nucleoProprio = sessaoAtual.academiaGerenciadaId || null;
@@ -644,7 +845,7 @@ const checkinsMes = presencaCache ? presencaCache.itens.filter((p) => (p.entrada
 const tiles = [];
 const tile = (cor, valor, rotulo, aba, icone, nota) => tiles.push({ cor, valor, rotulo, aba, icone, nota });
 
-tile('teal', todosUsuarios.length ? String(alunosAtivos.length) : '—', ehAdmin() ? 'alunos ativos no grupo' : (instrutorSolo ? 'alunos sob minha responsabilidade' : 'alunos ativos no núcleo'), null, 'fa-user-group');
+tile('teal', todosUsuarios.length ? String(alunosAtivos.length) : '—', emTurma ? 'alunos ativos na turma' : (ehAdmin() ? (nucleoDaTurma() ? 'alunos ativos no núcleo' : 'alunos ativos no grupo') : (instrutorSolo ? 'alunos sob minha responsabilidade' : 'alunos ativos no núcleo')), null, 'fa-user-group', emTurma ? (turmaAtiva && turmaAtiva.nome) || '' : undefined);
 if (ehAdmin()) tile('navy', todosNucleos.length ? String(todosNucleos.filter((n) => n.ativo).length) : '—', 'núcleos ativos', 'nucleos', 'fa-building');
 if (ehGestor()) tile(pendentes.length ? 'gold' : 'teal', String(pendentes.length), 'solicitações pendentes', 'solicitacoes', 'fa-clock');
 tile('green', checkinsMes != null ? String(checkinsMes) : '—', 'check-ins neste mês', 'presenca', 'fa-location-dot', checkinsMes != null ? `${presencaCache.itens.length} no total` : (ehAdmin() ? 'selecione um núcleo em Presenças' : 'sem check-ins lidos ainda'));
@@ -1011,6 +1212,7 @@ if (souFundador(sessaoAtual) && !ehAdmin()) {
 try { arvoreUsuarios = await listar('usuarios'); } catch (e) { console.warn('Árvore: sem leitura geral, usando só o núcleo.', e); arvoreUsuarios = null; }
 }
 aplicarFiltros();
+montarSeletorTurma(); // contagem por turma acompanha a lista
 try { lembrete48h(); } catch (e) { /* aba de aniversários ainda não iniciada */ }
 } catch (e) {
 console.error(e);
@@ -1021,7 +1223,8 @@ if (grid) grid.innerHTML = '<div class="empty-state"><i class="fas fa-triangle-e
 }
 
 const selectFiltroAcademia = document.getElementById('filtroAcademia');
-if (selectFiltroAcademia) selectFiltroAcademia.addEventListener('change', () => { aplicarFiltros(); carregarFinanceiro(); });
+// Admin trocou o núcleo do filtro: as turmas (e a escada da turma ativa) são as desse núcleo.
+if (selectFiltroAcademia) selectFiltroAcademia.addEventListener('change', async () => { await carregarTurmasDoPainel(); montarSeletorTurma(); aplicarFiltros(); carregarFinanceiro(); });
 
 const inputBusca = document.getElementById('buscaGeral');
 if (inputBusca) inputBusca.addEventListener('input', debounce(aplicarFiltros, 200));
@@ -1047,9 +1250,10 @@ const alunos = todosUsuarios.filter((u) => (u.papeis || []).includes('aluno'));
 const ac = ehAdmin() && selectFiltroAcademia ? selectFiltroAcademia.value : '';
 const txt = inputBusca ? inputBusca.value.toLowerCase() : '';
 
-const filtrados = alunos.filter((a) => (ac === '' || a.academiaId === ac) && (txt === '' || (a.nome || '').toLowerCase().includes(txt)) && passaInclusao(a));
+// Turma ativa (v37): depois do núcleo e da busca, só os alunos da turma em foco.
+const filtrados = alunosDaTurma(alunos.filter((a) => (ac === '' || a.academiaId === ac) && (txt === '' || (a.nome || '').toLowerCase().includes(txt)) && passaInclusao(a)));
 const contInclusao = document.getElementById('contInclusao');
-if (contInclusao) { const n = alunos.filter((a) => (ac === '' || a.academiaId === ac) && temInclusao(a)).length; contInclusao.textContent = n ? `${n} com atenção` : ''; }
+if (contInclusao) { const n = alunosDaTurma(alunos.filter((a) => (ac === '' || a.academiaId === ac) && temInclusao(a))).length; contInclusao.textContent = n ? `${n} com atenção` : ''; }
 
 // O fundador (Acesso Geral) também treina como aluno no próprio núcleo que
 // administra — em vez de misturar o registro dele no meio da grade normal
@@ -1085,6 +1289,21 @@ renderizarKpisGestao();
 desenharGraficos(filtrados);
 }
 
+// Graduação no cartão: escolas com graus (faixas com ponteira) mostram a faixa em
+// miniatura e "Azul · 2º grau"; capoeira (cordões, sem graus) mantém o visual de sempre.
+function itemEscadaDe(a, nome) {
+  const lista = ehKids(Number(a.idade) || 0) ? cordoesKids : cordoesAdulto;
+  return lista.find((c) => c.nome === nome) || cordoesAdulto.find((c) => c.nome === nome) || null;
+}
+function graduacaoCardHTML(a) {
+  const nome = a.cordaoAtual || 'Iniciante';
+  if (!escadaUsaGraus()) return `<p>Rank: <strong>${escapeHTML(nome)}</strong></p>`;
+  const rotulo = rotuloGrad(nome, a.grausAtual, a.grausVermelhos);
+  const g = itemEscadaDe(a, nome);
+  const mini = g ? `<span class="faixa-mini" aria-hidden="true">${faixaSVG(g, { graus: Number(a.grausAtual) || 0, grausVermelhos: Number(a.grausVermelhos) || 0, largura: 110, altura: 12, titulo: rotulo })}</span>` : '';
+  return `<p class="card-grad">${mini}<strong>${escapeHTML(rotulo)}</strong></p>`;
+}
+
 function renderizarGrid(alunos) {
 const grid = document.getElementById('gridAlunos');
 if (!grid) return;
@@ -1110,14 +1329,16 @@ const estrelasHtml = estrelaCount > 0
 : '';
 const badges = `${ehMestreCard ? '<span class="badge">Mestre</span>' : ''}${ehInstrutorCard ? '<span class="badge" style="background:#B9770E;">Instrutor</span>' : ''}`;
 const tagTransferido = a.academiaAnteriorId && !ehAdmin() ? '' : '';
+// Etiqueta da turma (só fora da padrão) — etiquetaTurmaHTML já escapa nome e cor.
+const etiquetaTurma = a.academiaId === nucleoDaTurma() ? etiquetaTurmaHTML(turmaDe(a, turmasDoNucleo, academiaAtual())) : '';
 
 return `
 <div class="aluno-card" style="--card-index:${i}${a.origemTransferenciaDireta ? '; opacity:0.85' : ''}">
 <div class="card-top">
 <span class="foto-com-lacos"><img src="${escapeHTML(urlImagem(a.fotoUrl) || 'https://via.placeholder.com/70')}" class="card-foto" alt="Foto de ${escapeHTML(a.nome || 'aluno')}" loading="lazy">${lacosHTML(a.inclusao, { px: 24 })}</span>
 <div class="card-info">
-<h3>${escapeHTML(a.nome || 'Sem nome')} ${badges}${estrelasHtml}</h3>
-<p>Rank: <strong>${escapeHTML(a.cordaoAtual || 'Iniciante')}</strong></p>
+<h3>${escapeHTML(a.nome || 'Sem nome')} ${badges}${estrelasHtml}${etiquetaTurma}</h3>
+${graduacaoCardHTML(a)}
 <p>Idade: <strong>${escapeHTML(a.idade ?? '-')} anos</strong></p>
 <p>Núcleo: <strong>${escapeHTML(a.academiaNome || a.academiaId || '-')}</strong>${a.origemTransferenciaDireta ? ' <span style="color:var(--text-muted);">(direto)</span>' : ''}</p>
 <p>Status: <strong style="color:${statusCor}">${escapeHTML(a.statusAtual || 'Ativo')}</strong></p>
@@ -1351,6 +1572,201 @@ let notasFormadorAtuais = {};
 let criteriosAtivos = [];
 let avaliandoFormador = false;
 
+/* ---------------------- GRADUAÇÃO NO MODAL (v37: botões de grau) ----------------------
+   O que o professor faz fica PENDENTE (cordaoPendente, grausPendentes, vermelhosPendentes)
+   e só é gravado em salvarEdicaoAluno. Regras do contrato (jiu-jitsu, ditadas pelo dono):
+   - "+ Adicionar grau": grausAtual até g.graus; na escada infantil, depois dos brancos
+     entram graus VERMELHOS (grausVermelhos até g.graus); no máximo, desabilita.
+   - "Trocar faixa": sempre disponível; revela o select #modCordao (mesmo id e onchange
+     de antes) e, ao confirmar outra faixa, zera graus e vermelhos na pré-visualização.
+   Capoeira (escada sem graus): o botão de grau não aparece; "Trocar cordão" continua. */
+let listaCordoesModal = [];   // escada da pessoa (adulto ou infantil) em uso no modal
+let cordaoOriginal = '';      // o que está gravado
+let cordaoPendente = '';
+let grausPendentes = 0;
+let vermelhosPendentes = 0;
+let gradModalLigado = false;
+
+const maxGrausDe = (nome) => { const g = listaCordoesModal.find((c) => c.nome === nome); return g && Number(g.graus) > 0 ? Number(g.graus) : 0; };
+const modalUsaGraus = () => listaCordoesModal.some((c) => Number(c.graus) > 0 || c.ponteira);
+// Escada infantil em uso para a pessoa (graus vermelhos só aí) — IDADE_KIDS = 0 quando a escola não tem infantil.
+const modalEscadaInfantil = () => !!usuarioSelecionado && IDADE_KIDS > 0 && ehKids(Number(usuarioSelecionado.idade) || 0) && modalUsaGraus();
+
+// Data do último marco da graduação atual (troca de faixa ou grau) para o "desde".
+function dataUltimoMarco(u, nome) {
+  const hist = Array.isArray(u && u.historicoGraduacoes) ? u.historicoGraduacoes : [];
+  for (let i = hist.length - 1; i >= 0; i -= 1) { const h = hist[i]; if (h && h.cordao === nome && h.em && !h.legado) return h.em; }
+  return null;
+}
+const dataCurta = (iso) => { const t = Date.parse(iso || ''); return Number.isFinite(t) ? new Date(t).toLocaleDateString('pt-BR') : ''; };
+
+// (Re)constrói o bloco de graduação do modal para a escada EM USO (chamado ao abrir e
+// quando a turma do atleta troca a escada). Mantém #modGraus escondido e sincronizado.
+function montarGraduacaoModal() {
+  const u = usuarioSelecionado; if (!u) return;
+  const selCordao = document.getElementById('modCordao');
+  const idadeNumero = Number(u.idade) || 0;
+  const listaBase = ehKids(idadeNumero) ? cordoesKids : cordoesAdulto;
+  // "Mestre/Presidente" é o rank mais alto, exclusivo do fundador do grupo (acessoGeral).
+  listaCordoesModal = u.acessoGeral ? listaBase : listaBase.filter((c) => c.nome !== 'Mestre/Presidente');
+  selCordao.innerHTML = '';
+  listaCordoesModal.forEach((c, index) => { selCordao.innerHTML += `<option value="${escapeHTML(c.nome)}" data-idx="${index}">${escapeHTML(c.nome)}</option>`; });
+  selCordao.value = u.cordaoAtual || 'Iniciante';
+  // Escola nova: quem ainda está como "Iniciante" aparece na 1ª graduação da escada dela.
+  if (!selCordao.value && listaCordoesModal.length) selCordao.value = listaCordoesModal[0].nome;
+  cordaoOriginal = selCordao.value;
+  cordaoPendente = cordaoOriginal;
+  grausPendentes = Math.min(maxGrausDe(cordaoPendente) || 0, Math.max(0, Number(u.grausAtual) || 0));
+  vermelhosPendentes = modalEscadaInfantil() ? Math.min(maxGrausDe(cordaoPendente) || 0, Math.max(0, Number(u.grausVermelhos) || 0)) : 0;
+  // Rótulos pela peça da escola/turma: "Trocar faixa" / "Trocar cordão" / "Trocar nível".
+  const peca = String(ESCOLA.peca || 'graduação');
+  const txtTrocar = document.getElementById('btnTrocarFaixaTxt'); if (txtTrocar) txtTrocar.textContent = `Trocar ${peca}`;
+  const lblNova = document.getElementById('modCordaoLabel'); if (lblNova) lblNova.textContent = `Nov${/a$/i.test(peca) ? 'a' : 'o'} ${peca}:`;
+  const lblGrad = document.getElementById('modGradLabel'); if (lblGrad) lblGrad.textContent = `${peca.charAt(0).toUpperCase()}${peca.slice(1)} atual:`;
+  const troca = document.getElementById('gradTroca'); if (troca) troca.hidden = true;
+  const btnTrocar = document.getElementById('btnTrocarFaixa'); if (btnTrocar) btnTrocar.setAttribute('aria-expanded', 'false');
+  // "Já tinha" (legado): aparece quando a graduação pendente é maior que a gravada.
+  const cxLegado = document.getElementById('modCordaoLegado');
+  if (cxLegado) { cxLegado.checked = false; delete cxLegado.dataset.mexeu; cxLegado.onchange = () => { cxLegado.dataset.mexeu = '1'; }; }
+  conferirLegadoModal();
+  desenharGrausModal();
+  gerarCriteriosUI(listaCordoesModal, idadeNumero);
+  // O select continua regerando critérios/avisos ao mudar (pré-visualização da troca).
+  selCordao.onchange = () => { gerarCriteriosUI(listaCordoesModal, idadeNumero); avisarTempo(); };
+  if (!gradModalLigado) {
+    gradModalLigado = true;
+    const btnAdd = document.getElementById('btnAddGrau');
+    if (btnAdd) btnAdd.addEventListener('click', adicionarGrauPendente);
+    if (btnTrocar) btnTrocar.addEventListener('click', () => {
+      const aberto = !document.getElementById('gradTroca').hidden;
+      document.getElementById('gradTroca').hidden = aberto;
+      btnTrocar.setAttribute('aria-expanded', String(!aberto));
+      if (!aberto) { selCordao.value = cordaoPendente; selCordao.focus({ preventScroll: true }); }
+    });
+    const btnOk = document.getElementById('btnConfirmarTroca');
+    if (btnOk) btnOk.addEventListener('click', confirmarTrocaPendente);
+    const btnNao = document.getElementById('btnCancelarTroca');
+    if (btnNao) btnNao.addEventListener('click', () => { selCordao.value = cordaoPendente; selCordao.onchange(); document.getElementById('gradTroca').hidden = true; if (btnTrocar) btnTrocar.setAttribute('aria-expanded', 'false'); });
+  }
+}
+function conferirLegadoModal() {
+  const wrapLegado = document.getElementById('wrapModLegado');
+  const cxLegado = document.getElementById('modCordaoLegado');
+  if (!wrapLegado || !cxLegado) return;
+  const idxOriginal = listaCordoesModal.findIndex((c) => c.nome === cordaoOriginal);
+  const idxNovo = listaCordoesModal.findIndex((c) => c.nome === cordaoPendente);
+  const subiu = idxNovo > idxOriginal;
+  wrapLegado.hidden = !subiu;
+  // Pulou mais de um degrau: quase sempre "colocar no cordão que já tinha" → marca sozinho.
+  if (!subiu) cxLegado.checked = false; else if (!cxLegado.dataset.mexeu) cxLegado.checked = idxNovo - Math.max(0, idxOriginal) > 1;
+}
+// Desenha a faixa/cordão grande, o rótulo, o "desde" e o estado dos botões.
+// Mantém o <select id="modGraus"> escondido e sincronizado (compatível com o que já existia).
+function desenharGrausModal() {
+  const u = usuarioSelecionado; if (!u) return;
+  let wrap = document.getElementById('wrapModGraus');
+  if (!wrap) {
+    wrap = document.createElement('div'); wrap.id = 'wrapModGraus'; wrap.className = 'form-group-mod'; wrap.hidden = true;
+    wrap.innerHTML = '<label for="modGraus">Graus na ponteira:</label><select id="modGraus" class="input-padrao mod-input"></select>';
+    document.getElementById('wrapModCordao').insertAdjacentElement('afterend', wrap);
+  }
+  wrap.hidden = true;
+  const max = maxGrausDe(cordaoPendente);
+  const sel = document.getElementById('modGraus');
+  sel.innerHTML = Array.from({ length: max + 1 }, (_, g) => `<option value="${g}">${g ? escapeHTML(rotuloGrad(cordaoPendente, g)) : `${escapeHTML(cordaoPendente)} (lisa)`}</option>`).join('');
+  sel.value = String(Math.min(max, grausPendentes));
+  const g = listaCordoesModal.find((c) => c.nome === cordaoPendente) || listaCordoesModal[0] || null;
+  const rotulo = rotuloGrad(cordaoPendente, grausPendentes, vermelhosPendentes);
+  const faixa = document.getElementById('gradFaixa');
+  if (faixa) {
+    if (g && modalUsaGraus()) faixa.innerHTML = faixaSVG(g, { graus: grausPendentes, grausVermelhos: vermelhosPendentes, largura: 320, altura: 30, titulo: rotulo });
+    else if (g) { const c = Array.isArray(g.cor) ? g.cor : ['#CCC', '#CCC', '#CCC']; faixa.innerHTML = `<span class="grad-cordao" style="--c1:${escapeHTML(c[0])};--c2:${escapeHTML(c[1] || c[0])};--c3:${escapeHTML(c[2] || c[0])}"></span>`; }
+    else faixa.innerHTML = '';
+  }
+  const elRotulo = document.getElementById('gradRotulo'); if (elRotulo) elRotulo.textContent = rotulo;
+  const elDesde = document.getElementById('gradDesde');
+  if (elDesde) {
+    if (cordaoPendente !== cordaoOriginal) elDesde.textContent = `pré-visualização — era ${rotuloGrad(cordaoOriginal, u.grausAtual, u.grausVermelhos)}; grava ao Atualizar Prontuário`;
+    else if (grausPendentes !== (Number(u.grausAtual) || 0) || vermelhosPendentes !== (Number(u.grausVermelhos) || 0)) elDesde.textContent = 'grau novo — grava ao Atualizar Prontuário';
+    else { const em = dataUltimoMarco(u, cordaoOriginal); elDesde.textContent = em ? `desde ${dataCurta(em)}` : 'sem data registrada no app'; }
+  }
+  const btnAdd = document.getElementById('btnAddGrau');
+  const dica = document.getElementById('gradDica');
+  if (btnAdd) {
+    const usa = modalUsaGraus() && max > 0;
+    btnAdd.hidden = !modalUsaGraus();
+    const podeBranco = grausPendentes < max;
+    const podeVermelho = !podeBranco && modalEscadaInfantil() && vermelhosPendentes < max;
+    btnAdd.disabled = !usa || (!podeBranco && !podeVermelho);
+    btnAdd.innerHTML = `<i class="fas fa-plus" aria-hidden="true"></i> Adicionar grau${podeVermelho ? ' vermelho' : ''}`;
+    if (dica) {
+      const txt = !modalUsaGraus() ? '' : (!max ? `${cordaoPendente} não usa graus — para avançar, troque a ${ESCOLA.peca || 'faixa'}.` : (btnAdd.disabled ? `Máximo de graus — troque a ${ESCOLA.peca || 'faixa'}.` : ''));
+      dica.textContent = txt; dica.hidden = !txt;
+    }
+  }
+  avisarTempo();
+}
+function adicionarGrauPendente() {
+  const max = maxGrausDe(cordaoPendente);
+  if (!max) return;
+  if (grausPendentes < max) grausPendentes += 1;
+  else if (modalEscadaInfantil() && vermelhosPendentes < max) vermelhosPendentes += 1;
+  else return;
+  desenharGrausModal();
+}
+function confirmarTrocaPendente() {
+  const u = usuarioSelecionado; if (!u) return;
+  const selCordao = document.getElementById('modCordao');
+  const novo = selCordao.value;
+  if (!listaCordoesModal.some((c) => c.nome === novo)) return;
+  cordaoPendente = novo;
+  if (novo === cordaoOriginal) {
+    // Voltou para a graduação gravada: recupera os graus que ela já tinha.
+    grausPendentes = Math.min(maxGrausDe(novo) || 0, Math.max(0, Number(u.grausAtual) || 0));
+    vermelhosPendentes = modalEscadaInfantil() ? Math.min(maxGrausDe(novo) || 0, Math.max(0, Number(u.grausVermelhos) || 0)) : 0;
+  } else { grausPendentes = 0; vermelhosPendentes = 0; }
+  document.getElementById('gradTroca').hidden = true;
+  const btnTrocar = document.getElementById('btnTrocarFaixa'); if (btnTrocar) btnTrocar.setAttribute('aria-expanded', 'false');
+  conferirLegadoModal();
+  gerarCriteriosUI(listaCordoesModal, Number(u.idade) || 0);
+  desenharGrausModal();
+}
+// v34: tempo mínimo e idade do quadro de graduação (Jiu-Jitsu/CBJJ). Só avisa — quem decide é o professor.
+// Lê a graduação do select (pré-visualização da troca) e os graus pendentes quando é a mesma faixa.
+function avisarTempo() {
+  const u = usuarioSelecionado; if (!u) return;
+  const selCordao = document.getElementById('modCordao');
+  let box = document.getElementById('modAvisoTempo');
+  if (!box) {
+    box = document.createElement('div'); box.id = 'modAvisoTempo'; box.setAttribute('aria-live', 'polite');
+    box.style.cssText = 'display:grid;gap:6px;margin:-4px 0 12px;font-size:.82rem;line-height:1.4';
+    (document.getElementById('wrapModGraus') || document.getElementById('wrapModCordao')).insertAdjacentElement('afterend', box);
+  }
+  const escolhido = selCordao.value || cordaoPendente;
+  const graus = modalUsaGraus() && escolhido === cordaoPendente ? grausPendentes : 0;
+  const temQuadro = listaCordoesModal.some((c) => c.idadeMin || c.permanenciaMeses || c.requisitoMeses || c.grausMeses);
+  const avisos = temQuadro ? conferirTempo(listaCordoesModal, u, escolhido, graus) : [];
+  const cor = { ok: ['#E4F7EA', '#1E8449', 'fa-circle-check'], atencao: ['#FFF4E0', '#9A5B00', 'fa-triangle-exclamation'], info: ['#EAF2F1', '#0B5C52', 'fa-circle-info'] };
+  box.innerHTML = avisos.map((a) => { const [fundo, texto, ic] = cor[a.nivel] || cor.info; return `<p style="margin:0;padding:8px 10px;border-radius:10px;background:${fundo};color:${texto}"><i class="fas ${ic}"></i> ${escapeHTML(a.texto)}</p>`; }).join('');
+  box.style.display = avisos.length ? 'grid' : 'none';
+}
+// Select "Turma" do modal: a padrão + as turmas do núcleo do atleta. Só aparece quando
+// o núcleo tem turmas; só gestor/Fundador/Admin alteram (os demais veem desabilitado).
+function preencherTurmaModal(turmas, academia) {
+  const wrap = document.getElementById('wrapModTurma');
+  const sel = document.getElementById('modTurma');
+  if (!wrap || !sel || !usuarioSelecionado) return;
+  const lista = Array.isArray(turmas) ? turmas : [];
+  if (!lista.length) { wrap.hidden = true; sel.innerHTML = ''; return; }
+  const padrao = turmaPadrao(academia);
+  const atual = turmaIdDe(usuarioSelecionado);
+  sel.innerHTML = `<option value="">${escapeHTML(padrao.nome)} (turma do núcleo)</option>` + lista.map((t) => `<option value="${escapeHTML(t.id)}" ${t.id === atual ? 'selected' : ''}>${escapeHTML(t.nome)}</option>`).join('');
+  if (!lista.some((t) => t.id === atual)) sel.value = '';
+  sel.disabled = !(ehAdmin() || souFundador(sessaoAtual) || ehGestor());
+  sel.dataset.academia = (academia && academia.id) || '';
+  wrap.hidden = false;
+}
+
 window.abrirModal = function (id) {
 usuarioSelecionado = todosUsuarios.find((a) => a.id === id);
 if (!usuarioSelecionado) return;
@@ -1374,13 +1790,13 @@ caixa.innerHTML = CONDICOES.map((c) => `<label class="mod-inclusao-item${incl.co
 const wrapApoios = document.getElementById('wrapModApoios');
 const caixaApoios = document.getElementById('modInclusaoApoios');
 const condicoesMarcadas = () => [...caixa.querySelectorAll('input:checked')].map((i) => i.value);
-if (caixaApoios) { caixaApoios.innerHTML = apoiosChecklistHTML(incl); ligarChecklist(caixaApoios, condicoesMarcadas); }
+if (caixaApoios) { caixaApoios.innerHTML = apoiosChecklistHTML(incl, { arte: arteDoAlunoSelecionado() }); ligarChecklist(caixaApoios, condicoesMarcadas); }
 const materiais = document.getElementById('modInclusaoMateriais');
 const atualizarApoios = () => {
 const marcadas = condicoesMarcadas();
 if (wrapApoios) wrapApoios.hidden = marcadas.length === 0;
 if (caixaApoios && caixaApoios.atualizarSugeridos) caixaApoios.atualizarSugeridos();
-if (materiais) materiais.innerHTML = materiaisHTML(marcadas);
+if (materiais) materiais.innerHTML = materiaisHTML(marcadas, { arte: arteDoAlunoSelecionado() });
 };
 caixa.querySelectorAll('input').forEach((i) => i.addEventListener('change', () => { i.closest('label').classList.toggle('on', i.checked); const sem = document.getElementById('modInclusaoSem'); if (sem) sem.textContent = caixa.querySelectorAll('input:checked').length ? '' : 'Sem limitações'; atualizarApoios(); }));
 const sem = document.getElementById('modInclusaoSem'); if (sem) sem.textContent = incl.condicoes.length ? '' : 'Sem limitações';
@@ -1444,72 +1860,25 @@ document.getElementById('cordaoContainerWrap').style.display = 'block';
 document.getElementById('wrapModCordao').style.display = 'block';
 document.getElementById('tituloCriteriosModal').textContent = 'Critérios de Evolução (0 a 10)';
 
-const selCordao = document.getElementById('modCordao');
-selCordao.innerHTML = '';
-const idadeNumero = Number(usuarioSelecionado.idade) || 0;
-const listaCordoesBase = ehKids(idadeNumero) ? cordoesKids : cordoesAdulto;
-// "Mestre/Presidente" é o rank mais alto, exclusivo do fundador do grupo
-// (acessoGeral) — some da lista de opções pra qualquer outra pessoa.
-const listaCordoesLocal = usuarioSelecionado.acessoGeral
-? listaCordoesBase
-: listaCordoesBase.filter((c) => c.nome !== 'Mestre/Presidente');
-listaCordoesLocal.forEach((c, index) => { selCordao.innerHTML += `<option value="${escapeHTML(c.nome)}" data-idx="${index}">${escapeHTML(c.nome)}</option>`; });
-selCordao.value = usuarioSelecionado.cordaoAtual || 'Iniciante';
-// Escola nova: quem ainda está como "Iniciante" aparece na 1ª graduação da escada dela.
-if (!selCordao.value && listaCordoesLocal.length) selCordao.value = listaCordoesLocal[0].nome;
-// Graus (Jiu-Jitsu e outras artes com graus): só aparece quando a graduação escolhida tem graus.
-const desenharGraus = () => {
-  let wrap = document.getElementById('wrapModGraus');
-  if (!wrap) {
-    wrap = document.createElement('div'); wrap.id = 'wrapModGraus'; wrap.className = 'form-group-mod'; wrap.style.marginBottom = '12px';
-    wrap.innerHTML = '<label for="modGraus">Graus na ponteira:</label><select id="modGraus" class="input-padrao mod-input"></select>';
-    document.getElementById('wrapModCordao').insertAdjacentElement('afterend', wrap);
-  }
-  const item = listaCordoesLocal.find((c) => c.nome === selCordao.value);
-  const max = item && Number(item.graus) > 0 ? Number(item.graus) : 0;
-  wrap.hidden = !max;
-  const sel = document.getElementById('modGraus');
-  const atual = selCordao.value === (usuarioSelecionado.cordaoAtual || '') ? Math.min(max, Number(usuarioSelecionado.grausAtual) || 0) : 0;
-  sel.innerHTML = Array.from({ length: max + 1 }, (_, g) => `<option value="${g}">${g ? escapeHTML(rotuloGrad(selCordao.value, g)) : `${escapeHTML(selCordao.value)} (lisa)`}</option>`).join('');
-  sel.value = String(atual);
-  sel.onchange = avisarTempo;
-  avisarTempo();
-};
-// v34: tempo mínimo e idade do quadro de graduação (Jiu-Jitsu/CBJJ). Só avisa — quem decide é o professor.
-function avisarTempo() {
-  let box = document.getElementById('modAvisoTempo');
-  if (!box) {
-    box = document.createElement('div'); box.id = 'modAvisoTempo'; box.setAttribute('aria-live', 'polite');
-    box.style.cssText = 'display:grid;gap:6px;margin:-4px 0 12px;font-size:.82rem;line-height:1.4';
-    (document.getElementById('wrapModGraus') || document.getElementById('wrapModCordao')).insertAdjacentElement('afterend', box);
-  }
-  const selG = document.getElementById('modGraus');
-  const graus = selG && !document.getElementById('wrapModGraus').hidden ? Number(selG.value) || 0 : 0;
-  const temQuadro = listaCordoesLocal.some((c) => c.idadeMin || c.permanenciaMeses || c.requisitoMeses || c.grausMeses);
-  const avisos = temQuadro ? conferirTempo(listaCordoesLocal, usuarioSelecionado, selCordao.value, graus) : [];
-  const cor = { ok: ['#E4F7EA', '#1E8449', 'fa-circle-check'], atencao: ['#FFF4E0', '#9A5B00', 'fa-triangle-exclamation'], info: ['#EAF2F1', '#0B5C52', 'fa-circle-info'] };
-  box.innerHTML = avisos.map((a) => { const [fundo, texto, ic] = cor[a.nivel] || cor.info; return `<p style="margin:0;padding:8px 10px;border-radius:10px;background:${fundo};color:${texto}"><i class="fas ${ic}"></i> ${escapeHTML(a.texto)}</p>`; }).join('');
-  box.style.display = avisos.length ? 'grid' : 'none';
-}
-desenharGraus();
+// Turma do atleta (v37): a escada mostrada é a da turma DELE (pode ser diferente da
+// turma ativa, ex.: abriu pela árvore). Ao fechar o modal, volta para a da turma ativa.
+const academiaDoAluno = usuarioSelecionado.academiaId === nucleoDaTurma() ? academiaAtual() : { id: usuarioSelecionado.academiaId || null, nome: usuarioSelecionado.academiaNome || '' };
+const turmasDoAluno = usuarioSelecionado.academiaId === nucleoDaTurma() ? turmasDoNucleo : null; // null = ainda não lidas (outro núcleo)
+// Outro núcleo (abriu pela árvore/Admin em "todos"): começa na escada da escola e, se a
+// pessoa tiver turma lá, a escada dela chega logo abaixo (carregarTurmas).
+usarEscadaDa(turmasDoAluno ? turmaDe(usuarioSelecionado, turmasDoAluno, academiaDoAluno) : null);
 notasAtuais = { ...(usuarioSelecionado.notas || {}) };
-gerarCriteriosUI(listaCordoesLocal, idadeNumero);
-// Subiu o cordão aqui no prontuário: se pulou mais de um degrau é quase sempre
-// "colocar no cordão que já tinha" (lançamento do app) → marca "já tinha"
-// sozinho; a pessoa pode desmarcar se foi mesmo uma graduação de hoje.
-const wrapLegado = document.getElementById('modCordaoLegado') ? document.getElementById('wrapModLegado') : null;
-const cxLegado = document.getElementById('modCordaoLegado');
-const idxOriginal = listaCordoesLocal.findIndex((c) => c.nome === (usuarioSelecionado.cordaoAtual || 'Iniciante'));
-const conferirLegado = () => {
-  if (!wrapLegado) return;
-  const idxNovo = listaCordoesLocal.findIndex((c) => c.nome === selCordao.value);
-  const subiu = idxNovo > idxOriginal;
-  wrapLegado.hidden = !subiu;
-  if (!subiu) cxLegado.checked = false; else if (!cxLegado.dataset.mexeu) cxLegado.checked = idxNovo - Math.max(0, idxOriginal) > 1;
-};
-if (cxLegado) { cxLegado.checked = false; delete cxLegado.dataset.mexeu; cxLegado.onchange = () => { cxLegado.dataset.mexeu = '1'; }; }
-conferirLegado();
-selCordao.onchange = () => { gerarCriteriosUI(listaCordoesLocal, idadeNumero); conferirLegado(); desenharGraus(); };
+montarGraduacaoModal();
+preencherTurmaModal(turmasDoAluno || [], academiaDoAluno);
+if (!turmasDoAluno && usuarioSelecionado.academiaId) {
+  const alvo = usuarioSelecionado;
+  carregarTurmas(alvo.academiaId).then((lista) => {
+    if (usuarioSelecionado !== alvo || document.getElementById('modalAvaliacao').style.display === 'none') return;
+    preencherTurmaModal(lista, academiaDoAluno);
+    const t = turmaDe(alvo, lista, academiaDoAluno);
+    if (!t.padrao) { usarEscadaDa(t); montarGraduacaoModal(); }
+  }).catch(() => { /* sem turmas legíveis: segue com a escada em uso */ });
+}
 
 const wrapFormador = document.getElementById('wrapCriteriosFormador');
 if (avaliandoFormador) {
@@ -1729,32 +2098,50 @@ if (novaNasc) dadosAtualizados.dataNasc = novaNasc;
 
 // Graduação/fundamentos de aluno: sempre grava (todo mundo treina, mesmo
 // quem também é mestre/professor/instrutor).
-dadosAtualizados.cordaoAtual = document.getElementById('modCordao').value;
+// v37: a graduação vem do que ficou PENDENTE nos botões (cordaoPendente, grausPendentes,
+// vermelhosPendentes) — o select #modCordao pode estar no meio de uma troca não confirmada.
+dadosAtualizados.cordaoAtual = cordaoPendente || document.getElementById('modCordao').value;
 dadosAtualizados.notas = notasAtuais;
 // Troca de cordão vira um marco na trajetória do atleta (linha do tempo da
 // Rede Liberdade): guarda cordão novo, anterior, data e quem graduou.
 // Só SUBIR vira marco. Baixar o cordão não entra na trajetória: o servidor tira
 // os certificados, as trocas e as festas acima do cordão que ficou.
 // A escada certa pela idade (faixas infantis não estão na lista adulta).
-const escadaDoAluno = ehKids(usuarioSelecionado.idade) ? cordoesKids : cordoesAdulto;
+const escadaDoAluno = listaCordoesModal.length ? listaCordoesModal : (ehKids(usuarioSelecionado.idade) ? cordoesKids : cordoesAdulto);
 const idxCordaoNovo = escadaDoAluno.findIndex((c) => c.nome === dadosAtualizados.cordaoAtual);
 const idxCordaoVelho = escadaDoAluno.findIndex((c) => c.nome === (usuarioSelecionado.cordaoAtual || 'Iniciante'));
-// Graus: gravados junto; subir de grau na mesma faixa também vira marco na trajetória.
-const selGraus = document.getElementById('modGraus');
-const usaGraus = !!selGraus && !document.getElementById('wrapModGraus').hidden;
-const grausNovos = usaGraus ? Number(selGraus.value) || 0 : 0;
+// Graus: gravados junto; cada grau (branco ou vermelho) na mesma faixa vira um marco na trajetória.
+// Capoeira (escada sem graus): não grava grausAtual/grausVermelhos à toa.
+const usaGraus = modalUsaGraus();
+const grausNovos = usaGraus ? Math.max(0, Number(grausPendentes) || 0) : 0;
 const grausVelhos = Number(usuarioSelecionado.grausAtual) || 0;
-if (usaGraus || usuarioSelecionado.grausAtual !== undefined) dadosAtualizados.grausAtual = grausNovos; // capoeira: não grava campo à toa
-if (dadosAtualizados.cordaoAtual === (usuarioSelecionado.cordaoAtual || 'Iniciante') && grausNovos > grausVelhos) {
+const vermelhosNovos = usaGraus ? Math.max(0, Number(vermelhosPendentes) || 0) : 0;
+const vermelhosVelhos = Number(usuarioSelecionado.grausVermelhos) || 0;
+const mesmaFaixa = dadosAtualizados.cordaoAtual === (usuarioSelecionado.cordaoAtual || 'Iniciante');
+if (usaGraus || usuarioSelecionado.grausAtual !== undefined) dadosAtualizados.grausAtual = grausNovos;
+if (usaGraus && (vermelhosNovos > 0 || usuarioSelecionado.grausVermelhos !== undefined)) dadosAtualizados.grausVermelhos = vermelhosNovos; // na troca de faixa fica 0 quando o campo existia
+const agoraISO = new Date().toISOString();
+const marco = (extra) => ({ cordao: dadosAtualizados.cordaoAtual, anterior: dadosAtualizados.cordaoAtual, em: agoraISO, por: sessaoAtual.uid, porNome: sessaoAtual.nome || '', ...extra });
+if (mesmaFaixa && (grausNovos > grausVelhos || vermelhosNovos > vermelhosVelhos)) {
 const historico = Array.isArray(usuarioSelecionado.historicoGraduacoes) ? usuarioSelecionado.historicoGraduacoes.slice() : [];
-historico.push({ cordao: dadosAtualizados.cordaoAtual, grau: grausNovos, anterior: dadosAtualizados.cordaoAtual, anteriorGrau: grausVelhos, em: new Date().toISOString(), por: sessaoAtual.uid, porNome: sessaoAtual.nome || '' });
+for (let g = grausVelhos + 1; g <= grausNovos; g += 1) historico.push(marco({ grau: g, anteriorGrau: g - 1 }));
+for (let v = vermelhosVelhos + 1; v <= vermelhosNovos; v += 1) historico.push(marco({ grau: grausNovos, grauVermelho: v, anteriorGrau: grausNovos }));
 dadosAtualizados.historicoGraduacoes = historico.slice(-30);
 }
-if (dadosAtualizados.cordaoAtual !== (usuarioSelecionado.cordaoAtual || 'Iniciante') && idxCordaoNovo > idxCordaoVelho) {
+if (!mesmaFaixa && idxCordaoNovo > idxCordaoVelho) {
 const historico = Array.isArray(usuarioSelecionado.historicoGraduacoes) ? usuarioSelecionado.historicoGraduacoes.slice() : [];
 const jaTinha = !!(document.getElementById('modCordaoLegado') && document.getElementById('modCordaoLegado').checked && !document.getElementById('wrapModLegado').hidden);
-historico.push({ cordao: dadosAtualizados.cordaoAtual, ...(grausNovos ? { grau: grausNovos } : {}), ...(usaGraus || grausVelhos ? { anteriorGrau: grausVelhos } : {}), anterior: usuarioSelecionado.cordaoAtual || 'Iniciante', em: new Date().toISOString(), por: sessaoAtual.uid, porNome: sessaoAtual.nome || '', ...(jaTinha ? { legado: true } : {}) });
+historico.push({ cordao: dadosAtualizados.cordaoAtual, ...(grausNovos ? { grau: grausNovos } : {}), ...(usaGraus || grausVelhos ? { anteriorGrau: grausVelhos } : {}), anterior: usuarioSelecionado.cordaoAtual || 'Iniciante', em: agoraISO, por: sessaoAtual.uid, porNome: sessaoAtual.nome || '', ...(jaTinha ? { legado: true } : {}) });
 dadosAtualizados.historicoGraduacoes = historico.slice(-30);
+}
+// Turma do atleta (v37): só grava quando mudou; '' (padrão) grava null (sem deleteField aqui).
+{
+const selTurma = document.getElementById('modTurma');
+const wrapTurma = document.getElementById('wrapModTurma');
+if (selTurma && wrapTurma && !wrapTurma.hidden && !selTurma.disabled && (ehAdmin() || souFundador(sessaoAtual) || ehGestor())) {
+const novaTurma = selTurma.value || '';
+if (novaTurma !== turmaIdDe(usuarioSelecionado)) dadosAtualizados.turmaId = novaTurma || null;
+}
 }
 // Avaliação de formador: grava só pra quem tem o papel de mestre/instrutor
 // (a seção só aparece nesse caso).
@@ -1790,7 +2177,8 @@ btn.disabled = false;
 }
 };
 
-window.fecharModal = () => { document.getElementById('modalAvaliacao').style.display = 'none'; };
+// Ao fechar, a escada em uso volta a ser a da turma ATIVA (o modal pode ter usado a da turma do atleta).
+window.fecharModal = () => { document.getElementById('modalAvaliacao').style.display = 'none'; usarEscadaDa(turmaAtivaObj()); };
 
 /* ===================== SOLICITAÇÕES ===================== */
 window.abrirFormSolicitacao = function (tipo) {
@@ -2285,7 +2673,13 @@ conteudo.classList.remove('oculto');
 preencherAlunosFinanceiro();
 
 try {
-const pagamentos = nucleoAlvo ? await listarPagamentosDoNucleo(nucleoAlvo) : await listar('pagamentos');
+let pagamentos = nucleoAlvo ? await listarPagamentosDoNucleo(nucleoAlvo) : await listar('pagamentos');
+// Turmas (v37): a lista e os totais são só dos alunos da turma ativa.
+// Sem turmas criadas no núcleo, nada é filtrado (Liberdade continua igual).
+if (nucleoAlvo && nucleoTemTurmas()) {
+const uidsTurma = new Set(alunosDaTurma(todosUsuarios).map((u) => u.id));
+pagamentos = pagamentos.filter((p) => uidsTurma.has(p.alunoId));
+}
 pagamentos.sort((a, b) => (b.criadoEm || '').localeCompare(a.criadoEm || ''));
 pagamentosCache = { nucleoId: nucleoAlvo || null, itens: pagamentos };
 desenharGraficos(alunosFiltradosAtuais());
@@ -2328,9 +2722,10 @@ const sel = document.getElementById('pagamentoAluno');
 if (!sel || !sessaoAtual) return;
 const alvo = nucleoFinanceiro();
 const antes = sel.value;
-const alunos = todosUsuarios
+// Turmas (v37): lançamentos só para os alunos da turma ativa do núcleo.
+const alunos = alunosDaTurma(todosUsuarios
 .filter((u) => u.id !== sessaoAtual.uid || ehAdmin())
-.filter((u) => (u.papeis || []).includes('aluno') && u.statusAtual !== 'Inativo' && (!alvo || u.academiaId === alvo))
+.filter((u) => (u.papeis || []).includes('aluno') && u.statusAtual !== 'Inativo' && (!alvo || u.academiaId === alvo)))
 .sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'));
 sel.innerHTML = alunos.length
 ? '<option value="">Selecione o aluno…</option>' + alunos.map((a) => `<option value="${escapeHTML(a.id)}">${escapeHTML(a.nome || 'Aluno')}${a.cordaoAtual ? ` · ${escapeHTML(a.cordaoAtual)}` : ''}${ehAdmin() && !alvo ? ` · ${escapeHTML(a.academiaNome || a.academiaId || '')}` : ''}</option>`).join('')
@@ -2340,6 +2735,8 @@ if (antes && alunos.some((a) => a.id === antes)) sel.value = antes;
 let tipoLancamento = 'mensalidade';
 function valorMensalidadeDe(alunoId) {
 const a = todosUsuarios.find((u) => u.id === alunoId);
+// Turma com mensalidade própria vence a do núcleo (v37).
+if (a && a.academiaId === nucleoDaTurma()) { const t = turmaDe(a, turmasDoNucleo, academiaAtual()); if (t && !t.padrao && Number(t.mensalidade) > 0) return Number(t.mensalidade); }
 const n = a ? todosNucleos.find((x) => x.id === a.academiaId) : null;
 return n && n.mensalidadeValor ? Number(n.mensalidadeValor) : null;
 }
@@ -2457,6 +2854,12 @@ finally { btn.disabled = false; }
 }
 
 /* ===================== GRÁFICOS ====================== */
+// Presenças só de quem é da turma ativa (por uid). Núcleo sem turmas: lista inteira.
+function presencasDaTurma(itens, nucleoId) {
+  if (!nucleoId || nucleoId !== nucleoDaTurma() || !nucleoTemTurmas()) return itens || [];
+  const uidsTurma = new Set(alunosDaTurma(todosUsuarios).map((u) => u.id));
+  return (itens || []).filter((p) => uidsTurma.has(p.uid));
+}
 async function carregarPresencas() {
   const resumo = document.getElementById('presencaResumoCard');
   const cont = document.getElementById('listaPresencas');
@@ -2484,9 +2887,13 @@ async function carregarPresencas() {
     return;
   }
   let itens = [];
+  let itensTodos = [];
   try {
-    itens = await presencasDoNucleo(nucleoAlvo, 300);
-    presencasNucleoCache = { nucleoId: nucleoAlvo, itens };
+    itensTodos = await presencasDoNucleo(nucleoAlvo, 300);
+    // Turmas (v37): presenças só dos alunos da turma ativa (por uid). O conjunto
+    // completo fica em itensTodos para o Face ID não duplicar check-in de ninguém.
+    itens = presencasDaTurma(itensTodos, nucleoAlvo);
+    presencasNucleoCache = { nucleoId: nucleoAlvo, itens, itensTodos };
   } catch (e) {
     resumo.innerHTML = '<p>Não foi possível carregar as presenças agora.</p>';
     cont.innerHTML = '';
@@ -2506,7 +2913,7 @@ async function carregarPresencas() {
   const visitasFora = itens.filter((p) => p.visitante === true);
   let visitantesAqui = [];
   try { visitantesAqui = await presencasVisitantesDoNucleo(nucleoAlvo, 100); } catch (e) { visitantesAqui = []; }
-  presencasNucleoCache = { nucleoId: nucleoAlvo, itens, visitantesAqui };
+  presencasNucleoCache = { nucleoId: nucleoAlvo, itens, itensTodos, visitantesAqui };
   renderizarKpisGestao();
   const nomeNucleoCurto = (id) => { const n = (todosNucleos || []).find((x) => x.id === id); return n ? String(n.nome || id).replace(/^\s*(academia|núcleo|nucleo)\s+(d[oa]\s+)?/i, '') : (id || ''); };
   resumo.innerHTML = `<div class="presenca-resumo-grid">
@@ -2554,7 +2961,10 @@ Escravo: '#4F4F4F', Fugitivo: '#DAA520', Quilombola: '#DAA520', Vagante: '#D32F2
 Liberto: '#D32F2F', Instrutor: '#DAA520', Professor: '#D32F2F', Mestre: '#F5F5F5',
 'Mestre/Presidente': '#00B140',
 };
-return mapa[nome] || '#389E92';
+if (mapa[nome]) return mapa[nome];
+// Faixas de outras artes (turmas): a cor do meio da própria faixa na escada em uso.
+const g = cordoesAdulto.find((c) => c.nome === nome) || cordoesKids.find((c) => c.nome === nome);
+return g && Array.isArray(g.cor) && g.cor[1] ? g.cor[1] : '#389E92';
 }
 
 /* ===================== RELATÓRIOS (Inteligência do Núcleo) =====================
@@ -2593,12 +3003,14 @@ return { pct: Math.round((total / (crit.length * 10)) * 100), crit, avaliado: tr
 
 // Escopo do relatório: gestor = próprio núcleo; admin = núcleo do filtro (ou grupo todo).
 function escopoRelatorio() {
+// Turma ativa diferente da padrão entra no rótulo do escopo ("Núcleo X · Boxe").
+const sufixoTurma = !turmaAtivaEhPadrao() && turmaAtiva ? ` · ${turmaAtiva.nome || 'Turma'}` : '';
 if (ehAdmin()) {
 const ac = selectFiltroAcademia ? selectFiltroAcademia.value : '';
-return { nucleoId: ac || null, rotulo: ac ? (todosNucleos.find((n) => n.id === ac)?.nome || ac) : 'Grupo inteiro' };
+return { nucleoId: ac || null, rotulo: ac ? `${todosNucleos.find((n) => n.id === ac)?.nome || ac}${sufixoTurma}` : 'Grupo inteiro' };
 }
 const id = sessaoAtual?.academiaGerenciadaId || null;
-return { nucleoId: id, rotulo: id ? (todosNucleos.find((n) => n.id === id)?.nome || id) : 'Meus alunos' };
+return { nucleoId: id, rotulo: id ? `${todosNucleos.find((n) => n.id === id)?.nome || id}${sufixoTurma}` : 'Meus alunos' };
 }
 
 function presencasDoEscopo(escopo) {
@@ -2608,7 +3020,7 @@ if (presencasNucleoCache && presencasNucleoCache.nucleoId === escopo.nucleoId) r
 if (ehAdmin() && presencasRelatorioPendente !== escopo.nucleoId) {
 presencasRelatorioPendente = escopo.nucleoId;
 presencasDoNucleo(escopo.nucleoId, 400).then((itens) => {
-presencasNucleoCache = { nucleoId: escopo.nucleoId, itens, visitantesAqui: [] };
+presencasNucleoCache = { nucleoId: escopo.nucleoId, itens: presencasDaTurma(itens, escopo.nucleoId), itensTodos: itens, visitantesAqui: [] };
 presencasRelatorioPendente = null;
 desenharGraficos(alunosFiltradosAtuais());
 }).catch(() => { presencasRelatorioPendente = null; });
@@ -2619,7 +3031,7 @@ return null;
 function alunosFiltradosAtuais() {
 const alunos = todosUsuarios.filter((u) => (u.papeis || []).includes('aluno'));
 const ac = ehAdmin() && selectFiltroAcademia ? selectFiltroAcademia.value : '';
-return alunos.filter((a) => ac === '' || a.academiaId === ac);
+return alunosDaTurma(alunos.filter((a) => ac === '' || a.academiaId === ac));
 }
 
 function desenharGraficos(alunosAtuais) {
@@ -2687,7 +3099,9 @@ if (medias.length >= 2) insights.push({ icone: 'fa-dumbbell', cor: 'teal', titul
 /* ---- Pirâmide ---- */
 const rankCount = {};
 ativos.forEach((a) => { const r = a.cordaoAtual || 'Iniciante'; rankCount[r] = (rankCount[r] || 0) + 1; });
-const piram = ordemCordoes.filter((n) => rankCount[n]);
+// Faixas infantis com nome próprio (Cinza, Amarela… no jiu-jitsu) entram depois das adultas.
+const nomesEscada = ordemCordoes.concat(cordoesKids.map((c) => c.nome).filter((n) => !ordemCordoes.includes(n)));
+const piram = nomesEscada.filter((n) => rankCount[n]);
 criarGrafico('chartPiramide', 'bar', piram, [{ label: 'alunos', data: piram.map((n) => rankCount[n]), backgroundColor: piram.map((n) => obterCorPorCordao(n)), borderColor: '#CFD9D6', borderWidth: 1, borderRadius: 4, maxBarThickness: 40 }], { escalaY: true }, 'Nenhum aluno ativo.');
 
 /* ---- Matrículas por mês (12 meses) ---- */

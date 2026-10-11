@@ -1342,3 +1342,41 @@ test('separação: Admin da escola só pede comando sobre atleta da própria esc
   assert.equal((await pedir('c2', { tipo: 'migrar' }, 'admin')).status, 'negado', 'migração é da plataforma');
   assert.notEqual((await pedir('c3', { tipo: 'recalcularAtleta', uid: 'nat' }, 'admin')).status, 'negado', 'atleta da própria escola');
 });
+
+/* ===================== turmas por arte (v37): turmaId e grausVermelhos ===================== */
+import { CAMPOS_DO_CARTAO, turmaIdDe, grausVermelhosDe } from '../src/perfil.js';
+import { zerarGrausVermelhos } from '../src/graduacao-escola.js';
+
+test('v37: turmaId e grausVermelhos vão para o cartão público (limpos) e recalculam o cartão; faixa nova zera os vermelhos', async () => {
+  assert.ok(CAMPOS_DO_CARTAO.includes('turmaId') && CAMPOS_DO_CARTAO.includes('grausVermelhos'), 'mudar turma ou grau vermelho recalcula o cartão');
+  assert.equal(turmaIdDe({ turmaId: 'boxe-tay' }), 'boxe-tay');
+  assert.equal(turmaIdDe({}), '', 'sem turma = turma padrão do núcleo');
+  assert.equal(turmaIdDe({ turmaId: 42 }), '', 'turmaId que não é texto não passa');
+  assert.equal(grausVermelhosDe({ grausVermelhos: 3 }), 3);
+  assert.equal(grausVermelhosDe({ grausVermelhos: 2.7 }), 2, 'inteiro');
+  assert.equal(grausVermelhosDe({ grausVermelhos: 99 }), 10, 'máximo 10');
+  assert.equal(grausVermelhosDe({ grausVermelhos: -1 }), 0); assert.equal(grausVermelhosDe({}), 0);
+  // Cartão público: copia os dois campos
+  const { f, ctx } = ctxDe(base());
+  f.db.doc('usuarios/kid').set({ ...base().usuarios.kid, turmaId: 'jj-kids', grausVermelhos: 2 });
+  await sincronizarPerfil(ctx, 'kid');
+  const pub = f.ler('perfisPublicos/kid');
+  assert.equal(pub.turmaId, 'jj-kids'); assert.equal(pub.grausVermelhos, 2);
+  await sincronizarPerfil(ctx, 'nat');
+  assert.equal(f.ler('perfisPublicos/nat').turmaId, ''); assert.equal(f.ler('perfisPublicos/nat').grausVermelhos, 0);
+  // Zerar: só quando o cadastro já tem o campo (escola de capoeira não ganha o campo à toa)
+  assert.deepEqual(zerarGrausVermelhos({ grausVermelhos: 3 }), { grausVermelhos: 0 });
+  assert.deepEqual(zerarGrausVermelhos({ grausVermelhos: 0 }), { grausVermelhos: 0 });
+  assert.deepEqual(zerarGrausVermelhos({ cordaoAtual: 'Quilombola' }), {});
+  // Faixa nova numa escola de faixas: os graus vermelhos que sobraram vão a zero no servidor
+  const escada = MOD.escadaPadrao('jiujitsu');
+  const t = ctxDe(base({
+    escolas: { ct: { nome: 'CT', modalidade: 'jiujitsu', status: 'ativa', escada } },
+    nucleos: { 'ct-sede': { nome: 'CT', escolaId: 'ct' } },
+  }));
+  const antes = { nome: 'Kid CT', papeis: ['aluno'], academiaId: 'ct-sede', escolaId: 'ct', cordaoAtual: 'Branca', grausAtual: 4, grausVermelhos: 2, idade: 9, historicoGraduacoes: [] };
+  const depois = { ...antes, cordaoAtual: 'Cinza', grausAtual: 0, historicoGraduacoes: [{ cordao: 'Cinza', anterior: 'Branca', em: '2026-10-08T12:00:00.000Z', por: 'prof' }] };
+  t.f.db.doc('usuarios/kidct').set(depois);
+  assert.equal(await aoGraduarNaEscola(t.ctx, 'kidct', antes, depois), 'faixa');
+  assert.equal(t.f.ler('usuarios/kidct').grausVermelhos, 0, 'faixa nova zera os graus vermelhos');
+});

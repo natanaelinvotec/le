@@ -1,10 +1,23 @@
 /* carteirinha-comum.js — o que o app, o painel e a página de verificação
 mostram igual. A regra de validade de verdade é do servidor
-(functions/src/carteirinha.js); aqui só lemos o resultado. */
+(functions/src/carteirinha.js); aqui só lemos o resultado.
+
+v37 (turmas): o cartão segue o modelo aprovado pelo dono — fundo navy em
+gradiente com a cor da turma, guilhoché, brilho que varre, LOGO como foco
+(marca d'água, logo no cabeçalho, selo holográfico) e a barra de baixo é a
+GRADUAÇÃO: cordão em 3 cores (capoeira), faixa com ponteira e graus (brancos e
+vermelhos) ou níveis acesos. A graduação desenhada sai da escada da TURMA do
+atleta quando ele tem turma; sem turma, da escada da escola (como sempre). */
 
 import { codificarCanvas, PERFIS } from './imagem.js';
+import { faixaSVG } from './faixas.js';
+import { rotuloGrad, escadaDe, coresDoCordao, CORDOES_ADULTO, CORDOES_KIDS, ESCOLA } from './escola.js';
+import { MODALIDADES, listaDa } from './modalidades.js';
 
 export const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Só cor hexadecimal entra em style="" (o valor vem do banco).
+const HEX = /^#[0-9a-f]{3,8}$/i;
+export const corHex = (c, padrao = '#389E92') => (HEX.test(String(c || '')) ? String(c) : padrao);
 
 // "Hoje" no fuso do grupo (a carteirinha não vence às 21h por causa do UTC).
 export function hojeLocal(d = new Date()) {
@@ -61,41 +74,204 @@ export const IC = {
   escudo: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/></svg>',
 };
 
-// O cartão (frente + verso). d = { nome, cordao, cores, nucleo, matricula,
-// validade, validadeOk, foto, qrSvg, link, logo, grupo }
+// ---------- graduação desenhada no cartão ----------
+// Sistema de graduação a partir da "peça" da arte: cordão (capoeira), nível ou faixa.
+export function tipoGraduacao(peca, graduacao = null) {
+  if (['faixas', 'cordoes', 'niveis'].includes(String(graduacao || ''))) return graduacao;
+  const p = String(peca || '').toLowerCase();
+  if (p === 'cordão' || p === 'cordao') return 'cordoes';
+  if (p === 'nível' || p === 'nivel' || p === 'graduação' || p === 'graduacao') return 'niveis';
+  return 'faixas';
+}
+
+/* A graduação do atleta como o cartão desenha. u = usuário (cordaoAtual, grausAtual,
+   grausVermelhos, idade); turma = turmas/{turmaId} (escada própria) ou null → escada da escola
+   (as listas de js/escola.js, já trocadas por aplicarEscola). Devolve:
+   { tipo, g, lista, graus, grausVermelhos, cores, rotulo, peca, faixaSvg, nivel, total } */
+export function graduacaoDoCartao(u, turma = null) {
+  const nome = (u && u.cordaoAtual) || 'Iniciante';
+  const escadaTurma = turma && turma.escada && Array.isArray(turma.escada.adulto) && turma.escada.adulto.length ? turma.escada : null;
+  const peca = escadaTurma ? (escadaTurma.peca || (MODALIDADES[turma.arte] || MODALIDADES.outra).peca) : (ESCOLA.peca || 'cordão');
+  const tipo = tipoGraduacao(peca, escadaTurma ? turma.graduacao : null);
+  const lista = escadaTurma ? listaDa(escadaTurma, u && u.idade) : escadaDe(u || {});
+  let g = lista.find((x) => x.nome === nome);
+  if (!g && escadaTurma) g = (escadaTurma.adulto || []).find((x) => x.nome === nome) || ((escadaTurma.kids || []).find((x) => x.nome === nome));
+  if (!g && !escadaTurma) g = CORDOES_ADULTO.find((x) => x.nome === nome) || CORDOES_KIDS.find((x) => x.nome === nome);
+  if (!g) g = { nome, cor: escadaTurma ? ['#C8CED6', '#C8CED6', '#C8CED6'] : coresDoCordao(nome, u || {}) };
+  const cores = Array.isArray(g.cor) && g.cor.length === 3 ? g.cor.map((c) => corHex(c, '#C8CED6')) : [corHex(g.cor, '#C8CED6'), corHex(g.cor, '#C8CED6'), corHex(g.cor, '#C8CED6')];
+  const maxGraus = Number(g.graus) > 0 ? Number(g.graus) : 0;
+  const graus = maxGraus ? Math.min(10, Math.max(0, Math.floor(Number(u && u.grausAtual) || 0))) : 0;
+  // Graus vermelhos só existem onde há graus (infantil do jiu-jitsu); nunca em cordão.
+  const grausVermelhos = maxGraus ? Math.min(graus, Math.max(0, Math.floor(Number(u && u.grausVermelhos) || 0))) : 0;
+  const Peca = String(peca).charAt(0).toUpperCase() + String(peca).slice(1);
+  let texto;
+  if (Number(g.grauDan) > 0) texto = `${g.nome} · ${Number(g.grauDan) + graus}º grau`;
+  else texto = rotuloGrad(g.nome, graus, grausVermelhos);
+  const rotulo = tipo === 'niveis' ? texto : `${Peca} ${texto}`;
+  const idx = lista.findIndex((x) => x.nome === g.nome);
+  const out = { tipo, g, lista, graus, grausVermelhos, cores, rotulo, peca, nivel: idx < 0 ? 0 : idx, total: lista.length, faixaSvg: '' };
+  if (tipo === 'faixas') {
+    try {
+      out.faixaSvg = faixaSVG({ ...g, cor: cores }, { graus, grausVermelhos, largura: 128, altura: 14, titulo: rotulo }).replace('<svg ', '<svg style="width:100%;height:auto" ');
+    } catch (e) { out.faixaSvg = ''; }
+  }
+  return out;
+}
+
+// Moldura da foto nas cores da graduação (cordão: 3 faixas; faixa: corpo + ponteira; nível: cor da turma).
+export function molduraDaGraduacao(grad, corTurma = '#389E92') {
+  if (!grad) return faixas(null, '180deg');
+  if (grad.tipo === 'cordoes') return faixas(grad.cores, '180deg');
+  if (grad.tipo === 'niveis') return `linear-gradient(180deg, ${corHex(corTurma)} 0%, ${corHex(corTurma)} 60%, #04122B 100%)`;
+  const g = grad.g || {};
+  const corpo = grad.cores[0]; const meio = grad.cores[1];
+  const ponteira = corHex(g.ponteira, '');
+  if (g.padrao === 'blocos') return `repeating-linear-gradient(180deg, ${corpo} 0 12%, ${meio} 12% 24%)`;
+  return ponteira ? `linear-gradient(180deg, ${corpo} 0 68%, ${ponteira} 68% 100%)` : `linear-gradient(180deg, ${corpo} 0 100%)`;
+}
+
+// A barra de baixo da frente (e a fina do verso) = a graduação.
+export function barraGraduacaoHtml(grad, corTurma = '#389E92', classe = 'f-barra') {
+  if (!grad) return `<div class="${classe} cordao"><i style="background:#CCC"></i><i style="background:#CCC"></i><i style="background:#CCC"></i></div>`;
+  if (grad.tipo === 'cordoes') return `<div class="${classe} cordao" aria-hidden="true">${grad.cores.map((c) => `<i style="background:${c}"></i>`).join('')}</div>`;
+  if (grad.tipo === 'niveis') {
+    const n = Math.max(1, Math.min(12, grad.total || 1)); const cor = corHex(corTurma);
+    return `<div class="${classe} niveis" style="--turma:${cor}" aria-hidden="true">${Array.from({ length: n }, (_, i) => `<i class="${i <= grad.nivel ? 'aceso' : ''}"></i>`).join('')}</div>`;
+  }
+  const g = grad.g || {};
+  const fundo = g.padrao === 'blocos' ? `repeating-linear-gradient(90deg, ${grad.cores[0]} 0 12.5%, ${grad.cores[1]} 12.5% 25%)` : grad.cores[0];
+  const ponteira = corHex(g.ponteira, '');
+  const vagas = Number(g.graus) > 0 ? Number(g.graus) : grad.graus;
+  const barras = ponteira && vagas ? Array.from({ length: Math.max(vagas, grad.graus) }, (_, i) => `<i class="grau${i < grad.graus ? ' feito' : ''}${i < grad.grausVermelhos ? ' vermelho' : ''}"></i>`).join('') : '';
+  const selo = !ponteira && Number(g.grauDan) > 0 ? `<em class="dan">${esc(`${Number(g.grauDan) + grad.graus}º`)}</em>` : '';
+  return `<div class="${classe} faixa" style="background:${fundo}" aria-hidden="true">${ponteira ? `<span class="ponteira" style="background:${ponteira}">${barras}</span>` : ''}${selo}</div>`;
+}
+
+// Título do responsável para a linha do cabeçalho: "Prof. Igor Rodrigo", "Mestre Profeta".
+const ABREV = { professor: 'Prof.', professora: 'Profa.', treinador: 'Treinador', treinadora: 'Treinadora' };
+export function tituloLider(lider, nome) {
+  const n = String(nome || '').trim(); const l = String(lider || '').trim();
+  if (!n) return l;
+  if (!l) return n;
+  const semAcento = (t) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const primeira = semAcento(n.split(/\s+/)[0]).replace(/\.$/, '');
+  const base = semAcento(l);
+  // Nome já vem com o título ("Mestre Profeta", "Prof. Igor"): não repete.
+  if (primeira === base || primeira === semAcento(ABREV[base] || '').replace(/\.$/, '') || (base.startsWith(primeira) && primeira.length >= 4)) return n;
+  return `${ABREV[base] || l} ${n}`;
+}
+
+// Pílula da situação no cartão (texto curto) a partir do espelho do servidor.
+export function textoSituacao(c) {
+  if (!c) return { classe: 'neutro', texto: 'Em emissão' };
+  const s = situacao(c);
+  if (s === 'valida') return { classe: 'ok', texto: c.controle === 'mensalidade' ? 'Em dia' : 'Ativo' };
+  if (s === 'vencida') return { classe: 'ruim', texto: 'Pendente' };
+  if (s === 'semfoto') return { classe: 'neutro', texto: 'Sem foto' };
+  return { classe: 'ruim', texto: 'Inativo' };
+}
+
+// "março de 2024" a partir de um ISO (criadoEm). Vazio sem data.
+export function membroDesdeTexto(iso) {
+  const t = Date.parse(String(iso || ''));
+  if (!Number.isFinite(t)) return '';
+  try { const txt = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(new Date(t)); return txt.charAt(0).toUpperCase() + txt.slice(1); } catch (e) { return String(iso).slice(0, 7); }
+}
+
+// Logo de verdade (arquivo ou https) × monograma gerado (data:) — sem logo o cartão desenha as iniciais.
+const temLogo = (logo) => !!logo && !/^data:/i.test(String(logo));
+const monogramaHtml = (nome, classe) => `<span class="${classe}" aria-hidden="true">${esc(iniciais(nome))}</span>`;
+const logoHtml = (d, classe) => (temLogo(d.logo) ? `<img class="${classe}" src="${esc(d.logo)}" alt="">` : monogramaHtml(d.escola || d.grupo, `${classe} mono-escola`));
+
+/* O cartão (frente + verso). d = { nome, cordao, cores, nucleo, matricula, validade, validadeOk,
+   foto, qrSvg, link, logo, grupo } como sempre, mais (opcionais, v37):
+   escola (nome completo), arte ("Jiu-jitsu"), lider ("Professor"), responsavel (nome),
+   turma (nome), corTurma (#hex), grad (graduacaoDoCartao), c (espelho da carteirinha),
+   membroDesde (ISO), telefone (do núcleo), cidade, uf, rotulo, faixaSvg (compatibilidade). */
 export function cartaoHtml(d, virado = false) {
   const fotoInterna = d.foto
     ? `<img src="${esc(d.foto)}" alt="Foto da carteirinha" loading="eager" decoding="async">`
     : `${esc(iniciais(d.nome))}<small>SEM FOTO</small>`;
-  const curto = d.link ? d.link.replace(/^https:\/\//, '').replace(/#.*$/, '#…') : '';
+  const linkCurto = d.link ? String(d.link).replace(/^https?:\/\//, '') : '';
+  const grad = d.grad || null;
+  // Sem `grad` (chamada antiga): a barra de baixo segue as cores do cordão informadas.
+  const gradBarra = grad || { tipo: 'cordoes', cores: Array.isArray(d.cores) && d.cores.length === 3 ? d.cores.map((c) => corHex(c, '#CCC')) : ['#CCC', '#CCC', '#CCC'] };
+  const corTurma = corHex(d.corTurma, '#0B2E70');
+  const padrao = !d.corTurma; // turma padrão (sem cor): navy puro, como a carteirinha da Liberdade
+  const fundo = padrao
+    ? 'linear-gradient(135deg, #0B2E70 0%, #061A3A 52%, #04122B 100%)'
+    : `linear-gradient(135deg, ${corTurma} 0%, #0B2E70 52%, #04122B 100%)`;
+  const escola = d.escola || d.grupo || ESCOLA.nome;
+  const arte = d.arte || (MODALIDADES[ESCOLA.modalidade] || MODALIDADES.outra).nome;
+  const arteLinha = String(ESCOLA.modalidade || '') === 'capoeira' && (!d.arte || /capoeira/i.test(d.arte)) ? 'Grupo de Capoeira' : arte;
+  const lider = d.lider || ESCOLA.lider || 'Professor';
+  const responsavel = d.responsavel || ESCOLA.mestre || '';
+  const liderNome = tituloLider(lider, responsavel);
+  const linhaTopo = [arteLinha, liderNome].filter(Boolean).join(' · ').toUpperCase();
+  const cidade = [d.cidade ?? ESCOLA.cidade, d.uf ?? ESCOLA.uf].filter(Boolean).join(' ');
+  const micro = [escola, arte, liderNome, cidade].filter(Boolean).map((t) => String(t).toUpperCase()).join(' • ');
+  const microRepetido = `${micro} • `.repeat(4);
+  const rotulo = grad ? grad.rotulo : (d.rotulo || `Cordão ${d.cordao || 'Iniciante'}`);
+  const miniGrad = grad && grad.tipo === 'faixas' && grad.faixaSvg
+    ? `<span class="f-mini-faixa">${grad.faixaSvg}</span>`
+    : grad && grad.tipo === 'niveis'
+      ? `<span class="f-mini-niveis" style="--turma:${corHex(d.corTurma)}">${Array.from({ length: Math.max(1, Math.min(12, grad.total || 1)) }, (_, i) => `<i class="${i <= grad.nivel ? 'aceso' : ''}"></i>`).join('')}</span>`
+      : d.faixaSvg && !grad
+        ? `<span class="f-mini-faixa">${d.faixaSvg}</span>`
+        : `<i class="f-mini-cordao" style="background:${faixas(grad ? grad.cores : d.cores)}"></i>`;
+  const sit = textoSituacao(d.c || null);
+  const rotuloLider = String(lider || 'Professor').toUpperCase();
+  const membroDesde = membroDesdeTexto(d.membroDesde);
+  const telefone = String(d.telefone || '').replace(/[^\d\s()+-]/g, '').trim();
+  const assinatura = String(responsavel || escola).replace(/^(mestre|prof\.?|professora?|sensei|treinadora?|coach|sabom|kru|sifu)\s+/i, '');
   return `<div class="vira${virado ? ' virado' : ''}">
-    <div class="face frente">
-      <div class="guilhoche"></div>
-      <img class="marca-dagua" src="${esc(d.logo)}" alt="">
+    <div class="face frente" style="--turma:${corTurma};background:${fundo}">
+      <div class="guilhoche" aria-hidden="true"></div>
+      <div class="marca-dagua" aria-hidden="true">${temLogo(d.logo) ? `<img src="${esc(d.logo)}" alt="">` : `<span class="anel-mono">${esc(iniciais(escola))}</span>`}</div>
       <div class="f-conteudo">
-        <div class="f-topo"><span class="f-marca"><img src="${esc(d.logo)}" alt="">${esc(d.grupo)}</span><span class="f-tipo">CARTEIRINHA DE ATLETA</span></div>
+        <div class="f-topo">
+          <div class="f-marca">${logoHtml(d, 'f-logo')}<span class="f-marca-txt"><b>${esc(escola)}</b><small>${esc(linhaTopo)}</small></span></div>
+          <div class="f-tipo"><span>CARTEIRINHA</span><span>DE ATLETA</span></div>
+        </div>
         <div class="f-corpo">
-          <div class="f-foto" style="background:${faixas(d.cores, '180deg')}"><div>${fotoInterna}</div></div>
+          <div class="f-foto" style="background:${grad ? molduraDaGraduacao(grad, d.corTurma) : faixas(d.cores, '180deg')}"><div>${fotoInterna}</div></div>
           <div class="f-dados">
             <span class="f-nome">${esc(d.nome)}</span>
-            <span class="f-cordao">${d.faixaSvg ? `<span class="f-faixa-svg" style="display:inline-block;width:64px;line-height:0;vertical-align:middle;margin-right:6px">${d.faixaSvg}</span>` : `<i style="background:${faixas(d.cores)}"></i>`}${d.rotulo ? esc(d.rotulo) : `Cordão ${esc(d.cordao)}`}</span>
+            <div class="f-pilulas">
+              <span class="f-cordao" title="${esc(rotulo)}">${miniGrad}<span class="f-cordao-txt">${esc(rotulo)}</span></span>
+              <span class="f-situ ${sit.classe}">${esc(sit.texto)}</span>
+            </div>
             <div class="f-campos">
-              <span><b>NÚCLEO</b><em>${esc(d.nucleo || '—')}</em></span>
+              <span><b>TURMA</b><em>${esc(d.turma || d.nucleo || '—')}</em></span>
+              <span><b>${esc(rotuloLider)}</b><em>${esc(responsavel || '—')}</em></span>
               <span><b>MATRÍCULA</b><em class="mono">${esc(d.matricula || 'em emissão')}</em></span>
               <span><b>VÁLIDA ATÉ</b><em class="mono ${d.validadeOk ? 'ok' : 'ruim'}">${esc(d.validade)}</em></span>
             </div>
           </div>
         </div>
       </div>
-      <div class="f-faixas" style="background:${faixas(d.cores)}"></div>
+      <div class="f-selo" aria-hidden="true"><span>${esc(iniciais(escola))}</span></div>
+      <div class="f-micro" aria-hidden="true">${esc(microRepetido)}</div>
+      ${barraGraduacaoHtml(gradBarra, d.corTurma, 'f-barra')}
     </div>
-    <div class="face costas">
+    <div class="face costas" style="--turma:${corTurma}">
+      ${barraGraduacaoHtml(gradBarra, d.corTurma, 'c-barra')}
       <div class="c-conteudo">
-        <div class="c-qr">${d.qrSvg || '<div class="sem">O QR aparece quando a matrícula for emitida.</div>'}</div>
-        <div class="c-txt"><b>VERIFICAÇÃO</b><strong>Aponte a câmera para conferir</strong>
-          <p>Uso pessoal e intransferível. Vale com a mensalidade em dia.</p>${curto ? `<code>${esc(curto)}</code>` : ''}</div>
+        <div class="c-qr">${d.qrSvg || '<div class="sem">O QR aparece quando a matrícula for emitida.</div>'}${d.qrSvg ? logoHtml(d, 'c-qr-logo') : ''}</div>
+        <div class="c-txt">
+          <b>DOCUMENTO DO ATLETA</b>
+          <strong>Carteirinha oficial de ${esc(d.grupo || escola)} · ${esc(arte)}</strong>
+          <p>Identifica o atleta junto à escola, aos núcleos e aos parceiros. Uso pessoal e intransferível; vale com o cadastro ativo e a mensalidade em dia. A situação do dia é a que o QR mostra.</p>
+          <div class="c-campos">
+            ${membroDesde ? `<span><b>MEMBRO DESDE</b><em>${esc(membroDesde)}</em></span>` : ''}
+            ${telefone ? `<span><b>EM CASO DE PERDA</b><em class="mono">${esc(telefone)}</em></span>` : ''}
+          </div>
+          <div class="c-assina"><span class="c-cursiva" aria-hidden="true">${esc(assinatura)}</span><i></i><small>${esc(liderNome || responsavel)}${lider ? ` · ${esc(lider)} responsável` : ''}</small></div>
+        </div>
+        ${logoHtml(d, 'c-logo')}
       </div>
-      <div class="c-rodape"></div>
+      <div class="c-micro" aria-hidden="true">CARTEIRINHA OFICIAL • USO PESSOAL E INTRANSFERÍVEL • VERIFIQUE PELO QR</div>
+      <div class="c-rodape">${linkCurto ? `<code>${esc(linkCurto)}</code>` : '<code>verificação pelo QR</code>'}<b>${esc(d.grupo || escola)}</b></div>
     </div>
   </div>`;
 }

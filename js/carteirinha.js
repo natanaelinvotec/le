@@ -9,7 +9,9 @@ import { observarSessao, db, doc, getDoc, setDoc, updateDoc, onSnapshot, enviarF
 import { ESCOLA, coresDoCordao, escadaDe, rotuloGrad, CORDOES_ADULTO, CORDOES_KIDS } from './escola.js';
 import { faixaSVG } from './faixas.js';
 import { qrSvg } from './qr.js';
-import { esc, situacao, textoValidade, dataBR, iniciais, linkVerificacao, cartaoHtml, prepararFoto, IC, ehAtleta, PARENTESCOS, LIMITE_POR_PARENTESCO, MAX_BENEFICIARIOS, deAtleta } from './carteirinha-comum.js';
+import { esc, situacao, textoValidade, dataBR, iniciais, linkVerificacao, cartaoHtml, prepararFoto, IC, ehAtleta, PARENTESCOS, LIMITE_POR_PARENTESCO, MAX_BENEFICIARIOS, deAtleta, graduacaoDoCartao } from './carteirinha-comum.js';
+import { buscarTurma, turmaIdDe, nomeArte, corOk } from './turmas.js';
+import { MODALIDADES } from './modalidades.js';
 import { mesclar, cartaoParceiro } from './site-render.js?v=20261006';
 import { SITE_PADRAO } from './site-padrao.js?v=20261006';
 
@@ -23,6 +25,11 @@ let alvos = [];            // [{ uid, nome, foto }]
 let alvoUid = null;
 let dadosAlvo = null;
 let fotoDoc = null;
+// v37: turma do atleta (turmas/{turmaId}) e o núcleo dele — só para o cartão (nome, cor, escada, responsável).
+const turmasCache = new Map();  // turmaId -> turma | null
+const nucleosCache = new Map(); // academiaId -> { nome, professorNome, telefone } | null
+let turmaAlvo = null;
+let nucleoAlvo = null;
 let listaBenef = [];       // beneficiarios/{alvo}.lista (o que foi pedido)
 let formBenefAberto = false;
 let certificados = [];      // certificadosDe/{alvo}.itens (emitidos pelo servidor)
@@ -71,12 +78,13 @@ async function montarAlvos() {
 function selecionar(uid) {
   desligar.forEach((f) => { try { f(); } catch (e) { /* ok */ } });
   desligar = [];
-  alvoUid = uid; dadosAlvo = null; fotoDoc = null; virado = false;
+  alvoUid = uid; dadosAlvo = null; fotoDoc = null; virado = false; turmaAlvo = null; nucleoAlvo = null;
   try { sessionStorage.setItem('le.carteirinha.alvo', uid); } catch (e) { /* ok */ }
   desligar.push(onSnapshot(doc(db, 'usuarios', uid), (s) => {
     dadosAlvo = s.exists() ? s.data() : {};
     if (uid === meuUid && !dadosAlvo.carteirinha) pedirEmissao();
     desenhar();
+    carregarTurmaENucleo(uid, dadosAlvo).catch(() => {});
   }, (e) => { console.error(e); mensagem('Sem acesso a esta carteirinha', 'Peça ao núcleo para conferir o vínculo da conta família.'); }));
   listaBenef = []; formBenefAberto = false; certificados = [];
   desligar.push(onSnapshot(doc(db, 'certificadosDe', uid), (s) => {
@@ -91,6 +99,25 @@ function selecionar(uid) {
     fotoDoc = s.exists() ? s.data() : null;
     if (dadosAlvo) desenhar();
   }, () => { fotoDoc = null; }));
+}
+
+// Turma (nome, cor, escada, professor) e núcleo (responsável, telefone) do atleta — leitura pública,
+// com cache simples. Redesenha só se ainda estamos no mesmo atleta e algo mudou.
+async function carregarTurmaENucleo(uid, u) {
+  const tId = turmaIdDe(u);
+  const aId = u && typeof u.academiaId === 'string' ? u.academiaId : '';
+  const [turma, nucleo] = await Promise.all([
+    tId ? (turmasCache.has(tId) ? turmasCache.get(tId) : buscarTurma(tId).then((t) => { turmasCache.set(tId, t); return t; })) : null,
+    aId ? (nucleosCache.has(aId) ? nucleosCache.get(aId) : getDoc(doc(db, 'nucleos', aId)).then((s) => {
+      const n = s.exists() ? s.data() : null;
+      const limpo = n ? { nome: String(n.nome || ''), professorNome: String(n.professorNome || ''), telefone: String(n.telefone || n.whatsapp || n.celular || '') } : null;
+      nucleosCache.set(aId, limpo); return limpo;
+    }).catch(() => null)) : null,
+  ]);
+  if (alvoUid !== uid) return;
+  const mudou = turma !== turmaAlvo || nucleo !== nucleoAlvo;
+  turmaAlvo = turma && turma.ativa !== false ? turma : null; nucleoAlvo = nucleo;
+  if (mudou && dadosAlvo) desenhar();
 }
 
 // Carteirinha ainda não emitida: pede ao servidor (no máximo 1x a cada 10 min).
@@ -125,25 +152,38 @@ function dadosDoCartao() {
   const c = u.carteirinha || null;
   const cordao = u.cordaoAtual || 'Iniciante';
   const link = c && c.codigo ? linkVerificacao(c.codigo) : '';
+  // v37: a graduação desenhada sai da escada da TURMA quando o atleta tem turma; sem turma, da escola.
+  const turma = turmaAlvo && turmaIdDe(u) === turmaAlvo.id ? turmaAlvo : null;
+  const grad = graduacaoDoCartao(u, turma);
+  const arte = turma ? nomeArte(turma.arte) : (MODALIDADES[ESCOLA.modalidade] || MODALIDADES.outra).nome;
+  const lider = turma ? ((turma.escada && turma.escada.lider) || (MODALIDADES[turma.arte] || MODALIDADES.outra).lider) : (ESCOLA.lider || 'Professor');
+  const responsavel = (turma && turma.professorNome) || (nucleoAlvo && nucleoAlvo.professorNome) || ESCOLA.mestre || '';
+  const nucleo = nomeCurtoNucleo(u.academiaNome || (nucleoAlvo && nucleoAlvo.nome));
   return {
     c, link,
-    nome: u.nome || 'Atleta', cordao, cores: coresDoCordao(cordao, u),
-    nucleo: nomeCurtoNucleo(u.academiaNome), matricula: c ? c.matricula : '',
+    nome: u.nome || 'Atleta', cordao, cores: grad.cores,
+    nucleo, matricula: c ? c.matricula : '',
     validade: c ? textoValidade(c) : 'em emissão', validadeOk: c ? situacao(c) === 'valida' : false,
     foto: c && c.fotoUrl ? c.fotoUrl : '',
     qrSvg: link ? qrSvg(link, { nivel: 'M', margem: 1, cor: '#061A3A', rotulo: 'QR de verificação da carteirinha' }) : '',
-    logo: ESCOLA.logoPequeno || ESCOLA.logo || LOGO, grupo: ESCOLA.nomeCurto,
-    ...faixaDoCartao(u, cordao),
+    logo: ESCOLA.logoPequeno || ESCOLA.logo || LOGO, grupo: ESCOLA.nomeCurto, escola: ESCOLA.nome,
+    arte, lider, responsavel,
+    turma: turma ? String(turma.nome || '') : nucleo, corTurma: turma ? corOk(turma.cor, '') : '',
+    grad, rotulo: grad.rotulo, faixaSvg: grad.faixaSvg,
+    membroDesde: u.criadoEm || '', telefone: (nucleoAlvo && nucleoAlvo.telefone) || '',
+    cidade: ESCOLA.cidade, uf: ESCOLA.uf,
   };
 }
 // v34: escolas de faixa (Jiu-Jitsu…) — a faixa desenhada com os graus e o nome certo ("Faixa Azul · 2º grau").
-function faixaDoCartao(u, cordao) {
+// v37: com graus vermelhos (infantil). Usada pelos certificados e pelo QR em tela cheia.
+function faixaDoCartao(u, cordao, graus = u && u.grausAtual, grausVermelhos = u && u.grausVermelhos) {
   if (!['faixa', 'prajied'].includes(String(ESCOLA.peca || ''))) return {};
   const g = escadaDe(u).find((x) => x.nome === cordao) || CORDOES_ADULTO.find((x) => x.nome === cordao) || CORDOES_KIDS.find((x) => x.nome === cordao);
   if (!g) return {};
   const Peca = String(ESCOLA.peca).charAt(0).toUpperCase() + String(ESCOLA.peca).slice(1);
-  const svg = faixaSVG(g, { graus: Number(u.grausAtual) || 0, largura: 128, altura: 14, titulo: rotuloGrad(cordao, u.grausAtual) });
-  return { rotulo: `${Peca} ${rotuloGrad(cordao, u.grausAtual)}`, faixaSvg: svg.replace('<svg ', '<svg style="width:100%;height:auto" ') };
+  const gv = Number(g.graus) > 0 ? Number(grausVermelhos) || 0 : 0;
+  const svg = faixaSVG(g, { graus: Number(graus) || 0, grausVermelhos: gv, largura: 128, altura: 14, titulo: rotuloGrad(cordao, graus, gv) });
+  return { rotulo: `${Peca} ${rotuloGrad(cordao, graus, gv)}`, faixaSvg: svg.replace('<svg ', '<svg style="width:100%;height:auto" ') };
 }
 
 function tiles(c) {
@@ -239,7 +279,7 @@ function blocoCertificados() {
     const data = /^\d{4}-\d{2}-\d{2}$/.test(c.data || '') ? c.data.split('-').reverse().join('/') : '';
     const link = `certificado.html#${encodeURIComponent(c.codigo)}`;
     return `<li class="benef"><span class="av-b" style="background:repeating-linear-gradient(45deg,${cores[0]} 0 5px,${cores[1]} 5px 10px,${cores[2]} 10px 15px)"></span>
-      <span class="txt"><b>${faixaDoCartao(dadosAlvo || {}, c.cordao).rotulo ? esc(`${String(ESCOLA.peca).charAt(0).toUpperCase()}${String(ESCOLA.peca).slice(1)} ${rotuloGrad(c.cordao, c.graus)}`) : `Cordão ${esc(c.cordao)}`}</b><small>${esc([data, c.evento].filter(Boolean).join(' · '))}</small></span>
+      <span class="txt"><b>${faixaDoCartao(dadosAlvo || {}, c.cordao, c.graus, c.grausVermelhos).rotulo ? esc(`${String(ESCOLA.peca).charAt(0).toUpperCase()}${String(ESCOLA.peca).slice(1)} ${rotuloGrad(c.cordao, c.graus, c.grausVermelhos)}`) : `Cordão ${esc(c.cordao)}`}</b><small>${esc([data, c.evento].filter(Boolean).join(' · '))}</small></span>
       <span class="acoes-b"><a class="bt bt-claro" href="${esc(link)}" style="height:38px;padding:0 12px;font-size:12.5px">Ver</a><a class="bt bt-claro" href="certificado.html?imprimir=1#${esc(encodeURIComponent(c.codigo))}" style="height:38px;padding:0 12px;font-size:12.5px">PDF</a></span></li>`;
   }).join('');
   return `<section class="beneficiarios" aria-labelledby="titCert"><div class="sec-tit"><h2 id="titCert">Certificados de graduação</h2><small>${certificados.length}</small></div><ul class="lista-benef">${linhas}</ul><a class="bt bt-claro" href="certificados.html#${esc(encodeURIComponent(alvoUid || ''))}" style="margin-top:10px;width:100%">Ver todos os certificados</a></section>`;
@@ -344,7 +384,7 @@ function abrirQR(benef = null) {
       <span><strong>${esc(benef.nome)}</strong><small>${esc(deAtleta(benef.parentesco, d.nome))} · titular ${esc(d.matricula || '')}</small></span></div>
     <p class="qr-nota">Beneficiário: no atendimento, apresente também um documento com foto. O relógio anda ao vivo — print da tela não vale.</p>`
     : `<div class="qr-quem"><span class="av"><div>${d.foto ? `<img src="${esc(d.foto)}" alt="">` : esc(iniciais(d.nome))}</div></span>
-      <span><strong>${esc(d.nome)}</strong><small>Cordão ${esc(d.cordao)}${d.nucleo ? ` · ${esc(d.nucleo)}` : ''}</small></span></div>
+      <span><strong>${esc(d.nome)}</strong><small>${esc(d.rotulo || `Cordão ${d.cordao}`)}${d.turma && d.turma !== d.nucleo ? ` · ${esc(d.turma)}` : ''}${d.nucleo ? ` · ${esc(d.nucleo)}` : ''}</small></span></div>
     <p class="qr-nota">O relógio anda ao vivo: print ou foto da tela não vale. Quem conferir aponta a câmera do celular e abre a página oficial de verificação do grupo.</p>`}
   </div>`;
   // faixas() usa "linear-gradient(dir, …)": para o anel do avatar, cone de 3 cores.

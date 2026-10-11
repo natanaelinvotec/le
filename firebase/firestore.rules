@@ -110,8 +110,11 @@ function brasoesManuaisInalterados() { return request.resource.data.get('brasoes
 function camposTravadosDoProprio() {
 return ['cordaoAtual', 'historicoGraduacoes', 'instrutorUid', 'responsavelUid', 'idade', 'dataNasc',
 'statusAtual', 'brasoesTotal', 'eventosConfirmados', 'cardsCompartilhados', 'origemTransferenciaDireta', 'academiaAnteriorId',
-'carteirinha', 'isentoMensalidade', 'competicoes', 'escolaId', 'grausAtual', 'transferenciaId'];
+'carteirinha', 'isentoMensalidade', 'competicoes', 'escolaId', 'grausAtual', 'transferenciaId', 'turmaId', 'grausVermelhos'];
 }
+// Turmas (v37): turmaId no cadastro é string (vazio = turma padrão do núcleo); grausVermelhos 0–10 inteiro.
+function turmaIdOk(t) { return t == null || (t is string && t.size() <= 80); }
+function grausVermelhosOk(v) { return v == null || (v is int && v >= 0 && v <= 10); }
 
 match /usuarios/{uid} {
 allow read: if logado() && (
@@ -132,8 +135,10 @@ nucleoOkOuVazio(request.resource.data.get('academiaId', null)) && nucleoOkOuVazi
 request.auth.uid == uid &&
 request.resource.data.papeis == ['aluno'] &&
 !request.resource.data.keys().hasAny(['acessoGeral', 'brasoesAdmin', 'brasoesManuais', 'brasoesBloqueados', 'eventosConfirmados', 'cardsCompartilhados', 'instrutorUid',
-'historicoGraduacoes', 'brasoesTotal', 'origemTransferenciaDireta', 'academiaAnteriorId', 'carteirinha', 'isentoMensalidade', 'competicoes', 'escolaId', 'grausAtual', 'transferenciaId']) &&
+'historicoGraduacoes', 'brasoesTotal', 'origemTransferenciaDireta', 'academiaAnteriorId', 'carteirinha', 'isentoMensalidade', 'competicoes', 'escolaId', 'grausAtual', 'grausVermelhos', 'transferenciaId']) &&
 request.resource.data.get('academiaGerenciadaId', null) == null &&
+// turma escolhida na inscrição (link ?turma= ou seletor): opcional, só o id (string)
+turmaIdOk(request.resource.data.get('turmaId', null)) &&
 // núcleo escolhido na inscrição: vazio ou um núcleo que existe e está ativo
 (request.resource.data.get('academiaId', null) == null || request.resource.data.get('academiaId', '') == '' ||
  get(/databases/$(database)/documents/nucleos/$(request.resource.data.academiaId)).data.get('ativo', true) != false) &&
@@ -154,7 +159,9 @@ request.resource.data.get('statusAtual', 'Ativo') == 'Ativo'
 //   • aceitar transferência: só com o pedido pendente (transferenciaId) e só os campos da transferência.
 // Plataforma: tudo. Admin da escola: qualquer cadastro DA ESCOLA DELE, sem trocar a escola, sem
 // apontar núcleo de outra escola e sem mexer no papel 'plataforma' (que ninguém mais mexe).
-allow update: if ehPlataforma() || (plataformaInalterada() && ((adminDeEscola() && resource.data.escolaId == minhaEscola() && escolaInalterada() && nucleosDoCadastroNaMinhaEscola()) || (escolaInalterada() && (
+allow update: if ehPlataforma() || (plataformaInalterada() &&
+// turmas (v37): turmaId sempre string curta e grausVermelhos inteiro 0–10, seja quem for que grave
+turmaIdOk(request.resource.data.get('turmaId', null)) && grausVermelhosOk(request.resource.data.get('grausVermelhos', null)) && ((adminDeEscola() && resource.data.escolaId == minhaEscola() && escolaInalterada() && nucleosDoCadastroNaMinhaEscola()) || (escolaInalterada() && (
 (fundadorDa(resource.data.get('escolaId', '')) && brasoesAdminInalterados() && adminInalterado() && acessoGeralInalterado() &&
  responsavelInalterado() && nucleosDoCadastroNaMinhaEscola()) ||
 (ehGestor() && request.auth.uid != uid && resource.data.academiaId == minhaAcademiaGerenciada() && resource.data.get('escolaId', '') == minhaEscola() &&
@@ -262,6 +269,40 @@ allow read: if true;
 allow create: if ehPlataforma() || (souFundador() && request.resource.data.get('escolaId', '') == minhaEscola());
 allow update: if ehPlataforma() || (souFundador() && resource.data.get('escolaId', '') == minhaEscola() && escolaInalterada());
 allow delete: if ehPlataforma() || (souFundador() && resource.data.get('escolaId', '') == minhaEscola());
+}
+
+// ===== Turmas por arte marcial (v37) =====
+// turmas/{id}: uma arte marcial dentro do núcleo (nome, arte, cor, horário, escada, mensalidade).
+// Leitura pública: a inscrição sem login mostra a turma do link (?turma=) e nada aqui é sensível.
+// Cria/edita: o Fundador da escola ou o gestor do PRÓPRIO núcleo (academiaId == núcleo que administra),
+// sempre na própria escola (escolaId == claim) e sem trocar a escola nem o núcleo depois. Apaga: só Admin.
+match /turmas/{id} {
+function turmaValida(d) {
+return d.nome is string && d.nome.size() >= 2 && d.nome.size() <= 60 &&
+d.arte is string && d.arte.size() <= 30 &&
+d.cor is string && d.cor.matches('^#[0-9a-fA-F]{6}$') &&
+d.get('graduacao', 'faixas') in ['faixas', 'cordoes', 'niveis'] &&
+d.get('professorNome', '') is string && d.get('professorNome', '').size() <= 120 &&
+d.get('hora', '') is string && d.get('hora', '').size() <= 5 &&
+d.get('dias', []) is list && d.get('dias', []).size() <= 7 &&
+(d.get('mensalidade', null) == null || (d.mensalidade is number && d.mensalidade >= 0 && d.mensalidade <= 100000)) &&
+d.get('ativa', true) is bool &&
+d.academiaId is string && d.academiaId.size() <= 80;
+}
+// Quem manda nesta turma: Fundador da escola dela ou o gestor do núcleo dela.
+function mandoNaTurma(d) {
+return fundadorDa(d.escolaId) || (ehGestor() && d.get('escolaId', '') == minhaEscola() && d.academiaId == minhaAcademiaGerenciada());
+}
+allow read: if true;
+allow create: if logado() && turmaValida(request.resource.data) && (ehPlataforma() || (
+request.resource.data.escolaId == minhaEscola() &&
+nucleoExisteNaMinhaEscola(request.resource.data.academiaId) &&
+mandoNaTurma(request.resource.data)));
+allow update: if logado() && turmaValida(request.resource.data) && (ehPlataforma() || (
+escolaInalterada() && academiaInalterada() &&
+request.resource.data.escolaId == minhaEscola() &&
+mandoNaTurma(resource.data)));
+allow delete: if ehAdmin();
 }
 
 match /presencas/{id} {

@@ -156,27 +156,50 @@ export function aplicarEscola(cfg) {
     cores: { ...ESCOLA.cores, ...(cfg.cores || {}) },
     contatoPrivacidade: '',
   });
-  if (e && Array.isArray(e.adulto) && e.adulto.length) {
-    const copia = (l) => l.map((g) => ({ ...g, cor: Array.isArray(g.cor) ? g.cor.slice(0, 3) : [g.cor, g.cor, g.cor] }));
-    const adulto = copia(e.adulto);
-    const kids = Array.isArray(e.kids) && e.kids.length ? copia(e.kids) : null;
-    CORDOES_ADULTO.splice(0, CORDOES_ADULTO.length, ...adulto);
-    CORDOES_KIDS.splice(0, CORDOES_KIDS.length, ...(kids || adulto));
-    ORDEM_CORDOES.splice(0, ORDEM_CORDOES.length, ...adulto.map((g) => g.nome));
-    IDADE_KIDS = kids ? (Number(e.idadeKids) || 16) : 0;
-    if (Array.isArray(e.criterios) && e.criterios.length) {
-      CRITERIOS.splice(0, CRITERIOS.length, ...e.criterios.map((txt, i) => ({ id: `c${i + 1}`, txt, reqAdulto: 0, reqKids: true })));
-    }
-  }
+  if (e && Array.isArray(e.adulto) && e.adulto.length) aplicarEscada(e);
+  escadaEscola = null; // a escada da escola passa a ser a que está em uso agora
   return true;
 }
+
+// Troca a escada EM USO (as mesmas listas que todas as telas importaram), sem mexer na identidade.
+// Usada pela escola (aplicarEscola) e pela TURMA ativa (turmas.js): cada turma tem a escada da arte dela.
+export function aplicarEscada(e) {
+  if (!e || !Array.isArray(e.adulto) || !e.adulto.length) return false;
+  const copia = (l) => l.map((g) => ({ ...g, cor: Array.isArray(g.cor) ? g.cor.slice(0, 3) : [g.cor, g.cor, g.cor] }));
+  const adulto = copia(e.adulto);
+  const kids = Array.isArray(e.kids) && e.kids.length ? copia(e.kids) : null;
+  CORDOES_ADULTO.splice(0, CORDOES_ADULTO.length, ...adulto);
+  CORDOES_KIDS.splice(0, CORDOES_KIDS.length, ...(kids || adulto));
+  ORDEM_CORDOES.splice(0, ORDEM_CORDOES.length, ...adulto.map((g) => g.nome));
+  IDADE_KIDS = kids ? (Number(e.idadeKids) || 16) : 0;
+  if (Array.isArray(e.criterios) && e.criterios.length) {
+    CRITERIOS.splice(0, CRITERIOS.length, ...e.criterios.map((c, i) => (typeof c === 'string' ? { id: `c${i + 1}`, txt: c, reqAdulto: 0, reqKids: true } : { ...c })));
+  }
+  if (e.peca) ESCOLA.peca = e.peca;
+  if (e.lider) ESCOLA.lider = e.lider;
+  return true;
+}
+// Fotografia da escada em uso (para voltar a ela depois de uma turma com outra arte).
+export function escadaAtual() {
+  return { adulto: CORDOES_ADULTO.map((g) => ({ ...g })), kids: IDADE_KIDS ? CORDOES_KIDS.map((g) => ({ ...g })) : null, idadeKids: IDADE_KIDS, criterios: CRITERIOS.map((c) => ({ ...c })), peca: ESCOLA.peca, lider: ESCOLA.lider };
+}
+let escadaEscola = null; // a escada da ESCOLA (turma padrão), guardada na 1ª troca de turma
+export const escadaDaEscola = () => escadaEscola || escadaAtual();
+// Turma ativa com outra arte: usa a escada dela; turma padrão (null): volta à da escola.
+export function aplicarEscadaDaTurma(escadaTurma) {
+  if (!escadaEscola) escadaEscola = escadaAtual();
+  return aplicarEscada(escadaTurma || escadaEscola);
+}
 // Faixa/cordão com graus: "Azul · 2º grau" (sem graus, só o nome).
-export function rotuloGrad(nome, graus) {
+// grausVermelhos (infantil): "Amarela · 4º grau + 2 vermelhos".
+export function rotuloGrad(nome, graus, grausVermelhos = 0) {
   const g = Math.max(0, Math.floor(Number(graus) || 0));
+  const v = Math.max(0, Math.floor(Number(grausVermelhos) || 0));
+  const sufixoV = v ? ` + ${v} vermelho${v === 1 ? '' : 's'}` : '';
   // Faixas de mestre (coral, vermelha): o grau vem da própria faixa (7º, 8º, 9º) — igual ao servidor.
   const item = CORDOES_ADULTO.find((c) => c.nome === nome) || CORDOES_KIDS.find((c) => c.nome === nome);
   if (item && Number(item.grauDan) > 0) return `${nome} · ${Number(item.grauDan) + g}º grau`;
-  return g ? `${nome} · ${g}º grau` : String(nome || '');
+  return g ? `${nome} · ${g}º grau${sufixoV}` : String(nome || '');
 }
 // Quantos graus a graduação admite na escada atual (0 = não usa graus).
 export function grausPossiveis(nome, pessoa) {

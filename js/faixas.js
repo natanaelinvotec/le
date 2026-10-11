@@ -21,7 +21,11 @@ let seq = 0;
 
 /* Uma faixa. g = graduação da escada; graus = graus atuais (barras brancas na ponteira);
    vagas = quantas barras mostrar apagadas (capacidade, ex.: "lisa até 4 graus"). */
-export function faixaSVG(g, { graus = 0, vagas = null, largura = 300, altura = 28, titulo = null, id = null, selo = null } = {}) {
+/* grausVermelhos (infantil, jiu-jitsu): depois dos 4 graus brancos o professor acrescenta graus
+   VERMELHOS por cima dos brancos, começando pela ponta — aqui são as primeiras `grausVermelhos`
+   barras (as mais perto da ponta) pintadas de vermelho. */
+export const COR_GRAU_VERMELHO = '#D32F2F';
+export function faixaSVG(g, { graus = 0, vagas = null, largura = 300, altura = 28, titulo = null, id = null, selo = null, grausVermelhos = 0 } = {}) {
   const W = largura; const H = altura; const u = id || `fx${(seq += 1)}`;
   const base = COR_OK(g && g.cor && g.cor[0]);
   const meio = COR_OK(g && g.cor && g.cor[1], base);
@@ -49,7 +53,8 @@ export function faixaSVG(g, { graus = 0, vagas = null, largura = 300, altura = 2
       if (n * (bw + gap) > cabe) { const passo = cabe / n; bw = Math.max(1.5, passo * 0.55); gap = passo - bw; }
       let x = p1 - gap - bw;
       for (let i = 0; i < n; i++) {
-        partes.push(`<rect x="${x}" y="${Math.round(H * 0.08)}" width="${bw}" height="${H - Math.round(H * 0.16)}" rx="1" fill="#FFFFFF" opacity="${i < feitos ? 1 : 0.2}"/>`);
+        const vermelhos = Math.max(0, Math.min(feitos, Math.floor(Number(grausVermelhos) || 0)));
+        partes.push(`<rect x="${x}" y="${Math.round(H * 0.08)}" width="${bw}" height="${H - Math.round(H * 0.16)}" rx="1" fill="${i < vermelhos ? COR_GRAU_VERMELHO : '#FFFFFF'}" opacity="${i < feitos ? 1 : 0.2}"/>`);
         x -= bw + gap;
       }
     }

@@ -8,7 +8,15 @@
    funciona com ESSE atleta na aula (marcado pelo responsável, pelo professor ou na inscrição). É informação sensível (LGPD): só o próprio
    aluno/responsável, o professor do núcleo e a administração leem; NUNCA entra
    no cartão público (perfisPublicos), na Rede, na carteirinha nem no certificado
-   — o servidor monta o cartão público campo a campo e este não está lá. */
+   — o servidor monta o cartão público campo a campo e este não está lá.
+
+   Turmas por arte (v37): os textos foram escritos para a capoeira (roda, berimbau, ginga).
+   Toda função que mostra texto aceita `arte` (chave de js/modalidades.js) e troca os termos
+   pela linguagem da arte (adaptarTexto): "na roda" vira "no tatame"/"no ringue", "berimbau"
+   vira "comando do professor", "ginga" vira "movimento base". Os PDFs só existem na versão
+   capoeira (materiais/inclusao): para as outras artes o cartão avisa "guia geral (adaptado de
+   capoeira) — versão para <arte> em preparação". */
+import { termosDa, MODALIDADES } from './modalidades.js';
 
 export const SEM_LIMITACOES = 'Sem limitações';
 
@@ -53,6 +61,42 @@ const porId = Object.fromEntries(CONDICOES.map((c) => [c.id, c]));
 export const condicaoDe = (id) => porId[String(id || '').toUpperCase().replace(/[^A-Z]/g, '')] || null;
 export const nomeDe = (id) => { const c = condicaoDe(id); return c ? c.nome : String(id || ''); };
 export const siglaDe = (id) => { const c = condicaoDe(id); return c ? c.sigla : String(id || ''); };
+
+/* ---------- linguagem da arte ---------- */
+const ARTE_PADRAO = 'capoeira';
+const arteOk = (arte) => (arte && MODALIDADES[arte] ? arte : ARTE_PADRAO);
+// "no tatame" / "no ringue" / "na roda" (roda é a única feminina).
+const noLocal = (local) => (local === 'roda' ? 'na roda' : `no ${local}`);
+// Troca os termos da capoeira pela linguagem da arte. Capoeira (ou arte desconhecida): texto igual.
+// Ordem importa: expressões maiores antes das palavras soltas.
+export function adaptarTexto(texto, arte) {
+  const a = arteOk(arte); const t = String(texto || '');
+  if (a === ARTE_PADRAO || !t) return t;
+  const T = termosDa(a); const arteMin = T.arte.toLowerCase();
+  const trocas = [
+    [/Inclusão na roda/g, `Inclusão ${noLocal(T.local)}`],
+    [/\bna roda\b/g, noLocal(T.local)], [/\bda roda\b/g, `do ${T.local}`], [/\bà roda\b/g, `ao ${T.local}`],
+    [/\brodas\b/g, `${T.luta}s`], [/\broda\b/g, T.local], [/\bRoda\b/g, T.local.charAt(0).toUpperCase() + T.local.slice(1)],
+    [/toque do berimbau/gi, 'comando do professor'], [/\bberimbau\b/gi, 'comando do professor'],
+    [/\batabaque\b/gi, 'palmas'], [/\bpandeiro\b/gi, 'palmas'],
+    [/bater palma, puxar canto/g, `marcar o tempo, organizar o ${T.local}`], [/puxar canto/g, 'marcar o tempo'],
+    [/\bladainha\b/gi, 'saudação'], [/\bcantos?\b/g, 'contagem'],
+    [/\bgingar\b/gi, 'fazer o movimento base'], [/\bginga\b/gi, 'movimento base'],
+    [/Jogar com/g, `Fazer o ${T.luta} com`], [/\bjogar\b/g, `fazer o ${T.luta}`], [/\bjoga\b/g, `faz o ${T.luta}`], [/\bjogo\b/g, T.luta],
+    [/\bcordão\b/g, T.peca], [/\bcordões\b/g, `${T.peca}s`],
+    [/\bcapoeirista\b/gi, 'atleta'], [/\bcapoeira\b/g, arteMin], [/\bCapoeira\b/g, T.arte],
+  ];
+  return trocas.reduce((acc, [re, por]) => acc.replace(re, por), t);
+}
+// Dica de uma condição e os apoios sugeridos, já na linguagem da arte.
+export function dicasPara(condicao, arte) {
+  const c = condicaoDe(condicao); if (!c) return null;
+  return { id: c.id, sigla: c.sigla, nome: c.nome, dica: adaptarTexto(c.dica, arte), sugeridos: (c.sugeridos || []).map((id) => ({ id, nome: nomeApoio(id, arte) })) };
+}
+// Nome de um apoio na linguagem da arte ("Ficar perto do professor no tatame").
+export const nomeApoio = (id, arte) => { const a = apoioDe(id); return a ? adaptarTexto(a.nome, arte) : String(id || ''); };
+// A lista de apoios inteira na linguagem da arte (mesmos ids e ícones).
+export const apoiosDaArte = (arte) => APOIOS.map((a) => ({ ...a, nome: adaptarTexto(a.nome, arte) }));
 
 // Deixa o campo sempre no mesmo formato (aceita o formato antigo, lista solta ou nada).
 export function normalizarInclusao(v) {
@@ -100,10 +144,10 @@ export function lacosHTML(inclusao, { px = 22, classe = 'lacos-foto', comSigla =
 
 // Ficha de adaptação para editar (checkboxes). Os sugeridos pelas condições marcadas
 // ganham a classe "sugerido" (pontinho verde) — a escolha continua sendo do humano.
-export function apoiosChecklistHTML(inclusao, { nome = 'apoios' } = {}) {
+export function apoiosChecklistHTML(inclusao, { nome = 'apoios', arte = ARTE_PADRAO } = {}) {
   const { condicoes, apoios } = normalizarInclusao(inclusao);
   const sug = new Set(apoiosSugeridos(condicoes));
-  return `<div class="apoios-lista" role="group" aria-label="Ficha de adaptação">${APOIOS.map((a) => `<label class="apoio-item${apoios.includes(a.id) ? ' on' : ''}${sug.has(a.id) ? ' sugerido' : ''}" title="${sug.has(a.id) ? 'Sugerido para a(s) condição(ões) marcada(s)' : ''}"><input type="checkbox" name="${esc(nome)}" value="${esc(a.id)}" ${apoios.includes(a.id) ? 'checked' : ''}><i class="fas ${esc(a.icone)}" aria-hidden="true"></i><span>${esc(a.nome)}</span></label>`).join('')}</div>`;
+  return `<div class="apoios-lista" role="group" aria-label="Ficha de adaptação">${apoiosDaArte(arte).map((a) => `<label class="apoio-item${apoios.includes(a.id) ? ' on' : ''}${sug.has(a.id) ? ' sugerido' : ''}" title="${sug.has(a.id) ? 'Sugerido para a(s) condição(ões) marcada(s)' : ''}"><input type="checkbox" name="${esc(nome)}" value="${esc(a.id)}" ${apoios.includes(a.id) ? 'checked' : ''}><i class="fas ${esc(a.icone)}" aria-hidden="true"></i><span>${esc(a.nome)}</span></label>`).join('')}</div>`;
 }
 // Liga o comportamento do checklist (classe .on ao marcar; re-marca sugeridos quando as condições mudam).
 export function ligarChecklist(raiz, lerCondicoes) {
@@ -116,23 +160,47 @@ export const apoiosMarcados = (raiz) => raiz ? [...raiz.querySelectorAll('.apoio
 // estáticos do app (materiais/inclusao/*.pdf). Ficam fora do Firestore de propósito:
 // não dependem de regra, abrem offline depois do primeiro acesso e são iguais para todas as escolas.
 export const PASTA_MATERIAIS = 'materiais/inclusao';
-export const urlGuia = () => `${PASTA_MATERIAIS}/guia-inclusao-capoeira.pdf`;
-export const urlMaterial = (id) => { const c = condicaoDe(id); return c ? `${PASTA_MATERIAIS}/${c.id.toLowerCase()}.pdf` : urlGuia(); };
-// modo 'linha' (dentro do modal/relatório) ou 'cards' (aba Formação).
-export function materiaisHTML(condicoes, { modo = 'linha', base = '' } = {}) {
+// O que existe de verdade na pasta materiais/inclusao (o navegador não lista pasta — atualize
+// aqui ao subir um PDF novo). Versões por arte entram como `<arte>: ['tea', …, 'guia']` e o
+// arquivo se chama `<condicao>-<arte>.pdf` / `guia-inclusao-<arte>.pdf`.
+export const MATERIAIS_EXISTENTES = { capoeira: ['tea', 'tdah', 'pc', 'sd', 'di', 'dvda', 'tdc', 'guia'] };
+const temArquivo = (chave, arte) => Array.isArray(MATERIAIS_EXISTENTES[arte]) && MATERIAIS_EXISTENTES[arte].includes(chave);
+export const urlGuia = (arte = ARTE_PADRAO) => (arteOk(arte) === ARTE_PADRAO ? `${PASTA_MATERIAIS}/guia-inclusao-capoeira.pdf` : `${PASTA_MATERIAIS}/guia-inclusao-${arteOk(arte)}.pdf`);
+export const urlMaterial = (id, arte = ARTE_PADRAO) => { const c = condicaoDe(id); if (!c) return urlGuia(arte); const a = arteOk(arte); return a === ARTE_PADRAO ? `${PASTA_MATERIAIS}/${c.id.toLowerCase()}.pdf` : `${PASTA_MATERIAIS}/${c.id.toLowerCase()}-${a}.pdf`; };
+// Qual arquivo mostrar para esta arte: o próprio da arte quando existe; senão o guia geral
+// (versão capoeira) com legenda; se nem o geral existe, url null (link desabilitado).
+//   → { url, proprio, legenda }
+export function materialDisponivel(id, arte = ARTE_PADRAO) {
+  const a = arteOk(arte); const c = condicaoDe(id); const chave = c ? c.id.toLowerCase() : 'guia';
+  const nomeArte = (MODALIDADES[a] || MODALIDADES.outra).nome;
+  if (temArquivo(chave, a)) return { url: c ? urlMaterial(c.id, a) : urlGuia(a), proprio: true, legenda: '' };
+  if (temArquivo(chave, ARTE_PADRAO)) return { url: c ? urlMaterial(c.id) : urlGuia(), proprio: a === ARTE_PADRAO, legenda: a === ARTE_PADRAO ? '' : `guia geral (adaptado de capoeira) — versão para ${nomeArte} em preparação` };
+  return { url: null, proprio: false, legenda: 'material em preparação' };
+}
+// modo 'linha' (dentro do modal/relatório) ou 'cards' (aba Formação). `arte` troca os textos e a legenda dos PDFs.
+export function materiaisHTML(condicoes, { modo = 'linha', base = '', arte = ARTE_PADRAO } = {}) {
+  const a = arteOk(arte);
   const lista = modo === 'cards' ? CONDICOES.map((c) => c.id) : normalizarInclusao({ condicoes }).condicoes;
+  const link = (m, classe, conteudo, titulo = '') => (m.url
+    ? `<a class="${classe}" href="${esc(base + m.url)}" target="_blank" rel="noopener" title="${esc(titulo || m.legenda)}">${conteudo}</a>`
+    : `<span class="${classe} mat-indisponivel" aria-disabled="true" title="${esc(m.legenda)}">${conteudo}</span>`);
+  const guia = materialDisponivel('guia', a);
   if (modo === 'linha') {
     if (!lista.length) return '';
-    return `<b>Material da equipe:</b> ${lista.map((id) => `<a class="mat-link" href="${esc(base + urlMaterial(id))}" target="_blank" rel="noopener"><i class="fas fa-file-pdf" aria-hidden="true"></i> ${esc(siglaDe(id))}</a>`).join(' ')} <a class="mat-link" href="${esc(base + urlGuia())}" target="_blank" rel="noopener"><i class="fas fa-book-open" aria-hidden="true"></i> Guia completo</a>`;
+    const itens = lista.map((id) => { const m = materialDisponivel(id, a); return link(m, 'mat-link', `<i class="fas fa-file-pdf" aria-hidden="true"></i> ${esc(siglaDe(id))}${m.proprio ? '' : ' <i class="fas fa-circle-info mat-geral" aria-hidden="true"></i>'}`); }).join(' ');
+    const aviso = a !== ARTE_PADRAO ? ` <small class="mat-legenda">${esc(guia.legenda || 'guia geral (adaptado de capoeira)')}</small>` : '';
+    return `<b>Material da equipe:</b> ${itens} ${link(guia, 'mat-link', '<i class="fas fa-book-open" aria-hidden="true"></i> Guia completo')}${aviso}`;
   }
-  return `<div class="mat-cards">${lista.map((id) => { const c = condicaoDe(id); return `<a class="mat-card" href="${esc(base + urlMaterial(id))}" target="_blank" rel="noopener">${lacoSVG(id, 30)}<span><b>${esc(c.sigla)}</b><small>${esc(c.nome)}</small></span><i class="fas fa-file-pdf" aria-hidden="true"></i></a>`; }).join('')}<a class="mat-card mat-card-guia" href="${esc(base + urlGuia())}" target="_blank" rel="noopener"><i class="fas fa-book-open" aria-hidden="true"></i><span><b>Guia completo</b><small>Inclusão na roda: princípios, as 7 condições, ficha de adaptação e o que fazer na aula</small></span><i class="fas fa-file-pdf" aria-hidden="true"></i></a></div>`;
+  const cards = lista.map((id) => { const c = condicaoDe(id); const m = materialDisponivel(id, a); return link(m, 'mat-card', `${lacoSVG(id, 30)}<span><b>${esc(c.sigla)}</b><small>${esc(c.nome)}</small>${m.proprio ? '' : `<small class="mat-legenda">${esc(m.legenda)}</small>`}</span><i class="fas fa-file-pdf" aria-hidden="true"></i>`); }).join('');
+  const subGuia = adaptarTexto('Inclusão na roda: princípios, as 7 condições, ficha de adaptação e o que fazer na aula', a);
+  return `<div class="mat-cards">${cards}${link(guia, 'mat-card mat-card-guia', `<i class="fas fa-book-open" aria-hidden="true"></i><span><b>Guia completo</b><small>${esc(subGuia)}</small>${guia.proprio ? '' : `<small class="mat-legenda">${esc(guia.legenda)}</small>`}</span><i class="fas fa-file-pdf" aria-hidden="true"></i>`)}</div>`;
 }
 
 // Ficha de adaptação só para ler (chips), usada na chamada, nos relatórios e no app do aluno.
-export function apoiosHTML(inclusao, { classe = 'apoios-chips' } = {}) {
+export function apoiosHTML(inclusao, { classe = 'apoios-chips', arte = ARTE_PADRAO } = {}) {
   const { apoios } = normalizarInclusao(inclusao);
   if (!apoios.length) return '';
-  return `<ul class="${esc(classe)}" aria-label="Ficha de adaptação">${apoios.map((id) => { const a = apoioDe(id); return a ? `<li><i class="fas ${esc(a.icone)}" aria-hidden="true"></i>${esc(a.nome)}</li>` : ''; }).join('')}</ul>`;
+  return `<ul class="${esc(classe)}" aria-label="Ficha de adaptação">${apoios.map((id) => { const a = apoioDe(id); return a ? `<li><i class="fas ${esc(a.icone)}" aria-hidden="true"></i>${esc(adaptarTexto(a.nome, arte))}</li>` : ''; }).join('')}</ul>`;
 }
 
 // CSS único para todas as telas (injetado uma vez): laços no canto inferior
@@ -179,6 +247,9 @@ export function garantirEstilos() {
 .mat-card b{font-size:.86rem}.mat-card small{font-size:.72rem;color:#5B6B68}
 .mat-card>i{color:#D32F2F;font-size:1.1rem;flex:none}
 .mat-card-guia{grid-column:1/-1;background:linear-gradient(135deg,rgba(56,158,146,.14),rgba(0,45,114,.08))}
-.mat-card-guia>i:first-child{color:#389E92;font-size:1.5rem}`;
+.mat-card-guia>i:first-child{color:#389E92;font-size:1.5rem}
+.mat-legenda{display:block;margin-top:2px;font-size:.68rem;font-weight:600;color:#8A6D00}
+.mat-link .mat-geral{font-size:.64rem;color:#8A6D00}
+.mat-indisponivel{opacity:.55;cursor:not-allowed;pointer-events:none}`;
   document.head.appendChild(s);
 }

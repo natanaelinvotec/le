@@ -6,12 +6,16 @@ aqui é só a tela. Ações:
   • aprovar / recusar a foto de documento enviada pelo atleta ou responsável;
   • PEDIR a foto (o servidor notifica o atleta e o responsável legal);
   • enviar a foto pelo atleta (já entra aprovada);
-  • marcar bolsista (carteirinha sem vencimento) e emitir as que faltam. */
+  • marcar bolsista (carteirinha sem vencimento) e emitir as que faltam.
+v37: a lista segue a TURMA ATIVA do núcleo (a mesma do painel: localStorage
+'le.turma.<academiaId>'); a escada em uso é a da turma e cada linha leva a
+etiqueta da turma. Sem turmas criadas, nada muda (turma padrão = todo mundo). */
 import {
   observarSessao, db, storage, storageRef, getDownloadURL, doc, getDoc, getDocs, setDoc, updateDoc, collection, query, where, limit, enviarFoto, ondeEscola,
 } from './firebase.js';
-import { coresDoCordao } from './escola.js';
+import { coresDoCordao, rotuloGrad, ESCOLA } from './escola.js';
 import { esc, situacao, textoValidade, iniciais, faixas, linkVerificacao, prepararFoto, ehAtleta } from './carteirinha-comum.js';
+import { carregarTurmas, turmaAtivaId, definirTurmaAtiva, filtrarPorTurma, contarPorTurma, turmaDe, turmaPadrao, usarEscadaDa, etiquetaTurmaHTML, garantirEstilosTurma, corOk } from './turmas.js';
 
 const pagina = document.getElementById('pagina');
 const arquivo = document.getElementById('arqPeloAtleta');
@@ -21,8 +25,11 @@ let eu = null; let meuUid = null;
 let podeEscolherNucleo = false;
 let nucleos = []; let nucleoId = null;
 let atletas = []; let fotos = {};
+let todos = [];                 // todos os atletas do núcleo (antes do filtro por turma)
+let turmas = []; let turmaId = ''; // turmas do núcleo e a turma ativa ('' = padrão)
 let aba = 'aprovar';
 let alvoUpload = null;
+garantirEstilosTurma();
 
 const nomeCurto = (n) => String(n || '').replace(/^\s*(academia|núcleo|nucleo)\s+(d[oa]\s+)?/i, '').trim();
 const primeiro = (n) => String(n || '').split(' ')[0];
@@ -75,15 +82,35 @@ async function carregar() {
   ]);
   const vistos = new Set();
   // Todo mundo que treina tem carteirinha: aluno, instrutor, professor e mestre.
-  atletas = su.docs.concat(sg.docs).map((d) => ({ uid: d.id, ...d.data() }))
+  todos = su.docs.concat(sg.docs).map((d) => ({ uid: d.id, ...d.data() }))
     .filter((u) => { if (vistos.has(u.uid)) return false; vistos.add(u.uid); return true; })
     .filter((u) => ehAtleta(u) && u.statusAtual !== 'Inativo' && u.ativo !== false)
     .sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
   fotos = {}; sf.docs.forEach((d) => { fotos[d.id] = d.data(); });
-  await Promise.all(atletas.filter((a) => a.academiaId !== nucleoId).map((a) => getDoc(doc(db, 'fotosCarteirinha', a.uid))
+  await Promise.all(todos.filter((a) => a.academiaId !== nucleoId).map((a) => getDoc(doc(db, 'fotosCarteirinha', a.uid))
     .then((x) => { if (x.exists()) fotos[a.uid] = x.data(); }).catch(() => {})));
+  // Turmas do núcleo e a turma ativa (a mesma do painel). Turma que não existe mais → padrão.
+  turmas = await carregarTurmas(nucleoId);
+  aplicarTurma(turmaAtivaId(nucleoId));
   if (aba === 'aprovar' && !atletas.some((a) => (fotos[a.uid] || {}).status === 'pendente')) aba = atletas.some((a) => !temFoto(a)) ? 'semfoto' : 'todos';
   desenhar();
+}
+
+// Filtra a lista pela turma e põe a escada dela em uso (cores e rótulos da graduação).
+function aplicarTurma(id) {
+  turmaId = id && turmas.some((t) => t.id === id) ? id : '';
+  atletas = filtrarPorTurma(todos, turmaId, turmas);
+  usarEscadaDa(turmaId ? turmas.find((t) => t.id === turmaId) : null);
+}
+const nucleoAtual = () => nucleos.find((n) => n.id === nucleoId) || { id: nucleoId };
+const turmaAtiva = () => (turmaId ? turmas.find((t) => t.id === turmaId) : null) || turmaPadrao(nucleoAtual());
+// "Cordão Quilombola", "Faixa Azul · 2º grau + 1 vermelho" — com a escada da turma ativa.
+function rotuloGraduacao(a) {
+  const peca = String((turmaAtiva().escada && turmaAtiva().escada.peca) || ESCOLA.peca || 'cordão');
+  const Peca = peca.charAt(0).toUpperCase() + peca.slice(1);
+  const nome = a.cordaoAtual || 'Iniciante';
+  if (['nível', 'nivel', 'graduação', 'graduacao'].includes(peca.toLowerCase())) return rotuloGrad(nome, a.grausAtual, a.grausVermelhos);
+  return `${Peca} ${rotuloGrad(nome, a.grausAtual, a.grausVermelhos)}`;
 }
 
 const funcao = (a) => (a.academiaGerenciadaId ? 'Responsável de núcleo' : (a.papeis || []).includes('instrutor') ? 'Instrutor' : 'Atleta');
@@ -121,7 +148,7 @@ function desenhar() {
     corpo = nP ? `<div class="grade-fotos">${pendentes().map((a) => {
       const f = fotos[a.uid];
       return `<article class="cartao-foto" data-uid="${esc(a.uid)}"><div class="img"><img data-caminho="${esc(f.caminho || '')}" alt="Foto enviada por ${esc(f.enviadoPorNome || a.nome)}"><span class="guia" aria-hidden="true"></span></div>
-        <div class="corpo"><strong>${esc(a.nome)}</strong><small>Cordão ${esc(a.cordaoAtual || 'Iniciante')}${f.enviadoPorUid && f.enviadoPorUid !== a.uid ? ` · enviada por ${esc(primeiro(f.enviadoPorNome))} (responsável)` : ''}</small>
+        <div class="corpo"><strong>${esc(a.nome)}</strong><small>${esc(rotuloGraduacao(a))}${f.enviadoPorUid && f.enviadoPorUid !== a.uid ? ` · enviada por ${esc(primeiro(f.enviadoPorNome))} (responsável)` : ''}</small>
         <label class="sr" style="position:absolute;left:-9999px" for="mot-${esc(a.uid)}">Motivo da recusa</label>
         <select id="mot-${esc(a.uid)}" data-motivo>${MOTIVOS.map((m) => `<option>${esc(m)}</option>`).join('')}</select>
         <div class="bts"><button type="button" class="bt bt-verde" data-acao="aprovar">Aprovar</button><button type="button" class="bt bt-perigo" data-acao="recusar">Recusar</button></div></div></article>`;
@@ -135,7 +162,7 @@ function desenhar() {
       const st = (fotos[a.uid] || {}).status;
       const c = a.carteirinha;
       return `<div class="linha-atleta" data-uid="${esc(a.uid)}">${avatar(a)}
-        <div class="info"><b>${esc(a.nome)}</b><small>${esc(funcao(a))} · Cordão ${esc(a.cordaoAtual || 'Iniciante')}${c ? ` · <span class="mono">${esc(c.matricula)}</span>` : ''}${c && Array.isArray(c.beneficiarios) && c.beneficiarios.length ? ` · ${c.beneficiarios.length} beneficiário${c.beneficiarios.length === 1 ? '' : 's'}` : ''}</small><div class="tags">${pillFoto(a)}${aba === 'todos' ? pillSituacao(a) : ''}</div></div>
+        <div class="info"><b>${esc(a.nome)}${turmas.length ? ` ${etiquetaTurmaHTML(turmaDe(a, turmas, nucleoAtual()))}` : ''}</b><small>${esc(funcao(a))} · ${esc(rotuloGraduacao(a))}${c ? ` · <span class="mono">${esc(c.matricula)}</span>` : ''}${c && Array.isArray(c.beneficiarios) && c.beneficiarios.length ? ` · ${c.beneficiarios.length} beneficiário${c.beneficiarios.length === 1 ? '' : 's'}` : ''}</small><div class="tags">${pillFoto(a)}${aba === 'todos' ? pillSituacao(a) : ''}</div></div>
         <div class="acoes">
           ${st !== 'pendente' && st !== 'solicitada' ? '<button type="button" class="bt bt-claro" data-acao="pedir">Pedir foto</button>' : ''}
           <button type="button" class="bt bt-claro" data-acao="enviar">Enviar foto</button>
@@ -145,7 +172,13 @@ function desenhar() {
     }).join('')}</div>` : `<div class="vazio">${aba === 'semfoto' ? 'Todos os atletas já têm a foto da carteirinha.' : 'Nenhum atleta ativo neste núcleo.'}</div>`}`;
   }
   setTimeout(mostrarFotosPendentes, 0);
-  pagina.innerHTML = `<div class="barra-nucleo"><div><h2>${esc(nomeCurto(nomeNucleo))}</h2><p>${atletas.length} atletas ativos · foto de documento separada da foto de perfil da Rede</p></div>${seletor}</div>
+  // Turmas do núcleo: a lista segue a turma ativa (a mesma do painel); aqui dá para trocar.
+  const contagem = contarPorTurma(todos, turmas);
+  const padrao = turmaPadrao(nucleoAtual());
+  const seletorTurma = turmas.length
+    ? `<label class="sel-turma" style="--turma:${esc(corOk(turmaAtiva().cor))}"><span class="turma-cor"></span><span class="sr" style="position:absolute;left:-9999px">Turma</span><select id="selTurma">${[padrao, ...turmas].map((t) => `<option value="${esc(t.id || '')}"${(t.id || '') === turmaId ? ' selected' : ''}>${esc(t.nome)}${t.padrao ? ' (turma do núcleo)' : ''} · ${Number(contagem[t.id || ''] || 0)}</option>`).join('')}</select></label>`
+    : '';
+  pagina.innerHTML = `<div class="barra-nucleo"><div><h2>${esc(nomeCurto(nomeNucleo))}</h2><p>${atletas.length} atletas ativos${turmas.length ? ` na turma ${esc(turmaAtiva().nome)}` : ''} · foto de documento separada da foto de perfil da Rede</p></div><div class="barra-seletores">${seletorTurma}${seletor}</div></div>
     <div class="abas" role="tablist" aria-label="Carteirinhas">
       <button type="button" role="tab" data-aba="aprovar" aria-selected="${aba === 'aprovar'}">Para aprovar <span class="n">${nP}</span></button>
       <button type="button" role="tab" data-aba="semfoto" aria-selected="${aba === 'semfoto'}">Sem foto <span class="n">${nS}</span></button>
@@ -187,6 +220,13 @@ pagina.addEventListener('change', async (e) => {
     nucleoId = e.target.value; aba = 'aprovar';
     try { localStorage.setItem('le.carteirinhas.nucleo', nucleoId); } catch (er) { /* ok */ }
     carregar().catch(() => semAcesso('Não foi possível carregar este núcleo.'));
+    return;
+  }
+  if (e.target.id === 'selTurma') {
+    definirTurmaAtiva(nucleoId, e.target.value);
+    aplicarTurma(e.target.value);
+    if (aba === 'aprovar' && !pendentes().length) aba = semFoto().length ? 'semfoto' : 'todos';
+    desenhar();
     return;
   }
   if (e.target.dataset.acao === 'bolsista') {

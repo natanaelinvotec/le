@@ -8,8 +8,11 @@ observação e auditoria.
 import {
 observarSessao, entrar, sair, buscar, listar, calcularEstrelaViva, souFundador, ORDEM_ESTRELA,
 atualizar, salvar, aprovarVinculoFamilia,
+db, collection, query, where, getDocs, consultaDaEscola,
 } from './firebase.js';
 import { escapeHTML } from './shared.js';
+import { ESCOLA } from './escola.js';
+import { COR_PADRAO, corOk, contarPorTurma, turmaIdDe, definirTurmaAtiva, nomeArte, descricaoHorario } from './turmas.js';
 
 const telaLogin = document.getElementById('telaLogin');
 const telaBloqueado = document.getElementById('telaBloqueado');
@@ -123,6 +126,8 @@ const [usuarios, nucleos, pagamentos, solicitacoes, presencas, eventos] = await 
 listar('usuarios'), listar('nucleos'), listar('pagamentos'), listar('solicitacoes'), listar('presencas'), listar('eventos'),
 ]);
 todosUsuariosMaster = usuarios;
+// v37: visão por turma (não trava o resto do painel se a coleção ainda não existir).
+carregarVisaoPorTurma({ usuarios, nucleos, pagamentos }).catch((e) => { console.warn('visão por turma', e); const box = document.getElementById('visaoTurmas'); if (box) box.innerHTML = '<div class="empty-state"><i class="fas fa-triangle-exclamation"></i>Não foi possível carregar as turmas agora.</div>'; });
 const hojeStr = new Date().toISOString().slice(0, 10);
 const eventosFuturos = eventos.filter((e) => (e.data || '') >= hojeStr);
 
@@ -296,3 +301,141 @@ console.error(e);
 alert('Erro ao rejeitar a solicitação.');
 }
 };
+
+// ===================== v37: Visão global por turma =====================
+// Turmas de TODOS os núcleos da escola (coleção `turmas`, query direta por escolaId), alunos por
+// turma (contarPorTurma), mensalidade prevista (turma.mensalidade × ativos não isentos; sem
+// mensalidade na turma vale a do núcleo), recebido no mês e em aberto (pagamentos por alunoId).
+// Quem não tem turmaId conta na "turma do núcleo" (a padrão, virtual).
+const brlMaster = (v) => (Number(v) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+const mesChave = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+let dadosTurmasMaster = null; // { linhas, meses } — guardado para o filtro "Turma"
+let filtroTurmaMaster = '';
+
+async function listarTurmasDaEscola() {
+let q = await consultaDaEscola('turmas');
+// Sem claim ainda (conta recém-criada) a escola é a do próprio app (white-label).
+if (!q) q = query(collection(db, 'turmas'), where('escolaId', '==', ESCOLA.id));
+const s = await getDocs(q);
+return s.docs.map((d) => ({ id: d.id, ...d.data() })).filter((t) => t.ativa !== false);
+}
+
+// Monta as linhas (uma por turma + a turma do núcleo de cada núcleo) com os números do mês.
+export function montarVisaoPorTurma({ usuarios = [], nucleos = [], pagamentos = [], turmas = [], agora = new Date() } = {}) {
+const ehAluno = (u) => (u.papeis || []).includes('aluno');
+const ativo = (u) => u.statusAtual !== 'Inativo' && u.ativo !== false;
+const mesAtual = mesChave(agora);
+const meses = Array.from({ length: 6 }, (_, i) => { const d = new Date(agora.getFullYear(), agora.getMonth() - (5 - i), 1); return { chave: mesChave(d), rotulo: `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getFullYear()).slice(2)}` }; });
+const linhas = [];
+const chaveDe = new Map(); // alunoId -> chave da linha (academiaId|turmaId)
+nucleos.filter((n) => n.ativo !== false).sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''))).forEach((n) => {
+const turmasDoNucleo = turmas.filter((t) => t.academiaId === n.id).sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || '')));
+const alunosDoNucleo = usuarios.filter((u) => ehAluno(u) && u.academiaId === n.id);
+const ativos = alunosDoNucleo.filter(ativo);
+const contagem = contarPorTurma(ativos, turmasDoNucleo);
+const ids = new Set(turmasDoNucleo.map((t) => t.id));
+const chaveAluno = (u) => { const id = turmaIdDe(u); return `${n.id}|${id && ids.has(id) ? id : ''}`; };
+alunosDoNucleo.forEach((u) => chaveDe.set(u.id, chaveAluno(u)));
+const professor = usuarios.find((u) => u.id === n.professorUid);
+const linhaDe = (t) => {
+const chave = `${n.id}|${t ? t.id : ''}`;
+const meus = ativos.filter((u) => chaveAluno(u) === chave);
+const pagantes = meus.filter((u) => u.isentoMensalidade !== true);
+const mensal = t && Number(t.mensalidade) > 0 ? Number(t.mensalidade) : (Number(n.mensalidadeValor) > 0 ? Number(n.mensalidadeValor) : 0);
+return {
+chave, academiaId: n.id, turmaId: t ? t.id : '', padrao: !t, nucleoNome: n.nome || n.id,
+nome: t ? String(t.nome || 'Turma') : `${n.nome || 'Núcleo'} · turma do núcleo`, arte: t ? t.arte : (ESCOLA.modalidade || 'capoeira'),
+cor: corOk(t ? t.cor : (ESCOLA.cores && ESCOLA.cores.teal), COR_PADRAO), horario: t ? descricaoHorario(t) : '',
+professor: t && t.professorNome ? t.professorNome : (professor ? professor.nome : ''),
+alunos: Number(contagem[t ? t.id : ''] || 0), mensalidade: mensal, previsto: mensal * pagantes.length,
+recebido: 0, aberto: 0, porMes: Object.fromEntries(meses.map((m) => [m.chave, 0])),
+};
+};
+// A turma do núcleo só aparece quando tem gente ou quando o núcleo ainda não criou turmas.
+const padrao = linhaDe(null);
+if (padrao.alunos > 0 || !turmasDoNucleo.length) linhas.push(padrao);
+turmasDoNucleo.forEach((t) => linhas.push(linhaDe(t)));
+});
+const porChave = new Map(linhas.map((l) => [l.chave, l]));
+pagamentos.forEach((p) => {
+if (!p) return;
+const chave = (p.alunoId && chaveDe.get(p.alunoId)) || (p.academiaId ? `${p.academiaId}|` : null);
+const l = chave && porChave.get(chave);
+if (!l) return;
+const valor = Number(p.valor) || 0;
+const comp = String(p.competencia || '');
+if (p.pago) {
+if (comp === mesAtual) l.recebido += valor;
+if (l.porMes[comp] !== undefined) l.porMes[comp] += valor;
+} else l.aberto += valor;
+});
+const total = (campo, lista = linhas) => lista.reduce((s, l) => s + (Number(l[campo]) || 0), 0);
+return { linhas, meses, mesAtual, totais: { alunos: total('alunos'), previsto: total('previsto'), recebido: total('recebido'), aberto: total('aberto') } };
+}
+
+async function carregarVisaoPorTurma({ usuarios, nucleos, pagamentos }) {
+const box = document.getElementById('visaoTurmas'); if (!box) return;
+box.innerHTML = '<div class="skeleton-card"><div class="skeleton-line w-60"></div><div class="skeleton-line w-40"></div></div>';
+const turmas = await listarTurmasDaEscola();
+dadosTurmasMaster = montarVisaoPorTurma({ usuarios, nucleos, pagamentos, turmas });
+const sel = document.getElementById('filtroTurmaMaster');
+if (sel) {
+const atual = filtroTurmaMaster;
+sel.innerHTML = '<option value="">todas</option>' + dadosTurmasMaster.linhas.map((l) => `<option value="${escapeHTML(l.chave)}">${escapeHTML(l.padrao ? l.nome : `${l.nome} · ${l.nucleoNome}`)}</option>`).join('');
+if (dadosTurmasMaster.linhas.some((l) => l.chave === atual)) sel.value = atual; else filtroTurmaMaster = '';
+if (!sel.dataset.ligado) { sel.dataset.ligado = '1'; sel.addEventListener('change', () => { filtroTurmaMaster = sel.value; desenharVisaoPorTurma(); }); }
+}
+desenharVisaoPorTurma();
+}
+
+function desenharVisaoPorTurma() {
+const box = document.getElementById('visaoTurmas'); if (!box || !dadosTurmasMaster) return;
+const { linhas: todas, meses } = dadosTurmasMaster;
+const linhas = filtroTurmaMaster ? todas.filter((l) => l.chave === filtroTurmaMaster) : todas;
+if (!todas.length) { box.innerHTML = '<div class="empty-state"><i class="fas fa-layer-group"></i>Nenhum núcleo ativo ainda — as turmas aparecem aqui assim que existirem.</div>'; return; }
+const soma = (campo) => linhas.reduce((s, l) => s + (Number(l[campo]) || 0), 0);
+const totais = { alunos: soma('alunos'), previsto: soma('previsto'), recebido: soma('recebido'), aberto: soma('aberto') };
+const pct = totais.previsto ? Math.round((totais.recebido / totais.previsto) * 100) : null;
+const tiles = [
+{ cor: 'teal', valor: String(totais.alunos), rotulo: 'alunos ativos', icone: 'fa-user-group', nota: `${linhas.length} turma${linhas.length === 1 ? '' : 's'}` },
+{ cor: 'navy', valor: brlMaster(totais.previsto), rotulo: 'previsto no mês', icone: 'fa-calculator', nota: 'mensalidade × ativos não isentos' },
+{ cor: 'green', valor: brlMaster(totais.recebido), rotulo: 'recebido no mês', icone: 'fa-circle-check', nota: pct == null ? 'sem mensalidade definida' : `${pct}% do previsto` },
+{ cor: totais.aberto > 0 ? 'red' : 'teal', valor: brlMaster(totais.aberto), rotulo: 'em aberto', icone: 'fa-hand-holding-dollar', nota: 'lançado e ainda não pago' },
+];
+const maxAlunos = Math.max(1, ...linhas.map((l) => l.alunos));
+const totalMes = (m) => linhas.reduce((s, l) => s + (l.porMes[m.chave] || 0), 0);
+const maxMes = Math.max(1, ...meses.map(totalMes));
+const temRecebido = meses.some((m) => totalMes(m) > 0);
+const nomeCurto = (l) => (l.padrao ? `${l.nucleoNome} (núcleo)` : l.nome);
+box.innerHTML = `
+<div class="kpi-grid">${tiles.map((t, i) => `<div class="kpi-tile kpi-${t.cor}" style="--card-index:${i}"><i class="fas ${t.icone}"></i><span class="kpi-valor">${escapeHTML(t.valor)}</span><span class="kpi-rotulo">${escapeHTML(t.rotulo)}</span><span class="kpi-nota">${escapeHTML(t.nota)}</span></div>`).join('')}</div>
+<div class="vt-grade">
+<div class="card-padrao"><h3><i class="fas fa-chart-bar"></i> Alunos por turma</h3><p class="vt-ajuda">Alunos ativos de cada turma, na cor dela. A turma do núcleo reúne quem ainda não tem turma.</p>
+<div class="vt-barras" role="img" aria-label="Alunos por turma">${linhas.map((l) => `<div class="vt-barra" style="--turma:${escapeHTML(l.cor)}"><span class="vt-cor"></span><span>${escapeHTML(nomeCurto(l))}<small>${escapeHTML(l.padrao ? nomeArte(l.arte) : `${nomeArte(l.arte)} · ${l.nucleoNome}`)}</small></span><span class="vt-trilho"><i style="--w:${Math.round((l.alunos / maxAlunos) * 100)}%"></i></span><b>${l.alunos}</b></div>`).join('')}</div></div>
+<div class="card-padrao"><h3><i class="fas fa-coins"></i> Recebido por mês, por turma</h3><p class="vt-ajuda">Mensalidades marcadas como pagas, por competência, nos últimos 6 meses — cada cor é uma turma.</p>
+${temRecebido ? `<div class="vt-meses" role="img" aria-label="Recebido por mês">${meses.map((m, i) => { const tot = totalMes(m); return `<div class="vt-mes"><b>${escapeHTML(brlMaster(tot))}</b><span class="vt-pilha" style="--h:${Math.round((tot / maxMes) * 100)}%;--i:${i}">${linhas.filter((l) => l.porMes[m.chave] > 0).map((l) => `<i style="--turma:${escapeHTML(l.cor)};--p:${tot ? Math.round((l.porMes[m.chave] / tot) * 100) : 0}%" title="${escapeHTML(nomeCurto(l))}: ${escapeHTML(brlMaster(l.porMes[m.chave]))}"></i>`).join('')}</span><small>${escapeHTML(m.rotulo)}</small></div>`; }).join('')}</div>
+<div class="vt-legenda">${linhas.map((l) => `<span style="--turma:${escapeHTML(l.cor)}"><i></i>${escapeHTML(nomeCurto(l))}</span>`).join('')}</div>` : '<p class="vt-vazio">Nenhuma mensalidade paga registrada nos últimos 6 meses.</p>'}</div>
+</div>
+${tabelaTurmasMaster(linhas, totais)}`;
+box.querySelectorAll('[data-abrir-turma]').forEach((b) => b.addEventListener('click', () => {
+// Marca a turma ativa do núcleo neste aparelho e abre o painel de gestão já nela.
+definirTurmaAtiva(b.dataset.academia, b.dataset.abrirTurma || '');
+window.location.href = 'admin.html';
+}));
+}
+
+function tabelaTurmasMaster(linhas, totais) {
+const porNucleo = new Map();
+linhas.forEach((l) => { if (!porNucleo.has(l.academiaId)) porNucleo.set(l.academiaId, []); porNucleo.get(l.academiaId).push(l); });
+const celulaRec = (l) => `<td class="num">${escapeHTML(brlMaster(l.recebido))} <small>/ ${escapeHTML(brlMaster(l.previsto))}</small></td>`;
+const linhaHTML = (l) => `<tr class="${l.chave === filtroTurmaMaster ? 'vt-ativa' : ''}" style="--turma:${escapeHTML(l.cor)}">
+<td><span class="vt-nome"><span class="vt-cor" style="background:${escapeHTML(l.cor)}"></span><span><b>${escapeHTML(l.nome)}</b>${l.horario ? `<small>${escapeHTML(l.horario)}</small>` : (l.padrao ? '<small>quem não tem turma</small>' : '')}</span></span></td>
+<td>${escapeHTML(nomeArte(l.arte))}</td><td>${escapeHTML(l.professor || '—')}</td>
+<td class="num">${l.alunos}</td><td class="num">${l.mensalidade ? escapeHTML(brlMaster(l.mensalidade)) : '—'}</td>${celulaRec(l)}
+<td class="num ${l.aberto > 0 ? 'vt-aberto' : 'vt-ok'}">${escapeHTML(brlMaster(l.aberto))}</td>
+<td><button type="button" class="btn-mini" data-abrir-turma="${escapeHTML(l.turmaId)}" data-academia="${escapeHTML(l.academiaId)}"><i class="fas fa-arrow-up-right-from-square"></i> Abrir turma</button></td></tr>`;
+const subtotal = (lista, rotulo) => { const t = (c) => lista.reduce((s, l) => s + (Number(l[c]) || 0), 0); return `<tr class="vt-total"><td colspan="3">${escapeHTML(rotulo)}</td><td class="num">${t('alunos')}</td><td></td><td class="num">${escapeHTML(brlMaster(t('recebido')))} <small>/ ${escapeHTML(brlMaster(t('previsto')))}</small></td><td class="num ${t('aberto') > 0 ? 'vt-aberto' : 'vt-ok'}">${escapeHTML(brlMaster(t('aberto')))}</td><td></td></tr>`; };
+const corpo = Array.from(porNucleo.values()).map((lista) => `<tr class="vt-nucleo"><td colspan="8"><i class="fas fa-building"></i> ${escapeHTML(lista[0].nucleoNome)}</td></tr>${lista.map(linhaHTML).join('')}${lista.length > 1 ? subtotal(lista, `Total · ${lista[0].nucleoNome}`) : ''}`).join('');
+return `<div class="vt-tabela"><table><thead><tr><th>Turma</th><th>Arte</th><th>Professor</th><th class="num">Alunos</th><th class="num">Mensalidade</th><th class="num">Recebido / previsto</th><th class="num">Em aberto</th><th></th></tr></thead>
+<tbody>${corpo}${subtotal(linhas, 'Total da academia')}</tbody></table></div>`;
+}

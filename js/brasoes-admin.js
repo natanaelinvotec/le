@@ -9,13 +9,22 @@ Quem entra: Admin Master, Fundador (acessoGeral) e responsáveis de núcleo
 - Responsável com núcleo: só o próprio núcleo; concede/revoga brasões MANUAIS.
 - Presidente do Grupo: ninguém concede — travado em config.presidenteUid.
 Fontes: perfisPublicos (contagem real de quem já tem cada brasão e ranking),
-usuarios (concessões manuais — campo brasoesManuais), config/brasoes. */
+usuarios (concessões manuais — campo brasoesManuais), config/brasoes.
+Turmas por arte (v37): o catálogo mostra só os brasões GERAIS + os da ARTE da turma ativa
+(turmaAtivaId do núcleo; turma padrão → ESCOLA.modalidade). Um núcleo de jiu-jitsu não vê
+berimbau nem roda; a capoeira não vê "100 rolas". O seletor "Turma / arte" troca a turma
+ativa deste aparelho (a mesma do painel) ou só espia outra arte. */
 import { db, observarSessao, buscar, listar, listarPorAcademia, atualizar, souFundador, collection, doc, getDocs, setDoc, updateDoc, deleteField, query, where, limit, ondeEscola } from './firebase.js';
 import { escapeHTML, sanitizeInput } from './shared.js';
-import { BRASOES, SERIES, avaliar, textoMetrica, urlThumb, urlPng, ehManual, porId, podeConceder, ehPresidente } from './brasoes.js?v=20261012';
+import { BRASOES, SERIES, avaliar, textoMetrica, urlThumb, urlPng, ehManual, porId, podeConceder, ehPresidente, brasoesParaArte, visivelNaArte, ESCOPO_GERAL } from './brasoes.js?v=20261012';
+import { ESCOLA } from './escola.js';
+import { identidadeDa } from './modalidades.js';
+import { ARTES, carregarTurmas, turmaAtivaId, definirTurmaAtiva, turmaPadrao, nomeArte, filtrarPorTurma, rotuloTurma } from './turmas.js';
 
 const el = (id) => document.getElementById(id);
 let uid = null, perfil = null, config = {}, nucleos = [], pubs = [], usuarios = [];
+// Turmas do núcleo de quem entrou, turma ativa (null = "só espiando uma arte") e arte em uso no catálogo.
+let turmas = [], turmaAtiva = null, arteAtiva = 'capoeira', nucleoDasTurmas = null;
 let toastTimer = null;
 function toast(msg) { const t = el('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), 2800); }
 const papeis = () => (perfil && perfil.papeis) || [];
@@ -42,6 +51,10 @@ listarPorAcademia('usuarios', meuNucleo(), 300).then((r) => r.itens).catch(() =>
 pubs = ps; usuarios = us;
 }
 if (!config.nucleoFundadorId) { const f = pubs.find((p) => p.fundador && p.academiaGerenciadaId) || usuarios.find((u) => u.acessoGeral === true && u.academiaGerenciadaId); if (f) config.nucleoFundadorId = f.academiaGerenciadaId; }
+// Turmas do núcleo (gestor: o que administra; Fundador/Admin: o próprio núcleo) e a turma ativa deste aparelho.
+nucleoDasTurmas = meuNucleo() || (perfil && perfil.academiaId) || null;
+turmas = nucleoDasTurmas ? await carregarTurmas(nucleoDasTurmas).catch(() => []) : [];
+escolherEscopo();
 // Trava do Presidente do Grupo: na primeira vez, grava quem é (o responsável do
 // núcleo do Fundador, com Acesso Geral). Depois disso só o Admin troca.
 if (!config.presidenteUid && config.nucleoFundadorId) {
@@ -54,6 +67,30 @@ if (ehModerador()) setDoc(doc(db, 'config', 'brasoes'), { presidenteUid: quem.id
 }
 }
 const nomeDe = (id) => { const x = usuarios.find((u) => u.id === id) || pubs.find((p) => p.id === id); return x ? x.nome : null; };
+/* ---------- escopo por arte (turma ativa) ---------- */
+// valor: 'turma:<id>' ('' = padrão) troca a turma ativa do aparelho; 'arte:<chave>' só espia a arte;
+// sem valor: lê a turma ativa gravada (a mesma que o painel usa).
+function escolherEscopo(valor = '') {
+const academia = nucleos.find((n) => n.id === nucleoDasTurmas) || { id: nucleoDasTurmas };
+if (valor.startsWith('arte:')) { turmaAtiva = null; arteAtiva = valor.slice(5) || ESCOLA.modalidade || 'capoeira'; return; }
+const id = valor.startsWith('turma:') ? valor.slice(6) : turmaAtivaId(nucleoDasTurmas);
+turmaAtiva = (id && turmas.find((t) => t.id === id)) || turmaPadrao(academia);
+if (valor.startsWith('turma:')) definirTurmaAtiva(nucleoDasTurmas, turmaAtiva.padrao ? '' : turmaAtiva.id);
+arteAtiva = turmaAtiva.arte || ESCOLA.modalidade || 'capoeira';
+}
+// Catálogo visível agora: gerais + exclusivos da arte da turma ativa.
+const catalogo = () => brasoesParaArte(arteAtiva);
+const ehGeral = (b) => (b.escopo || ESCOPO_GERAL) === ESCOPO_GERAL;
+function renderFiltroArte() {
+const sel = el('filtroArte'); if (!sel) return;
+const X = escapeHTML;
+const valorAtual = turmaAtiva ? `turma:${turmaAtiva.padrao ? '' : turmaAtiva.id}` : `arte:${arteAtiva}`;
+const grupoTurmas = nucleoDasTurmas ? `<optgroup label="Turmas do núcleo">${[turmaPadrao(nucleos.find((n) => n.id === nucleoDasTurmas) || { id: nucleoDasTurmas }), ...turmas].map((t) => `<option value="turma:${X(t.padrao ? '' : t.id)}">${X(rotuloTurma(t))} · ${X(nomeArte(t.arte))}${t.padrao ? ' (turma do núcleo)' : ''}</option>`).join('')}</optgroup>` : '';
+const grupoArtes = `<optgroup label="Só espiar uma arte">${ARTES.filter((a) => a.id !== 'outra').map((a) => `<option value="arte:${X(a.id)}">${X(a.nome)}</option>`).join('')}</optgroup>`;
+sel.innerHTML = grupoTurmas + grupoArtes;
+sel.value = valorAtual;
+if (sel.value !== valorAtual) sel.value = `arte:${arteAtiva}`;
+}
 const concessoesDe = (u) => [
 ...Object.entries(u.brasoesManuais || {}).map(([id, v]) => ({ id, v, campo: 'brasoesManuais' })),
 ...Object.entries(u.brasoesAdmin || {}).map(([id, v]) => ({ id, v, campo: 'brasoesAdmin' })),
@@ -66,13 +103,13 @@ const texto = (b) => ({ nome: (config.textos && config.textos[b.id] && config.te
 
 /* ---------- render ---------- */
 function renderKpis() {
-const c = contagens(); const ativos = BRASOES.filter((b) => ativo(b.id)).length;
+const c = contagens(); const vis = catalogo(); const ativos = vis.filter((b) => ativo(b.id)).length;
 const conquistas = Object.values(c).reduce((s, n) => s + n, 0);
 const comBrasao = pubs.filter((p) => (p.brasoesTotal || 0) > 0).length;
 const manuais = usuarios.reduce((s, u) => s + concessoesDe(u).length, 0);
-const raros = BRASOES.filter((b) => ativo(b.id) && c[b.id] > 0).sort((a, b) => c[a.id] - c[b.id]);
+const raros = vis.filter((b) => ativo(b.id) && c[b.id] > 0).sort((a, b) => c[a.id] - c[b.id]);
 el('kpis').innerHTML = [
-['kpi-teal', ativos, `brasões ativos de ${BRASOES.length}`, 'fa-medal'],
+['kpi-teal', ativos, `brasões ativos de ${vis.length} (${nomeArte(arteAtiva)})`, 'fa-medal'],
 ['kpi-gold', conquistas, 'conquistas no grupo', 'fa-trophy'],
 ['kpi-navy', `${comBrasao}<small style="font-size:.9rem;color:var(--text-muted)">/${pubs.length}</small>`, 'atletas com brasão · na Rede', 'fa-users'],
 ['kpi-green', manuais, 'concessões feitas', 'fa-award'],
@@ -80,11 +117,24 @@ el('kpis').innerHTML = [
 + (raros.length ? `<div class="kpi-tile" style="--card-index:4;flex-direction:row;align-items:center;gap:12px"><img src="${urlThumb(raros[0])}" alt="" style="width:52px;height:52px;object-fit:contain"><div><div class="kpi-rotulo">Mais raro conquistado</div><div style="font-family:var(--font-display);font-weight:800;font-size:.92rem">${escapeHTML(texto(raros[0]).nome)}</div><small class="kpi-rotulo">${c[raros[0].id]} atleta${c[raros[0].id] > 1 ? 's' : ''}</small></div></div>` : '');
 el('escopoTexto').textContent = ehModerador() ? `Grupo inteiro · ${pubs.length} atletas já abriram a Rede Liberdade.` : `Núcleo ${nomeNucleo(meuNucleo())} · ${pubs.length} atletas na Rede. Você concede os brasões manuais aos seus alunos; os automáticos vêm dos dados reais (e só o Admin Master concede automático).`;
 if (ehAdmin()) el('escopoTexto').textContent += ' Como Admin Master, você concede qualquer brasão a qualquer pessoa — menos o de Presidente, travado em uma pessoa.';
+const daArte = vis.filter((b) => !ehGeral(b)).length;
+el('escopoTexto').textContent += turmaAtiva
+? ` Turma ativa: ${rotuloTurma(turmaAtiva)} (${nomeArte(arteAtiva)}) — ${vis.length} brasões: ${vis.length - daArte} gerais + ${daArte} da arte.`
+: ` Espiando ${nomeArte(arteAtiva)} — ${vis.length} brasões: ${vis.length - daArte} gerais + ${daArte} da arte.`;
+const hero = el('heroTexto');
+if (hero) hero.textContent = `${BRASOES.length} brasões no catálogo, ${vis.length} visíveis na turma ativa (${vis.length - daArte} gerais + ${daArte} de ${nomeArte(arteAtiva)}). Os automáticos vêm dos dados reais do app; os manuais o responsável do núcleo concede aos alunos dele. O Admin Master concede qualquer brasão — só o de Presidente do Grupo é único, travado em uma pessoa.`;
 }
 function renderCatalogo() {
-const c = contagens();
-el('catalogo').innerHTML = Object.entries(SERIES).map(([k, sr]) => {
-const itens = BRASOES.filter((b) => b.serie === k);
+const c = contagens(); const vis = catalogo();
+const ident = identidadeDa(arteAtiva);
+const grupos = [
+{ titulo: 'Gerais', sub: 'Valem em qualquer arte: presenças, sequência, núcleos, Rede, compromisso, carteirinha, competição e formação.', icone: 'fa-globe', itens: vis.filter(ehGeral) },
+{ titulo: `Da arte: ${nomeArte(arteAtiva)}`, sub: `Só aparecem e só se concedem nas turmas de ${nomeArte(arteAtiva)}.`, icone: ident.icone, itens: vis.filter((b) => !ehGeral(b)) },
+];
+el('catalogo').innerHTML = grupos.map((g) => `<div class="grupo-escopo"><h2><i class="fas ${escapeHTML(g.icone)}"></i> ${escapeHTML(g.titulo)} <span class="pill pill-teal">${g.itens.length}</span></h2><p>${escapeHTML(g.sub)}</p></div>`
++ (g.itens.length ? Object.entries(SERIES).map(([k, sr]) => {
+const itens = g.itens.filter((b) => b.serie === k);
+if (!itens.length) return '';
 return `<div class="serie-cab"><h3><i class="fas ${sr.icone}"></i> ${sr.nome} <span class="pill pill-neutra">${itens.length}</span></h3><small>${escapeHTML(sr.sub)}</small></div>
 <div class="bra-grid">${itens.map((b) => { const t = texto(b); const on = ativo(b.id); return `<div class="bra-card ${on ? '' : 'inativo'}" data-id="${b.id}">
 ${ehPresidente(b) ? '<span class="pill pill-navy tag" title="Travado em uma pessoa"><i class="fas fa-lock"></i> único</span>' : (ehManual(b) ? '<span class="pill pill-gold tag" title="Concedido pelo responsável">manual</span>' : (b.nivel ? `<span class="pill pill-neutra tag">${b.nivel}</span>` : ''))}
@@ -99,7 +149,7 @@ ${ehPresidente(b) ? `<span class="metrica" style="min-height:0"><i class="fas fa
 ${podeConceder(b, { admin: ehAdmin() }) ? `<button type="button" class="btn-mini btn-mini-aprovar" data-conceder="${b.id}" title="${ehManual(b) ? 'Conceder' : 'Conceder (automático — só Admin Master)'}"><i class="fas fa-award"></i> Conceder</button>` : ''}
 ${ehModerador() ? `<button type="button" class="btn-mini" data-editar="${b.id}"><i class="fas fa-pen"></i></button><button type="button" class="switch ${on ? 'on' : ''}" data-toggle="${b.id}" title="${on ? 'Desativar' : 'Ativar'}" aria-label="Ativo"></button>` : ''}
 </div></div>`; }).join('')}</div>`;
-}).join('');
+}).join('') : `<div class="empty-state"><i class="fas fa-medal"></i>Ainda não há brasão exclusivo de ${escapeHTML(nomeArte(arteAtiva))}. Os gerais acima valem para esta turma.</div>`)).join('');
 }
 function renderConcessoes() {
 const linhas = [];
@@ -114,7 +164,7 @@ const top = pubs.filter((p) => (p.brasoesTotal || 0) > 0).sort((a, b) => (b.bras
 el('ranking').innerHTML = top.map((p, i) => `<div class="rank"><span class="pos">${i + 1}</span>${avatar(p)}<div class="q"><strong>${escapeHTML(p.nome)}</strong><small>${escapeHTML(p.cordaoAtual || '')} · ${escapeHTML(nomeNucleo(p.academiaId))}</small></div><span class="n">${p.brasoesTotal}</span></div>`).join('')
 || '<p class="cascata-vazio">Ninguém consolidou brasões ainda — eles são calculados quando o atleta abre a Rede Liberdade.</p>';
 }
-function renderTudo() { renderKpis(); renderCatalogo(); renderConcessoes(); renderRanking(); }
+function renderTudo() { renderFiltroArte(); renderKpis(); renderCatalogo(); renderConcessoes(); renderRanking(); }
 
 /* ---------- ações ---------- */
 function verBrasao(id) {
@@ -178,16 +228,20 @@ try { await setDoc(doc(db, 'config', 'brasoes'), { ativos, atualizadoEm: new Dat
 // "selecionar todos os da busca", quem já tem aparece marcado e fica de fora).
 function conceder(brasaoInicial) {
 const admin = ehAdmin();
-const opcoes = BRASOES.filter((b) => podeConceder(b, { admin })).sort((a, b) => (ehManual(b) ? 1 : 0) - (ehManual(a) ? 1 : 0));
-const alunos = usuarios.filter((u) => admin || ((u.papeis || []).includes('aluno') && u.id !== uid)).sort((a, b) => String(a.nome).localeCompare(String(b.nome)));
-let selB = brasaoInicial && podeConceder(porId(brasaoInicial), { admin }) ? brasaoInicial : null;
+// Só os brasões visíveis na arte da turma ativa: nada de berimbau no jiu-jitsu nem "100 rolas" na capoeira.
+const opcoes = catalogo().filter((b) => podeConceder(b, { admin })).sort((a, b) => (ehManual(b) ? 1 : 0) - (ehManual(a) ? 1 : 0) || (ehGeral(a) ? 1 : 0) - (ehGeral(b) ? 1 : 0));
+const todosAlunos = usuarios.filter((u) => admin || ((u.papeis || []).includes('aluno') && u.id !== uid)).sort((a, b) => String(a.nome).localeCompare(String(b.nome)));
+// Turma de verdade ativa → só os alunos dela; turma padrão ou "espiando uma arte" → todos do escopo.
+const turmaReal = turmaAtiva && !turmaAtiva.padrao ? turmaAtiva : null;
+const alunos = turmaReal ? filtrarPorTurma(todosAlunos, turmaReal.id, turmas) : todosAlunos;
+let selB = brasaoInicial && podeConceder(porId(brasaoInicial), { admin }) && visivelNaArte(porId(brasaoInicial), arteAtiva) ? brasaoInicial : null;
 const selU = new Set();
 let termo = '';
 const semAcento = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const f = abrirFolha(`<h3>Conceder brasão <button type="button" class="btn-mini" data-fechar aria-label="Fechar"><i class="fas fa-xmark"></i></button></h3>
-<label>1 · Escolha o brasão</label>${admin ? '<p class="conc-dica"><i class="fas fa-shield-halved"></i> Admin Master: os marcados com <b>auto</b> normalmente vêm dos dados reais — concedendo, a pessoa ganha na hora.</p>' : ''}
-<div class="escolha-brasao" id="escB">${opcoes.map((b) => `<button type="button" data-b="${b.id}" class="${b.id === selB ? 'sel' : ''}"><img src="${urlThumb(b)}" alt="">${escapeHTML(texto(b).nome)}${ehManual(b) ? '' : '<small class="auto">auto</small>'}</button>`).join('')}</div>
-<label style="margin-top:14px">2 · Escolha um ou vários atletas</label>
+<label>1 · Escolha o brasão <small class="conc-escopo">${escapeHTML(nomeArte(arteAtiva))}: gerais + da arte</small></label>${admin ? '<p class="conc-dica"><i class="fas fa-shield-halved"></i> Admin Master: os marcados com <b>auto</b> normalmente vêm dos dados reais — concedendo, a pessoa ganha na hora.</p>' : ''}
+<div class="escolha-brasao" id="escB">${opcoes.map((b) => `<button type="button" data-b="${b.id}" class="${b.id === selB ? 'sel' : ''}" title="${ehGeral(b) ? 'Geral' : `Da arte: ${escapeHTML(nomeArte(b.escopo))}`}"><img src="${urlThumb(b)}" alt="">${escapeHTML(texto(b).nome)}${ehManual(b) ? '' : '<small class="auto">auto</small>'}${ehGeral(b) ? '' : '<small class="auto da-arte">da arte</small>'}</button>`).join('')}</div>
+<label style="margin-top:14px">2 · Escolha um ou vários atletas${turmaReal ? ` <small class="conc-escopo">turma ${escapeHTML(rotuloTurma(turmaReal))}</small>` : ''}</label>
 <div class="conc-busca"><i class="fas fa-magnifying-glass"></i><input class="input-padrao" id="buscaAluno" type="search" placeholder="Buscar pelo nome…" autocomplete="off"></div>
 <div class="conc-barra"><button type="button" class="btn-mini" id="btnTodos"><i class="fas fa-check-double"></i> Selecionar todos da lista</button><button type="button" class="btn-mini" id="btnLimpar">Limpar</button><span class="conc-qtd" id="qtdSel">Nenhum selecionado</span></div>
 <div class="lista-atletas conc-lista" id="listaAl" role="listbox" aria-multiselectable="true"></div>
@@ -217,6 +271,7 @@ f.querySelector('#btnLimpar').addEventListener('click', () => { selU.clear(); de
 ok.addEventListener('click', async () => {
 const b = porId(selB); const alvos = alunos.filter((u) => selU.has(u.id)); if (!b || !alvos.length) return;
 if (!podeConceder(b, { admin })) { toast('Este brasão não pode ser concedido.'); return; }
+if (!visivelNaArte(b, arteAtiva)) { toast(`Este brasão é de outra arte (${nomeArte(b.escopo)}) — troque a turma ativa para concedê-lo.`); return; }
 if (alvos.length > 1 && !confirm(`Conceder "${texto(b).nome}" a ${alvos.length} atletas?`)) return;
 ok.disabled = true; ok.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Concedendo…';
 const campo = ehManual(b) ? 'brasoesManuais' : 'brasoesAdmin';
@@ -260,10 +315,12 @@ try { perfil = await buscar('usuarios', uid); } catch (e) { perfil = null; }
 if (!perfil || !(ehModerador() || ehGestor())) { el('telaBloqueado').classList.remove('oculto'); return; }
 el('appBrasoes').classList.remove('oculto');
 try { await carregar(); } catch (e) { console.error(e); toast('Não foi possível carregar tudo — confira as regras do Firestore.'); }
+if (!turmaAtiva) escolherEscopo(); // carga falhou no meio: ainda assim filtra pela arte da escola
 if (ehModerador()) el('btnConfig').classList.remove('oculto');
 renderTudo();
 el('btnConceder').addEventListener('click', () => conceder(null));
 el('btnConfig').addEventListener('click', configurar);
+const fa = el('filtroArte'); if (fa) fa.addEventListener('change', () => { escolherEscopo(fa.value); renderTudo(); toast(turmaAtiva ? `Turma ativa: ${rotuloTurma(turmaAtiva)} (${nomeArte(arteAtiva)}).` : `Espiando os brasões de ${nomeArte(arteAtiva)}.`); });
 el('catalogo').addEventListener('click', (ev) => {
 const v = ev.target.closest('[data-ver]'); if (v) return verBrasao(v.dataset.ver);
 const c = ev.target.closest('[data-conceder]'); if (c) return conceder(c.dataset.conceder);

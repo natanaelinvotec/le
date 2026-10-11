@@ -1,7 +1,7 @@
 // E-mails da própria plataforma (nova senha e confirmação de e-mail).
 //
 // Por quê: o Firebase não deixa editar os modelos de e-mail deste projeto (o
-// link sai em capoeira-liberdade.firebaseapp.com e o texto é o genérico). Aqui
+// link sai em atletapay-br.firebaseapp.com e o texto é o genérico). Aqui
 // o SERVIDOR gera o link oficial (Admin SDK: generatePasswordResetLink), troca o
 // endereço para atletapay.com.br/conta (nossa página) e manda um e-mail com a cara
 // da escola da pessoa, saindo de noreply@atletapay.com.br por um serviço de envio

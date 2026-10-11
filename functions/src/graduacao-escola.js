@@ -20,6 +20,9 @@ const primeiroNome = (n) => String(n || 'Atleta').split(' ')[0];
 export const idAvisoGraduacao = (cordao, graus) => `grad_${String(cordao).replace(/[^\w]+/g, '-')}_${Number(graus) || 0}`.slice(0, 120);
 
 export const ehOutraEscola = (u) => !!(u && u.escolaId && u.escolaId !== ESCOLA_PADRAO);
+// Graus vermelhos (escada infantil, v37): zera junto com grausAtual — só quando o campo existe no
+// cadastro (escola de capoeira nunca ganha o campo à toa).
+export const zerarGrausVermelhos = (u) => (u && u.grausVermelhos !== undefined && u.grausVermelhos !== null ? { grausVermelhos: 0 } : {});
 
 // Devolve o que fez (para os testes): 'inicial' | 'faixa' | 'grau' | null.
 export async function aoGraduarNaEscola(ctx, uid, antes, depois) {
@@ -28,7 +31,7 @@ export async function aoGraduarNaEscola(ctx, uid, antes, depois) {
   const lista = listaDa(escada, depois.idade);
   // 1) Cadastro novo (ou ainda "Iniciante"): primeira graduação da escada.
   if ((depois.cordaoAtual || 'Iniciante') === 'Iniciante' && !lista.some((g) => g.nome === 'Iniciante')) {
-    await ctx.db.doc(`usuarios/${uid}`).update({ cordaoAtual: graduacaoInicial(escada, depois.idade), grausAtual: 0 });
+    await ctx.db.doc(`usuarios/${uid}`).update({ cordaoAtual: graduacaoInicial(escada, depois.idade), grausAtual: 0, ...zerarGrausVermelhos(depois) });
     return 'inicial';
   }
   if (!antes) return null;
@@ -41,6 +44,8 @@ export async function aoGraduarNaEscola(ctx, uid, antes, depois) {
   const subiuFaixa = (iA >= 0 && iD > iA) || daOutraEscada; // de "Iniciante" para a 1ª faixa não é festa (é o passo 1)
   const subiuGrau = iD >= 0 && iD === iA && gD > gA;
   if (!subiuFaixa && !subiuGrau) return null;
+  // Faixa nova zera também os graus vermelhos (infantil, v37) — o app já manda 0; aqui é a garantia.
+  if (subiuFaixa && (Number(depois.grausVermelhos) || 0) > 0) await ctx.db.doc(`usuarios/${uid}`).update({ grausVermelhos: 0 });
   const item = lista[iD];
   const rotulo = rotuloGraduacao(depois.cordaoAtual, gD, item);
   const peca = String(escada.peca || 'faixa');

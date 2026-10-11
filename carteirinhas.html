@@ -13,14 +13,19 @@ carteirinhas que faltam. Admin Master e Fundador escolhem o núcleo. -->
 <link rel="icon" type="image/png" href="assets/app-icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
-<link rel="stylesheet" href="css/carteirinha.css?v=20260930">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&family=Mrs+Saint+Delafield&display=swap">
+<link rel="stylesheet" href="css/carteirinha.css?v=20261011">
 <style>
 .pagina.larga{max-width:1080px}
 .barra-nucleo{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
 .barra-nucleo h2{margin:0;font:800 22px 'Sora',sans-serif;color:var(--marinho);letter-spacing:-.02em}
 .barra-nucleo p{margin:4px 0 0;font-size:13px;color:var(--suave)}
 .barra-nucleo select{height:44px;min-width:0;max-width:100%;border:1px solid var(--linha);border-radius:12px;padding:0 12px;font:700 14px 'Manrope',sans-serif;color:var(--tinta);background:#fff}
+.barra-seletores{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sel-turma{position:relative;display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 10px 0 12px;border:2px solid var(--turma,var(--teal));border-radius:12px;background:#fff}
+.sel-turma .turma-cor{background:var(--turma,var(--teal))}
+.sel-turma select{height:40px;border:0;padding:0 4px;max-width:260px}
+.linha-atleta .info b .turma-etiqueta{vertical-align:middle;margin-left:4px}
 .abas{display:flex;gap:6px;background:#fff;padding:5px;border-radius:16px;overflow-x:auto}
 .abas button{flex:1 0 auto;height:40px;padding:0 14px;border:0;border-radius:12px;background:transparent;color:var(--suave);font:800 13.5px 'Manrope',sans-serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background .3s var(--ease),color .3s}
 .abas button[aria-selected="true"]{background:var(--marinho);color:#fff}
@@ -69,6 +74,6 @@ carteirinhas que faltam. Admin Master e Fundador escolhem o núcleo. -->
   <div class="carregando"><span class="giro" aria-hidden="true"></span><p>Carregando os atletas…</p></div>
 </main>
 <input id="arqPeloAtleta" class="oculto-arquivo" type="file" accept="image/*" aria-label="Escolher foto do atleta">
-<script type="module" src="js/carteirinhas.js?v=20260930"></script>
+<script type="module" src="js/carteirinhas.js?v=20261011"></script>
 </body>
 </html>

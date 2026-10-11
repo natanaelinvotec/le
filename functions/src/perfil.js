@@ -23,6 +23,7 @@ export const CAMPOS_DO_CARTAO = [
   'acessoGeral', 'usoImagem', 'historicoGraduacoes', 'notas', 'criadoEm', 'brasoesManuais', 'brasoesAdmin', 'brasoesBloqueados', 'ativo',
   'carteirinha', 'dataNasc', 'isentoMensalidade', 'eventosConfirmados', 'cardsCompartilhados', // brasões 46–71
   'competicoes', // brasões 72–74 (campeonatos)
+  'turmaId', 'grausVermelhos', // turmas por arte (v37): turma do aluno e graus vermelhos (infantil)
   'sincronizarEm', // o app pede um recálculo completo quando o cartão está velho
 ];
 
@@ -38,6 +39,9 @@ export function idadeDe(u, hoje = new Date()) {
   }
   return Number(u && u.idade) || 0;
 }
+// Turmas (v37): turmaId sempre string ('' = turma padrão do núcleo); grausVermelhos inteiro 0–10.
+export const turmaIdDe = (u) => (u && typeof u.turmaId === 'string' ? u.turmaId.trim().slice(0, 80) : '');
+export const grausVermelhosDe = (u) => Math.max(0, Math.min(10, Math.floor(Number(u && u.grausVermelhos) || 0)));
 export const ehMenor = (u) => { const i = idadeDe(u); return i > 0 && i < 18; };
 export const usoImagemOk = (u) => {
   const v = String((u && u.usoImagem) || '').toUpperCase();
@@ -190,6 +194,8 @@ export async function sincronizarPerfil(ctx, uid, refazer = {}) {
     fotoUrl: fotoOk ? u.fotoUrl : '',
     cordaoAtual: u.cordaoAtual || 'Iniciante',
     grausAtual: Math.max(0, Math.min(10, Number(u.grausAtual) || 0)), // faixas com graus (Jiu-Jitsu…)
+    grausVermelhos: grausVermelhosDe(u), // graus vermelhos da escada infantil (v37) — 0 quando não existe
+    turmaId: turmaIdDe(u), // turma por arte (v37); '' = turma padrão do núcleo
     idade: null, // idade exata não vai para o cartão público (antes: idade do menor)
     menor,
     kids,

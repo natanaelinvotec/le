@@ -1055,3 +1055,70 @@ select.input-padrao { appearance: none; -webkit-appearance: none; background-ima
 }
 @media (prefers-reduced-motion: reduce) { .ft-linha, .ft-card.ft-ocupado .ft-status i { transition: none; animation: none; } }
 .ft-palco:not(.com-foto) { min-height: 260px; }
+
+/* ======================================================================
+   TURMAS (v37) — seletor na barra lateral, etiqueta no cartão, faixa em
+   miniatura, bloco de graduação com botões de grau e modal "Nova turma".
+   O CSS base do seletor/formulário vem de garantirEstilosTurma() (js/turmas.js);
+   aqui só o que depende do painel. Botões simples e limpos (pedido do dono).
+   ====================================================================== */
+#turmaSeletor { margin: 0 2px; }
+#turmaSeletor[hidden], .nav-grupo[hidden], .btn-grau[hidden], .grad-dica[hidden], .grad-troca[hidden], #wrapModTurma[hidden], #wrapModGraus[hidden] { display: none !important; }
+#turmaSeletor .turma-bloco .nav-grupo { padding-left: 10px; }
+#turmaSeletor .turma-atual { border-radius: var(--radius-md); border-width: 1.5px; box-shadow: var(--shadow-card); transition: box-shadow .25s var(--ease-standard), transform .25s var(--ease-standard); }
+#turmaSeletor .turma-atual:hover { transform: translateY(-1px); }
+#turmaSeletor .turma-item { border-radius: var(--radius-sm); font-weight: 600; transition: background .2s var(--ease-standard); }
+#turmaSeletor .turma-item.ativa { background: var(--teal-soft); color: var(--primary-teal); }
+#turmaSeletor .turma-nova { border-radius: var(--radius-sm); transition: background .2s var(--ease-standard), transform .2s var(--ease-standard); }
+#turmaSeletor .turma-nova:hover { background: var(--teal-soft); transform: translateY(-1px); }
+/* Menu compacto (só ícones): mostra só a bolinha da turma ativa. */
+@media (max-width: 1279px) and (min-width: 901px) {
+  #turmaSeletor .nav-grupo, #turmaSeletor .turma-txt, #turmaSeletor .turma-atual i, #turmaSeletor .turma-lista, #turmaSeletor .turma-nova { display: none; }
+  #turmaSeletor .turma-atual { justify-content: center; padding: 10px 0; }
+}
+
+/* Etiqueta da turma no cartão do aluno (cor da turma via --turma, de turmas.js). */
+.card-info h3 .turma-etiqueta { font-size: .68rem; padding: 2px 8px 2px 6px; }
+
+/* Faixa em miniatura no cartão: "Azul · 2º grau" com a faixa desenhada ao lado. */
+.card-grad { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.faixa-mini { display: inline-flex; align-items: center; line-height: 0; flex: none; }
+.faixa-mini svg { width: 110px; height: 12px; display: block; border-radius: 3px; }
+
+/* Bloco visual da graduação no modal Avaliar/Editar. */
+.grad-visual { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-app); }
+.grad-faixa { line-height: 0; min-height: 18px; }
+.grad-faixa svg { width: 100%; height: auto; display: block; filter: drop-shadow(0 2px 4px rgba(13, 33, 29, .15)); transition: filter .3s var(--ease-standard); }
+.grad-cordao { display: block; width: 100%; height: 18px; border-radius: 20px; background: repeating-linear-gradient(45deg, var(--c1, #ccc) 0, var(--c1, #ccc) 10px, var(--c2, #ccc) 10px, var(--c2, #ccc) 20px, var(--c3, #ccc) 20px, var(--c3, #ccc) 30px); box-shadow: inset 0 0 0 1px rgba(13, 33, 29, .12); }
+.grad-texto { display: flex; flex-direction: column; gap: 2px; }
+.grad-texto strong { font-family: var(--font-display); font-size: .98rem; color: var(--text-dark); }
+.grad-texto small { font-size: .74rem; color: var(--text-muted); }
+.grad-botoes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.grad-botoes:has(.btn-grau[hidden]) { grid-template-columns: 1fr; }
+.btn-grau, .btn-trocar { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 10px 14px; border-radius: var(--radius-md); font: inherit; font-weight: 800; font-size: .86rem; cursor: pointer; transition: transform .2s var(--ease-standard), box-shadow .25s var(--ease-standard), background .2s var(--ease-standard), opacity .2s; }
+.btn-grau { background: var(--teal-light); color: #fff; border: 1.5px solid var(--teal-light); }
+.btn-grau:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 10px 20px -12px rgba(56, 158, 146, .8); }
+.btn-grau:disabled { opacity: .45; cursor: not-allowed; }
+.btn-trocar { background: var(--card-bg); color: var(--primary-blue); border: 1.5px solid var(--primary-blue); }
+.btn-trocar:hover { background: var(--navy-soft); transform: translateY(-1px); }
+.btn-trocar[aria-expanded="true"] { background: var(--navy-soft); }
+.grad-dica { margin: 8px 0 0; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--gold-soft); color: #7A5200; font-size: .78rem; font-weight: 600; }
+.grad-troca { margin-top: 10px; padding: 12px; border: 1px dashed var(--border-strong); border-radius: var(--radius-md); background: var(--card-bg); animation: dropIn .3s var(--ease-standard); }
+.grad-troca-linha { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.grad-troca-linha select { flex: 1 1 180px; min-width: 0; }
+.grad-troca-linha .btn-mini { min-height: 40px; }
+.mod-turma-dica { display: block; margin-top: 5px; font-size: .74rem; color: var(--text-muted); font-weight: 500; }
+#modTurma:disabled { opacity: .7; cursor: not-allowed; }
+
+/* Modal "Nova turma" (reaproveita .modal-overlay/.modal-content). */
+.modal-turma { max-width: 680px; }
+.modal-turma h2 { margin-bottom: 6px; }
+.modal-turma-sub { font-size: .86rem; margin-bottom: 16px; line-height: 1.5; }
+.modal-turma .form-turma-intro { display: none; } /* o subtítulo do modal já diz isso */
+.modal-turma-rodape { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color); flex-wrap: wrap; }
+.modal-turma-rodape .btn-salvar-modal { background: var(--teal-light); }
+@media (max-width: 600px) {
+  .grad-botoes { grid-template-columns: 1fr; }
+  .modal-turma-rodape { flex-direction: column-reverse; }
+  .modal-turma-rodape button { width: 100%; }
+}

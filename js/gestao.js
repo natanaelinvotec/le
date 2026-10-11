@@ -12,6 +12,7 @@ import {
 import { ESCOLA, CORDOES_ADULTO, prontidao, proximoCordao, coresDoCordao, META_PRONTIDAO, escadaDe } from './escola.js';
 import { situacao as situacaoCarteirinha, textoValidade } from './carteirinha-comum.js';
 import { CONDICOES, lacosHTML, lacoSVG, normalizarInclusao, resumoInclusao, SEM_LIMITACOES, apoiosHTML, apoioDe, materiaisHTML } from './inclusao.js?v=20261006';
+import { carregarTurmas, turmaAtivaId, turmaPadrao, corOk } from './turmas.js';
 
 let C = null; // contexto vindo do admin.js
 const el = (id) => document.getElementById(id);
@@ -184,9 +185,171 @@ async function renderIndicadores() {
     <div class="card-padrao"><h3><i class="fas fa-hand-holding-dollar"></i> Em aberto <span class="pill pill-pendente">${porAluno.size}</span></h3><p class="gs-ajuda">Valores lançados e ainda não marcados como pagos (mensalidades e adicionais).</p>
       <div class="lista-simples gs-lista">${Array.from(porAluno.values()).sort((a, b) => b.total - a.total).slice(0, 40).map((x) => `<div class="lista-item"><div class="lista-item-info"><strong>${esc(x.nome)}</strong><span>${x.itens} lançamento${x.itens > 1 ? 's' : ''} em aberto</span></div><div class="lista-item-actions"><b class="gs-valor">${brl(x.total)}</b></div></div>`).join('') || '<div class="empty-state"><i class="fas fa-check"></i>Nada em aberto.</div>'}</div>
       ${semLancamento.length && (nucIndic || !C.ehAdmin()) ? `<p class="gs-ajuda" style="margin-top:10px"><i class="fas fa-circle-info"></i> ${semLancamento.length} aluno${semLancamento.length > 1 ? 's' : ''} ativo${semLancamento.length > 1 ? 's' : ''} sem mensalidade lançada em ${mAtual.slice(5)}/${mAtual.slice(0, 4)}.</p>` : ''}</div>
-  </div>`;
+  </div>
+  <div id="gsInteligencia" class="it-bloco"></div>`;
   const sel = el('gsNucIndic'); if (sel) sel.addEventListener('change', () => { nucIndic = sel.value; renderIndicadores(); });
   box.querySelectorAll('[data-exportar]').forEach((b) => b.addEventListener('click', () => exportar(b.dataset.exportar, b.dataset.formato, nucIndic || null)));
+  // v37: inteligência da turma (a lista de usuários já vem filtrada pela turma ativa do painel).
+  try { await renderInteligenciaTurma(el('gsInteligencia'), { nid: nucIndic || null, alunos, ativos, pres, pags }); } catch (e) { console.warn('inteligência da turma', e); }
+}
+
+// ================= INTELIGÊNCIA DA TURMA (v37) =================
+// Lê só o que o painel já carregou (alunos da turma ativa, presenças de 90 dias e pagamentos do
+// núcleo) e transforma em leitura rápida: presença por dia da semana, tempo na graduação por
+// faixa de presença, alertas acionáveis, evolução de ativos e quem está pronto para avaliar
+// (SUGESTÃO — quem decide é o professor). Regra de ouro mantida: sem dado, "—".
+const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const diaISO = (v) => { const d = dataDe(v); return Number.isNaN(d.getTime()) ? null : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const mesesDesde = (iso, agora = Date.now()) => { const t = Date.parse(iso || ''); return Number.isFinite(t) ? Math.max(0, (agora - t) / (30.44 * DIA)) : null; };
+const mesesTexto = (m) => (m == null ? '—' : m < 1 ? 'menos de 1 mês' : m < 12 ? `${Math.round(m)} ${Math.round(m) === 1 ? 'mês' : 'meses'}` : `${(m / 12).toFixed(1).replace('.', ',')} anos`);
+// Quando a pessoa ENTROU na graduação atual (linha do histórico em que o cordão mudou); sem histórico, a entrada no grupo.
+function entrouNaGraduacaoEm(u) {
+  const atual = u.cordaoAtual || 'Iniciante';
+  const hist = Array.isArray(u.historicoGraduacoes) ? u.historicoGraduacoes : [];
+  for (let i = hist.length - 1; i >= 0; i -= 1) { const h = hist[i]; if (h && h.cordao === atual && h.anterior !== atual && h.em) return h.em; }
+  return u.criadoEm || null;
+}
+// Turma ativa do núcleo em foco (nome e cor), só para o título — a filtragem já veio do admin.js.
+async function turmaDoPainel(nid) {
+  if (!nid) return null;
+  try {
+    const turmas = await carregarTurmas(nid);
+    const id = turmaAtivaId(nid);
+    const n = C.nucleos().find((x) => x.id === nid);
+    return (id && turmas.find((t) => t.id === id)) || turmaPadrao(n ? { id: n.id, nome: n.nome, mensalidade: n.mensalidadeValor } : null);
+  } catch (e) { return null; }
+}
+let cssInteligencia = false;
+function garantirEstilosInteligencia() {
+  if (cssInteligencia) return; cssInteligencia = true;
+  const s = document.createElement('style'); s.id = 'css-inteligencia-turma';
+  s.textContent = `
+.it-bloco{margin-top:18px}
+.it-cab{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 12px}
+.it-cab h3{display:flex;align-items:center;gap:10px;margin:0;font-size:1.05rem}
+.it-cab .turma-cor{width:12px;height:12px;border-radius:50%;display:inline-block;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.it-barras{display:grid;grid-template-columns:repeat(var(--n,7),1fr);gap:8px;align-items:end;height:170px;padding-top:8px}
+.it-barras .gs-col i{background:linear-gradient(180deg,var(--turma,#389E92),color-mix(in srgb,var(--turma,#389E92) 60%,#002D72))}
+.it-faixas{display:grid;gap:8px;margin-top:6px}
+.it-faixa{display:grid;grid-template-columns:minmax(90px,.8fr) minmax(0,1.4fr) auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--border-color,#D9E5E3);border-radius:12px;background:#fff;font-size:.84rem}
+.it-faixa b{font-family:'JetBrains Mono',monospace;font-size:.95rem;color:#002D72}
+.it-faixa small{color:var(--text-muted,#5B6B7F);display:block}
+.it-faixa .it-pct{height:8px;border-radius:4px;background:#EAF2F1;overflow:hidden}
+.it-faixa .it-pct i{display:block;height:100%;width:var(--w);background:linear-gradient(90deg,var(--turma,#389E92),#00E676);transition:width .8s cubic-bezier(.16,1,.3,1)}
+.it-alertas{display:grid;gap:8px}
+.it-alerta{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:12px;border:1px solid var(--border-color,#D9E5E3);background:#fff;font-size:.84rem}
+.it-alerta .it-tag{flex:none;font-size:.68rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:#FFF4E6;color:#7A3E00}
+.it-alerta.it-ruim .it-tag{background:#FDECEA;color:#B3261E}
+.it-alerta.it-bom .it-tag{background:#E6F9EE;color:#00873A}
+.it-alerta.it-dinheiro .it-tag{background:#EEF3FF;color:#002D72}
+.it-alerta .it-nome{flex:1;min-width:0}
+.it-alerta .it-nome b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.it-alerta .it-nome small{color:var(--text-muted,#5B6B7F)}
+.it-sugestao{display:inline-flex;align-items:center;gap:6px;font-size:.68rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:#EEF3FF;color:#002D72;margin-left:6px}
+.it-pronto{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--border-color,#D9E5E3);border-radius:12px;background:#fff;font-size:.84rem}
+.it-pronto small{display:block;color:var(--text-muted,#5B6B7F)}
+.it-vazio{font-size:.84rem;color:var(--text-muted,#5B6B7F);padding:8px 0}
+@media (max-width:640px){.it-faixa{grid-template-columns:1fr}.it-pronto{grid-template-columns:1fr}}`;
+  document.head.appendChild(s);
+}
+// Calcula tudo a partir das listas (função pura — fácil de testar à mão no console).
+export function inteligenciaDaTurma({ alunos = [], ativos = [], pres = [], pags = [], agora = Date.now() } = {}) {
+  const ids = new Set(ativos.map((a) => a.id));
+  const presT = pres.filter((p) => ids.has(p.uid) && diaISO(p.entradaEm));
+  // Dias em que a turma treinou (alguém marcou presença), do mais novo para o mais velho.
+  const diasTreino = Array.from(new Set(presT.map((p) => diaISO(p.entradaEm)))).sort().reverse();
+  const presDoAluno = new Map(); presT.forEach((p) => { if (!presDoAluno.has(p.uid)) presDoAluno.set(p.uid, new Set()); presDoAluno.get(p.uid).add(diaISO(p.entradaEm)); });
+  const ultimaDe = new Map(); presT.forEach((p) => { const t = dataDe(p.entradaEm).getTime(); if (!ultimaDe.has(p.uid) || ultimaDe.get(p.uid) < t) ultimaDe.set(p.uid, t); });
+  // 1) Presença média por dia da semana: alunos presentes ÷ treinos realizados naquele dia.
+  const porDia = DIAS_SEMANA.map(() => ({ presencas: 0, treinos: new Set() }));
+  presT.forEach((p) => { const d = dataDe(p.entradaEm).getDay(); porDia[d].presencas += 1; porDia[d].treinos.add(diaISO(p.entradaEm)); });
+  const diasSemana = porDia.map((x, i) => ({ dia: DIAS_SEMANA[i], treinos: x.treinos.size, media: x.treinos.size ? x.presencas / x.treinos.size : 0 }));
+  // 2) Presença (%) de cada aluno nas últimas 8 semanas = dias em que veio ÷ dias em que a turma treinou.
+  const corte56 = diaISO(new Date(agora - 56 * DIA));
+  const dias56 = diasTreino.filter((d) => d >= corte56);
+  const taxaDe = (u) => (dias56.length ? Array.from(presDoAluno.get(u.id) || []).filter((d) => d >= corte56).length / dias56.length : null);
+  const taxas = ativos.map((a) => ({ a, taxa: taxaDe(a), meses: mesesDesde(entrouNaGraduacaoEm(a), agora) }));
+  const comTaxa = taxas.filter((x) => x.taxa != null);
+  const mediaTaxa = comTaxa.length ? comTaxa.reduce((s, x) => s + x.taxa, 0) / comTaxa.length : null;
+  const faixa = (rotulo, f) => { const l = comTaxa.filter(f); const m = l.filter((x) => x.meses != null); return { rotulo, n: l.length, tempoMedio: m.length ? m.reduce((s, x) => s + x.meses, 0) / m.length : null }; };
+  const faixas = [faixa('Acima de 85%', (x) => x.taxa > 0.85), faixa('Entre 70% e 85%', (x) => x.taxa >= 0.70 && x.taxa <= 0.85), faixa('Abaixo de 70%', (x) => x.taxa < 0.70)];
+  // 3) Alertas acionáveis.
+  const ultimos3 = diasTreino.slice(0, 3);
+  const alertas = [];
+  ativos.forEach((a) => {
+    const dias = presDoAluno.get(a.id) || new Set();
+    const ultima = ultimaDe.get(a.id) || null;
+    const semTreinar = !ultima || agora - ultima > 14 * DIA;
+    if (semTreinar) alertas.push({ tipo: 'sumido', classe: 'it-ruim', tag: 'Sem treinar', a, detalhe: ultima ? `há ${Math.floor((agora - ultima) / DIA)} dias` : 'nenhuma presença em 90 dias' });
+    else if (ultimos3.length === 3 && dias.size && !ultimos3.some((d) => dias.has(d))) alertas.push({ tipo: 'faltas', classe: '', tag: '3 faltas', a, detalhe: 'faltou aos 3 últimos treinos da turma' });
+    // Sequência: presente em todos os últimos treinos, sem furo.
+    let seq = 0; for (const d of diasTreino) { if (dias.has(d)) seq += 1; else break; }
+    if (seq >= 30) alertas.push({ tipo: 'sequencia', classe: 'it-bom', tag: 'Sequência', a, detalhe: `${seq} treinos seguidos sem faltar` });
+  });
+  const aberto = new Map();
+  pags.filter((p) => !p.pago && p.alunoId && ids.has(p.alunoId)).forEach((p) => { const x = aberto.get(p.alunoId) || { total: 0, itens: 0 }; x.total += Number(p.valor) || 0; x.itens += 1; aberto.set(p.alunoId, x); });
+  aberto.forEach((x, uid) => { const a = ativos.find((u) => u.id === uid); if (a) alertas.push({ tipo: 'aberto', classe: 'it-dinheiro', tag: 'Em aberto', a, detalhe: `${brl(x.total)} em ${x.itens} lançamento${x.itens > 1 ? 's' : ''}` }); });
+  const ordem = { sumido: 0, faltas: 1, aberto: 2, sequencia: 3 };
+  alertas.sort((x, y) => ordem[x.tipo] - ordem[y.tipo] || String(x.a.nome || '').localeCompare(String(y.a.nome || '')));
+  // 4) Evolução (6 meses): ativos de hoje acumulados pelo mês de entrada + novos de cada mês.
+  const meses = Array.from({ length: 6 }, (_, i) => { const d = new Date(agora); d.setDate(1); d.setMonth(d.getMonth() - (5 - i)); return mesISO(d); });
+  const evolucao = meses.map((m) => ({
+    mes: m, rotulo: `${m.slice(5)}/${m.slice(2, 4)}`,
+    ativos: ativos.filter((a) => !a.criadoEm || String(a.criadoEm).slice(0, 7) <= m).length,
+    novos: alunos.filter((a) => a.criadoEm && String(a.criadoEm).slice(0, 7) === m).length,
+  }));
+  // 5) Prontos para avaliar (SUGESTÃO): graus completos OU tempo mínimo na faixa cumprido com presença acima da média.
+  const prontos = [];
+  taxas.forEach(({ a, taxa, meses: m }) => {
+    const lista = escadaDe(a); const item = lista.find((g) => g.nome === (a.cordaoAtual || 'Iniciante'));
+    if (!item) return;
+    const graus = Number(item.graus) || 0; const g = Number(a.grausAtual) || 0;
+    if (graus > 0 && g >= graus) prontos.push({ a, motivo: `Graus completos (${g}/${graus}) na faixa ${item.nome}`, taxa, meses: m });
+    else if (Number(item.permanenciaMeses) > 0 && m != null && m >= Number(item.permanenciaMeses) && taxa != null && mediaTaxa != null && taxa > mediaTaxa) {
+      prontos.push({ a, motivo: `${mesesTexto(m)} na faixa ${item.nome} (mínimo ${mesesTexto(Number(item.permanenciaMeses))}) e presença acima da média da turma`, taxa, meses: m });
+    }
+  });
+  prontos.sort((x, y) => (y.taxa ?? 0) - (x.taxa ?? 0));
+  return { diasSemana, diasTreino, dias56, faixas, mediaTaxa, alertas, evolucao, prontos, taxas };
+}
+async function renderInteligenciaTurma(box, { nid, alunos, ativos, pres, pags }) {
+  if (!box) return;
+  garantirEstilosInteligencia();
+  const turma = await turmaDoPainel(nid);
+  const cor = corOk(turma && turma.cor);
+  const r = inteligenciaDaTurma({ alunos, ativos, pres, pags });
+  const pct = (v) => (v == null ? '—' : `${Math.round(v * 100)}%`);
+  const maxDia = Math.max(1, ...r.diasSemana.map((d) => d.media));
+  const maxEvo = Math.max(1, ...r.evolucao.map((e) => e.ativos));
+  const rotuloTurma = turma ? (turma.padrao ? `${esc(turma.nome)} · turma do núcleo` : esc(turma.nome)) : (nid ? esc(nomeNucleo(nid)) : 'Grupo todo');
+  const alertaHTML = (x) => `<div class="it-alerta ${x.classe}"><span class="it-tag">${esc(x.tag)}</span><span class="it-nome"><b>${esc(x.a.nome || '')}</b><small>${esc(x.detalhe)} · ${esc(x.a.cordaoAtual || 'Iniciante')}</small></span></div>`;
+  box.innerHTML = `
+  <div class="it-cab"><h3><span class="turma-cor" style="background:${esc(cor)}"></span><i class="fas fa-brain"></i> Inteligência da turma <small class="gs-ajuda" style="margin:0">${rotuloTurma} · ${ativos.length} ativo${ativos.length === 1 ? '' : 's'} · ${r.diasTreino.length} treino${r.diasTreino.length === 1 ? '' : 's'} em 90 dias</small></h3>
+    <button type="button" class="btn-mini exp-btn" id="gsIntelPDF"><i class="fas fa-file-pdf"></i> Exportar PDF</button></div>
+  <div class="gs-grade" style="--turma:${esc(cor)}">
+    <div class="card-padrao"><h3><i class="fas fa-calendar-week"></i> Presença média por dia da semana</h3><p class="gs-ajuda">Alunos presentes, em média, em cada dia em que a turma treinou (últimos 90 dias).</p>
+      ${r.diasTreino.length ? `<div class="it-barras" style="--n:7" role="img" aria-label="Presença média por dia da semana">${r.diasSemana.map((d, i) => `<div class="gs-col" style="--h:${Math.round((d.media / maxDia) * 100)}%;--i:${i}" title="${esc(d.treinos)} treino${d.treinos === 1 ? '' : 's'}"><b>${d.treinos ? d.media.toFixed(1).replace('.', ',') : '—'}</b><i></i><small>${d.dia}</small></div>`).join('')}</div>` : '<p class="it-vazio">Sem presenças registradas nos últimos 90 dias.</p>'}</div>
+    <div class="card-padrao"><h3><i class="fas fa-hourglass-half"></i> Tempo na graduação × presença</h3><p class="gs-ajuda">Presença = dias em que o aluno veio ÷ dias em que a turma treinou (8 semanas). Média da turma: <b>${pct(r.mediaTaxa)}</b>.</p>
+      <div class="it-faixas">${r.faixas.map((f) => `<div class="it-faixa"><span><b>${f.n}</b><small>${esc(f.rotulo)}</small></span><span class="it-pct"><i style="--w:${ativos.length ? Math.round((f.n / ativos.length) * 100) : 0}%"></i></span><span><small>tempo médio na graduação</small><b>${esc(mesesTexto(f.tempoMedio))}</b></span></div>`).join('')}</div></div>
+    <div class="card-padrao"><h3><i class="fas fa-bell"></i> Alertas acionáveis <span class="pill pill-pendente">${r.alertas.length}</span></h3><p class="gs-ajuda">Sem treinar há 14+ dias, 3 faltas seguidas, mensalidade em aberto e sequências de 30 treinos para reconhecer.</p>
+      <div class="it-alertas gs-lista">${r.alertas.slice(0, 60).map(alertaHTML).join('') || '<p class="it-vazio">Nenhum alerta: turma em dia.</p>'}</div></div>
+    <div class="card-padrao"><h3><i class="fas fa-chart-line"></i> Alunos ativos nos últimos 6 meses</h3><p class="gs-ajuda">Ativos de hoje acumulados pelo mês de entrada; o número pequeno é quantos entraram em cada mês.</p>
+      <div class="it-barras" style="--n:6" role="img" aria-label="Alunos ativos por mês">${r.evolucao.map((e, i) => `<div class="gs-col" style="--h:${Math.round((e.ativos / maxEvo) * 100)}%;--i:${i}" title="${e.novos} novo${e.novos === 1 ? '' : 's'} em ${esc(e.rotulo)}"><b>${e.ativos}</b><i></i><small>${esc(e.rotulo)}${e.novos ? ` (+${e.novos})` : ''}</small></div>`).join('')}</div></div>
+    <div class="card-padrao"><h3><i class="fas fa-award"></i> Prontos para avaliar <span class="it-sugestao">Sugestão</span> <span class="pill pill-aprovado">${r.prontos.length}</span></h3><p class="gs-ajuda">Graus completos na faixa, ou tempo mínimo cumprido com presença acima da média da turma. É só uma sugestão — quem decide é o professor.</p>
+      <div class="it-faixas gs-lista">${r.prontos.slice(0, 60).map((p) => `<div class="it-pronto"><span><b>${esc(p.a.nome || '')}</b><small>${esc(p.a.cordaoAtual || 'Iniciante')}${Number(p.a.grausAtual) ? ` · ${Number(p.a.grausAtual)}º grau` : ''} · presença ${pct(p.taxa)}</small></span><span><small>${esc(p.motivo)}</small></span></div>`).join('') || '<p class="it-vazio">Ninguém atende aos critérios agora.</p>'}</div></div>
+  </div>`;
+  const btn = el('gsIntelPDF');
+  if (btn) btn.addEventListener('click', () => {
+    const sub = `${turma ? (turma.padrao ? `${turma.nome} (turma do núcleo)` : turma.nome) : (nid ? nomeNucleo(nid) : 'Grupo todo')} · ${ativos.length} ativos · presença média ${pct(r.mediaTaxa)}`;
+    const linhas = [
+      ...r.diasSemana.filter((d) => d.treinos).map((d) => ({ grupo: 'Presença por dia da semana', aluno: d.dia, detalhe: `${d.media.toFixed(1).replace('.', ',')} alunos por treino (${d.treinos} treinos)` })),
+      ...r.faixas.map((f) => ({ grupo: 'Tempo na graduação × presença', aluno: f.rotulo, detalhe: `${f.n} alunos · tempo médio ${mesesTexto(f.tempoMedio)}` })),
+      ...r.alertas.map((x) => ({ grupo: `Alerta: ${x.tag}`, aluno: x.a.nome || '', detalhe: x.detalhe })),
+      ...r.evolucao.map((e) => ({ grupo: 'Ativos por mês', aluno: e.rotulo, detalhe: `${e.ativos} ativos · ${e.novos} novos` })),
+      ...r.prontos.map((p) => ({ grupo: 'Prontos para avaliar (sugestão)', aluno: p.a.nome || '', detalhe: `${p.motivo} · presença ${pct(p.taxa)}` })),
+    ];
+    exportarRel('pdf', { titulo: 'Inteligência da turma', sub, colunas: [{ chave: 'grupo', titulo: 'Bloco' }, { chave: 'aluno', titulo: 'Aluno / item' }, { chave: 'detalhe', titulo: 'Detalhe' }], linhas });
+  });
 }
 
 // ================= GRADUAÇÃO (batizado / troca de cordão) =================

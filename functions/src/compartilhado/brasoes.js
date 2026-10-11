@@ -1,4 +1,11 @@
-/* brasoes.js — catálogo e motor dos 75 brasões do Capoeira Liberdade e Expressão.
+/* brasoes.js — catálogo e motor dos brasões (75 do Capoeira Liberdade e Expressão + os exclusivos de cada arte).
+
+Escopo (v37, turmas por arte): cada brasão tem `escopo` = 'geral' (vale em qualquer arte: presenças,
+sequência, núcleos, Rede, compromisso, carteirinha, competição, formação) ou a chave da arte em
+js/modalidades.js ('capoeira' para cordões, batizado, roda, berimbau, canto…; 'jiujitsu', 'boxe'…
+para os exclusivos daquela arte). A Sala de Brasões e a tela de conceder filtram pelo escopo da
+turma ativa (brasoesParaArte / visivelNaArte); o cálculo (avaliar) continua devolvendo todos —
+quem exibe filtra. Ids NUNCA mudam (perfisPublicos.brasoes guarda por id).
 
 Regra de ouro: um brasão só é "ganho" quando o dado real que o sustenta existe.
 Nada aqui inventa número. As fontes são:
@@ -57,7 +64,7 @@ nucleos: { nome: 'Núcleos visitados', sub: 'Treinou como visitante em outros n�
 eventos: { nome: 'Eventos e rodas', sub: 'Batizado automático; os demais o responsável concede', icone: 'fa-calendar-check', forma: 'hex' },
 rede: { nome: 'Rede Liberdade', sub: 'Publicações, melhores momentos e curtidas recebidas', icone: 'fa-camera', forma: 'medalha' },
 formacao: { nome: 'Formação', sub: 'Quem forma, quem lidera e a linhagem do Fundador', icone: 'fa-sitemap', forma: 'hex' },
-destaques: { nome: 'Destaques na capoeira', sub: 'Concedidos pelo responsável quando o atleta mostra a evolução', icone: 'fa-star', forma: 'hex' },
+destaques: { nome: 'Destaques', sub: 'Concedidos pelo responsável quando o atleta mostra a evolução — os da arte só aparecem na turma dela', icone: 'fa-star', forma: 'hex' },
 competicao: { nome: 'Competição', sub: 'Campeonatos internos e entre escolas: participar, subir ao pódio e vencer', icone: 'fa-trophy', forma: 'hex' },
 graduacao: { nome: 'Certificados', sub: 'Certificados de graduação, trajetória e o card "Troquei de cordão"', icone: 'fa-award', forma: 'hex' },
 carteirinha: { nome: 'Carteirinha', sub: 'Carteirinha em dia e a família cadastrada como beneficiária', icone: 'fa-id-card', forma: 'hex' },
@@ -65,20 +72,22 @@ compromisso: { nome: 'Compromisso', sub: 'Mensalidade em dia, inscrições em ev
 inclusao: { nome: 'Inclusão', sub: 'Núcleos que acolhem e mantêm atletas de atenção e inclusão na roda', icone: 'fa-universal-access', forma: 'hex' },
 };
 
-const b = (n, slug, nome, serie, regra, extra = {}) => ({ id: slug, n, arquivo: `brasao-${String(n).padStart(2, '0')}-${slug}`, nome, serie, forma: SERIES[serie].forma, regra, nivel: null, glb: null, ...extra });
+// escopo padrão 'geral'; `arquivo` pode ser sobrescrito (as artes do jiu-jitsu já existem como jj-brasao-NN-*).
+const b = (n, slug, nome, serie, regra, extra = {}) => ({ id: slug, n, arquivo: `brasao-${String(n).padStart(2, '0')}-${slug}`, nome, serie, forma: SERIES[serie].forma, regra, nivel: null, glb: null, escopo: 'geral', ...extra });
+export const ESCOPO_GERAL = 'geral';
 
 export const BRASOES = [
 // ---- A · Cordões (hexagonal) ----
-b(1, 'iniciante', 'Iniciante', 'cordoes', { tipo: 'cordao', meta: 'Iniciante' }, { glb: 'cordao-01-iniciante', como: 'Entrar no grupo e começar a treinar.', descricao: 'Broto verde nascendo: o começo da jornada.' }),
-b(2, 'escravo', 'Escravo', 'cordoes', { tipo: 'cordao', meta: 'Escravo' }, { glb: 'cordao-02-escravo', como: 'Receber o cordão Escravo no batizado.', descricao: 'Corrente fechada: o cinza vem da corrente.' }),
-b(3, 'fugitivo', 'Fugitivo', 'cordoes', { tipo: 'cordao', meta: 'Fugitivo' }, { glb: 'cordao-03-fugitivo', como: 'Receber o cordão Fugitivo.', descricao: 'Corrente rompida: rompeu as correntes e fugiu.' }),
-b(4, 'quilombola', 'Quilombola', 'cordoes', { tipo: 'cordao', meta: 'Quilombola' }, { glb: 'cordao-04-quilombola', como: 'Receber o cordão Quilombola.', descricao: 'A mata: encontrou um novo lar e começou a aprender capoeira.' }),
-b(5, 'vagante', 'Vagante', 'cordoes', { tipo: 'cordao', meta: 'Vagante' }, { glb: 'cordao-05-vagante', como: 'Receber o cordão Vagante.', descricao: 'Rosa-dos-ventos: saiu da mata em busca da liberdade.' }),
-b(6, 'liberto', 'Liberto', 'cordoes', { tipo: 'cordao', meta: 'Liberto' }, { glb: 'cordao-06-liberto', como: 'Receber o cordão Liberto.', descricao: 'Gota vermelha e corrente caindo: derramou sangue pela liberdade.' }),
-b(7, 'instrutor', 'Instrutor', 'cordoes', { tipo: 'cordao', meta: 'Instrutor' }, { glb: 'cordao-07-instrutor', como: 'Receber o cordão Instrutor.', descricao: 'Berimbau do aluno ao lado do berimbau do instrutor: começou a passar o conhecimento.' }),
-b(8, 'professor', 'Professor', 'cordoes', { tipo: 'cordao', meta: 'Professor' }, { glb: 'cordao-08-professor', como: 'Receber o cordão Professor.', descricao: 'Pomba branca sobre branco e vermelho: sangue e paz.' }),
-b(9, 'mestre', 'Mestre', 'cordoes', { tipo: 'cordao', meta: 'Mestre' }, { glb: 'cordao-09-mestre', como: 'Receber o cordão Mestre.', descricao: 'Dois berimbaus cruzados e louros: formou outro professor para continuar a jornada.' }),
-b(10, 'mestre-fundador', 'Mestre / Presidente', 'cordoes', { tipo: 'fundador' }, { glb: 'cordao-10-mestre-fundador', como: 'Exclusivo do Fundador do grupo (Acesso Geral).', descricao: 'Cores da bandeira do grupo, louros e coroa.' }),
+b(1, 'iniciante', 'Iniciante', 'cordoes', { tipo: 'cordao', meta: 'Iniciante' }, { escopo: 'capoeira', glb: 'cordao-01-iniciante', como: 'Entrar no grupo e começar a treinar.', descricao: 'Broto verde nascendo: o começo da jornada.' }),
+b(2, 'escravo', 'Escravo', 'cordoes', { tipo: 'cordao', meta: 'Escravo' }, { escopo: 'capoeira', glb: 'cordao-02-escravo', como: 'Receber o cordão Escravo no batizado.', descricao: 'Corrente fechada: o cinza vem da corrente.' }),
+b(3, 'fugitivo', 'Fugitivo', 'cordoes', { tipo: 'cordao', meta: 'Fugitivo' }, { escopo: 'capoeira', glb: 'cordao-03-fugitivo', como: 'Receber o cordão Fugitivo.', descricao: 'Corrente rompida: rompeu as correntes e fugiu.' }),
+b(4, 'quilombola', 'Quilombola', 'cordoes', { tipo: 'cordao', meta: 'Quilombola' }, { escopo: 'capoeira', glb: 'cordao-04-quilombola', como: 'Receber o cordão Quilombola.', descricao: 'A mata: encontrou um novo lar e começou a aprender capoeira.' }),
+b(5, 'vagante', 'Vagante', 'cordoes', { tipo: 'cordao', meta: 'Vagante' }, { escopo: 'capoeira', glb: 'cordao-05-vagante', como: 'Receber o cordão Vagante.', descricao: 'Rosa-dos-ventos: saiu da mata em busca da liberdade.' }),
+b(6, 'liberto', 'Liberto', 'cordoes', { tipo: 'cordao', meta: 'Liberto' }, { escopo: 'capoeira', glb: 'cordao-06-liberto', como: 'Receber o cordão Liberto.', descricao: 'Gota vermelha e corrente caindo: derramou sangue pela liberdade.' }),
+b(7, 'instrutor', 'Instrutor', 'cordoes', { tipo: 'cordao', meta: 'Instrutor' }, { escopo: 'capoeira', glb: 'cordao-07-instrutor', como: 'Receber o cordão Instrutor.', descricao: 'Berimbau do aluno ao lado do berimbau do instrutor: começou a passar o conhecimento.' }),
+b(8, 'professor', 'Professor', 'cordoes', { tipo: 'cordao', meta: 'Professor' }, { escopo: 'capoeira', glb: 'cordao-08-professor', como: 'Receber o cordão Professor.', descricao: 'Pomba branca sobre branco e vermelho: sangue e paz.' }),
+b(9, 'mestre', 'Mestre', 'cordoes', { tipo: 'cordao', meta: 'Mestre' }, { escopo: 'capoeira', glb: 'cordao-09-mestre', como: 'Receber o cordão Mestre.', descricao: 'Dois berimbaus cruzados e louros: formou outro professor para continuar a jornada.' }),
+b(10, 'mestre-fundador', 'Mestre / Presidente', 'cordoes', { tipo: 'fundador' }, { escopo: 'capoeira', glb: 'cordao-10-mestre-fundador', como: 'Exclusivo do Fundador do grupo (Acesso Geral).', descricao: 'Cores da bandeira do grupo, louros e coroa.' }),
 // ---- B · Presenças (medalha) ----
 b(11, 'primeira-presenca', '1ª presença', 'presencas', { tipo: 'presencas', meta: 1 }, { nivel: 'bronze', como: 'Ter a primeira presença registrada pelo Face ID ou pelo painel.' }),
 b(12, 'dez-presencas', '10 presenças', 'presencas', { tipo: 'presencas', meta: 10 }, { nivel: 'prata', como: 'Acumular 10 presenças registradas.' }),
@@ -97,8 +106,8 @@ b(22, 'dois-nucleos', '2 núcleos visitados', 'nucleos', { tipo: 'nucleos', meta
 b(23, 'tres-nucleos', '3 núcleos visitados', 'nucleos', { tipo: 'nucleos', meta: 3 }, { nivel: 'ouro', como: 'Treinar como visitante em 3 núcleos diferentes.' }),
 b(24, 'cinco-nucleos', '5 núcleos visitados', 'nucleos', { tipo: 'nucleos', meta: 5 }, { nivel: 'platina', como: 'Treinar como visitante em 5 núcleos diferentes.' }),
 // ---- E · Eventos e rodas (hex) ----
-b(25, 'batizado', 'Batizado', 'eventos', { tipo: 'graduacoes', meta: 1 }, { como: 'Ter uma troca de cordão registrada pelo mestre (batizado).' }),
-b(26, 'roda-aberta', 'Presente em Roda Aberta', 'eventos', { tipo: 'manual' }, { como: 'Concedido pelo responsável do núcleo a quem participou de uma roda aberta.' }),
+b(25, 'batizado', 'Batizado', 'eventos', { tipo: 'graduacoes', meta: 1 }, { escopo: 'capoeira', como: 'Ter uma troca de cordão registrada pelo mestre (batizado).' }),
+b(26, 'roda-aberta', 'Presente em Roda Aberta', 'eventos', { tipo: 'manual' }, { escopo: 'capoeira', como: 'Concedido pelo responsável do núcleo a quem participou de uma roda aberta.' }),
 b(27, 'evento-do-grupo', 'Presente em evento do grupo', 'eventos', { tipo: 'manual' }, { como: 'Concedido pelo responsável do núcleo a quem esteve num evento oficial do grupo.' }),
 b(28, 'sede-do-fundador', 'Visitou a sede do Fundador', 'eventos', { tipo: 'sedeFundador' }, { como: 'Treinar como visitante no núcleo do Fundador (presença registrada lá).' }),
 // ---- F · Rede Liberdade (medalha) ----
@@ -113,20 +122,20 @@ b(35, 'responsavel-de-nucleo', 'Responsável de núcleo', 'formacao', { tipo: 'r
 b(36, 'linhagem-do-fundador', 'Direto Liberdade e Expressão', 'formacao', { tipo: 'linhagem' }, { como: 'Treinar diretamente no núcleo do Fundador (linhagem direta).' }),
 // ---- H · Destaques (hex, manuais) ----
 b(37, 'nota-boa-na-escola', 'Nota boa na escola', 'destaques', { tipo: 'manual' }, { como: 'O responsável concede quando a família mostra o boletim com boas notas.' }),
-b(38, 'canta-muito', 'Canta muito', 'destaques', { tipo: 'manual' }, { como: 'Concedido a quem puxa e responde os cantos na roda com firmeza.' }),
-b(39, 'ginga-muito', 'Ginga muito', 'destaques', { tipo: 'manual' }, { como: 'Concedido a quem mostra ginga fluida e malícia no jogo.' }),
-b(40, 'primeiro-au-estrela-cadente', 'Primeiro aú · Estrela cadente', 'destaques', { tipo: 'manual' }, { como: 'Concedido no dia do primeiro aú completo.' }),
-b(41, 'primeira-ponte', 'Primeira ponte', 'destaques', { tipo: 'manual' }, { como: 'Concedido no dia da primeira ponte.' }),
-b(42, 'primeira-acrobacia', 'Primeira acrobacia', 'destaques', { tipo: 'manual' }, { como: 'Concedido na primeira acrobacia executada na roda.' }),
-b(43, 'tocou-berimbau-na-roda', 'Tocou berimbau na roda', 'destaques', { tipo: 'manual' }, { como: 'Concedido a quem tocou berimbau numa roda de verdade.' }),
-b(44, 'tocou-atabaque', 'Tocou atabaque', 'destaques', { tipo: 'manual' }, { como: 'Concedido a quem tocou atabaque numa roda de verdade.' }),
-b(45, 'aniversario-de-capoeira', 'Aniversário de capoeira', 'destaques', { tipo: 'aniversario', meta: 1 }, { como: 'Completar 1 ano desde a entrada no grupo.' }),
+b(38, 'canta-muito', 'Canta muito', 'destaques', { tipo: 'manual' }, { escopo: 'capoeira', como: 'Concedido a quem puxa e responde os cantos na roda com firmeza.' }),
+b(39, 'ginga-muito', 'Ginga muito', 'destaques', { tipo: 'manual' }, { escopo: 'capoeira', como: 'Concedido a quem mostra ginga fluida e malícia no jogo.' }),
+b(40, 'primeiro-au-estrela-cadente', 'Primeiro aú · Estrela cadente', 'destaques', { tipo: 'manual' }, { escopo: 'capoeira', como: 'Concedido no dia do primeiro aú completo.' }),
+b(41, 'primeira-ponte', 'Primeira ponte', 'destaques', { tipo: 'manual' }, { escopo: 'capoeira', como: 'Concedido no dia da primeira ponte.' }),
+b(42, 'primeira-acrobacia', 'Primeira acrobacia', 'destaques', { tipo: 'manual' }, { escopo: 'capoeira', como: 'Concedido na primeira acrobacia executada na roda.' }),
+b(43, 'tocou-berimbau-na-roda', 'Tocou berimbau na roda', 'destaques', { tipo: 'manual' }, { escopo: 'capoeira', como: 'Concedido a quem tocou berimbau numa roda de verdade.' }),
+b(44, 'tocou-atabaque', 'Tocou atabaque', 'destaques', { tipo: 'manual' }, { escopo: 'capoeira', como: 'Concedido a quem tocou atabaque numa roda de verdade.' }),
+b(45, 'aniversario-de-capoeira', 'Aniversário de capoeira', 'destaques', { tipo: 'aniversario', meta: 1 }, { escopo: 'capoeira', como: 'Completar 1 ano desde a entrada no grupo.' }),
 // ---- I · Certificados e graduação (hex / medalha) ----
 b(46, 'primeiro-certificado', 'Primeiro certificado', 'graduacao', { tipo: 'certificados', meta: 1 }, { como: 'Receber o primeiro certificado de graduação (sai sozinho na troca de cordão).' }),
-b(47, 'trajetoria-completa', 'Trajetória completa', 'graduacao', { tipo: 'trajetoria' }, { como: 'Ter o certificado de todos os cordões, do Escravo até o seu cordão atual.' }),
-b(48, 'mostrou-o-cordao', 'Mostrou o cordão', 'graduacao', { tipo: 'compartilhou', meta: 1 }, { como: 'Compartilhar o card "Troquei de cordão!" com a família e os amigos.' }),
-b(49, 'dois-batizados', '2 batizados', 'graduacao', { tipo: 'batizados', meta: 2 }, { nivel: 'prata', forma: 'medalha', como: 'Ter 2 trocas de cordão registradas com data no app.' }),
-b(50, 'cinco-batizados', '5 batizados', 'graduacao', { tipo: 'batizados', meta: 5 }, { nivel: 'ouro', forma: 'medalha', como: 'Ter 5 trocas de cordão registradas com data no app.' }),
+b(47, 'trajetoria-completa', 'Trajetória completa', 'graduacao', { tipo: 'trajetoria' }, { escopo: 'capoeira', como: 'Ter o certificado de todos os cordões, do Escravo até o seu cordão atual.' }),
+b(48, 'mostrou-o-cordao', 'Mostrou o cordão', 'graduacao', { tipo: 'compartilhou', meta: 1 }, { escopo: 'capoeira', como: 'Compartilhar o card "Troquei de cordão!" com a família e os amigos.' }),
+b(49, 'dois-batizados', '2 batizados', 'graduacao', { tipo: 'batizados', meta: 2 }, { escopo: 'capoeira', nivel: 'prata', forma: 'medalha', como: 'Ter 2 trocas de cordão registradas com data no app.' }),
+b(50, 'cinco-batizados', '5 batizados', 'graduacao', { tipo: 'batizados', meta: 5 }, { escopo: 'capoeira', nivel: 'ouro', forma: 'medalha', como: 'Ter 5 trocas de cordão registradas com data no app.' }),
 // ---- J · Carteirinha (hex) ----
 b(51, 'carteirinha-em-dia', 'Carteirinha em dia', 'carteirinha', { tipo: 'carteirinha' }, { como: 'Carteirinha de atleta válida, com a foto de documento aprovada pelo núcleo.' }),
 b(52, 'familia-no-grupo', 'Família no grupo', 'carteirinha', { tipo: 'beneficiarios', meta: 1 }, { como: 'Cadastrar o primeiro beneficiário da carteirinha (pai, mãe, irmão ou avô).' }),
@@ -150,7 +159,7 @@ b(66, 'formou-dez-alunos', 'Formou 10 alunos', 'formacao', { tipo: 'formados', m
 b(67, 'assinatura-registrada', 'Assinatura registrada', 'formacao', { tipo: 'assinatura' }, { como: 'Cadastrar a sua assinatura real para os certificados (responsável de núcleo ou Fundador).' }),
 b(68, 'nucleo-completo', 'Núcleo completo', 'formacao', { tipo: 'nucleoCompleto' }, { como: 'Responsável cujo núcleo tem todos os atletas com foto de carteirinha aprovada e data de nascimento cadastrada.' }),
 // ---- N · Destaques, segunda leva (manuais) ----
-b(69, 'puxou-a-ladainha', 'Puxou a ladainha', 'destaques', { tipo: 'manual' }, { como: 'Concedido a quem puxou a ladainha sozinho pela primeira vez na roda.' }),
+b(69, 'puxou-a-ladainha', 'Puxou a ladainha', 'destaques', { tipo: 'manual' }, { escopo: 'capoeira', como: 'Concedido a quem puxou a ladainha sozinho pela primeira vez na roda.' }),
 b(70, 'ajudou-na-aula', 'Ajudou na aula', 'destaques', { tipo: 'manual' }, { como: 'Concedido a quem ajudou o professor na aula, cuidando dos menores.' }),
 b(71, 'levou-um-amigo', 'Levou um amigo', 'destaques', { tipo: 'manual' }, { como: 'Concedido a quem indicou um amigo que se inscreveu no grupo.' }),
 // Série Competição (72–74): vem do módulo de campeonatos, quando o organizador encerra.
@@ -159,6 +168,60 @@ b(73, 'subiu-ao-podio', 'Subiu ao pódio', 'competicao', { tipo: 'podios', meta:
 b(74, 'campeao', 'Campeão', 'competicao', { tipo: 'titulos', meta: 1 }, { como: 'Venceu uma categoria em um campeonato.', nivel: 'ouro' }),
 // Série Inclusão (75): o núcleo que acolhe. Calculado no servidor a partir de usuarios.inclusao (dado sensível — só o total chega ao cartão público).
 b(75, 'roda-inclusiva', 'Roda Inclusiva', 'inclusao', { tipo: 'rodaInclusiva' }, { como: 'Responsável cujo núcleo mantém atletas de atenção e inclusão (TEA, TDAH, PC, SD, DI, DV/DA, TDC) ativos há pelo menos 6 meses.', nivel: 'ouro' }),
+// ---- O · Exclusivos de cada arte (manuais; só aparecem na turma da arte — escopo = chave em modalidades.js) ----
+// Jiu-jitsu: as artes jj-brasao-NN-* já existem em brasoes/{png,webp,thumb}.
+b(76, 'jj-primeira-finalizacao', 'Primeira finalização', 'destaques', { tipo: 'manual' }, { escopo: 'jiujitsu', arquivo: 'jj-brasao-31-primeira-chave-de-braco', como: 'Concedido no dia da primeira finalização limpa num rola.' }),
+b(77, 'jj-primeiro-grau', 'Primeiro grau', 'destaques', { tipo: 'manual' }, { escopo: 'jiujitsu', arquivo: 'jj-brasao-13-primeiro-grau', como: 'Concedido quando o professor costura o primeiro grau na faixa.' }),
+b(78, 'jj-faixa-nova', 'Faixa nova', 'destaques', { tipo: 'manual' }, { escopo: 'jiujitsu', arquivo: 'jj-brasao-06-faixa-azul', como: 'Concedido na cerimônia da primeira troca de faixa.' }),
+b(79, 'jj-competidor', 'Competidor de tatame', 'destaques', { tipo: 'manual' }, { escopo: 'jiujitsu', arquivo: 'jj-brasao-25-primeiro-campeonato', como: 'Concedido a quem lutou o primeiro campeonato de jiu-jitsu (federação ou aberto).' }),
+b(80, 'jj-primeiro-rola', 'Primeiro rola', 'destaques', { tipo: 'manual' }, { escopo: 'jiujitsu', arquivo: 'jj-brasao-22-primeiro-rola', como: 'Concedido no dia do primeiro rola com um parceiro.' }),
+b(81, 'jj-cem-rolas', '100 rolas', 'destaques', { tipo: 'manual' }, { escopo: 'jiujitsu', arquivo: 'jj-brasao-24-cem-rolas', como: 'Concedido pelo professor a quem completou 100 rolas no tatame.' }),
+b(82, 'jj-primeira-raspagem', 'Primeira raspagem', 'destaques', { tipo: 'manual' }, { escopo: 'jiujitsu', arquivo: 'jj-brasao-32-primeira-raspagem', como: 'Concedido na primeira raspagem completa num rola.' }),
+b(83, 'jj-passou-a-guarda', 'Passou a guarda', 'destaques', { tipo: 'manual' }, { escopo: 'jiujitsu', arquivo: 'jj-brasao-33-passou-a-guarda', como: 'Concedido na primeira passagem de guarda limpa.' }),
+b(84, 'jj-kimono-limpo', 'Kimono limpo', 'destaques', { tipo: 'manual' }, { escopo: 'jiujitsu', arquivo: 'jj-brasao-35-kimono-limpo', como: 'Concedido a quem chega sempre com o kimono limpo e as unhas cortadas.' }),
+b(85, 'jj-open-mat', 'Open mat', 'destaques', { tipo: 'manual' }, { escopo: 'jiujitsu', arquivo: 'jj-brasao-37-open-mat', como: 'Concedido a quem participou de um open mat (treino aberto).' }),
+// Boxe
+b(86, 'boxe-primeira-luta', 'Primeira luta', 'destaques', { tipo: 'manual' }, { escopo: 'boxe', arquivo: 'brasao-72-competidor', como: 'Concedido depois da primeira luta oficial ou de exibição no ringue.' }),
+b(87, 'boxe-primeiro-sparring', 'Primeiro sparring', 'destaques', { tipo: 'manual' }, { escopo: 'boxe', arquivo: 'jj-brasao-22-primeiro-rola', como: 'Concedido no dia do primeiro sparring com equipamento completo.' }),
+b(88, 'boxe-cem-rounds', '100 rounds', 'destaques', { tipo: 'manual' }, { escopo: 'boxe', arquivo: 'jj-brasao-24-cem-rolas', como: 'Concedido pelo treinador a quem completou 100 rounds de sparring.' }),
+b(89, 'boxe-guarda-solida', 'Guarda sólida', 'destaques', { tipo: 'manual' }, { escopo: 'boxe', arquivo: 'jj-brasao-37-open-mat', como: 'Concedido a quem mantém a guarda fechada e o queixo protegido o round inteiro.' }),
+b(90, 'boxe-toque-de-luvas', 'Toque de luvas', 'destaques', { tipo: 'manual' }, { escopo: 'boxe', arquivo: 'jj-brasao-36-toque-de-maos', como: 'Concedido a quem treina forte e respeita o parceiro: toca as luvas antes e depois.' }),
+// Muay Thai
+b(91, 'mt-primeira-luta', 'Primeira luta', 'destaques', { tipo: 'manual' }, { escopo: 'muaythai', arquivo: 'brasao-72-competidor', como: 'Concedido depois da primeira luta de muay thai no ringue.' }),
+b(92, 'mt-primeiro-sparring', 'Primeiro sparring', 'destaques', { tipo: 'manual' }, { escopo: 'muaythai', arquivo: 'jj-brasao-22-primeiro-rola', como: 'Concedido no dia do primeiro sparring.' }),
+b(93, 'mt-cem-rounds', '100 rounds', 'destaques', { tipo: 'manual' }, { escopo: 'muaythai', arquivo: 'jj-brasao-24-cem-rolas', como: 'Concedido pelo Kru a quem completou 100 rounds de sparring ou de manopla.' }),
+b(94, 'mt-clinch-forte', 'Clinch forte', 'destaques', { tipo: 'manual' }, { escopo: 'muaythai', arquivo: 'jj-brasao-34-pegada-de-ferro', como: 'Concedido a quem domina o clinch e as joelhadas no treino.' }),
+// MMA
+b(95, 'mma-primeira-luta', 'Primeira luta', 'destaques', { tipo: 'manual' }, { escopo: 'mma', arquivo: 'brasao-72-competidor', como: 'Concedido depois da primeira luta amadora de MMA.' }),
+b(96, 'mma-primeiro-sparring', 'Primeiro sparring', 'destaques', { tipo: 'manual' }, { escopo: 'mma', arquivo: 'jj-brasao-22-primeiro-rola', como: 'Concedido no dia do primeiro sparring completo (em pé e no solo).' }),
+b(97, 'mma-primeira-finalizacao', 'Primeira finalização', 'destaques', { tipo: 'manual' }, { escopo: 'mma', arquivo: 'jj-brasao-31-primeira-chave-de-braco', como: 'Concedido na primeira finalização limpa num sparring.' }),
+b(98, 'mma-cinturao', 'Cinturão', 'destaques', { tipo: 'manual' }, { escopo: 'mma', arquivo: 'jj-brasao-38-lenda-do-tatame', como: 'Concedido a quem conquistou um cinturão (amador ou profissional).' }),
+// Taekwondo
+b(99, 'tkd-primeiro-poomsae', 'Primeiro poomsae', 'destaques', { tipo: 'manual' }, { escopo: 'taekwondo', arquivo: 'jj-brasao-17-primeiro-treino', como: 'Concedido quando o aluno apresenta o primeiro poomsae completo.' }),
+b(100, 'tkd-chute-alto', 'Chute alto', 'destaques', { tipo: 'manual' }, { escopo: 'taekwondo', arquivo: 'jj-brasao-32-primeira-raspagem', como: 'Concedido no primeiro chute na altura da cabeça com técnica limpa.' }),
+b(101, 'tkd-primeiro-kyorugi', 'Primeiro kyorugi', 'destaques', { tipo: 'manual' }, { escopo: 'taekwondo', arquivo: 'brasao-72-competidor', como: 'Concedido depois do primeiro combate (kyorugi) em competição.' }),
+// Judô
+b(102, 'judo-primeiro-ippon', 'Primeiro ippon', 'destaques', { tipo: 'manual' }, { escopo: 'judo', arquivo: 'jj-brasao-33-passou-a-guarda', como: 'Concedido no primeiro ippon num randori ou numa competição.' }),
+b(103, 'judo-ukemi', 'Ukemi seguro', 'destaques', { tipo: 'manual' }, { escopo: 'judo', arquivo: 'jj-brasao-32-primeira-raspagem', como: 'Concedido a quem domina as quedas (ukemi) para frente, para trás e de lado.' }),
+b(104, 'judo-primeiro-shiai', 'Primeiro shiai', 'destaques', { tipo: 'manual' }, { escopo: 'judo', arquivo: 'brasao-72-competidor', como: 'Concedido depois da primeira luta (shiai) em competição.' }),
+// Karatê
+b(105, 'karate-primeiro-kata', 'Primeiro kata', 'destaques', { tipo: 'manual' }, { escopo: 'karate', arquivo: 'jj-brasao-17-primeiro-treino', como: 'Concedido quando o aluno apresenta o primeiro kata completo.' }),
+b(106, 'karate-primeiro-kumite', 'Primeiro kumite', 'destaques', { tipo: 'manual' }, { escopo: 'karate', arquivo: 'brasao-72-competidor', como: 'Concedido depois do primeiro kumite em competição.' }),
+b(107, 'karate-oss', 'Oss!', 'destaques', { tipo: 'manual' }, { escopo: 'karate', arquivo: 'jj-brasao-30-oss', como: 'Concedido a quem mostra etiqueta e respeito no dojo: saúda, escuta e ajuda.' }),
+// Kickboxing
+b(108, 'kb-primeira-luta', 'Primeira luta', 'destaques', { tipo: 'manual' }, { escopo: 'kickboxing', arquivo: 'brasao-72-competidor', como: 'Concedido depois da primeira luta de kickboxing.' }),
+b(109, 'kb-primeiro-sparring', 'Primeiro sparring', 'destaques', { tipo: 'manual' }, { escopo: 'kickboxing', arquivo: 'jj-brasao-22-primeiro-rola', como: 'Concedido no dia do primeiro sparring.' }),
+b(110, 'kb-cem-rounds', '100 rounds', 'destaques', { tipo: 'manual' }, { escopo: 'kickboxing', arquivo: 'jj-brasao-24-cem-rolas', como: 'Concedido pelo treinador a quem completou 100 rounds de sparring.' }),
+// Wrestling
+b(111, 'wr-primeira-queda', 'Primeira queda', 'destaques', { tipo: 'manual' }, { escopo: 'wrestling', arquivo: 'jj-brasao-33-passou-a-guarda', como: 'Concedido na primeira queda (takedown) limpa num combate de treino.' }),
+b(112, 'wr-primeiro-combate', 'Primeiro combate', 'destaques', { tipo: 'manual' }, { escopo: 'wrestling', arquivo: 'brasao-72-competidor', como: 'Concedido depois do primeiro combate em competição.' }),
+b(113, 'wr-pegada-de-ferro', 'Pegada de ferro', 'destaques', { tipo: 'manual' }, { escopo: 'wrestling', arquivo: 'jj-brasao-34-pegada-de-ferro', como: 'Concedido a quem controla a pegada e não solta o parceiro no treino.' }),
+// Krav Maga
+b(114, 'km-primeira-defesa', 'Primeira defesa', 'destaques', { tipo: 'manual' }, { escopo: 'kravmaga', arquivo: 'jj-brasao-37-open-mat', como: 'Concedido na primeira defesa completa contra agarrão ou ataque simulado.' }),
+b(115, 'km-primeira-simulacao', 'Primeira simulação', 'destaques', { tipo: 'manual' }, { escopo: 'kravmaga', arquivo: 'jj-brasao-22-primeiro-rola', como: 'Concedido depois da primeira simulação de estresse (vários atacantes) concluída.' }),
+// Kung Fu
+b(116, 'kf-primeira-forma', 'Primeira forma', 'destaques', { tipo: 'manual' }, { escopo: 'kungfu', arquivo: 'jj-brasao-17-primeiro-treino', como: 'Concedido quando o aluno apresenta a primeira forma (taolu) completa.' }),
+b(117, 'kf-primeiro-sanda', 'Primeiro sanda', 'destaques', { tipo: 'manual' }, { escopo: 'kungfu', arquivo: 'brasao-72-competidor', como: 'Concedido depois do primeiro combate (sanda) em competição.' }),
 ];
 
 export const porId = (id) => BRASOES.find((x) => x.id === id) || null;
@@ -175,6 +238,19 @@ export const ehPresidente = (brasao) => !!brasao && (brasao.id === ID_PRESIDENTE
 //   admin  → qualquer brasão, menos o de Presidente
 //   outros (Fundador / responsável com núcleo) → só os manuais
 export const podeConceder = (brasao, { admin } = {}) => !!brasao && !ehPresidente(brasao) && (admin || ehManual(brasao));
+
+// ---- Escopo por arte (v37) ----
+// Chave de arte normalizada: vazio/desconhecido vira 'capoeira' só quando a turma é de capoeira;
+// quem chama passa a `arte` da turma ativa (turmas.js) ou ESCOLA.modalidade.
+export const escopoDe = (brasao) => (brasao && brasao.escopo) || ESCOPO_GERAL;
+// O brasão aparece (e pode ser concedido) nesta arte? Gerais sempre; os da arte só na arte dela.
+export const visivelNaArte = (brasao, arte) => !!brasao && (escopoDe(brasao) === ESCOPO_GERAL || escopoDe(brasao) === String(arte || ''));
+// Catálogo visível numa arte: gerais + exclusivos da arte (na ordem do catálogo).
+export const brasoesParaArte = (arte) => BRASOES.filter((br) => visivelNaArte(br, arte));
+// Mesma coisa para uma lista já avaliada (resultado de avaliar) ou qualquer lista de brasões.
+export const filtrarPorArte = (lista, arte) => (lista || []).filter((br) => visivelNaArte(br, arte));
+// Artes que têm brasão exclusivo no catálogo (para a documentação e os seletores).
+export const artesComBrasao = () => Array.from(new Set(BRASOES.map(escopoDe).filter((e) => e !== ESCOPO_GERAL)));
 
 // Texto humano da métrica (usado no painel e no detalhe do brasão).
 export function textoMetrica(brasao) {

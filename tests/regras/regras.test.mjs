@@ -647,3 +647,42 @@ test('auditoria 08/10: Fundador não vira Admin nem puxa gente de outra escola; 
   await assertSucceeds(setDoc(doc(db('nat'), 'posts', 'post_ok-1'), { ...p, marcados: [] }));
 });
 
+
+test('turmas (v37): leitura pública; gestor cria no próprio núcleo; aluno não cria; turmaId no autocadastro', async () => {
+  const tay = db('tay'); const profeta = db('profeta'); const rafa = db('rafa', { escolaId: 'gracie-cg' });
+  const turma = { escolaId: 'liberdade', academiaId: 'taynara', nome: 'Boxe · Adultos', arte: 'boxe', cor: '#2F6FED', graduacao: 'niveis',
+    professorUid: 'tay', professorNome: 'Taynara', mensalidade: 130, dias: ['seg', 'qua'], hora: '19:30', ativa: true, padrao: false, criadoEm: AGORA, criadoPor: 'tay' };
+  // 1) gestor cria na própria academia; não em outro núcleo nem em outra escola
+  await assertSucceeds(setDoc(doc(tay, 'turmas', 'boxe-tay'), turma));
+  await assertFails(setDoc(doc(tay, 'turmas', 'boxe-profeta'), { ...turma, academiaId: 'profeta' }), 'núcleo que não administra');
+  await assertFails(setDoc(doc(tay, 'turmas', 'boxe-gracie'), { ...turma, escolaId: 'gracie-cg', academiaId: 'gracie' }), 'escola alheia');
+  await assertFails(setDoc(doc(tay, 'turmas', 'boxe-sem-escola'), { ...turma, escolaId: 'outra' }), 'escolaId tem que ser o do login');
+  // 2) campos com formato: cor em #rrggbb, nome até 60 letras
+  await assertFails(setDoc(doc(tay, 'turmas', 'cor-ruim'), { ...turma, cor: 'red' }));
+  await assertFails(setDoc(doc(tay, 'turmas', 'nome-grande'), { ...turma, nome: 'x'.repeat(61) }));
+  // 3) Fundador cria em qualquer núcleo da própria escola; Fundador de outra escola, não
+  await assertSucceeds(setDoc(doc(profeta, 'turmas', 'jj-tay'), { ...turma, arte: 'jiujitsu', nome: 'Jiu-jitsu · Kids', graduacao: 'faixas', cor: '#8E44AD', criadoPor: 'profeta' }));
+  await assertFails(setDoc(doc(rafa, 'turmas', 'invasor'), { ...turma, criadoPor: 'rafa' }), 'Fundador da outra escola não cria na Liberdade');
+  // 4) aluno não cria nem edita
+  await assertFails(setDoc(doc(db('nat'), 'turmas', 'do-aluno'), { ...turma, criadoPor: 'nat' }));
+  await assertFails(updateDoc(doc(db('nat'), 'turmas', 'boxe-tay'), { nome: 'Minha turma' }));
+  // 5) leitura sem login funciona (inscrição mostra a turma do link)
+  await assertSucceeds(getDoc(doc(db(null), 'turmas', 'boxe-tay')));
+  await assertSucceeds(getDocs(query(collection(db(null), 'turmas'), where('escolaId', '==', 'liberdade'))));
+  // 6) gestor edita a própria turma sem trocar escola nem núcleo; apagar é só do Admin
+  await assertSucceeds(updateDoc(doc(tay, 'turmas', 'boxe-tay'), { nome: 'Boxe · Noite', mensalidade: 150 }));
+  await assertFails(updateDoc(doc(tay, 'turmas', 'boxe-tay'), { academiaId: 'profeta' }), 'não leva a turma para outro núcleo');
+  await assertFails(updateDoc(doc(tay, 'turmas', 'boxe-tay'), { escolaId: 'gracie-cg' }));
+  await assertFails(deleteDoc(doc(tay, 'turmas', 'boxe-tay')));
+  await assertSucceeds(deleteDoc(doc(db('admin'), 'turmas', 'jj-tay')));
+  // 7) autocadastro leva turmaId (string); grausVermelhos ninguém põe em si mesmo
+  const novo = { nome: 'Novo', papeis: ['aluno'], academiaId: 'taynara', academiaGerenciadaId: null, cordaoAtual: 'Iniciante', notas: {}, responsavelUid: null, statusAtual: 'Ativo' };
+  await assertSucceeds(setDoc(doc(db('novoT'), 'usuarios', 'novoT'), { ...novo, turmaId: 'boxe-tay' }));
+  await assertFails(setDoc(doc(db('novoT2'), 'usuarios', 'novoT2'), { ...novo, turmaId: 42 }), 'turmaId tem que ser string');
+  await assertFails(setDoc(doc(db('novoT3'), 'usuarios', 'novoT3'), { ...novo, grausVermelhos: 2 }));
+  await assertFails(updateDoc(doc(db('novoT'), 'usuarios', 'novoT'), { turmaId: '' }), 'o próprio aluno não troca de turma');
+  await assertFails(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { grausVermelhos: 1 }), 'o próprio aluno não mexe nos graus vermelhos');
+  await assertSucceeds(updateDoc(doc(tay, 'usuarios', 'nat'), { turmaId: 'boxe-tay', grausVermelhos: 2 }), 'o professor do núcleo move de turma e lança graus');
+  await assertFails(updateDoc(doc(tay, 'usuarios', 'nat'), { grausVermelhos: 11 }), 'máximo 10');
+  await assertFails(updateDoc(doc(tay, 'usuarios', 'nat'), { grausVermelhos: 1.5 }), 'inteiro');
+});
