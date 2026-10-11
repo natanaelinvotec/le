@@ -1,193 +1,441 @@
-<!-- index.html — atletapay.com.br: a vitrine da plataforma.
-Proposta, como funciona, módulos, plano único (R$ 39,90 até 80 ativos + R$ 0,49/aluno) com simulador,
-demonstração (campeonato ao vivo), perguntas frequentes e o botão "Começar",
-que leva ao cadastro. Estático, sem login. -->
+<!-- index.html — atletapay.com.br v2 "Arena" (11/10/2026).
+Landing da plataforma: vídeo dos 4 lutadores no herói, "Qual é a sua arte?" (12 artes, o site muda de língua),
+o app no celular do aluno com o nome da escola, Sem/Com, graduação interativa (faixa real do app, js/faixas.js),
+turmas por arte + Painel do Fundador, brasões reais, campeonato, inclusão, simulador do plano (js/catalogo.js),
+prova real (demo aberta e escola no ar), preço e chamada final. Estático, sem login, sem coleta de dados.
+Textos: docs da equipe em site-v2/equipe (estratégia, motion, referências). Sem números de clientes, depoimentos
+ou urgência inventados (CDC arts. 30/37/38/67; Decreto 7.962/2013). -->
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0B0E1F">
-<title>AtletaPay — gestão, cobrança e competição para escolas de artes marciais</title>
-<meta name="description" content="Site, app, carteirinha, certificados, brasões, mensalidade via Pix com repasse direto, campeonatos com chaves e escola inclusiva — tudo pronto em minutos para a sua academia. Tudo incluso por R$ 39,90 por mês.">
+<meta name="theme-color" content="#060B16">
+<title>AtletaPay — o tatame é seu. O resto, a gente amarra.</title>
+<meta name="description" content="Site, app, carteirinha, graduação, campeonato e controle de mensalidades. Para capoeira, jiu-jitsu, judô, karatê, taekwondo, muay thai, boxe, MMA e mais. 14 dias grátis, sem cartão.">
 <link rel="icon" type="image/svg+xml" href="assets/marca.svg">
+<link rel="apple-touch-icon" href="assets/marca-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link rel="stylesheet" href="css/atletapay.css?v=20261010">
-<meta property="og:title" content="AtletaPay — a plataforma das escolas de artes marciais">
-<meta property="og:description" content="Mensalidade via Pix com repasse direto, carteirinha, certificados, brasões, Rede e campeonatos. Comece grátis.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Archivo:wdth,wght@75..100,400..800&family=Sora:wght@800&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Archivo:wdth,wght@75..100,400..800&family=Sora:wght@800&display=swap"></noscript>
+<link rel="preload" as="image" href="assets/heroi/heroi-poster-960.webp" media="(min-width: 768px)" fetchpriority="high">
+<link rel="preload" as="image" href="assets/heroi/heroi-poster-640.webp" media="(max-width: 767px)" fetchpriority="high">
+<link rel="stylesheet" href="css/site.css?v=20261011">
+<meta property="og:title" content="AtletaPay — o tatame é seu. O resto, a gente amarra.">
+<meta property="og:description" content="Site, app, carteirinha, graduação e campeonato para escolas de artes marciais. Abra o painel de demonstração sem login.">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://atletapay.com.br/">
+<meta property="og:image" content="https://atletapay.com.br/assets/heroi/og-atletapay.jpg">
+<meta name="twitter:card" content="summary_large_image">
 </head>
 <body>
-<header class="topo">
+<a class="pular" href="#conteudo">Pular para o conteúdo</a>
+
+<!-- ================= CABEÇALHO ================= -->
+<header class="topo" id="topo">
   <div class="wrap">
-    <a class="marca" href="#"><img src="assets/marca.svg" alt="">Atleta<b>Pay</b></a>
-    <nav class="menu" id="menu" aria-label="Seções">
-      <a href="#como">Como funciona</a><a href="#modulos">O que vem pronto</a><a href="#planos">Preço</a><a href="#demo">Campeonatos</a><a href="#inclusao">Inclusão</a><a href="#faq">Dúvidas</a>
+    <a class="marca" href="#conteudo" aria-label="AtletaPay, início">
+      <svg viewBox="0 0 200 200" aria-hidden="true"><path d="M46 172 L100 44 L154 172" fill="none" stroke="#FFFFFF" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/><polygon class="no" points="120.57,52.52 108.52,64.57 91.48,64.57 79.43,52.52 79.43,35.48 91.48,23.43 108.52,23.43 120.57,35.48" fill="#00E676"/><path class="travessao" d="M68 124 H140" stroke="#389E92" stroke-width="20" stroke-linecap="round"/><rect class="grau" x="121" y="116" width="4" height="16" rx="1" fill="#FFFFFF"/><rect class="grau" x="113" y="116" width="4" height="16" rx="1" fill="#FFFFFF"/><rect class="grau" x="105" y="116" width="4" height="16" rx="1" fill="#FFFFFF"/><rect class="grau" x="97" y="116" width="4" height="16" rx="1" fill="#FFFFFF"/></svg>
+      <span>atleta<span class="verde">pay</span></span>
+    </a>
+    <nav class="nav" aria-label="Principal">
+      <a href="#celular">O app</a>
+      <a href="#graduacao">Graduação</a>
+      <a href="#artes">Várias artes</a>
+      <a href="#dinheiro">Mensalidade</a>
+      <a href="#preco">Preço</a>
     </nav>
-    <div class="acoes"><a class="bt bt-vidro bt-sm" href="painel.html">Entrar</a><a class="bt bt-laranja bt-sm" href="cadastro.html">Começar grátis</a></div>
-    <button type="button" class="hamb" id="hamb" aria-label="Abrir menu" aria-expanded="false"><i class="fas fa-bars"></i></button>
+    <div class="topo-acoes">
+      <a class="link-seta" href="painel.html"><span>Entrar</span></a>
+      <a class="btn sm" href="cadastro.html"><span>Criar minha escola</span><span class="ponta" aria-hidden="true"><i></i><i></i><i></i><i></i></span></a>
+      <button type="button" class="btn-icone menu-btn" id="menuBtn" aria-label="Abrir o menu" aria-expanded="false" aria-controls="menu"><span class="barras" aria-hidden="true"><i></i><i></i><i></i></span></button>
+    </div>
   </div>
+  <div class="fio" aria-hidden="true"><div class="fio__faixa"></div><div class="fio__ponta"><i></i><i></i><i></i><i></i></div></div>
 </header>
+<nav class="menu" id="menu" aria-label="Menu">
+  <a href="#celular" style="--i:0">O app</a>
+  <a href="#graduacao" style="--i:1">Graduação</a>
+  <a href="#artes" style="--i:2">Várias artes</a>
+  <a href="#dinheiro" style="--i:3">Mensalidade</a>
+  <a href="#preco" style="--i:4">Preço</a>
+  <a href="painel.html" style="--i:5">Entrar</a>
+  <a class="btn" href="cadastro.html"><span>Criar minha escola grátis</span><span class="ponta" aria-hidden="true"><i></i><i></i><i></i><i></i></span></a>
+</nav>
 
-<section class="heroi">
-  <div class="wrap">
-    <div>
-      <span class="eyebrow" style="color:var(--laranja-claro)">Para escolas de artes marciais</span>
-      <h1 style="margin-top:14px">A sua academia com <span class="pop">site, app e cobrança</span> prontos em 15 minutos.</h1>
-      <p class="sub">Inscrição dos alunos, carteirinha, certificados de graduação, brasões, rede social do grupo, mensalidade via Pix com repasse automático e campeonatos com chaves. Você sobe o logo e as fotos — a AtletaPay monta o resto.</p>
-      <div class="cta"><a class="bt bt-laranja" href="cadastro.html">Começar grátis <i class="fas fa-arrow-right"></i></a><a class="bt bt-vidro" href="/demo"><i class="fas fa-play"></i> Ver o painel funcionando</a><a class="bt bt-vidro" href="#planos">Ver preço</a></div>
-      <div class="micro"><span>14 dias grátis</span><span>Sem cartão para começar</span><span>Cancele quando quiser</span></div>
-    </div>
-    <aside class="placar" aria-label="Exemplo do que a escola acompanha">
-      <div class="faixa-topo"></div>
-      <div class="linha"><div><small>Mensalidades de outubro</small><b>Recebido via Pix</b></div><span class="num" data-conta="18760" data-prefixo="R$ ">R$ 0</span></div>
-      <div class="linha"><div><small>Alunos ativos</small><b>3 núcleos</b></div><span class="num" data-conta="212">0</span></div>
-      <div class="linha"><div><small>Inadimplência</small><b>Lembrete automático em 3 dias</b></div><span class="num" data-conta="4" data-sufixo="%">0%</span></div>
-      <div class="linha"><div><small>Campeonato interno</small><b>Semifinal · Graduados · Masc.</b></div><span class="pill vivo">ao vivo</span></div>
-      <div class="linha" style="display:block"><small style="display:block;color:var(--texto-inv-3);font-size:.72rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px">Prontidão para a próxima graduação</small><div class="barra"><i data-largura="72"></i></div></div>
-    </aside>
+<main id="conteudo">
+
+<!-- ================= 1. HERÓI ================= -->
+<section class="heroi" aria-labelledby="tituloHeroi">
+  <div class="heroi__palco">
+    <picture>
+      <source media="(max-width: 767px)" srcset="assets/heroi/heroi-poster-640.webp">
+      <img src="assets/heroi/heroi-poster-960.webp" alt="" width="960" height="720" fetchpriority="high">
+    </picture>
+    <video id="heroiVideo" muted loop playsinline preload="none" aria-hidden="true"
+      data-fontes='[{"src":"assets/heroi/heroi-640-av1.mp4","type":"video/mp4; codecs=av01.0.04M.08","media":"(max-width: 767px)"},{"src":"assets/heroi/heroi-640.mp4","type":"video/mp4","media":"(max-width: 767px)"},{"src":"assets/heroi/heroi-960-av1.mp4","type":"video/mp4; codecs=av01.0.05M.08"},{"src":"assets/heroi/heroi-960.mp4","type":"video/mp4"}]'></video>
   </div>
-</section>
-<div class="faixa" aria-hidden="true"></div>
-
-<section class="secao" id="como">
-  <div class="wrap">
-    <div class="cab"><span class="eyebrow">Como funciona</span><h2>Três passos e a escola está no ar.</h2><p class="sub">Nada de orçamento, reunião ou espera. O cadastro é um assistente que termina com o seu painel aberto.</p></div>
-    <div class="grade-3">
-      <article class="passo"><div class="n">01</div><h3>Crie a conta</h3><p>Um plano só, com tudo liberado: R$ 39,90 por mês até 80 alunos ativos. Teste 14 dias sem cartão.</p></article>
-      <article class="passo"><div class="n">02</div><h3>Conte sobre a escola</h3><p>Nome, arte marcial, cidade, logo, foto do mestre e da turma. Escolha um dos 5 modelos de site e veja a prévia na hora.</p></article>
-      <article class="passo"><div class="n">03</div><h3>Convide a turma</h3><p>Link de inscrição e QR para imprimir. Cada aluno entra no app, recebe a carteirinha e começa a acompanhar a própria evolução.</p></article>
-    </div>
+  <div class="heroi__scrim" aria-hidden="true"></div>
+  <div class="heroi__grao" aria-hidden="true"></div>
+  <svg class="heroi__octo" viewBox="0 0 1000 1000" aria-hidden="true"><path d="M707 20 L980 293 L980 707 L707 980 L293 980 L20 707 L20 293 L293 20 Z"/></svg>
+  <div class="heroi__faiscas" id="faiscas" aria-hidden="true">
+    <span class="faisca" style="left:16%;bottom:120px;--dx:-30px;animation-delay:.2s"></span>
+    <span class="faisca" style="left:23%;bottom:80px;--dx:40px;animation-delay:1.1s"></span>
+    <span class="faisca azul" style="left:42%;bottom:150px;--dx:-24px;animation-delay:1.6s"></span>
+    <span class="faisca" style="left:61%;bottom:140px;--dx:-20px;animation-delay:.6s"></span>
+    <span class="faisca" style="left:72%;bottom:100px;--dx:50px;animation-delay:1.9s"></span>
+    <span class="faisca" style="left:84%;bottom:160px;--dx:-40px;animation-delay:2.5s"></span>
   </div>
-</section>
-
-<section class="secao escuro" id="modulos">
-  <div class="wrap">
-    <div class="cab"><span class="eyebrow">O que vem pronto</span><h2>O que levou dois anos para construir com um grupo de capoeira, entregue no primeiro dia.</h2><p class="sub">A AtletaPay nasceu dentro de uma escola real, núcleo por núcleo, até ficar redonda. Agora qualquer arte marcial usa a mesma estrutura.</p></div>
-    <div class="modulos">
-      <div class="mod"><i class="fas fa-user-plus"></i><b>Inscrição com foto</b><span>Ficha completa, menores com responsável, termo de imagem, idade pela data de nascimento.</span></div>
-      <div class="mod"><i class="fas fa-id-card"></i><b>Carteirinha digital</b><span>QR de verificação, matrícula, validade pela mensalidade e beneficiários da família.</span></div>
-      <div class="mod"><i class="fas fa-award"></i><b>Certificados de graduação</b><span>Emitidos na troca de faixa ou cordão, com assinatura do mestre, PDF e página pública.</span></div>
-      <div class="mod"><i class="fas fa-medal"></i><b>75 brasões</b><span>Conquistas automáticas pelos dados reais: presenças, graduação, mensalidade em dia, pódio, roda inclusiva.</span></div>
-      <div class="mod"><i class="fas fa-chart-line"></i><b>Painel do professor</b><span>Avaliações por estrelas, prontidão para a próxima graduação, presenças com Face ID, aniversários.</span></div>
-      <div class="mod"><i class="fas fa-pix"></i><b>Mensalidade via Pix</b><span>Cobrança automática e lembretes: o dinheiro cai direto na conta da academia.</span></div>
-      <div class="mod"><i class="fas fa-users"></i><b>Rede do grupo</b><span>Posts, melhores momentos, conversas moderadas, e a Rede Global entre todas as escolas.</span></div>
-      <div class="mod"><i class="fas fa-trophy"></i><b>Campeonatos com chaves</b><span>Categorias por graduação, peso e sexo, chave em tempo real, tela para TV e pódio com brasão.</span></div>
-    </div>
-  </div>
-</section>
-
-<section class="secao" id="planos">
-  <div class="wrap">
-    <div class="cab"><span class="eyebrow">Preço</span><h2>Um plano. Tudo incluso. R$ 39,90.</h2><p class="sub">Até 80 alunos ativos, o valor é fixo. Passou disso, cada aluno ativo a mais custa R$ 0,49 — o sistema conta sozinho todo mês. Aluno inativo não conta.</p></div>
-    <div class="simulador">
-      <div>
-        <label for="simAlunos">Quantos alunos ativos você tem hoje?</label>
-        <div class="valor"><span id="simN">120</span><small>alunos</small></div>
-        <input type="range" id="simAlunos" min="10" max="1500" step="5" value="120" aria-label="Número de alunos">
-        <label for="simTicket" style="margin-top:14px">Mensalidade média cobrada do aluno</label>
-        <div class="valor" style="font-size:1.6rem"><span id="simTicketTxt">R$ 100</span></div>
-        <input type="range" id="simTicket" min="40" max="300" step="5" value="100" aria-label="Mensalidade média">
+  <button type="button" class="btn-icone heroi__pausa" id="pausaVideo" aria-pressed="false" aria-label="Pausar o vídeo e os efeitos">
+    <svg class="ico-pausa" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>
+    <svg class="ico-tocar" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg>
+  </button>
+  <div class="wrap heroi__conteudo">
+    <div class="heroi__texto">
+      <span class="eyebrow">Para escolas de artes marciais · 12 artes</span>
+      <h1 id="tituloHeroi"><span class="linha"><span class="metal">O tatame é seu.</span></span><span class="linha"><span>O resto, a gente <span class="verde">amarra.</span></span></span></h1>
+      <p class="heroi__sub">Site, app, carteirinha, graduação, campeonato e controle de mensalidades. Do jeito que o tatame faz.</p>
+      <div class="acoes">
+        <a class="btn" href="cadastro.html"><span>Criar minha escola grátis</span><span class="ponta" aria-hidden="true"><i></i><i></i><i></i><i></i></span></a>
+        <a class="btn-vidro" href="/demo"><span class="tx">Abrir o painel de demonstração</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg></a>
       </div>
-      <div class="res" id="simRes"></div>
+      <p class="heroi__micro">14 dias grátis · Sem cartão · Cancela quando quiser · R$ 39,90/mês até 80 alunos ativos</p>
     </div>
-    <div class="planos" id="listaPlanos"></div>
-    <p class="sub" style="margin-top:18px;font-size:.88rem">Valores em reais, por mês. A tarifa do meio de pagamento (Pix) é descontada da mensalidade do aluno antes do repasse e aparece discriminada no extrato da academia. Preço de lançamento, válido para quem assinar em 2026.</p>
+    <div class="arte-card chanfro" role="group" aria-labelledby="tituloArte">
+      <h2 id="tituloArte">Qual é a sua arte?</h2>
+      <div class="chips" id="chipsArte">
+        <button type="button" class="chip" data-arte="capoeira" aria-pressed="false"><span class="dot" style="background:#0E9F6E"></span>Capoeira</button>
+        <button type="button" class="chip" data-arte="jiujitsu" aria-pressed="false"><span class="dot" style="background:#1E4FD8"></span>Jiu-jitsu</button>
+        <button type="button" class="chip" data-arte="judo" aria-pressed="false"><span class="dot" style="background:#0F7490"></span>Judô</button>
+        <button type="button" class="chip" data-arte="karate" aria-pressed="false"><span class="dot" style="background:#E5484D"></span>Karatê</button>
+        <button type="button" class="chip" data-arte="taekwondo" aria-pressed="false"><span class="dot" style="background:#D98E04"></span>Taekwondo</button>
+        <button type="button" class="chip" data-arte="muaythai" aria-pressed="false"><span class="dot" style="background:#C62828"></span>Muay Thai</button>
+        <button type="button" class="chip" data-arte="boxe" aria-pressed="false"><span class="dot" style="background:#8E44AD"></span>Boxe</button>
+        <button type="button" class="chip" data-arte="kickboxing" aria-pressed="false"><span class="dot" style="background:#F57C00"></span>Kickboxing</button>
+        <button type="button" class="chip" data-arte="mma" aria-pressed="false"><span class="dot" style="background:#389E92"></span>MMA</button>
+        <button type="button" class="chip" data-arte="kungfu" aria-pressed="false"><span class="dot" style="background:#B7472A"></span>Kung Fu</button>
+        <button type="button" class="chip" data-arte="kravmaga" aria-pressed="false"><span class="dot" style="background:#6B7C93"></span>Krav Maga</button>
+        <button type="button" class="chip" data-arte="wrestling" aria-pressed="false"><span class="dot" style="background:#2F6FED"></span>Wrestling</button>
+      </div>
+      <p class="frase" id="fraseArte" aria-live="polite">Escolha a sua e a página passa a falar a língua do seu tatame.</p>
+    </div>
   </div>
 </section>
 
-<section class="secao branco" id="demo">
-  <div class="wrap demo">
-    <div class="tela" aria-label="Exemplo de chave de campeonato">
-      <div class="cab-tela"><span>CAMPEONATO INTERNO · SEMIFINAL</span><span style="color:#00E676">● ao vivo</span></div>
-      <div class="chave">
-        <div class="luta vivo"><i style="background:linear-gradient(#4F4F4F 33%,#DAA520 33% 66%,#4F4F4F 66%)"></i><div><b>Furacão</b><small>Fugitivo · Núcleo Centro</small></div><span class="pl">3</span></div>
-        <div class="luta"><i style="background:linear-gradient(#DAA520 33%,#DAA520 33% 66%,#DAA520 66%)"></i><div><b>Pimenta</b><small>Quilombola · Núcleo Sul</small></div><span class="pl">1</span></div>
-        <div class="luta" style="opacity:.75"><i style="background:linear-gradient(#4F4F4F 33%,#D32F2F 33% 66%,#4F4F4F 66%)"></i><div><b>Coruja</b><small>Vagante · Núcleo Norte</small></div><span class="pl">—</span></div>
-        <div class="luta" style="opacity:.75"><i style="background:linear-gradient(#D32F2F 33%,#D32F2F 33% 66%,#D32F2F 66%)"></i><div><b>Trovão</b><small>Liberto · Núcleo Centro</small></div><span class="pl">—</span></div>
-      </div>
-    </div>
-    <div>
-      <span class="eyebrow">Competição</span>
-      <h2 style="margin-top:12px">Campeonatos com chave ao vivo, do interno ao entre escolas.</h2>
-      <p class="sub" style="margin-top:14px">Categorias geradas por graduação, peso e sexo. Sorteio que separa atletas do mesmo núcleo. O árbitro registra no celular, a chave avança sozinha na TV, e o pódio vira brasão, certificado e post na Rede.</p>
-      <ul class="lista-check">
-        <li><i class="fas fa-check"></i><span>Tela de área com cronômetro, placar e "a seguir"</span></li>
-        <li><i class="fas fa-check"></i><span>Pesagem e check-in pelo QR da carteirinha</span></li>
-        <li><i class="fas fa-check"></i><span>Campeonato externo: atletas de outras escolas se inscrevem pelo próprio app</span></li>
-        <li><i class="fas fa-check"></i><span>Ranking anual por escola e geral — o conteúdo que patrocinador quer ver</span></li>
+<!-- ================= 2. CELULAR DO ALUNO ================= -->
+<section class="secao" id="celular" style="background:radial-gradient(70% 60% at 80% 40%,rgba(56,158,146,.18),rgba(6,11,22,0) 70%),var(--c-noite)">
+  <div class="wrap duas">
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <span class="eyebrow" data-entra>O app da sua escola</span>
+      <h2 data-entra style="--d:1">Isto vai estar no celular do seu aluno.</h2>
+      <p class="lead" data-entra style="--d:2">Digite o nome da sua escola e veja como fica. Nada é salvo nem enviado — é só para você ver.</p>
+      <label class="rotulo" for="nomeEscola" data-entra style="--d:3">Nome da sua escola</label>
+      <input class="campo" id="nomeEscola" type="text" maxlength="40" autocomplete="off" placeholder="Ex.: Academia Horizonte" data-entra style="--d:3">
+      <p class="sr" id="previaAviso" aria-live="polite"></p>
+      <ul class="lista" data-entra style="--d:4">
+        <li>App que instala na tela inicial. Sem loja, sem espera.</li>
+        <li>Site da escola com 5 modelos. Troque quando quiser.</li>
+        <li>Inscrição com foto pelo celular. Menor de idade entra com o responsável.</li>
+        <li>Carteirinha com QR e a logo da escola em destaque.</li>
       </ul>
-      <div class="cta" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:24px"><a class="bt bt-indigo" href="cadastro.html">Quero campeonatos <i class="fas fa-arrow-right"></i></a><a class="bt bt-branco" href="https://atletapay.com.br/liberdadeeexpressao/login" target="_blank" rel="noopener">Ver uma escola real no ar</a></div>
+      <div class="acoes" data-entra style="--d:5">
+        <a class="btn" href="cadastro.html"><span>Colocar a minha escola no ar</span><span class="ponta" aria-hidden="true"><i></i><i></i><i></i><i></i></span></a>
+        <a class="link-seta" href="/liberdadeeexpressao"><span>Ver uma escola real no ar</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg></a>
+      </div>
+    </div>
+    <div data-entra style="--d:2">
+      <div class="celular" role="img" aria-label="Prévia do app da escola no celular do aluno: carteirinha, prontidão para a próxima graduação e abas">
+        <div class="celular__tela">
+          <div class="celular__url"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>atletapay.com.br/<b id="celSlug">suaescola</b></div>
+          <div class="celular__ola"><small><span data-t="saudacao">Bem-vinda</span>, Ana</small><strong id="celNome">Sua escola aqui</strong></div>
+          <div class="carteira chanfro">
+            <div class="carteira__topo"><span>Carteirinha · <span data-t="arte">Artes marciais</span></span>
+              <svg width="54" height="54" viewBox="0 0 54 54" aria-hidden="true"><rect width="54" height="54" rx="4" fill="#fff"/><rect x="5" y="5" width="14" height="14" fill="#04122B"/><rect x="35" y="5" width="14" height="14" fill="#04122B"/><rect x="5" y="35" width="14" height="14" fill="#04122B"/><rect x="24" y="8" width="5" height="5" fill="#04122B"/><rect x="24" y="24" width="8" height="8" fill="#04122B"/><rect x="38" y="30" width="6" height="6" fill="#04122B"/><rect x="30" y="40" width="5" height="9" fill="#04122B"/></svg></div>
+            <div><div class="carteira__nome">Ana Beatriz Lima</div><div class="carteira__grad"><span data-t="PecaMai">Faixa</span> <span id="celGrad">Azul</span> · matrícula 2026-0142</div></div>
+            <div class="carteira__faixa" id="celFaixa"></div>
+          </div>
+          <div class="celular__pront"><small>Prontidão para a próxima graduação</small><div class="barra"><b style="--v:72%"></b></div><b>72% · faltam 6 treinos</b></div>
+          <div class="celular__abas" aria-hidden="true"><span>Carteirinha</span><span>Graduação</span><span>Brasões</span><span>Rede</span></div>
+        </div>
+      </div>
+      <p class="nota" style="text-align:center;margin-top:14px">Prévia ilustrativa. O endereço definitivo é escolhido no cadastro.</p>
     </div>
   </div>
 </section>
 
-<section class="secao" id="inclusao">
-  <div class="wrap demo incl">
-    <div>
-      <span class="eyebrow">Escola inclusiva</span>
-      <h2 style="margin-top:12px">A informação certa, para o professor certo, na hora em que o aluno entra na roda.</h2>
-      <p class="sub" style="margin-top:14px">Na inscrição a família marca, se quiser, a condição que o professor precisa conhecer — TEA, TDAH, PC, síndrome de Down, DI, DV/DA ou TDC — e o que ajuda na aula. Vira um laço discreto no canto da foto, só no painel do núcleo. Nunca na rede social, na carteirinha ou no perfil público.</p>
-      <ul class="lista-check">
-        <li><i class="fas fa-check"></i><span><b>Ficha de adaptação</b>: 18 apoios práticos (avisar antes de mudar a atividade, instruções curtas, pausas, dupla fixa…) marcados por quem conhece o atleta</span></li>
-        <li><i class="fas fa-check"></i><span><b>Aviso na chamada</b>: quando o Face ID reconhece o aluno, o tablet do professor mostra a ficha e as orientações da família</span></li>
-        <li><i class="fas fa-check"></i><span><b>A família atualiza</b> pelo app, quando algo muda; o professor ajusta no card do aluno</span></li>
-        <li><i class="fas fa-check"></i><span><b>Material da equipe</b>: um guia por condição, em linguagem de treino, e o brasão <b>Roda Inclusiva</b> para o núcleo que mantém atletas de inclusão na roda</span></li>
-        <li><i class="fas fa-check"></i><span><b>Relatório para parcerias</b>, anonimizado: só totais e percentuais — o que escola, prefeitura e patrocinador precisam ver, sem expor ninguém (LGPD)</span></li>
-      </ul>
-      <div class="cta" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:24px"><a class="bt bt-indigo" href="cadastro.html">Quero uma escola inclusiva <i class="fas fa-arrow-right"></i></a><a class="bt bt-branco" href="https://liberdadeeexpressao.com.br/materiais/inclusao/guia-inclusao-capoeira.pdf" target="_blank" rel="noopener"><i class="fas fa-file-pdf"></i> Ver o guia da equipe</a></div>
+<!-- ================= 3. SEM / COM ================= -->
+<section class="secao claro" aria-labelledby="tituloSemCom">
+  <div class="wrap" style="display:flex;flex-direction:column;gap:44px">
+    <div class="cabeca">
+      <span class="eyebrow" data-entra>A mesma turma, outra segunda-feira</span>
+      <h2 id="tituloSemCom" data-entra style="--d:1">Segunda-feira, 19h. Duas academias.</h2>
+      <p class="lead" data-entra style="--d:2">Mesmo professor, mesma turma. Muda a ferramenta.</p>
     </div>
-    <div class="tela" aria-label="Exemplo da chamada com aviso de inclusão">
-      <div class="cab-tela"><span>CHAMADA · NÚCLEO CENTRO</span><span style="color:#00E676">● Face ID ligado</span></div>
-      <div class="aviso-incl">
-        <span class="lacos"><svg viewBox="0 0 64 64" width="28" height="28" aria-hidden="true"><defs><pattern id="pz-tea" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="5" height="5" fill="#2E7BD6"/><rect x="5" width="5" height="5" fill="#E53935"/><rect y="5" width="5" height="5" fill="#F9C80E"/><rect x="5" y="5" width="5" height="5" fill="#43A047"/></pattern></defs><path d="M33 9 C 25 9 23 15 23 21 C 23 35 38 45 46 60" fill="none" stroke="rgba(255,255,255,.92)" stroke-width="14" stroke-linecap="round"/><path d="M33 9 C 25 9 23 15 23 21 C 23 35 38 45 46 60" fill="none" stroke="url(#pz-tea)" stroke-width="10" stroke-linecap="round"/><path d="M18 60 C 26 45 41 35 41 21 C 41 15 39 9 33 9" fill="none" stroke="rgba(255,255,255,.92)" stroke-width="14" stroke-linecap="round"/><path d="M18 60 C 26 45 41 35 41 21 C 41 15 39 9 33 9" fill="none" stroke="url(#pz-tea)" stroke-width="10" stroke-linecap="round"/></svg><svg viewBox="0 0 64 64" width="28" height="28" aria-hidden="true"><path d="M33 9 C 25 9 23 15 23 21 C 23 35 38 45 46 60" fill="none" stroke="rgba(255,255,255,.92)" stroke-width="14" stroke-linecap="round"/><path d="M33 9 C 25 9 23 15 23 21 C 23 35 38 45 46 60" fill="none" stroke="#F26A1B" stroke-width="10" stroke-linecap="round"/><path d="M18 60 C 26 45 41 35 41 21 C 41 15 39 9 33 9" fill="none" stroke="rgba(255,255,255,.92)" stroke-width="14" stroke-linecap="round"/><path d="M18 60 C 26 45 41 35 41 21 C 41 15 39 9 33 9" fill="none" stroke="#F26A1B" stroke-width="10" stroke-linecap="round"/></svg></span>
-        <div><b>Furacão chegou — TEA · TDAH</b><small>“Avisar antes de mudar a atividade. Sensível ao som do atabaque.”</small>
-          <span class="chips"><i>Avisar antes de mudar</i><i>Instruções curtas</i><i>Longe dos instrumentos</i><i>Pausas combinadas</i></span></div>
+    <div class="semcom" data-entra style="--d:2">
+      <div class="semcom__lado semcom__sem chanfro-lg">
+        <h3>Sem</h3>
+        <p>Chamada no caderno. Que some.</p>
+        <p>"Professor, falta quanto para eu trocar de <span data-t="peca">faixa</span>?"</p>
+        <p>Cobrar mensalidade no grupo do WhatsApp. Constrangimento.</p>
+        <p>Certificado feito no editor de texto.</p>
+        <p>Ficha de inscrição em papel, sem foto.</p>
+        <p>Campeonato com chave na cartolina.</p>
       </div>
-      <div class="chave" style="margin-top:10px">
-        <div class="luta"><span class="foto">F<svg viewBox="0 0 64 64" width="28" height="28" aria-hidden="true"><defs><pattern id="pz-tea" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="5" height="5" fill="#2E7BD6"/><rect x="5" width="5" height="5" fill="#E53935"/><rect y="5" width="5" height="5" fill="#F9C80E"/><rect x="5" y="5" width="5" height="5" fill="#43A047"/></pattern></defs><path d="M33 9 C 25 9 23 15 23 21 C 23 35 38 45 46 60" fill="none" stroke="rgba(255,255,255,.92)" stroke-width="14" stroke-linecap="round"/><path d="M33 9 C 25 9 23 15 23 21 C 23 35 38 45 46 60" fill="none" stroke="url(#pz-tea)" stroke-width="10" stroke-linecap="round"/><path d="M18 60 C 26 45 41 35 41 21 C 41 15 39 9 33 9" fill="none" stroke="rgba(255,255,255,.92)" stroke-width="14" stroke-linecap="round"/><path d="M18 60 C 26 45 41 35 41 21 C 41 15 39 9 33 9" fill="none" stroke="url(#pz-tea)" stroke-width="10" stroke-linecap="round"/></svg></span><div><b>Furacão</b><small>Fugitivo · 19:02 · reconhecido pela câmera</small></div><span class="pl" style="color:#00E676"><i class="fas fa-check"></i></span></div>
-        <div class="luta"><span class="foto">P<svg viewBox="0 0 64 64" width="28" height="28" aria-hidden="true"><path d="M33 9 C 25 9 23 15 23 21 C 23 35 38 45 46 60" fill="none" stroke="rgba(255,255,255,.92)" stroke-width="14" stroke-linecap="round"/><path d="M33 9 C 25 9 23 15 23 21 C 23 35 38 45 46 60" fill="none" stroke="#FFD600" stroke-width="10" stroke-linecap="round"/><path d="M18 60 C 26 45 41 35 41 21 C 41 15 39 9 33 9" fill="none" stroke="rgba(255,255,255,.92)" stroke-width="14" stroke-linecap="round"/><path d="M18 60 C 26 45 41 35 41 21 C 41 15 39 9 33 9" fill="none" stroke="#1976D2" stroke-width="10" stroke-linecap="round"/></svg></span><div><b>Pimenta</b><small>Quilombola · 19:01 · reconhecida pela câmera</small></div><span class="pl" style="color:#00E676"><i class="fas fa-check"></i></span></div>
-        <div class="luta"><span class="foto">C<svg viewBox="0 0 64 64" width="28" height="28" aria-hidden="true"><defs><pattern id="pz-dv" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(90)"><rect width="3" height="6" fill="#1F3C88"/><rect x="3" width="3" height="6" fill="#FFFFFF"/></pattern></defs><path d="M33 9 C 25 9 23 15 23 21 C 23 35 38 45 46 60" fill="none" stroke="rgba(255,255,255,.92)" stroke-width="14" stroke-linecap="round"/><path d="M33 9 C 25 9 23 15 23 21 C 23 35 38 45 46 60" fill="none" stroke="url(#pz-dv)" stroke-width="10" stroke-linecap="round"/><path d="M18 60 C 26 45 41 35 41 21 C 41 15 39 9 33 9" fill="none" stroke="rgba(255,255,255,.92)" stroke-width="14" stroke-linecap="round"/><path d="M18 60 C 26 45 41 35 41 21 C 41 15 39 9 33 9" fill="none" stroke="url(#pz-dv)" stroke-width="10" stroke-linecap="round"/></svg></span><div><b>Coruja</b><small>Vagante · 18:58 · marcado manualmente</small></div><span class="pl" style="color:#00E676"><i class="fas fa-check"></i></span></div>
+      <div class="semcom__no" aria-hidden="true"><span><i></i><i></i><i></i><i></i></span></div>
+      <div class="semcom__lado semcom__com chanfro-lg">
+        <h3>Com AtletaPay</h3>
+        <p>Chamada por QR ou reconhecimento facial. Fica no histórico.</p>
+        <p>O aluno vê a barra de prontidão no celular.</p>
+        <p>Mensalidades lançadas e acompanhadas no painel, com relatório. Pix direto na conta da academia: em breve.</p>
+        <p>Certificado com página pública que qualquer um verifica.</p>
+        <p>Inscrição com foto e responsável, direto no app.</p>
+        <p>Chave ao vivo na TV. O pódio vira brasão e post na Rede.</p>
       </div>
-      <div class="selo-incl"><svg viewBox="0 0 64 64" width="22" height="22" aria-hidden="true"><path d="M33 9 C 25 9 23 15 23 21 C 23 35 38 45 46 60" fill="none" stroke="rgba(255,255,255,.92)" stroke-width="14" stroke-linecap="round"/><path d="M33 9 C 25 9 23 15 23 21 C 23 35 38 45 46 60" fill="none" stroke="#389E92" stroke-width="10" stroke-linecap="round"/><path d="M18 60 C 26 45 41 35 41 21 C 41 15 39 9 33 9" fill="none" stroke="rgba(255,255,255,.92)" stroke-width="14" stroke-linecap="round"/><path d="M18 60 C 26 45 41 35 41 21 C 41 15 39 9 33 9" fill="none" stroke="#389E92" stroke-width="10" stroke-linecap="round"/></svg><span><b>Roda Inclusiva</b> — brasão nº 75 do núcleo</span></div>
+    </div>
+    <div data-entra style="--d:3"><a class="btn" href="cadastro.html"><span>Quero a segunda-feira da direita</span><span class="ponta" aria-hidden="true"><i></i><i></i><i></i><i></i></span></a></div>
+  </div>
+</section>
+
+<!-- ================= 4. GRADUAÇÃO ================= -->
+<section class="secao" id="graduacao" aria-labelledby="tituloGrad" style="background:radial-gradient(60% 70% at 15% 30%,rgba(255,138,61,.14),rgba(6,11,22,0) 70%),var(--c-noite)">
+  <div class="wrap" style="display:flex;flex-direction:column;gap:40px">
+    <div style="display:flex;flex-wrap:wrap;gap:28px;align-items:flex-end;justify-content:space-between">
+      <div class="cabeca" style="flex:999 1 520px">
+        <span class="eyebrow" data-entra>Graduação · <span data-t="arte">Jiu-jitsu</span></span>
+        <h2 id="tituloGrad" data-entra style="--d:1">Graduação do jeito que o tatame faz.</h2>
+        <p class="lead" data-entra style="--d:2">Grau da ponta para cima. No jiu-jitsu infantil, vermelho por cima do branco. E "Trocar <span data-t="peca">faixa</span>" sempre livre — quem decide é o professor.</p>
+      </div>
+      <div class="segmento" role="group" aria-label="Escada" data-entra style="--d:3">
+        <button type="button" class="chip" id="verAdulto" aria-pressed="true">Adulto</button>
+        <button type="button" class="chip" id="verInfantil" aria-pressed="false">Infantil</button>
+      </div>
+    </div>
+    <div class="grad chanfro-lg" data-entra style="--d:2">
+      <div class="grad__topo" aria-live="polite" aria-atomic="true"><span class="grad__nome" id="gradNome">Azul</span><span class="grad__graus" id="gradGraus">0 de 4 graus</span></div>
+      <div class="grad__faixa" id="gradFaixa" role="img" aria-label="Faixa azul sem graus"></div>
+      <div class="acoes">
+        <button type="button" class="btn" id="addGrau"><span>+ Adicionar grau</span><span class="ponta" aria-hidden="true"><i></i><i></i><i></i><i></i></span></button>
+        <button type="button" class="btn-vidro" id="trocarFaixa"><span class="tx">Trocar <span data-t="peca">faixa</span></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg></button>
+      </div>
+      <p class="grad__aviso" id="gradAviso" role="status" aria-live="polite"></p>
+      <div class="grad__barras">
+        <div><span>Técnica</span><div class="barra"><b style="--v:82%"></b></div></div>
+        <div><span>Presença</span><div class="barra"><b style="--v:64%;--d:1"></b></div></div>
+        <div><span>Tempo de <span data-t="peca">faixa</span></span><div class="barra"><b style="--v:90%;--d:2"></b></div></div>
+      </div>
+    </div>
+    <div class="acoes" data-entra style="--d:3">
+      <a class="btn" href="cadastro.html"><span>Montar a escada da minha escola</span><span class="ponta" aria-hidden="true"><i></i><i></i><i></i><i></i></span></a>
+      <a class="link-seta" href="/demo"><span>Ver no painel de demonstração</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg></a>
     </div>
   </div>
 </section>
 
-<section class="secao" id="faq">
+<!-- ================= 5. VÁRIAS ARTES ================= -->
+<section class="secao claro" id="artes" aria-labelledby="tituloArtes">
+  <div class="wrap duas">
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <span class="eyebrow" data-entra>Turmas por arte · Painel do Fundador</span>
+      <h2 id="tituloArtes" data-entra style="--d:1">Jiu-jitsu às 19h. Muay thai às 20h.</h2>
+      <p class="lead" data-entra style="--d:2">Cada arte vira uma turma, com a sua graduação, os seus horários e os seus alunos. Nada se mistura — e o Painel do Fundador mostra tudo, cada cor uma turma.</p>
+      <div class="turmas" data-entra style="--d:3">
+        <div class="turma chanfro"><i style="background:#389E92"></i><strong>Jiu-jitsu · Adultos</strong><span>Seg · Qua · Sex 19:00</span><b>18</b></div>
+        <div class="turma chanfro"><i style="background:#D98E04"></i><strong>Jiu-jitsu · Kids</strong><span>Seg · Qua 17:30</span><b>8</b></div>
+        <div class="turma chanfro"><i style="background:#E5484D"></i><strong>Muay Thai · prajied</strong><span>Ter · Qui 20:00 | Sáb 10:00</span><b>7</b></div>
+        <div class="turma chanfro"><i style="background:#0E9F6E"></i><strong>Capoeira · cordas</strong><span>Seg · Qua 19:30 | Sex 18:00</span><b>6</b></div>
+      </div>
+      <p class="nota" data-entra style="--d:3">Exemplo: Academia Horizonte, a escola fictícia da demonstração.</p>
+      <div class="acoes" data-entra style="--d:4">
+        <a class="btn" href="/demo/fundador"><span>Abrir o Painel do Fundador</span><span class="ponta" aria-hidden="true"><i></i><i></i><i></i><i></i></span></a>
+        <a class="link-seta" href="cadastro.html"><span>Criar minhas turmas</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg></a>
+      </div>
+    </div>
+    <div data-entra style="--d:2">
+      <div class="janela chanfro-lg">
+        <div class="janela__barra" aria-hidden="true"><i></i><i></i><i></i>atletapay.com.br/demo/fundador</div>
+        <img src="assets/site/demo-fundador.webp" width="1152" height="800" loading="lazy" decoding="async" alt="Painel do Fundador da escola de demonstração: núcleos ativos, check-ins dos últimos 30 dias, pedidos pendentes e alunos ativos">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 6. CONQUISTAS ================= -->
+<section class="secao" aria-labelledby="tituloConq" style="background:radial-gradient(60% 60% at 50% 0%,rgba(0,230,118,.12),rgba(6,11,22,0) 70%),var(--c-noite)">
+  <div class="wrap" style="display:flex;flex-direction:column;gap:40px">
+    <div class="cabeca">
+      <span class="eyebrow" data-entra>50 brasões para toda arte + os exclusivos da sua</span>
+      <h2 id="tituloConq" data-entra style="--d:1">Treino que vira conquista.</h2>
+      <p class="lead" data-entra style="--d:2">Os gerais aparecem sozinhos, pelos dados reais: presença, sequência, graduação, pódio. Os da sua arte, o professor concede. Os trancados guardam o segredo — passe o mouse ou toque para descobrir como se ganha.</p>
+    </div>
+    <p class="sr" id="brasaoDica" aria-live="polite"></p>
+    <div class="brasoes" id="brasoes" data-entra style="--d:2">
+      <div class="brasao-item"><img class="brasao" src="/app/brasoes/webp/brasao-11-primeira-presenca.webp" width="92" height="92" loading="lazy" alt="">1ª presença</div>
+      <div class="brasao-item"><img class="brasao" src="/app/brasoes/webp/brasao-12-dez-presencas.webp" width="92" height="92" loading="lazy" alt="">10 presenças</div>
+      <div class="brasao-item"><img class="brasao" src="/app/brasoes/webp/brasao-16-duas-semanas.webp" width="92" height="92" loading="lazy" alt="">2 semanas seguidas</div>
+    </div>
+    <div class="grade4">
+      <div class="card chanfro" data-entra><strong>Carteirinha digital</strong><span>QR, matrícula e validade pela mensalidade. Com a logo da escola.</span></div>
+      <div class="card chanfro" data-entra style="--d:1"><strong>Certificado verificável</strong><span>Na troca de <span data-t="peca">faixa</span>, com página pública que qualquer um confere.</span></div>
+      <div class="card chanfro" data-entra style="--d:2"><strong>Rede da escola</strong><span>Posts e melhores momentos da turma. A Rede entre escolas vem aí.</span></div>
+      <div class="card chanfro" data-entra style="--d:3"><strong>Árvore de formação</strong><span>A linhagem da escola, com fotos: quem formou quem.</span></div>
+    </div>
+    <div data-entra><a class="btn" href="cadastro.html"><span>Dar isso aos meus alunos</span><span class="ponta" aria-hidden="true"><i></i><i></i><i></i><i></i></span></a></div>
+  </div>
+</section>
+
+<!-- ================= 7. CAMPEONATO ================= -->
+<section class="secao" aria-labelledby="tituloCamp" style="background:var(--c-navy-900)">
+  <div class="wrap duas">
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <span class="aovivo" data-entra>Ao vivo · exemplo ilustrativo</span>
+      <h2 id="tituloCamp" data-entra style="--d:1">Chave ao vivo. Na TV. Sem cartolina.</h2>
+      <p class="lead" data-entra style="--d:2">O árbitro marca no celular. A chave anda sozinha na tela. O pódio vira brasão e post na Rede.</p>
+      <ul class="lista" data-entra style="--d:3"><li>Categorias por graduação, peso e sexo.</li><li>Tela de área com cronômetro, placar e "a seguir".</li></ul>
+      <div data-entra style="--d:4"><a class="btn" href="cadastro.html"><span>Quero campeonato na minha escola</span><span class="ponta" aria-hidden="true"><i></i><i></i><i></i><i></i></span></a></div>
+    </div>
+    <div class="chave chanfro-lg" id="chave" data-entra style="--d:2" role="group" aria-label="Exemplo de chave de campeonato">
+      <div class="chave__col">
+        <div class="luta chanfro" data-l="a">Furacão<small>Núcleo Centro</small></div>
+        <div class="luta chanfro" data-l="b">Pimenta<small>Núcleo Sul</small></div>
+        <div class="luta chanfro" data-l="c">Coruja<small>Núcleo Norte</small></div>
+        <div class="luta chanfro" data-l="d">Trovão<small>Núcleo Centro</small></div>
+      </div>
+      <div class="chave__col chave__col--final">
+        <div class="luta chanfro" id="semi1">aguardando…</div>
+        <div class="luta chanfro" id="semi2">aguardando…</div>
+      </div>
+      <div class="podio"><div class="brasao" style="background:linear-gradient(135deg,#FFE3A3,#D98E04)">1º</div><span id="podio">Final às 11h40</span>
+        <button type="button" class="link-seta" id="reprisar" hidden style="background:none;border:0;cursor:pointer;min-height:44px"><span>Rodar de novo</span></button></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 8. INCLUSÃO ================= -->
+<section class="secao claro" aria-labelledby="tituloIncl">
+  <div class="wrap duas">
+    <div data-entra>
+      <div class="chanfro-lg" style="overflow:hidden;box-shadow:0 40px 80px -30px rgba(0,45,114,.4)"><img src="assets/site/demo-alunos-kids.webp" width="834" height="572" loading="lazy" decoding="async" alt="Cards de atletas da turma kids com faixas e graus; um deles com o laço discreto de inclusão perto da foto" style="display:block;width:100%"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <span class="eyebrow" data-entra>Escola inclusiva</span>
+      <h2 id="tituloIncl" data-entra style="--d:1">O professor sabe. A turma não precisa saber.</h2>
+      <p class="lead" data-entra style="--d:2">A família informa, se quiser, a condição e o que ajuda na aula. Vira um laço discreto na foto, visível só no painel do professor.</p>
+      <ul class="lista" data-entra style="--d:3"><li>TEA, TDAH, PC, síndrome de Down, DI, DV/DA e TDC.</li><li>Ficha de apoios marcada por quem conhece o aluno, e aviso na chamada.</li><li>Nunca na Rede, na carteirinha ou no perfil público. Dados exportáveis (LGPD).</li></ul>
+      <div class="acoes" data-entra style="--d:4">
+        <a class="btn" href="cadastro.html"><span>Quero uma escola inclusiva</span><span class="ponta" aria-hidden="true"><i></i><i></i><i></i><i></i></span></a>
+        <a class="link-seta" href="https://liberdadeeexpressao.com.br/materiais/inclusao/guia-inclusao-capoeira.pdf" target="_blank" rel="noopener"><span>Ler o guia de inclusão (capoeira)<span class="sr"> — PDF, abre em nova aba</span></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 9. O DINHEIRO É SEU ================= -->
+<section class="secao" id="dinheiro" aria-labelledby="tituloDin" style="background:radial-gradient(60% 70% at 85% 50%,rgba(0,230,118,.12),rgba(6,11,22,0) 70%),var(--c-noite)">
+  <div class="wrap duas">
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <span class="eyebrow" data-entra>Mensalidade <span class="selo-breve">Pix em breve</span></span>
+      <h2 id="tituloDin" data-entra style="--d:1">A mensalidade é sua. Não nossa.</h2>
+      <p class="lead" data-entra style="--d:2">Hoje: mensalidades lançadas e acompanhadas no painel, com relatório e lista de quem está em aberto. Em breve: Pix direto na conta da academia, por uma instituição autorizada pelo Banco Central. A AtletaPay cobra só o plano, uma vez por mês, e nunca fica com o dinheiro dos alunos.</p>
+    </div>
+    <form class="sim chanfro-lg" id="sim" data-entra style="--d:2" onsubmit="return false">
+      <label for="simAlunos">Alunos ativos hoje <output aria-live="off" id="outAlunos" for="simAlunos">120</output></label>
+      <input id="simAlunos" type="range" min="10" max="600" step="1" value="120">
+      <label for="simMens">Mensalidade média <output aria-live="off" id="outMens" for="simMens">R$ 100</output></label>
+      <input id="simMens" type="range" min="40" max="300" step="5" value="100">
+      <div class="sim__res">
+        <div class="chanfro"><small>Entra em mensalidades</small><output aria-live="off" id="outEntra">R$ 12.000</output></div>
+        <div class="chanfro"><small>Seu plano AtletaPay</small><output aria-live="off" id="outPlano">R$ 59,50</output></div>
+      </div>
+      <p class="sim__peso" id="outPeso" aria-live="polite">O plano é 0,5% do que entra em mensalidades.</p>
+      <p class="nota">Até 80 alunos ativos o plano é R$ 39,90; acima, + R$ 0,49 por aluno ativo. Quando o Pix chegar, a tarifa do meio de pagamento será descontada antes do repasse e aparecerá discriminada no extrato.</p>
+      <div><a class="btn" href="cadastro.html"><span>Começar com o meu número</span><span class="ponta" aria-hidden="true"><i></i><i></i><i></i><i></i></span></a></div>
+    </form>
+  </div>
+</section>
+
+<!-- ================= 10. PROVA REAL ================= -->
+<section class="secao" id="demo" aria-labelledby="tituloProva" style="background:var(--c-noite-2)">
+  <div class="wrap" style="display:flex;flex-direction:column;gap:40px">
+    <div class="cabeca">
+      <span class="eyebrow" data-entra>Sem login · sem formulário · sem vendedor</span>
+      <h2 id="tituloProva" data-entra style="--d:1;font-size:clamp(3rem,1.8rem + 5vw,6rem)">Não acredite no site. <span class="verde">Abra o painel.</span></h2>
+      <p class="lead" data-entra style="--d:2">A Academia Horizonte é uma escola fictícia com o painel de verdade. Mexa à vontade; recarregou, voltou ao começo.</p>
+    </div>
+    <div class="grade3">
+      <a class="card prova chanfro-lg" href="/demo" data-entra><h3>Painel de gestão</h3><span>Alunos, turmas, chamada, graduação, mensalidades.</span><span class="link-seta"><span>Abrir a demonstração</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg></span></a>
+      <a class="card prova chanfro-lg" href="/demo/fundador" data-entra style="--d:1"><h3>Painel do Fundador</h3><span>Os números da escola inteira, turma por turma.</span><span class="link-seta"><span>Abrir o Painel do Fundador</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg></span></a>
+      <a class="card prova chanfro-lg" href="/liberdadeeexpressao" data-entra style="--d:2"><h3>Uma escola real no ar</h3><span>Grupo de Capoeira Liberdade e Expressão, Campo Grande (MS) — onde a AtletaPay nasceu e é usada todo dia.</span><span class="link-seta"><span>Visitar a escola</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg></span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 11. PREÇO + DÚVIDAS ================= -->
+<section class="secao claro" id="preco" aria-labelledby="tituloPreco">
+  <div class="wrap" style="display:flex;flex-wrap:wrap;gap:56px;align-items:flex-start">
+    <div style="flex:1 1 420px;min-width:0;display:flex;flex-direction:column;gap:18px">
+      <span class="eyebrow" data-entra>Preço de lançamento válido para assinaturas feitas em 2026</span>
+      <h2 id="tituloPreco" data-entra style="--d:1">Um plano. Tudo dentro.</h2>
+      <div class="preco-card chanfro-lg" data-entra style="--d:2">
+        <span class="eyebrow">AtletaPay Completo</span>
+        <div class="valor"><b>R$ 39,90</b><span>/mês</span></div>
+        <p>Até 80 alunos ativos, o valor é fixo. Passou disso, R$ 0,49 por aluno ativo, contado sozinho. Aluno inativo não conta.</p>
+        <p class="nota">Site, app, carteirinha, certificados, brasões, Rede, turmas por arte, campeonatos e inclusão — tudo liberado no primeiro dia.</p>
+        <div class="fio-preco" aria-hidden="true"><span></span><em><i></i><i></i><i></i><i></i></em></div>
+        <div><a class="btn" href="cadastro.html"><span>Criar minha escola grátis</span><span class="ponta" aria-hidden="true"><i></i><i></i><i></i><i></i></span></a></div>
+        <p class="nota">14 dias grátis, sem cartão · cancela quando quiser, sem multa, pelo e-mail contato@atletapay.com.br · seus dados saem com você · depois de 2026, mudanças de preço são avisadas com antecedência</p>
+      </div>
+    </div>
+    <div style="flex:1 1 420px;min-width:0;display:flex;flex-direction:column;--d:2" data-entra>
+      <h3 class="faq-titulo">Dúvidas</h3>
+      <details class="faq" open><summary>O dinheiro das mensalidades passa pela AtletaPay?<span aria-hidden="true">+</span></summary><p>Não. Hoje você lança e acompanha as mensalidades no painel, e o aluno paga direto para a academia. A cobrança por Pix integrada está chegando: será feita por uma instituição autorizada pelo Banco Central, numa conta da própria academia. A AtletaPay cobra apenas o plano.</p></details>
+      <details class="faq"><summary>Dá para ter jiu-jitsu, muay thai e capoeira na mesma escola?<span aria-hidden="true">+</span></summary><p>Sim. Cada arte vira uma turma, com a própria graduação (faixas, cordões, cordas, prajieds ou níveis) e os próprios horários.</p></details>
+      <details class="faq"><summary>Preciso instalar alguma coisa?<span aria-hidden="true">+</span></summary><p>Não. O app abre no navegador e se instala na tela inicial do celular.</p></details>
+      <details class="faq"><summary>A chamada por reconhecimento facial é obrigatória?<span aria-hidden="true">+</span></summary><p>Não. Também dá para usar o QR da carteirinha ou marcar à mão.</p></details>
+      <details class="faq"><summary>O que conta como aluno ativo?<span aria-hidden="true">+</span></summary><p>O aluno com cadastro na situação "Ativo". Quem saiu, trancou ou está inativo não conta. A contagem é automática e você acompanha o valor do mês no painel.</p></details>
+      <details class="faq"><summary>Já tenho site e domínio. E agora?<span aria-hidden="true">+</span></summary><p>O site da sua escola fica no ar em atletapay.com.br/suaescola. Se preferir o domínio próprio, o suporte liga o domínio e o certificado HTTPS para você.</p></details>
+      <details class="faq"><summary>Serve para qualquer arte marcial?<span aria-hidden="true">+</span></summary><p>Capoeira, jiu-jitsu, judô, karatê, taekwondo, muay thai, boxe, kickboxing, MMA, kung fu, krav maga e wrestling, cada uma com a sua escada. A sua não está na lista? Você monta a escada no painel.</p></details>
+      <details class="faq"><summary>E se eu quiser sair?<span aria-hidden="true">+</span></summary><p>Cancele quando quiser, sem multa, pelo e-mail contato@atletapay.com.br. Certificados e carteirinhas emitidos continuam válidos, e você exporta os dados dos alunos em um clique (LGPD).</p></details>
+      <details class="faq"><summary>Quem está por trás?<span aria-hidden="true">+</span></summary><p>A AtletaPay nasceu dentro do Grupo de Capoeira Liberdade e Expressão, em Campo Grande (MS). O app do grupo é o cliente nº 1 e está no ar para qualquer um ver.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CHAMADA FINAL ================= -->
+<section class="final" aria-labelledby="tituloFinal">
+  <img src="assets/heroi/heroi-panoramica-1600.webp" width="1600" height="640" loading="lazy" decoding="async" alt="">
   <div class="wrap">
-    <div class="cab"><span class="eyebrow">Dúvidas</span><h2>Perguntas que toda academia faz.</h2></div>
-    <div class="faq">
-      <details><summary>O dinheiro das mensalidades passa pela AtletaPay?</summary><p>Não. A cobrança é feita por uma instituição de pagamento autorizada pelo Banco Central, numa conta da própria academia. O pagamento cai na conta da academia, só com a tarifa do meio de pagamento descontada. A AtletaPay cobra apenas o plano, uma vez por mês, e nunca fica com o dinheiro dos seus alunos.</p></details>
-      <details><summary>Quanto custa para o aluno?</summary><p>Nada a mais do que a mensalidade que você já cobra. Só a tarifa do Pix sai do valor recebido, discriminada no extrato. Para uma mensalidade de R$ 100, a academia recebe cerca de R$ 98, dependendo da tarifa do meio de pagamento.</p></details>
-      <details><summary>O que conta como aluno ativo?</summary><p>O aluno com cadastro na situação "Ativo" no app. Quem saiu, trancou ou está inativo não conta. A contagem é automática e você acompanha o valor estimado do mês no painel da escola.</p></details>
-      <details><summary>Já tenho site e domínio. E agora?</summary><p>O site da sua escola fica no ar desde o primeiro dia em atletapay.com.br/suaescola. Se preferir usar o domínio próprio (www.suaescola.com.br), é só falar com o suporte da AtletaPay: nós ligamos o domínio e o certificado HTTPS para você.</p></details>
-      <details><summary>Serve para qualquer arte marcial?</summary><p>Sim. Capoeira, jiu-jitsu, judô, karatê, taekwondo, muay thai, boxe, MMA, kung fu — cada uma com a sua escada de graduações, cores e vocabulário. Se a sua não estiver na lista, você monta a escada em um minuto.</p></details>
-      <details><summary>E se eu quiser sair?</summary><p>Cancele quando quiser, sem multa. Os certificados e as carteirinhas já emitidos continuam válidos e públicos, e você exporta todos os dados dos alunos em um clique (LGPD).</p></details>
-      <details><summary>Quem está por trás?</summary><p>A AtletaPay nasceu dentro do Grupo de Capoeira Liberdade e Expressão, em Campo Grande (MS), construída por um especialista em segurança com duas décadas de servidores. O app do grupo é o cliente nº 1 e está no ar para qualquer um ver.</p></details>
+    <div class="fio-preco" aria-hidden="true" data-entra><span></span><em><i></i><i></i><i></i><i></i></em></div>
+    <h2 id="tituloFinal" data-entra style="--d:1"><span class="metal">Quatro graus.</span><br><span class="verde">Falta amarrar.</span></h2>
+    <p class="lead" data-entra style="--d:2;color:#E2EAF5">Cadastro em poucos minutos. 14 dias grátis, sem cartão.</p>
+    <div class="acoes" data-entra style="--d:3">
+      <a class="btn" href="cadastro.html"><span>Amarrar a minha faixa</span><span class="ponta" aria-hidden="true"><i></i><i></i><i></i><i></i></span></a>
+      <a class="btn-vidro" href="/demo"><span class="tx">Abrir a demonstração antes</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg></a>
     </div>
   </div>
 </section>
 
-<section class="secao escuro" style="padding-block:64px">
-  <div class="wrap" style="display:grid;gap:16px;justify-items:start">
-    <span class="eyebrow">Comece hoje</span>
-    <h2>14 dias grátis. Sem cartão. Com a sua turma dentro em 15 minutos.</h2>
-    <a class="bt bt-laranja" href="cadastro.html">Criar a minha escola <i class="fas fa-arrow-right"></i></a>
-  </div>
-</section>
+</main>
 
 <footer class="rodape">
   <div class="wrap">
-    <div><a class="marca" href="#" style="color:#fff"><img src="assets/marca.svg" alt="">Atleta<b>Pay</b></a><p style="margin-top:12px;max-width:40ch">Gestão, cobrança e competição para escolas de artes marciais. Feita no tatame, em Campo Grande — MS.</p></div>
-    <div><h4>Plataforma</h4><a href="#como">Como funciona</a><a href="#modulos">O que vem pronto</a><a href="#planos">Preço</a><a href="#demo">Campeonatos</a><a href="/demo">Demonstração do painel</a></div>
-    <div><h4>Conta</h4><a href="cadastro.html">Criar escola</a><a href="painel.html">Entrar</a><a href="privacidade.html">Privacidade e termos</a><a href="mailto:contato@atletapay.com.br">contato@atletapay.com.br</a></div>
-    <div class="legal"><span>© 2026 AtletaPay. Todos os direitos reservados.</span><span>atletapay.com.br</span></div>
+    <div>
+      <a class="marca" href="#conteudo" style="font-size:1.4rem"><span>atleta<span class="verde">pay</span></span></a>
+      <p>Gestão, cobrança e competição para escolas de artes marciais. Feita no tatame, em Campo Grande — MS.</p>
+    </div>
+    <div class="rodape__colunas">
+      <nav aria-label="Plataforma"><strong>Plataforma</strong><a href="#celular">O app</a><a href="#graduacao">Graduação</a><a href="#preco">Preço</a><a href="/demo">Demonstração</a></nav>
+      <nav aria-label="Conta"><strong>Conta</strong><a href="cadastro.html">Criar escola</a><a href="painel.html">Entrar</a><a href="privacidade.html">Privacidade e termos</a><a href="mailto:contato@atletapay.com.br">contato@atletapay.com.br</a></nav>
+    </div>
+    <p class="rodape__fim">© 2026 AtletaPay. Todos os direitos reservados.</p>
   </div>
 </footer>
-<script type="module" src="js/site.js?v=20261010"></script>
+
+<div class="barra-fixa" id="barraFixa" aria-hidden="true">
+  <a class="btn-vidro" href="/demo" tabindex="-1"><span class="tx">Ver demo</span></a>
+  <a class="btn" href="cadastro.html" tabindex="-1"><span>Criar grátis</span><span class="ponta" aria-hidden="true"><i></i><i></i><i></i><i></i></span></a>
+</div>
+
+<script type="module" src="js/site-v2.js?v=20261011"></script>
 </body>
 </html>

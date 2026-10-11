@@ -8,7 +8,7 @@ Uma fonte só para a vitrine, o simulador, o cadastro e o painel da escola. */
 export const PLANO = {
   id: 'completo', nome: 'AtletaPay Completo', mensal: 39.90, inclusos: 80, porAlunoExtra: 0.49,
   frase: 'Tudo incluso, do primeiro aluno à federação',
-  itens: ['Site com 5 modelos e domínio próprio', 'App do aluno e painel do professor', 'Carteirinha, certificados e brasões', 'Rede do grupo e Rede Global', 'Mensalidade via Pix com repasse direto', 'Vários núcleos e professores', 'Campeonatos com chaves, internos e entre escolas', 'Aniversários e lembretes automáticos', 'Relatórios financeiros', 'Tela de área para TV', 'Ranking público', 'Suporte por WhatsApp'],
+  itens: ['Site com 5 modelos e domínio próprio', 'App do aluno e painel do professor', 'Carteirinha, certificados e brasões', 'Rede do grupo', 'Controle de mensalidades (Pix integrado em breve)', 'Vários núcleos e professores', 'Campeonatos com chaves, internos e entre escolas', 'Aniversários e lembretes automáticos', 'Relatórios financeiros', 'Tela de área para TV', 'Ranking público', 'Suporte por WhatsApp'],
 };
 export const PLANOS = [PLANO];
 // Cadastros feitos antes de 08/10 guardam 'roda' | 'nucleo' | 'grupo' | 'federacao': todos viram o plano único.
@@ -31,6 +31,9 @@ export const MODALIDADES = [
   { id: 'boxe', nome: 'Boxe', lider: 'Treinador', peca: 'nível', graduacoes: ['Iniciante', 'Intermediário', 'Avançado', 'Competidor'] },
   { id: 'mma', nome: 'MMA', lider: 'Coach', peca: 'nível', graduacoes: ['Iniciante', 'Intermediário', 'Avançado', 'Competidor'] },
   { id: 'kungfu', nome: 'Kung Fu', lider: 'Sifu', peca: 'faixa', graduacoes: ['Branca', 'Amarela', 'Verde', 'Azul', 'Marrom', 'Preta'] },
+  { id: 'kickboxing', nome: 'Kickboxing', lider: 'Treinador', peca: 'faixa', graduacoes: ['Branca', 'Laranja', 'Azul', 'Amarela', 'Verde', 'Marrom', 'Preta'] },
+  { id: 'kravmaga', nome: 'Krav Maga', lider: 'Instrutor', peca: 'nível', graduacoes: ['Iniciante', 'Practitioner', 'Graduate', 'Expert'] },
+  { id: 'wrestling', nome: 'Wrestling (luta olímpica)', lider: 'Treinador', peca: 'nível', graduacoes: ['Iniciante', 'Intermediário', 'Avançado', 'Competidor'] },
   { id: 'outra', nome: 'Outra arte marcial', lider: 'Professor', peca: 'graduação', graduacoes: ['Iniciante', 'Intermediário', 'Avançado'] },
 ];
 export const modalidadePorId = (id) => MODALIDADES.find((m) => m.id === id) || MODALIDADES[MODALIDADES.length - 1];
