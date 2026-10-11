@@ -233,6 +233,19 @@ export function seletorTurmaHTML({ turmas, ativaId, contagem = {}, academia, pod
   </div>`;
 }
 
+// Admin Master / Fundador vendo "Todos os núcleos": as turmas são de um núcleo, então o bloco
+// mostra um seletor de núcleo no lugar (antes ficava escondido e ninguém achava as turmas).
+export function escolherNucleoTurmaHTML(nucleos = []) {
+  const opcoes = nucleos.filter((n) => n && n.id && n.ativo !== false)
+    .map((n) => `<option value="${X(n.id)}">${X(n.nome || n.id)}</option>`).join('');
+  if (!opcoes) return '';
+  return `<div class="turma-bloco" id="turmaBloco" data-sem-trocas>
+    <span class="nav-grupo">Turmas</span>
+    <label class="turma-escolher" for="turmaNucleoEscolha"><i class="fas fa-layer-group" aria-hidden="true"></i><span>Escolha o núcleo para ver as turmas de cada arte e criar novas</span></label>
+    <select id="turmaNucleoEscolha" class="turma-escolher-sel"><option value="">Escolher núcleo…</option>${opcoes}</select>
+  </div>`;
+}
+
 // Formulário "Nova turma" (conteúdo de um modal). O chamador liga os botões e lê lerFormTurma().
 // data-sem-trocas: a identidade da escola (escola-atual.js) troca "capoeira"/"cordão" pelos termos da
 // arte da ESCOLA em todo texto da página — aqui não, senão "Capoeira" vira "Jiu-jitsu" no seletor.
@@ -355,6 +368,10 @@ export function garantirEstilosTurma() {
 .turma-item.ativa{background:var(--bg-app,#EAF2F1);font-weight:700}
 .turma-item .turma-nome{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .turma-item .turma-qtd{font-size:.75rem;color:var(--text-muted,#5B6B7F)}
+.turma-escolher{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:#F3FAF9;color:#1F5E57;font-size:.82rem;line-height:1.35}
+.turma-escolher i{color:var(--primary-teal,#389E92);margin-top:2px}
+.turma-escolher-sel{width:100%;padding:10px 12px;border:1.5px solid var(--primary-teal,#389E92);border-radius:10px;background:#fff;color:var(--primary-blue,#002D72);font:inherit;font-weight:600;font-size:.9rem;cursor:pointer;transition:box-shadow .3s cubic-bezier(0.16,1,0.3,1)}
+.turma-escolher-sel:focus{outline:none;box-shadow:0 0 0 3px rgba(56,158,146,.25)}
 .turma-nova{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border:1.5px dashed var(--primary-teal,#389E92);border-radius:10px;background:#F3FAF9;color:#1F7A70;font:inherit;font-weight:600;font-size:.9rem;cursor:pointer}
 .turma-etiqueta{display:inline-flex;align-items:center;gap:6px;padding:3px 10px 3px 7px;border-radius:999px;background:color-mix(in srgb,var(--turma) 12%,#fff);color:var(--turma);font-size:.75rem;font-weight:700;border:1px solid color-mix(in srgb,var(--turma) 30%,#fff)}
 .turma-etiqueta .turma-cor{background:var(--turma);width:8px;height:8px}

@@ -33,6 +33,18 @@
       "trailingSlash": false,
       "rewrites": [
         {
+          "source": "/demo",
+          "destination": "/app/demo.html"
+        },
+        {
+          "source": "/demo/fundador",
+          "destination": "/app/demo-fundador.html"
+        },
+        {
+          "source": "/demo/**",
+          "destination": "/app/demo.html"
+        },
+        {
           "source": "/*/admin",
           "destination": "/app/admin.html"
         },

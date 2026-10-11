@@ -9,7 +9,7 @@ import {
   db, collection, doc, query, where, orderBy, limit, getDocs, updateDoc, addDoc, deleteDoc, setDoc, arrayUnion,
   listar, listarPagamentosDoNucleo, lancarPagamento, pedirAoServidor, getDoc, comMinhaEscola, ondeEscola,
 } from './firebase.js';
-import { ESCOLA, CORDOES_ADULTO, prontidao, proximoCordao, coresDoCordao, META_PRONTIDAO, escadaDe } from './escola.js';
+import { ESCOLA, CORDOES_ADULTO, CORDOES_KIDS, prontidao, proximoCordao, coresDoCordao, META_PRONTIDAO, escadaDe } from './escola.js';
 import { situacao as situacaoCarteirinha, textoValidade } from './carteirinha-comum.js';
 import { CONDICOES, lacosHTML, lacoSVG, normalizarInclusao, resumoInclusao, SEM_LIMITACOES, apoiosHTML, apoioDe, materiaisHTML } from './inclusao.js?v=20261006';
 import { carregarTurmas, turmaAtivaId, turmaPadrao, corOk } from './turmas.js';
@@ -432,10 +432,18 @@ async function renderAssinaturas(nid) {
 }
 
 // ---------- graduações registradas (relatório + desfazer) ----------
-const ORDEM_GRAD = ['Iniciante', 'Escravo', 'Fugitivo', 'Quilombola', 'Vagante', 'Liberto', 'Instrutor', 'Professor', 'Mestre', 'Mestre/Presidente'];
+const ORDEM_GRAD_LIBERDADE = ['Iniciante', 'Escravo', 'Fugitivo', 'Quilombola', 'Vagante', 'Liberto', 'Instrutor', 'Professor', 'Mestre', 'Mestre/Presidente'];
+// Ordem das graduações da escada em uso (infantil antes da adulta, sem repetir): vale para
+// faixas, cordas, prajied… A Liberdade mantém a lista de sempre (inclui Mestre/Presidente).
+function ordemGrad() {
+  if (ESCOLA.id === 'liberdade') return ORDEM_GRAD_LIBERDADE;
+  const nomes = [...new Set([...CORDOES_KIDS, ...CORDOES_ADULTO].map((g) => g && g.nome).filter(Boolean))];
+  return nomes.length ? nomes : ORDEM_GRAD_LIBERDADE;
+}
 // Todas as trocas de cordão para cima registradas (historicoGraduacoes), das mais novas para as mais velhas.
 function graduacoesDe(nid, dias = null) {
   const desde = dias ? Date.now() - dias * DIA : 0;
+  const ordem = ordemGrad();
   const out = [];
   C.usuarios().filter((u) => !nid || u.academiaId === nid).forEach((u) => {
     const hist = Array.isArray(u.historicoGraduacoes) ? u.historicoGraduacoes : [];
@@ -443,7 +451,7 @@ function graduacoesDe(nid, dias = null) {
       if (!h || !h.cordao) return;
       const t = new Date(h.em || 0).getTime();
       if (dias && !(t >= desde)) return;
-      out.push({ u, h, ultima: i === hist.length - 1 && (u.cordaoAtual || 'Iniciante') === h.cordao, subiu: ORDEM_GRAD.indexOf(h.cordao) > ORDEM_GRAD.indexOf(h.anterior || 'Iniciante'), t });
+      out.push({ u, h, ultima: i === hist.length - 1 && (u.cordaoAtual || 'Iniciante') === h.cordao, subiu: ordem.indexOf(h.cordao) > ordem.indexOf(h.anterior || ordem[0]), t });
     });
   });
   return out.sort((a, b) => b.t - a.t);
@@ -511,7 +519,7 @@ export function renderRelatoriosGerais(nid) {
     const porCordao = {}; ativos.forEach((u) => { const c = u.cordaoAtual || 'Iniciante'; porCordao[c] = (porCordao[c] || 0) + 1; });
     const maxC = Math.max(1, ...Object.values(porCordao));
     corpo = `<div class="rg-tiles">${tile(pessoas.length, 'atletas cadastrados')}${tile(ativos.length, 'ativos', 'ok')}${tile(inat.length, 'inativos', inat.length ? 'ruim' : '')}${['Aluno(a)', 'Instrutor(a)', 'Professor(a)', 'Mestre'].map((f) => tile(porFuncao[f] || 0, f.replace('(a)', 's').replace('Mestre', 'mestres').toLowerCase())).join('')}</div>
-      <div class="rg-duas"><div class="card-padrao"><h3><i class="fas fa-ribbon"></i> Ativos por cordão</h3><div class="rg-barras">${ORDEM_GRAD.filter((c) => porCordao[c]).map((c) => { const cor = coresDoCordao(c); return `<div class="rg-barra"><span class="gs-cordao" style="--c1:${cor[0]};--c2:${cor[1]};--c3:${cor[2]}"></span><small>${esc(c)}</small><i style="width:${Math.round((porCordao[c] / maxC) * 100)}%"></i><b>${porCordao[c]}</b></div>`; }).join('') || '<p class="gs-ajuda">Sem atletas ativos.</p>'}</div></div>
+      <div class="rg-duas"><div class="card-padrao"><h3><i class="fas fa-ribbon"></i> Ativos por cordão</h3><div class="rg-barras">${ordemGrad().filter((c) => porCordao[c]).map((c) => { const cor = coresDoCordao(c); return `<div class="rg-barra"><span class="gs-cordao" style="--c1:${cor[0]};--c2:${cor[1]};--c3:${cor[2]}"></span><small>${esc(c)}</small><i style="width:${Math.round((porCordao[c] / maxC) * 100)}%"></i><b>${porCordao[c]}</b></div>`; }).join('') || '<p class="gs-ajuda">Sem atletas ativos.</p>'}</div></div>
       <div class="card-padrao"><h3><i class="fas fa-user-slash"></i> Inativos <span class="pill pill-neutra">${inat.length}</span></h3>${inat.length ? `<div class="rg-lista">${inat.slice(0, 60).map((u) => `<span><b>${esc(u.nome || '')}</b><small>${esc(nomeNucleo(u.academiaId))} · ${esc(u.cordaoAtual || 'Iniciante')}</small></span>`).join('')}</div>` : '<p class="gs-ajuda">Nenhum atleta inativo.</p>'}</div></div>`;
     exportar = () => ({ titulo: 'Atletas', sub: rotEscopo, colunas: [{ chave: 'nome', titulo: 'Nome' }, { chave: 'funcao', titulo: 'Função' }, { chave: 'cordao', titulo: 'Cordão' }, { chave: 'nucleo', titulo: 'Núcleo' }, { chave: 'situacao', titulo: 'Situação' }, { chave: 'desde', titulo: 'No grupo desde' }],
       linhas: pessoas.slice().sort((a, b) => String(a.nome).localeCompare(String(b.nome))).map((u) => ({ nome: u.nome || '', funcao: funcaoDe(u), cordao: u.cordaoAtual || 'Iniciante', nucleo: nomeNucleo(u.academiaId), situacao: inativo(u) ? 'Inativo' : 'Ativo', desde: u.criadoEm ? new Date(u.criadoEm).toLocaleDateString('pt-BR') : '' })) });
@@ -566,7 +574,7 @@ export function renderRelatoriosGerais(nid) {
     const porCordao = {}; lista.forEach((g) => { porCordao[g.h.cordao] = (porCordao[g.h.cordao] || 0) + 1; });
     const eventos = new Set(lista.map((g) => g.h.eventoNome).filter(Boolean));
     corpo = `<div class="rg-filtros" role="group" aria-label="Período">${[[30, '30 dias'], [90, '90 dias'], [365, '12 meses'], [0, 'Tudo']].map(([d, r]) => `<button type="button" class="btn-mini${rgDias === d ? ' on' : ''}" data-rg-dias="${d}" aria-pressed="${rgDias === d}">${r}</button>`).join('')}</div>
-      <div class="rg-tiles">${tile(lista.length, 'trocas de cordão', 'ok')}${tile(new Set(lista.map((g) => g.u.id)).size, 'atletas graduados')}${tile(eventos.size, 'batizados/eventos')}${ORDEM_GRAD.filter((c) => porCordao[c]).slice(-4).map((c) => tile(porCordao[c], `para ${c}`)).join('')}</div>
+      <div class="rg-tiles">${tile(lista.length, 'trocas de cordão', 'ok')}${tile(new Set(lista.map((g) => g.u.id)).size, 'atletas graduados')}${tile(eventos.size, 'batizados/eventos')}${ordemGrad().filter((c) => porCordao[c]).slice(-4).map((c) => tile(porCordao[c], `para ${c}`)).join('')}</div>
       ${tabelaGraduacoes(lista, C.ehAdmin())}`;
     exportar = () => ({ titulo: 'Graduações', sub: `${rotEscopo} · ${rgDias ? `últimos ${rgDias} dias` : 'todo o período'}`, colunas: [{ chave: 'data', titulo: 'Data' }, { chave: 'nome', titulo: 'Atleta' }, { chave: 'nucleo', titulo: 'Núcleo' }, { chave: 'de', titulo: 'Cordão anterior' }, { chave: 'para', titulo: 'Novo cordão' }, { chave: 'por', titulo: 'Graduado por' }, { chave: 'evento', titulo: 'Evento' }],
       linhas: lista.map(({ u, h }) => ({ data: new Date(h.em).toLocaleDateString('pt-BR'), nome: u.nome || '', nucleo: nomeNucleo(u.academiaId), de: h.anterior || 'Iniciante', para: h.cordao, por: h.porNome || '', evento: h.eventoNome || '' })) });

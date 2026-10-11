@@ -22,6 +22,8 @@ export const ESCOLA_PADRAO = 'liberdade';
 // Em atletapay.com.br sem escola no endereço (e sem login), o app veste a marca AtletaPay —
 // nunca a de outra escola. Não é uma escola de verdade: não existe no banco.
 export const ESCOLA_NEUTRA = 'atletapay';
+// Escola fictícia da vitrine (atletapay.com.br/demo, js/demo/): nunca vira "última escola" do aparelho.
+export const ESCOLA_DEMO = 'demo';
 const SLUG = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])$/;
 // Endereços que já sabemos de cor (sem consultar o banco).
 const HOSTS = {
@@ -33,7 +35,7 @@ const HOSTS = {
 // Hosts da plataforma: a escola vem do 1º pedaço do caminho (atletapay.com.br/<endereço>/...).
 const HOSTS_PLATAFORMA = ['atletapay.com.br', 'atletapay-br.web.app', 'atletapay-br.firebaseapp.com'];
 // Pedaços de caminho que são páginas da plataforma, não escolas (mesma ideia de RESERVADOS).
-const ROTAS = new Set(['cadastro', 'painel', 'privacidade', 'termos', 'index', 'css', 'js', 'img', 'assets', 'fotos', 'global', 'rede', 'escolas', 'inscricao', 'entrar', 'sair', 'login', 'admin', 'app', 'master', 'conta']);
+const ROTAS = new Set(['cadastro', 'painel', 'privacidade', 'termos', 'index', 'css', 'js', 'img', 'assets', 'fotos', 'global', 'rede', 'escolas', 'inscricao', 'entrar', 'sair', 'login', 'admin', 'app', 'master', 'conta', 'demo']);
 // Endereço no site ≠ id da escola: a Liberdade é a escola `liberdade` mas mora em
 // atletapay.com.br/liberdadeeexpressao. (Outros apelidos: escolasSlugs/{endereço} → escolaId.)
 const APELIDOS = { liberdadeeexpressao: ESCOLA_PADRAO };
@@ -45,6 +47,16 @@ const host = () => String(location.hostname || '').toLowerCase().replace(/^www\.
 const HOSTS_APP = ['natanaelinvotec.github.io'];
 const CHAVE_ULTIMA = 'le.ultimaEscola';
 const ultimaEscola = () => { try { const v = localStorage.getItem(CHAVE_ULTIMA); return v && SLUG.test(v) ? v : null; } catch (e) { return null; } };
+// Endereço diferente do id (escolasSlugs): js/firebase.js usa este mapa para abrir a sessão certa.
+const lembrarEndereco = (endereco, id) => {
+  try {
+    if (!endereco || endereco === id || !SLUG.test(endereco) || !SLUG.test(id)) return;
+    const m = JSON.parse(localStorage.getItem('le.enderecos') || '{}') || {};
+    if (m[endereco] === id) return;
+    m[endereco] = id;
+    localStorage.setItem('le.enderecos', JSON.stringify(m));
+  } catch (e) { /* ok */ }
+};
 const lembrarEscola = (id) => { try { if (id && SLUG.test(id)) localStorage.setItem(CHAVE_ULTIMA, id); } catch (e) { /* ok */ } };
 
 // Só o endereço (sem banco e sem login). null = o endereço não diz.
@@ -179,7 +191,7 @@ export const enderecoDaEscola = (id, cfg) => (cfg && cfg.slug) || Object.keys(AP
 // app (com <base href="/app/">) caem em /app/<tela>.html. Corrige só a barra de endereço, sem recarregar.
 function arrumarEndereco(id, cfg) {
   try {
-    if (typeof location === 'undefined' || !HOSTS_PLATAFORMA.includes(host()) || id === ESCOLA_NEUTRA) return;
+    if (typeof location === 'undefined' || !HOSTS_PLATAFORMA.includes(host()) || id === ESCOLA_NEUTRA || id === ESCOLA_DEMO) return;
     const m = /^\/app\/([a-z-]+)\.html$/.exec(location.pathname);
     if (!m || !TELAS_COM_ENDERECO.has(m[1])) return;
     history.replaceState(history.state, '', `/${enderecoDaEscola(id, cfg)}/${m[1]}${location.search}${location.hash}`);
@@ -195,7 +207,7 @@ function marcaPronta() {
 // Reescreve os links da página (e os que forem criados depois) para atletapay.com.br/<escola>/<tela>,
 // assim "Fazer inscrição", o rodapé do site e qualquer atalho levam para a escola certa.
 function manterEscolaNosLinks(id, cfg) {
-  if (typeof document === 'undefined' || !HOSTS_PLATAFORMA.includes(host()) || id === ESCOLA_NEUTRA) return;
+  if (typeof document === 'undefined' || !HOSTS_PLATAFORMA.includes(host()) || id === ESCOLA_NEUTRA || id === ESCOLA_DEMO) return;
   const slug = enderecoDaEscola(id, cfg);
   const corrigir = (a) => {
     const bruto = a.getAttribute('href') || '';
@@ -215,10 +227,11 @@ export function prepararEscola() {
   if (!preparo) {
     preparo = (async () => {
       const id = await resolverEscolaId();
-      if (id !== ESCOLA_NEUTRA) lembrarEscola(id);
+      if (id !== ESCOLA_NEUTRA && id !== ESCOLA_DEMO) lembrarEscola(id);
       if (id === ESCOLA_PADRAO) { arrumarEndereco(id, null); manterEscolaNosLinks(id, null); marcaPronta(); return { id, aplicada: false }; }
       const cfg = await carregarEscola(id);
       if (!cfg.ativa) { marcaPronta(); return { id, aplicada: false }; }
+      lembrarEndereco(enderecoDaEscola(id, cfg), id);
       arrumarEndereco(id, cfg);
       manterEscolaNosLinks(id, cfg);
       aplicarEscola(cfg);

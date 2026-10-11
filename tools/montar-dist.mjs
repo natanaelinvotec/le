@@ -41,6 +41,29 @@ for (const nome of readdirSync(join(DIST, 'app'))) {
   paginas++;
 }
 
+// 3b. Vitrine de demonstração (atletapay.com.br/demo e /demo/fundador — firebase.json):
+// cópias do Painel de Gestão e do Painel do Fundador com um import map que troca o SDK do Firebase
+// por js/demo/sdk-demo.js (banco em memória com a escola fictícia de js/demo/dados-demo.js).
+// Geradas aqui a cada publicação, assim a vitrine é sempre o painel de verdade da versão atual.
+const SDK_DEMO = '/app/js/demo/sdk-demo.js';
+const MODULOS_SDK = ['app', 'auth', 'firestore', 'firestore-lite', 'storage', 'messaging', 'app-check', 'functions', 'analytics'];
+const importMap = JSON.stringify({ imports: Object.fromEntries(MODULOS_SDK.map((m) => [`https://www.gstatic.com/firebasejs/10.12.0/firebase-${m}.js`, SDK_DEMO])) });
+function paginaDemo(origem, destino, titulo) {
+  let html = readFileSync(join(DIST, 'app', origem), 'utf8');
+  const base = /<base href="\/app\/">/i.exec(html);
+  if (!base) throw new Error(`demo: ${origem} sem <base>`);
+  // Sem service worker (a vitrine não precisa de offline nem do aviso "Versão nova") e sem os
+  // tutoriais de primeira visita, sem gravar nada no navegador de quem está olhando.
+  const semSwNemTutorial = '<script>try{delete Navigator.prototype.serviceWorker}catch(e){}try{var g=Storage.prototype.getItem;Storage.prototype.getItem=function(k){return /^le\\.tutorial\\./.test(k)?"demo":g.call(this,k)}}catch(e){}</script>';
+  const cabeca = `\n<script type="importmap">${importMap}</script>\n${semSwNemTutorial}\n<meta name="robots" content="noindex">\n<meta name="description" content="Demonstração do AtletaPay com uma escola fictícia: turmas de várias artes marciais, graduações, presenças, mensalidades e o Painel do Fundador.">`;
+  html = html.slice(0, base.index + base[0].length) + cabeca + html.slice(base.index + base[0].length);
+  html = html.replace(/<title>[^<]*<\/title>/i, `<title>${titulo}</title>`);
+  html = html.replace(/<\/body>/i, '<script type="module" src="js/demo/vitrine.js"></script>\n</body>');
+  writeFileSync(join(DIST, 'app', destino), html);
+}
+paginaDemo('admin.html', 'demo.html', 'Demonstração · Painel de Gestão · AtletaPay');
+paginaDemo('master.html', 'demo-fundador.html', 'Demonstração · Painel do Fundador · AtletaPay');
+
 // 4. O service worker e os manifestos do app também precisam estar em /app/ (já copiados com o resto).
 if (!existsSync(join(DIST, 'app', 'sw.js'))) throw new Error('dist/app/sw.js não existe');
 if (!existsSync(join(DIST, 'index.html'))) throw new Error('dist/index.html (site da AtletaPay) não existe');

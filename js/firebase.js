@@ -19,7 +19,7 @@ import {
   getStorage, ref as storageRef, uploadString, getDownloadURL, uploadBytes, deleteObject,
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 import { arrayRemove, increment, onSnapshot, writeBatch, deleteField } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import { FIREBASE_CONFIG, APP_CHECK_SITE_KEY, ESCOLA } from './escola.js';
+import { FIREBASE_CONFIG, APP_CHECK_SITE_KEY, ESCOLA, escadaDaEscola } from './escola.js';
 
 // Re-export do SDK: as páginas importam tudo daqui (uma versão só do
 // Firebase em todo o app; e os testes locais conseguem simular num módulo só).
@@ -32,7 +32,68 @@ export {
 // Chaves públicas do projeto: ficam em escola.js (white-label).
 export const firebaseConfig = FIREBASE_CONFIG;
 
-const app = initializeApp(firebaseConfig);
+// ===== Uma sessão por escola no mesmo navegador (v38.2) =====
+// O Firebase guarda UM login por "app" e por site. Antes, todas as escolas de atletapay.com.br
+// usavam o mesmo app: entrar no painel da Liberdade derrubava o login do Team Igor aberto na
+// outra aba. Agora cada escola tem o próprio app nomeado (`escola-<id>`) e, com ele, a própria
+// sessão e o próprio cache local. A Liberdade (e os endereços próprios dela) continua no app
+// padrão — nenhuma sessão existente cai. Em OUTRO computador nada muda: o Firebase sempre
+// aceitou vários aparelhos logados ao mesmo tempo; sair num não desconecta os outros.
+const HOSTS_DA_PLATAFORMA = ['atletapay.com.br', 'atletapay-br.web.app', 'atletapay-br.firebaseapp.com'];
+const ROTAS_DA_PLATAFORMA = new Set(['cadastro', 'painel', 'privacidade', 'termos', 'index', 'css', 'js', 'img', 'assets', 'fotos', 'global', 'rede', 'escolas', 'inscricao', 'entrar', 'sair', 'login', 'admin', 'app', 'master', 'conta', 'demo']);
+const SLUG_DE_ESCOLA = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])$/;
+const naPlataforma = () => typeof location !== 'undefined' && HOSTS_DA_PLATAFORMA.includes(String(location.hostname || '').toLowerCase().replace(/^www\./, ''));
+const lerLocal = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+// Endereço → id (a Liberdade mora em /liberdadeeexpressao; outros apelidos ficam em le.enderecos,
+// gravado por js/escola-atual.js quando o endereço da escola é diferente do id).
+function idDoEndereco(s) {
+  if (s === 'liberdadeeexpressao') return 'liberdade';
+  try { const m = JSON.parse(lerLocal('le.enderecos') || '{}'); if (m && typeof m[s] === 'string' && SLUG_DE_ESCOLA.test(m[s])) return m[s]; } catch (e) { /* ok */ }
+  return s;
+}
+// A escola desta aba, só pelo endereço (síncrono: o app precisa nascer já com o nome certo).
+export function escolaDaSessao() {
+  if (!naPlataforma()) return null;
+  let s = '';
+  try { s = new URLSearchParams(location.search).get('escola') || ''; } catch (e) { s = ''; }
+  if (!SLUG_DE_ESCOLA.test(s)) {
+    const p = String(location.pathname || '').split('/').filter(Boolean)[0] || '';
+    s = SLUG_DE_ESCOLA.test(p) && !ROTAS_DA_PLATAFORMA.has(p) ? p : (lerLocal('le.ultimaEscola') || '');
+  }
+  s = idDoEndereco(s);
+  return SLUG_DE_ESCOLA.test(s) ? s : null;
+}
+const APP_PADRAO = '[DEFAULT]';
+const nomeDoApp = (e) => (!e || e === 'liberdade' || e === 'atletapay' ? APP_PADRAO : `escola-${e}`);
+const chaveDaSessao = (nome) => `firebase:authUser:${FIREBASE_CONFIG.apiKey}:${nome}`;
+// Claims do token salvo (só leitura local, sem validar: serve para decidir em qual gaveta a sessão mora).
+function claimsSalvos(json) {
+  try {
+    const t = JSON.parse(json).stsTokenManager.accessToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(decodeURIComponent(Array.from(atob(t), (c) => `%${c.charCodeAt(0).toString(16).padStart(2, '0')}`).join('')));
+  } catch (e) { return null; }
+}
+function guardarSessaoEm(nome, objeto) {
+  try { localStorage.setItem(chaveDaSessao(nome), JSON.stringify({ ...objeto, appName: nome })); return true; } catch (e) { return false; }
+}
+// Quem já estava logado antes desta versão está no app padrão: se a sessão é DESTA escola,
+// muda de gaveta uma vez (ninguém precisa entrar de novo).
+function trazerSessaoAntiga(nome, escola) {
+  if (nome === APP_PADRAO) return;
+  try {
+    if (lerLocal(chaveDaSessao(nome))) return;
+    const antiga = lerLocal(chaveDaSessao(APP_PADRAO));
+    if (!antiga) return;
+    const c = claimsSalvos(antiga);
+    if (!c || c.escolaId !== escola) return;
+    if (guardarSessaoEm(nome, JSON.parse(antiga))) localStorage.removeItem(chaveDaSessao(APP_PADRAO));
+  } catch (e) { /* ok: no pior caso a pessoa entra de novo */ }
+}
+const ESCOLA_DA_SESSAO = escolaDaSessao();
+const NOME_DO_APP = nomeDoApp(ESCOLA_DA_SESSAO);
+trazerSessaoAntiga(NOME_DO_APP, ESCOLA_DA_SESSAO);
+
+const app = NOME_DO_APP === APP_PADRAO ? initializeApp(firebaseConfig) : initializeApp(firebaseConfig, NOME_DO_APP);
 export const firebaseApp = app;
 // Login "manter-me sempre conectado" (localStorage). initializeAuth já nasce com
 // essa persistência — antes era getAuth + await setPersistence, que segurava a
@@ -166,7 +227,21 @@ export async function entrar(email, senha) {
   const cred = await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), senha);
   const perfil = await getDoc(doc(db, 'usuarios', cred.user.uid));
   if (!perfil.exists()) throw new Error('Conta sem perfil cadastrado. Fale com a administração.');
-  return { uid: cred.user.uid, ...perfil.data() };
+  const dados = { uid: cred.user.uid, ...perfil.data() };
+  await levarSessaoParaEscolaDaConta(cred.user);
+  return dados;
+}
+// Entrou pela tela de OUTRA escola (ex.: conta da Liberdade em /teamigor/login): a sessão vai
+// para a gaveta da escola da conta, e a próxima tela abre nela. A gaveta desta escola fica livre.
+async function levarSessaoParaEscolaDaConta(u) {
+  if (!naPlataforma()) return;
+  let escola = null;
+  try { const t = await u.getIdTokenResult(); escola = typeof t.claims.escolaId === 'string' ? t.claims.escolaId : null; } catch (e) { return; }
+  if (!escola || !SLUG_DE_ESCOLA.test(escola)) return;
+  try { localStorage.setItem('le.ultimaEscola', escola); } catch (e) { /* ok */ }
+  const destino = nomeDoApp(escola);
+  if (destino === NOME_DO_APP) return;
+  if (guardarSessaoEm(destino, u.toJSON())) await signOut(auth);
 }
 // Nova senha. Com os e-mails próprios ligados (Mega painel → E-mails), o servidor manda um
 // e-mail com a cara da escola e o link de atletapay.com.br/conta (functions/src/emails.js);
@@ -456,8 +531,18 @@ export const souFundador = (perfil) => !!(perfil && perfil.acessoGeral === true)
 // sob o professor atual). Mapeamento: 1 Escravo · 2 Fugitivo · 3 Quilombola
 // · 4 Vagante · 5 Liberto · 6 Instrutor · 7 Professor (completar as 7
 // libera a avaliação de mestre para quem formou).
+// As 7 estrelas = as 7 graduações adultas depois da primeira, na escada DA ESCOLA (Liberdade:
+// Escravo → Professor, como sempre; jiu-jitsu: Azul → Vermelha). Atualizada a cada cálculo, porque
+// a escada da escola só chega depois que a identidade carrega (js/escola-atual.js).
 export const ORDEM_ESTRELA = ['Escravo', 'Fugitivo', 'Quilombola', 'Vagante', 'Liberto', 'Instrutor', 'Professor'];
+function atualizarOrdemEstrela() {
+  try {
+    const nomes = (escadaDaEscola().adulto || []).map((g) => g && g.nome).filter(Boolean).slice(1, 8);
+    if (nomes.length) ORDEM_ESTRELA.splice(0, ORDEM_ESTRELA.length, ...nomes);
+  } catch (e) { /* mantém a ordem anterior */ }
+}
 export function calcularEstrelaViva(academiaGerenciadaId, todosUsuarios) {
+  atualizarOrdemEstrela();
   if (!academiaGerenciadaId) return 0;
   let maxIdx = -1;
   todosUsuarios.forEach((u) => {

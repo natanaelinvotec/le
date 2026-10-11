@@ -40,7 +40,7 @@ import { configurarFaceId, atualizarContextoFaceId, pararFaceId } from './faceid
 import { conferirTempo } from './modalidades.js';
 import { ESCOLA, ORDEM_CORDOES as ORDEM_ESCOLA, CORDOES_ADULTO as ADULTO_ESCOLA, CORDOES_KIDS as KIDS_ESCOLA, CRITERIOS as CRITERIOS_ESCOLA, linkMapa as linkMapaEscola, IDADE_KIDS, rotuloGrad } from './escola.js';
 import { faixaSVG } from './faixas.js';
-import { turmaPadrao, carregarTurmas, criarTurma, turmaAtivaId, definirTurmaAtiva, turmaIdDe, turmaDe, filtrarPorTurma, contarPorTurma, usarEscadaDa, seletorTurmaHTML, formTurmaHTML, lerFormTurma, ligarFormTurma, etiquetaTurmaHTML, garantirEstilosTurma } from './turmas.js';
+import { turmaPadrao, carregarTurmas, criarTurma, turmaAtivaId, definirTurmaAtiva, turmaIdDe, turmaDe, filtrarPorTurma, contarPorTurma, usarEscadaDa, seletorTurmaHTML, escolherNucleoTurmaHTML, formTurmaHTML, lerFormTurma, ligarFormTurma, etiquetaTurmaHTML, garantirEstilosTurma } from './turmas.js';
 // Escada infantil: idade da escola (Liberdade 12; Jiu-Jitsu 16; sem escada infantil = nunca).
 // Mesmo critério de antes (idade não informada conta como infantil quando a escola tem infantil).
 const ehKids = (idade) => (Number(idade) || 0) < IDADE_KIDS;
@@ -130,7 +130,15 @@ function montarSeletorTurma() {
   const grupoNucleo = document.getElementById('navGrupoNucleo');
   const grupoComp = document.getElementById('navGrupoCompartilhado');
   if (!id) {
-    wrap.innerHTML = ''; wrap.hidden = true;
+    const html = sessaoAtual && (ehAdmin() || souFundador(sessaoAtual)) ? escolherNucleoTurmaHTML(todosNucleos) : '';
+    wrap.innerHTML = html; wrap.hidden = !html;
+    const sel = wrap.querySelector('#turmaNucleoEscolha');
+    const filtro = document.getElementById('filtroAcademia');
+    if (sel && filtro) sel.addEventListener('change', () => {
+      if (!sel.value || ![...filtro.options].some((o) => o.value === sel.value)) return;
+      filtro.value = sel.value;
+      filtro.dispatchEvent(new Event('change', { bubbles: true }));
+    });
     if (grupoNucleo) grupoNucleo.textContent = 'Núcleo';
     if (grupoComp) grupoComp.hidden = true;
     return;

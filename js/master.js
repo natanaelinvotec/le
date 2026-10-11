@@ -12,6 +12,14 @@ db, collection, query, where, getDocs, consultaDaEscola,
 } from './firebase.js';
 import { escapeHTML } from './shared.js';
 import { ESCOLA } from './escola.js';
+
+// Palavras da graduação da escola (a Liberdade fala em "corda"; jiu-jitsu, "faixa"; muay thai, "prajied").
+const pecaDaEscola = () => (ESCOLA.id === 'liberdade' ? 'corda' : String(ESCOLA.peca || 'graduação').toLowerCase());
+const ehFeminino = (p) => ['corda', 'faixa', 'graduação'].includes(p);
+const plural = (p) => ({ 'cordão': 'cordões', 'graduação': 'graduações', 'nível': 'níveis', prajied: 'prajieds' }[p] || `${p}s`);
+const maiuscula = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+const nenhumaFormada = () => { const p = pecaDaEscola(); return ehFeminino(p) ? `nenhuma ${p} formada ainda` : `nenhum ${p} formado ainda`; };
+const maisAlta = () => { const p = pecaDaEscola(); return `${p} mais ${ehFeminino(p) ? 'alta' : 'alto'}`; };
 import { COR_PADRAO, corOk, contarPorTurma, turmaIdDe, definirTurmaAtiva, nomeArte, descricaoHorario } from './turmas.js';
 
 const telaLogin = document.getElementById('telaLogin');
@@ -90,9 +98,9 @@ wrap.innerHTML = `
 <div class="fundador-chips">
 ${souFundador(perfil) ? '<span class="pill pill-gold"><i class="fas fa-star"></i> Acesso Geral</span>' : ''}
 ${ehAdminLiteral ? '<span class="pill pill-navy">Admin Master</span>' : ''}
-${perfil.cordaoAtual ? `<span class="pill pill-neutra">Cordão ${escapeHTML(perfil.cordaoAtual)}</span>` : ''}
+${perfil.cordaoAtual ? `<span class="pill pill-neutra">${escapeHTML(ESCOLA.id === 'liberdade' ? 'Cordão' : maiuscula(pecaDaEscola()))} ${escapeHTML(perfil.cordaoAtual)}</span>` : ''}
 </div>
-<p>Cordão giratório nas cores do grupo (azul, verde e dourado) — o mesmo selo de identidade usado no perfil de cada membro. Os números abaixo são da rede inteira, lidos direto do cadastro.</p>
+<p>${ESCOLA.id === 'liberdade' ? 'Cordão giratório nas cores do grupo (azul, verde e dourado)' : 'Anel giratório nas cores da escola'} — o mesmo selo de identidade usado no perfil de cada membro. Os números abaixo são da escola inteira, lidos direto do cadastro.</p>
 </div>`;
 }
 
@@ -170,11 +178,11 @@ if (indicador) {
 const linhas = nucleosAtivos.map((n) => {
 const e = calcularEstrelaViva(n.id, usuarios);
 const corda = e > 0 ? ORDEM_ESTRELA[e - 1] : null;
-return `<div class="card-navy-linha"><div><strong>${escapeHTML(n.nome || n.id)}</strong><small>${e}/7${corda ? ' · ' + escapeHTML(corda) : ' · nenhuma corda formada ainda'}</small></div><span class="estrelas"><span class="on">${'★'.repeat(e)}</span><span class="off">${'★'.repeat(7 - e)}</span></span></div>`;
+return `<div class="card-navy-linha"><div><strong>${escapeHTML(n.nome || n.id)}</strong><small>${e}/7${corda ? ' · ' + escapeHTML(corda) : ' · ' + nenhumaFormada()}</small></div><span class="estrelas"><span class="on">${'★'.repeat(e)}</span><span class="off">${'★'.repeat(7 - e)}</span></span></div>`;
 }).join('');
 indicador.innerHTML = `
 <h3><i class="fas fa-star"></i> Indicador 7 estrelas</h3>
-<p>As 7 estrelas seguem a escada de cordas (Escravo → Professor). Cada núcleo acende uma estrela para cada corda já formada entre seus alunos ativos.</p>
+<p>As 7 estrelas seguem a escada de ${plural(pecaDaEscola())} (${escapeHTML(ORDEM_ESTRELA[0] || '')} → ${escapeHTML(ORDEM_ESTRELA[ORDEM_ESTRELA.length - 1] || '')}). Cada núcleo acende uma estrela para cada ${pecaDaEscola()} já ${ehFeminino(pecaDaEscola()) ? 'formada' : 'formado'} entre seus alunos ativos.</p>
 ${linhas ? `<div class="card-navy-lista">${linhas}</div>` : '<p class="vazio">Nenhum núcleo ativo cadastrado ainda.</p>'}`;
 }
 if (contador) contador.textContent = `${solicPendentes.length} pendente${solicPendentes.length === 1 ? '' : 's'}`;
@@ -232,7 +240,7 @@ ${ehSede ? '<span class="pill pill-gold">SEDE</span>' : ''}
 <div class="nucleo-stat"><strong style="color:${pendenteNucleo > 0 ? 'var(--accent-red)' : 'var(--green)'}">R$ ${pendenteNucleo.toFixed(0)}</strong><small>pendências</small></div>
 </div>
 <div class="nucleo-estrelas">
-<div><strong>${estrela} ${estrela === 1 ? 'estrela' : 'estrelas'}</strong><small>${estrela > 0 ? 'corda mais alta: ' + escapeHTML(ORDEM_ESTRELA[estrela - 1]) : 'nenhuma corda formada ainda'}</small></div>
+<div><strong>${estrela} ${estrela === 1 ? 'estrela' : 'estrelas'}</strong><small>${estrela > 0 ? maisAlta() + ': ' + escapeHTML(ORDEM_ESTRELA[estrela - 1]) : nenhumaFormada()}</small></div>
 <span class="estrelas"><span class="on">${'★'.repeat(estrela)}</span><span class="off">${'★'.repeat(7 - estrela)}</span></span>
 </div>
 </div>`;
