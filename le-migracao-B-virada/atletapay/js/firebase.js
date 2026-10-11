@@ -1,0 +1,117 @@
+/* firebase.js — AtletaPay (site e cadastro das escolas).
+
+Mesmo projeto Firebase do app (as escolas, os donos e os leads ficam nas
+coleções escolas/, donos/, escolasSlugs/ e leads/, protegidas em
+firebase/firestore.rules do repositório le). Só chave pública entra aqui. */
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { prepararImagem, extensaoDe } from './imagem.js?v=20261011';
+import {
+  initializeAuth, browserLocalPersistence, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  sendPasswordResetEmail, sendEmailVerification, updateProfile, signOut,
+  verifyPasswordResetCode, confirmPasswordReset, applyActionCode, checkActionCode,
+} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import {
+  getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, serverTimestamp, onSnapshot, writeBatch,
+  query, where, getCountFromServer,
+} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getStorage, ref as storageRef, uploadString, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
+
+export const FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyDSbgJEbbWSM8ZzKF0EQ7h9x415RTYGyyw',
+  authDomain: 'atletapay-br.firebaseapp.com',
+  projectId: 'atletapay-br',
+  storageBucket: 'atletapay-br.firebasestorage.app',
+  messagingSenderId: '366402154655',
+  appId: '1:366402154655:web:048c92b623a9df27cb32aa',
+};
+// App Check (reCAPTCHA Enterprise / "Fraud Defense"): a mesma chave e o mesmo provedor do
+// app — o provedor registrado no Console → App Check é Enterprise. Monitoramento por enquanto.
+const APP_CHECK_SITE_KEY = '';
+
+const app = initializeApp(FIREBASE_CONFIG);
+export const auth = initializeAuth(app, { persistence: [browserLocalPersistence] });
+// E-mails do Firebase (nova senha, confirmação) em português.
+auth.languageCode = 'pt-BR';
+export const db = getFirestore(app);
+export const storage = getStorage(app);
+export { doc, getDoc, setDoc, updateDoc, addDoc, collection, serverTimestamp, onSnapshot, writeBatch, storageRef, uploadString, getDownloadURL, query, where, getCountFromServer };
+
+if (APP_CHECK_SITE_KEY && typeof window !== 'undefined') {
+  const ligar = () => import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-check.js').then(({ initializeAppCheck, ReCaptchaEnterpriseProvider }) => {
+    if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    initializeAppCheck(app, { provider: new ReCaptchaEnterpriseProvider(APP_CHECK_SITE_KEY), isTokenAutoRefreshEnabled: true });
+  }).catch(() => {});
+  const depois = () => setTimeout(() => (window.requestIdleCallback || ((f) => f()))(ligar, { timeout: 4000 }), 2500);
+  if (document.readyState === 'complete') depois(); else window.addEventListener('load', depois, { once: true });
+}
+
+export const observarSessao = (cb) => onAuthStateChanged(auth, cb);
+export const meuUid = () => auth.currentUser && auth.currentUser.uid;
+export const sair = () => signOut(auth);
+// Nova senha. Com os e-mails próprios ligados (Mega painel → E-mails), o servidor manda um
+// e-mail com a cara da escola e o link de atletapay.com.br/conta; senão, o do Firebase (o link
+// do e-mail do Firebase também passa a abrir atletapay.com.br/conta quando o Console permitir).
+// No fim, a página devolve a pessoa para `voltarPara`. Resposta igual exista ou não a conta.
+let emailsPropriosP = null;
+export const emailsProprios = () => (emailsPropriosP || (emailsPropriosP = getDoc(doc(db, 'plataforma', 'publico'))
+  .then((s) => !!(s.exists() && s.data().emailsProprios === true)).catch(() => false)));
+export async function recuperarSenha(email, voltarPara = `${location.origin}${location.pathname}`) {
+  const em = String(email).trim().toLowerCase();
+  if (await emailsProprios()) {
+    await addDoc(collection(db, 'pedidosEmail'), { tipo: 'senha', email: em, voltarPara: String(voltarPara).slice(0, 300), criadoEm: new Date().toISOString(), origem: 'atletapay' });
+    return;
+  }
+  try { await sendPasswordResetEmail(auth, em, { url: voltarPara }); }
+  catch (e) { if (/unauthorized-continue-uri|invalid-continue-uri|missing-continue-uri/.test((e && e.code) || '')) await sendPasswordResetEmail(auth, em); else throw e; }
+}
+// Página de ação da conta (conta.html): valida e aplica o código que veio no link do e-mail.
+export const conferirCodigoSenha = (codigo) => verifyPasswordResetCode(auth, codigo);
+export const gravarNovaSenha = (codigo, senha) => confirmPasswordReset(auth, codigo, senha);
+export const aplicarCodigo = (codigo) => applyActionCode(auth, codigo);
+export const conferirCodigo = (codigo) => checkActionCode(auth, codigo);
+export async function entrar(email, senha) { return (await signInWithEmailAndPassword(auth, String(email).trim().toLowerCase(), senha)).user; }
+export async function criarConta(nome, email, senha) {
+  const cred = await createUserWithEmailAndPassword(auth, String(email).trim().toLowerCase(), senha);
+  try { await updateProfile(cred.user, { displayName: String(nome).trim().slice(0, 80) }); } catch (e) { /* ok */ }
+  // Confirmação de e-mail: com os e-mails próprios ligados, sai com a cara da AtletaPay.
+  try {
+    if (await emailsProprios()) await addDoc(collection(db, 'pedidosEmail'), { tipo: 'confirmar', email: cred.user.email, voltarPara: `${location.origin}/painel`, criadoEm: new Date().toISOString(), origem: 'cadastro' });
+    else await sendEmailVerification(cred.user);
+  } catch (e) { /* ok — a conta já foi criada */ }
+  return cred.user;
+}
+
+// Mensagens de erro do Auth em português simples.
+export function erroAmigavel(e) {
+  const c = (e && e.code) || '';
+  if (/email-already-in-use/.test(c)) return 'Este e-mail já tem conta. Entre com a senha ou use "Esqueci minha senha".';
+  if (/invalid-email/.test(c)) return 'E-mail inválido.';
+  if (/weak-password/.test(c)) return 'Senha fraca: use pelo menos 8 caracteres.';
+  if (/wrong-password|invalid-credential|user-not-found/.test(c)) return 'E-mail ou senha não conferem.';
+  if (/too-many-requests/.test(c)) return 'Muitas tentativas. Aguarde um minuto e tente de novo.';
+  if (/expired-action-code/.test(c)) return 'Este link expirou. Peça um link novo na tela de entrar.';
+  if (/invalid-action-code/.test(c)) return 'Este link já foi usado ou não é válido. Peça um link novo na tela de entrar.';
+  if (/user-disabled/.test(c)) return 'Esta conta está desativada. Fale com o suporte da AtletaPay.';
+  if (/password-does-not-meet-requirements/.test(c)) return 'A senha não atende às regras de segurança: use pelo menos 8 caracteres, com letras e números.';
+  if (/network-request-failed/.test(c)) return 'Sem internet agora. Tente de novo.';
+  if (/permission-denied/.test(c)) return 'Sem permissão para gravar. Confira se o e-mail foi verificado.';
+  if (/storage\/unauthorized/.test(c)) return 'O envio da foto não foi autorizado. Saia, entre de novo com a conta que criou a escola e tente outra vez.';
+  if (/storage\/unauthenticated/.test(c)) return 'Sua sessão expirou. Entre de novo para enviar as fotos.';
+  if (/storage\/(retry-limit-exceeded|canceled)/.test(c)) return 'O envio demorou demais. Confira a internet e tente de novo.';
+  return (e && e.message) || 'Não deu certo agora. Tente de novo.';
+}
+
+// Regra única de imagens (js/imagem.js, cópia em ./imagem.js): logo 512 px até 120 KB
+// com transparência; fotos da escola 1600 px até 280 KB. WebP quando o navegador sabe.
+export async function comprimir(file, perfil = 'fotoEscola') {
+  const p = typeof perfil === 'number' ? (perfil >= 1400 ? 'fotoEscola' : 'logo') : perfil;
+  return (await prepararImagem(file, p)).dataUrl;
+}
+// Upload de imagem já comprimida: devolve a URL pública. A extensão do arquivo
+// segue o formato que a regra gerou (webp, jpg ou png).
+export async function enviarImagem(caminho, dataUrl) {
+  const tipo = (/^data:([^;,]+)/.exec(String(dataUrl)) || [])[1];
+  const r = storageRef(storage, String(caminho).replace(/\.(jpe?g|png|webp)$/i, `.${extensaoDe(tipo)}`));
+  await uploadString(r, dataUrl, 'data_url', { cacheControl: 'public,max-age=31536000' });
+  return getDownloadURL(r);
+}
