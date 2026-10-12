@@ -1395,6 +1395,44 @@ const mestre = String(nomeNucleo).replace(/^\s*(academia|núcleo|nucleo)\s+(d[oa
 return mestre ? `Direto ${mestre}` : ESCOLA.rotuloLinhagem;
 }
 
+// ---- Cronômetro de graus por data da graduação ----
+// Lê o tempo de cada grau da PRÓPRIA escada (jiu-jitsu: Preta.grausMeses [36,36,36,60,60,60];
+// corais/vermelha requisitoMeses 84/84/120). Nada é hardcoded: a escola que muda a escada muda o cálculo.
+const MS_MES = 30.4375 * 86400000;
+const dataBRHero = (iso) => (/^\d{4}-\d{2}-\d{2}/.test(String(iso || '')) ? String(iso).slice(0, 10).split('-').reverse().join('/') : '');
+function marcosDeGrau(lista) {
+  const iBase = lista.findIndex((g) => Array.isArray(g.grausMeses) && g.grausMeses.length);
+  if (iBase < 0) return null; // escada sem graus temporizados (ex.: capoeira) → sem cronômetro
+  const base = lista[iBase]; const marcos = []; let acc = 0;
+  base.grausMeses.forEach((m, i) => { acc += Number(m) || 0; marcos.push({ meses: acc, grau: i + 1, faixa: base.nome, rotulo: `${i + 1}º grau` }); });
+  for (let j = iBase + 1; j < lista.length; j++) {
+    const f = lista[j]; const req = Number(f.requisitoMeses) || 0;
+    if (!f.grauDan || !req) continue;
+    acc += req; marcos.push({ meses: acc, grau: f.grauDan, faixa: f.nome, rotulo: `${f.grauDan}º grau · ${f.nome}` });
+  }
+  return { iBase, base, marcos };
+}
+function faltaTextoGrau(ms) {
+  if (ms <= 0) return 'já pode graduar';
+  const dias = Math.ceil(ms / 86400000);
+  if (dias <= 45) return `${dias} dia${dias === 1 ? '' : 's'}`;
+  const meses = Math.round(dias / 30.4375);
+  if (meses < 12) return `${meses} ${meses === 1 ? 'mês' : 'meses'}`;
+  const anos = Math.floor(meses / 12); const resto = meses % 12;
+  return resto ? `${anos} ano${anos === 1 ? '' : 's'} e ${resto} ${resto === 1 ? 'mês' : 'meses'}` : `${anos} ano${anos === 1 ? '' : 's'}`;
+}
+function cronoDaFaixa(a, lista) {
+  const m = marcosDeGrau(lista); const data = a && a.dataFaixaPreta;
+  if (!m || !/^\d{4}-\d{2}-\d{2}/.test(String(data || ''))) return null;
+  const d0 = new Date(String(data).slice(0, 10) + 'T00:00:00'); if (isNaN(d0.getTime())) return null;
+  const elapsed = (Date.now() - d0.getTime()) / MS_MES;
+  let atual = null; let proximo = null;
+  for (const mk of m.marcos) { if (mk.meses <= elapsed) atual = mk; else { proximo = mk; break; } }
+  const r = { base: m.base.nome, grauAtual: atual ? atual.grau : 0, faixaAtual: atual ? atual.faixa : m.base.nome, data: String(data).slice(0, 10) };
+  if (proximo) { const dp = new Date(d0.getTime() + proximo.meses * MS_MES); r.proximo = proximo; r.dataProx = dp; r.falta = faltaTextoGrau(dp.getTime() - Date.now()); }
+  return r;
+}
+
 function construirHeroCardHTML(a, todosUsuarios, mostrarTotalGrupo) {
 
 const idade = Number(a.idade) || 0;
@@ -1410,7 +1448,19 @@ const nomeGradHero = a.cordaoAtual || (lista[0] && lista[0].nome) || 'Iniciante'
 const gGradHero = itemEscadaDe(a, nomeGradHero);
 const rotuloGradHero = rotuloGrad(nomeGradHero, a.grausAtual, a.grausVermelhos);
 const pecaMaiHero = (() => { const p = String(ESCOLA.peca || 'graduação'); return p.charAt(0).toUpperCase() + p.slice(1); })();
-const faixaHero = gGradHero ? faixaSVG(gGradHero, { graus: Number(a.grausAtual) || 0, grausVermelhos: Number(a.grausVermelhos) || 0, largura: 1000, altura: 30, titulo: rotuloGradHero }) : '';
+// Cronômetro de graus: só quando a pessoa está na faixa com graus temporizados (preta) ou além (coral/vermelha).
+const mBaseHero = marcosDeGrau(lista);
+const idxAtualHero = lista.findIndex((g) => g.nome === nomeGradHero);
+const naEscadaDeGraus = !!mBaseHero && idxAtualHero >= 0 && idxAtualHero >= mBaseHero.iBase;
+const crono = naEscadaDeGraus ? cronoDaFaixa(a, lista) : null;
+// Com data definida, a faixa e os graus mostrados vêm do cálculo (sobem sozinhos com o tempo).
+let faixaObjHero = gGradHero; let grausHero = Number(a.grausAtual) || 0; let rotuloHero = rotuloGradHero;
+if (crono) {
+  faixaObjHero = itemEscadaDe(a, crono.faixaAtual) || gGradHero;
+  grausHero = (faixaObjHero && Array.isArray(faixaObjHero.grausMeses)) ? crono.grauAtual : 0;
+  rotuloHero = rotuloGrad(crono.faixaAtual, grausHero, 0);
+}
+const faixaHero = faixaObjHero ? faixaSVG(faixaObjHero, { graus: grausHero, grausVermelhos: 0, largura: 1400, altura: 22, titulo: rotuloHero }) : '';
 const souEuHero = sessaoAtual && a.id === sessaoAtual.uid;
 // O fundador está no topo da escada: a barra de prontidão (0%) não faz sentido pra ele; mostramos a faixa.
 const volta = ehFund ? '1' : (porcentagem / 100).toFixed(3);
@@ -1431,13 +1481,21 @@ ${a.fotoUrl ? `<img src="${escapeHTML(urlImagem(a.fotoUrl))}" alt="Foto de ${esc
 <h2>${escapeHTML(a.nome || 'Responsável')}</h2>
 <span class="hero-fundador-nucleo"><i class="fas fa-link"></i> ${escapeHTML(rotuloDiretoDe(a))}</span>
 ${mostrarTotalGrupo ? `<span class="hero-fundador-total-grupo"><i class="fas fa-users"></i> Total de atletas do grupo: ${contarTotalAtletasGrupo(a.id, todosUsuarios, todosNucleos)}</span>` : ''}
-<span class="hero-fundador-cordao">${escapeHTML(pecaMaiHero)} ${escapeHTML(rotuloGradHero)}</span>
+<span class="hero-fundador-cordao">${escapeHTML(pecaMaiHero)} ${escapeHTML(rotuloHero)}</span>
 <div class="hero-fundador-estrelas">${estrelasHtml}</div>
 </div>
 ${ehFund ? '' : `<div class="hero-fundador-pct">${porcentagem}<span>%</span></div>`}
 </div>
 ${ehFund
-? `<div class="hero-fundador-faixa">${faixaHero}</div>${souEuHero ? `<div class="hero-fundador-acoes"><button type="button" class="btn-mini btn-mini-claro" onclick="abrirModal('${escapeHTML(a.id)}')"><i class="fas fa-pen"></i> Ajustar minha ${escapeHTML(String(ESCOLA.peca || 'graduação'))} e graus</button></div>` : ''}`
+? `<div class="hero-fundador-faixa">${faixaHero}</div>${crono ? `<div class="hero-fundador-crono">
+<span class="hero-crono-grau">${crono.grauAtual ? `${crono.grauAtual}º grau` : 'faixa lisa'}</span>
+${crono.proximo ? `<span class="hero-crono-falta"><i class="fas fa-hourglass-half"></i> faltam <b>${escapeHTML(crono.falta)}</b> para o ${escapeHTML(crono.proximo.rotulo)}</span>` : '<span class="hero-crono-falta">grau máximo da escada</span>'}
+<span class="hero-crono-desde">preta desde ${escapeHTML(dataBRHero(crono.data))}</span>
+</div>` : ''}${souEuHero && naEscadaDeGraus ? `<div class="hero-fundador-datafx">
+<label for="heroDataFaixa"><i class="fas fa-calendar-day"></i> Data da ${escapeHTML(mBaseHero.base.nome.toLowerCase() === 'preta' ? 'faixa preta' : mBaseHero.base.nome)}</label>
+<input type="date" id="heroDataFaixa" value="${escapeHTML((crono && crono.data) || a.dataFaixaPreta || '')}" max="${new Date().toISOString().slice(0, 10)}">
+<button type="button" class="btn-mini btn-mini-claro" id="heroDataFaixaSalvar"><i class="fas fa-check"></i> ${crono ? 'Atualizar' : 'Definir'}</button>
+</div>` : ''}${souEuHero ? `<div class="hero-fundador-acoes"><button type="button" class="btn-mini btn-mini-claro" onclick="abrirModal('${escapeHTML(a.id)}')"><i class="fas fa-pen"></i> Ajustar minha ${escapeHTML(String(ESCOLA.peca || 'graduação'))} e graus</button></div>` : ''}`
 : `<div class="cordao-track hero-fundador-cordao-track">
 <div class="cordao-fill" style="width:${porcentagem}%; --c1:${cor[0]}; --c2:${cor[1]}; --c3:${cor[2]};"></div>
 </div>`}
@@ -1451,6 +1509,22 @@ if (!a) { wrap.classList.add('oculto'); wrap.innerHTML = ''; return; }
 wrap.innerHTML = construirHeroCardHTML(a, todosUsuarios, true);
 wrap.classList.remove('oculto');
 anexarApresentacaoHero(a, wrap);
+// Data da faixa preta → o grau e o contador passam a subir sozinhos com o tempo.
+const btData = wrap.querySelector('#heroDataFaixaSalvar'); const inpData = wrap.querySelector('#heroDataFaixa');
+if (btData && inpData) btData.addEventListener('click', async () => {
+  const val = String(inpData.value || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(val)) { toast('Escolha uma data válida.', 'erro'); return; }
+  if (val > new Date().toISOString().slice(0, 10)) { toast('A data não pode ser no futuro.', 'erro'); return; }
+  btData.disabled = true;
+  try {
+    await atualizar('usuarios', a.id, { dataFaixaPreta: val });
+    a.dataFaixaPreta = val;
+    const rec = todosUsuarios.find((u) => u.id === a.id); if (rec) rec.dataFaixaPreta = val;
+    if (sessaoAtual && sessaoAtual.uid === a.id) sessaoAtual.dataFaixaPreta = val;
+    toast('Data salva. O grau e o contador atualizam sozinhos.');
+    renderizarHeroFundador(a);
+  } catch (e) { console.error(e); toast('Não foi possível salvar a data.', 'erro'); btData.disabled = false; }
+});
 }
 
 /* ---------------------- APRESENTAÇÃO (vídeo de cada Instrutor/Professor/Mestre) ----------------------
