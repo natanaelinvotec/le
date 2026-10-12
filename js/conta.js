@@ -17,6 +17,7 @@ Nada aqui inventa dado: sem vídeo, sem botão; sem celular, campo vazio. */
 import {
   db, storage, doc, getDoc, setDoc, deleteDoc, atualizar,
   storageRef, uploadBytes, getDownloadURL, deleteObject,
+  salvarFotoPerfil, arquivoParaDataUrlComprimido,
   trocarSenha, recuperarSenha, emailDaSessao, SENHA_PADRAO,
 } from './firebase.js';
 import { abrirApresentacao, temApresentacao, podeTerApresentacao, podeAbrirSozinho, textoCargo } from './apresentacao.js?v=20261001';
@@ -394,6 +395,7 @@ export function abrirMinhaConta(pessoa, { extras = {}, aoSalvar } = {}) {
 </form>
 <div class="cta-sep"></div>
 <div class="cta-lista">
+<button type="button" class="cta-item" data-cta="foto"><i class="ic">📷</i><span><b>Foto de perfil</b><small>Aparece no seu cartão, no painel e no app</small></span></button>
 <button type="button" class="cta-item" data-cta="senha"><i class="ic">🔑</i><span><b>Trocar senha</b><small>Com a senha atual; se esqueceu, enviamos um link</small></span></button>
 ${temApr ? '<button type="button" class="cta-item" data-cta="apr"><i class="ic">▶</i><span><b>Minha apresentação</b><small>Vídeo que abre quando você entra na plataforma</small></span></button>' : ''}
 <button type="button" class="cta-item" data-cta="incl"><i class="ic">🎗️</i><span><b>Atenção e inclusão</b><small>Condições que o professor deve conhecer e o que ajuda na aula</small></span></button>
@@ -410,6 +412,29 @@ ${temApr ? '<button type="button" class="cta-item" data-cta="apr"><i class="ic">
       pessoa.celular = cel; mensagem(caixa, 'Celular salvo.', 'ok');
       if (typeof aoSalvar === 'function') aoSalvar({ celular: cel });
     } catch (e) { console.error(e); mensagem(caixa, 'Não foi possível salvar o celular agora.', 'erro'); } finally { btn.disabled = false; }
+  });
+  caixa.querySelector('[data-cta="foto"]').addEventListener('click', () => {
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/png,image/jpeg,image/webp';
+    inp.onchange = async () => {
+      const arq = inp.files && inp.files[0]; if (!arq) return;
+      const item = caixa.querySelector('[data-cta="foto"]'); if (item) item.disabled = true;
+      mensagem(caixa, 'Enviando a foto…', '');
+      try {
+        // Comprime no padrão do app (540 px / ~60 KB) e sobe para fotos/<uid>/ — respeita a regra do Storage.
+        const dataUrl = await arquivoParaDataUrlComprimido(arq, 540);
+        const antigo = pessoa.fotoUrl;
+        const url = await salvarFotoPerfil(uid, dataUrl);
+        await atualizar('usuarios', uid, { fotoUrl: url });
+        pessoa.fotoUrl = url;
+        if (antigo && /^https:\/\/firebasestorage\.googleapis\.com\//.test(antigo) && antigo !== url) apagarArquivoAntigo(antigo);
+        if (typeof aoSalvar === 'function') aoSalvar({ fotoUrl: url });
+        mensagem(caixa, 'Foto atualizada. Ela já aparece no seu cartão.', 'ok');
+      } catch (e) {
+        console.error(e);
+        mensagem(caixa, /storage/i.test(String(e.code || '')) ? `A foto não subiu (${e.code}). Confira as regras do Storage (pasta fotos/).` : (e.message || 'Não foi possível enviar a foto.'), 'erro');
+      } finally { if (item) item.disabled = false; }
+    };
+    inp.click();
   });
   caixa.querySelector('[data-cta="senha"]').addEventListener('click', abrirTrocaSenha);
   const b = caixa.querySelector('[data-cta="apr"]');

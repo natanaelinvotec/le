@@ -33,7 +33,7 @@ estilosInclusao();
 { const mi = document.getElementById('materiaisInclusao'); if (mi) mi.innerHTML = materiaisHTML([], { modo: 'cards' }); } // repintado por turma em pintarMateriaisInclusao()
 import { iniciarExperiencia, abrirAcessibilidade, tutorial, pedirAceiteSeNecessario } from './experiencia.js';
 import { ligarContador, abrirCentral, ouvirPushComAppAberto } from './notificacoes.js?v=20260926e';
-import { apresentacaoDe, migrarApresentacao, tocarApresentacao, tocarAoEntrar, gerenciarApresentacao, abrirMinhaConta, abrirTrocaSenha, definirAutor, podeTerApresentacao, formatarCelular, celularValido, celularDe } from './conta.js?v=20261006';
+import { apresentacaoDe, migrarApresentacao, tocarApresentacao, tocarAoEntrar, gerenciarApresentacao, abrirMinhaConta, abrirTrocaSenha, definirAutor, podeTerApresentacao, formatarCelular, celularValido, celularDe } from './conta.js?v=20261012b';
 import { escapeHTML, sanitizeInput, debounce, gerarSlug, urlSegura, urlImagem, argJS } from './shared.js';
 import { BRASOES, porId as brasaoPorId, urlThumb as brasaoThumb, ehManual as brasaoManual } from './brasoes.js?v=20261011b';
 import { configurarFaceId, atualizarContextoFaceId, pararFaceId } from './faceid.js?v=20261007';
@@ -1410,7 +1410,7 @@ const nomeGradHero = a.cordaoAtual || (lista[0] && lista[0].nome) || 'Iniciante'
 const gGradHero = itemEscadaDe(a, nomeGradHero);
 const rotuloGradHero = rotuloGrad(nomeGradHero, a.grausAtual, a.grausVermelhos);
 const pecaMaiHero = (() => { const p = String(ESCOLA.peca || 'graduação'); return p.charAt(0).toUpperCase() + p.slice(1); })();
-const faixaHero = gGradHero ? faixaSVG(gGradHero, { graus: Number(a.grausAtual) || 0, grausVermelhos: Number(a.grausVermelhos) || 0, largura: 260, altura: 24, titulo: rotuloGradHero }) : '';
+const faixaHero = gGradHero ? faixaSVG(gGradHero, { graus: Number(a.grausAtual) || 0, grausVermelhos: Number(a.grausVermelhos) || 0, largura: 1000, altura: 30, titulo: rotuloGradHero }) : '';
 const souEuHero = sessaoAtual && a.id === sessaoAtual.uid;
 // O fundador está no topo da escada: a barra de prontidão (0%) não faz sentido pra ele; mostramos a faixa.
 const volta = ehFund ? '1' : (porcentagem / 100).toFixed(3);
@@ -1423,7 +1423,7 @@ return `
 <div class="hero-fundador-topo">
 <div class="hero-fundador-anel" style="background:conic-gradient(#00E676 0turn ${volta}turn, rgba(255,255,255,.16) ${volta}turn 1turn);">
 <div class="hero-fundador-anel-miolo">
-<img src="${escapeHTML(a.fotoUrl || 'https://via.placeholder.com/90')}" alt="Foto de ${escapeHTML(a.nome || 'Fundador')}">
+${a.fotoUrl ? `<img src="${escapeHTML(urlImagem(a.fotoUrl))}" alt="Foto de ${escapeHTML(a.nome || 'Fundador')}">` : `<span class="hero-fundador-iniciais" aria-label="Sem foto">${escapeHTML((a.nome || '?').trim().split(/\s+/).slice(0, 2).map((s) => s[0] || '').join('').toUpperCase())}</span>`}
 </div>
 </div>
 <div class="hero-fundador-info">
