@@ -1460,7 +1460,8 @@ if (crono) {
   grausHero = (faixaObjHero && Array.isArray(faixaObjHero.grausMeses)) ? crono.grauAtual : 0;
   rotuloHero = rotuloGrad(crono.faixaAtual, grausHero, 0);
 }
-const faixaHero = faixaObjHero ? faixaSVG(faixaObjHero, { graus: grausHero, grausVermelhos: 0, largura: 1400, altura: 22, titulo: rotuloHero }) : '';
+// preserveAspectRatio=none: a faixa estica para a largura da coluna lateral e mantém a altura fixa do CSS (não some nem engorda).
+const faixaHero = faixaObjHero ? faixaSVG(faixaObjHero, { graus: grausHero, grausVermelhos: 0, largura: 1400, altura: 22, titulo: rotuloHero }).replace('<svg', '<svg preserveAspectRatio="none"') : '';
 const souEuHero = sessaoAtual && a.id === sessaoAtual.uid;
 // O fundador está no topo da escada: a barra de prontidão (0%) não faz sentido pra ele; mostramos a faixa.
 const volta = ehFund ? '1' : (porcentagem / 100).toFixed(3);
@@ -1484,10 +1485,10 @@ ${mostrarTotalGrupo ? `<span class="hero-fundador-total-grupo"><i class="fas fa-
 <span class="hero-fundador-cordao">${escapeHTML(pecaMaiHero)} ${escapeHTML(rotuloHero)}</span>
 <div class="hero-fundador-estrelas">${estrelasHtml}</div>
 </div>
-${ehFund ? '' : `<div class="hero-fundador-pct">${porcentagem}<span>%</span></div>`}
-</div>
 ${ehFund
-? `<div class="hero-fundador-faixa">${faixaHero}</div>${crono ? `<div class="hero-fundador-crono">
+? `<div class="hero-fundador-lado">
+<div class="hero-fundador-faixa">${faixaHero}</div>
+${crono ? `<div class="hero-fundador-crono">
 <span class="hero-crono-grau">${crono.grauAtual ? `${crono.grauAtual}º grau` : 'faixa lisa'}</span>
 ${crono.proximo ? `<span class="hero-crono-falta"><i class="fas fa-hourglass-half"></i> faltam <b>${escapeHTML(crono.falta)}</b> para o ${escapeHTML(crono.proximo.rotulo)}</span>` : '<span class="hero-crono-falta">grau máximo da escada</span>'}
 <span class="hero-crono-desde">preta desde ${escapeHTML(dataBRHero(crono.data))}</span>
@@ -1495,8 +1496,11 @@ ${crono.proximo ? `<span class="hero-crono-falta"><i class="fas fa-hourglass-hal
 <label for="heroDataFaixa"><i class="fas fa-calendar-day"></i> Data da ${escapeHTML(mBaseHero.base.nome.toLowerCase() === 'preta' ? 'faixa preta' : mBaseHero.base.nome)}</label>
 <input type="date" id="heroDataFaixa" value="${escapeHTML((crono && crono.data) || a.dataFaixaPreta || '')}" max="${new Date().toISOString().slice(0, 10)}">
 <button type="button" class="btn-mini btn-mini-claro" id="heroDataFaixaSalvar"><i class="fas fa-check"></i> ${crono ? 'Atualizar' : 'Definir'}</button>
-</div>` : ''}${souEuHero ? `<div class="hero-fundador-acoes"><button type="button" class="btn-mini btn-mini-claro" onclick="abrirModal('${escapeHTML(a.id)}')"><i class="fas fa-pen"></i> Ajustar minha ${escapeHTML(String(ESCOLA.peca || 'graduação'))} e graus</button></div>` : ''}`
-: `<div class="cordao-track hero-fundador-cordao-track">
+</div>` : ''}${souEuHero ? `<div class="hero-fundador-acoes"><button type="button" class="btn-mini btn-mini-claro" onclick="abrirModal('${escapeHTML(a.id)}')"><i class="fas fa-pen"></i> Ajustar minha ${escapeHTML(String(ESCOLA.peca || 'graduação'))} e graus</button></div>` : ''}
+</div>`
+: `<div class="hero-fundador-pct">${porcentagem}<span>%</span></div>`}
+</div>
+${ehFund ? '' : `<div class="cordao-track hero-fundador-cordao-track">
 <div class="cordao-fill" style="width:${porcentagem}%; --c1:${cor[0]}; --c2:${cor[1]}; --c3:${cor[2]};"></div>
 </div>`}
 </div>`;
