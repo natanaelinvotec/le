@@ -260,21 +260,31 @@ export const desempacotar = (d) => ({ ...d, rodadas: (d && d.rodadas ? d.rodadas
 // Dados de demonstração (apresentações): 32 atletas fictícios distribuídos
 // entre os núcleos informados. Sexo, grupo de cordão e faixa de peso giram em
 // rodízio para que, com 2 faixas de peso e 2 grupos, saiam 8 categorias de 4.
-export function atletasDemo(nucleos, semente = 7, total = 32) {
+export function atletasDemo(nucleos, semente = 7, total = 32, opts = {}) {
   const nomesM = ['Rafael', 'Lucas', 'Gabriel', 'Mateus', 'João', 'Pedro', 'Caio', 'Thiago', 'Bruno', 'Felipe', 'Diego', 'André', 'Vitor', 'Henrique', 'Igor', 'Samuel'];
   const nomesF = ['Ana', 'Beatriz', 'Camila', 'Larissa', 'Mariana', 'Juliana', 'Letícia', 'Bruna', 'Carla', 'Fernanda', 'Isabela', 'Paula', 'Natália', 'Raquel', 'Sofia', 'Tainá'];
   const sobren = ['Silva', 'Souza', 'Oliveira', 'Santos', 'Pereira', 'Costa', 'Ramos', 'Almeida', 'Lima', 'Araújo', 'Rocha', 'Barbosa', 'Nunes', 'Moreira', 'Cardoso', 'Teixeira'];
   const apelidos = ['Pimenta', 'Furacão', 'Gato', 'Faísca', 'Boneco', 'Ventania', 'Cabeça', 'Mola', 'Formiga', 'Trovão', 'Sereia', 'Onça', 'Bambu', 'Marreta', 'Flecha', 'Lua', 'Canela', 'Coruja', 'Peixe', 'Cigarra', 'Raio', 'Gaivota', 'Pantera', 'Brisa', 'Tubarão', 'Jiboia', 'Paçoca', 'Sabiá', 'Girassol', 'Tempestade', 'Carvão', 'Estrela'];
-  const grupos = [['Escravo', 'Fugitivo', 'Fugitivo', 'Escravo'], ['Quilombola', 'Vagante', 'Liberto', 'Quilombola']];
+  // Graduações: por padrão usa a escada da escola (opts.escada); sem ela, cai nas cordas da capoeira.
+  const escada = (opts.escada || []).filter(Boolean);
+  const comApelido = opts.comApelido !== false; // só a capoeira usa apelido "de roda"
+  let grupos;
+  if (escada.length >= 2) {
+    const corte = Math.max(1, Math.ceil(escada.length / 2));
+    grupos = [escada.slice(0, corte), escada.slice(corte)];
+  } else {
+    grupos = [['Escravo', 'Fugitivo', 'Fugitivo', 'Escravo'], ['Quilombola', 'Vagante', 'Liberto', 'Quilombola']];
+  }
   const r = rng(semente); const ns = nucleos && nucleos.length ? nucleos : [{ id: 'demo', nome: 'Núcleo Demonstração' }];
   const lista = [];
   for (let i = 0; i < total; i++) {
     const fem = i % 2 === 1; const grupo = (i >> 1) % 2; const pesado = (i >> 2) % 2 === 1;
     const nomes = fem ? nomesF : nomesM; const n = ns[i % ns.length];
+    const g = grupos[grupo] || grupos[0];
     lista.push({
       uid: `demo_${String(i + 1).padStart(2, '0')}`, demo: true,
-      nome: `${nomes[(i >> 1) % nomes.length]} ${sobren[Math.floor(r() * sobren.length)]}`, apelido: apelidos[i % apelidos.length],
-      cordao: grupos[grupo][(i >> 3) % 4], sexo: fem ? 'F' : 'M',
+      nome: `${nomes[(i >> 1) % nomes.length]} ${sobren[Math.floor(r() * sobren.length)]}`, apelido: comApelido ? apelidos[i % apelidos.length] : '',
+      cordao: g[(i >> 3) % g.length], sexo: fem ? 'F' : 'M',
       peso: pesado ? 76 + Math.round(r() * 19) : 58 + Math.round(r() * 17), idade: 16 + Math.floor(r() * 30),
       academiaId: n.id, academiaNome: n.nome, fotoUrl: '',
     });

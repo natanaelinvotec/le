@@ -14,9 +14,22 @@ regras (categorias, sorteio, avanço, pódio) estão em campeonato-motor.js. */
 import { observarSessao, db, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, limit, onSnapshot, listar, listarPorAcademia, souFundador, minhaEscolaId, comMinhaEscola } from './firebase.js';
 import { ESCOLA, coresDoCordao, nomeBonito, ORDEM_CORDOES } from './escola.js';
 import { ehAtleta, iniciais, faixas } from './carteirinha-comum.js';
-import * as M from './campeonato-motor.js?v=20261002';
+import * as M from './campeonato-motor.js?v=20261012';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Nome da peça de graduação da escola, com inicial maiúscula (Faixa, Cordão, Prajied, Graduação…).
+const pecaMai = () => { const p = String(ESCOLA.peca || 'graduação'); return p.charAt(0).toUpperCase() + p.slice(1); };
+// Demo: parte a escada da escola em 2 grupos (iniciantes / graduados) p/ as categorias de exemplo.
+function gruposCordaoDemo() {
+  const o = (ORDEM_CORDOES || []).filter(Boolean);
+  if (o.length < 2) return [{ id: 'g1', nome: 'Todos', cordoes: o.slice() }];
+  const corte = Math.max(1, Math.ceil(o.length / 2));
+  const g1 = o.slice(0, corte); const g2 = o.slice(corte);
+  return [
+    { id: 'iniciantes', nome: g1.length > 1 ? `${g1[0]} a ${g1[g1.length - 1]}` : g1[0], cordoes: g1 },
+    { id: 'graduados', nome: `${g2[0]} em diante`, cordoes: g2 },
+  ];
+}
 const el = (id) => document.getElementById(id);
 const pagina = el('pagina');
 const dataBR = (ymd) => (/^\d{4}-\d{2}-\d{2}/.test(ymd || '') ? ymd.slice(0, 10).split('-').reverse().join('/') : '—');
@@ -53,6 +66,17 @@ observarSessao(async (user) => {
     nucleos = await listar('nucleos').catch(() => []);
     el('btVoltar').href = podeCriar() ? 'admin.html' : 'app.html';
     window.addEventListener('hashchange', rotear);
+    // Com <base href="/app/"> (multi-escola), um link href="#novo" resolveria para
+    // /app/#novo e sairia da escola. Tratamos os links de hash na mão: muda só o
+    // fragmento, mantendo o caminho atual (/<escola>/campeonatos).
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest && e.target.closest('a[href^="#"]');
+      if (!a || a.target === '_blank') return;
+      e.preventDefault();
+      const dest = a.getAttribute('href').slice(1);
+      if (dest === location.hash.replace(/^#/, '')) rotear();
+      else location.hash = dest;
+    });
     rotear();
   } catch (e) { console.error(e); pagina.innerHTML = `<div class="vazio"><i class="fas fa-triangle-exclamation"></i><b>Não foi possível abrir</b><p>Confira a internet e tente de novo.</p></div>`; }
 });
@@ -172,12 +196,13 @@ async function carregarDemo() {
   try {
     const id = `demo_${Date.now().toString(36)}`;
     const ns = nucleos.length ? nucleos.slice(0, 3) : [{ id: 'demo', nome: 'Núcleo Demonstração' }];
-    const atletas = M.atletasDemo(ns, 7);
-    // Configuração enxuta para a demonstração encher as categorias: 2 faixas de peso, 2 grupos de cordão.
-    const config = { sexos: true, idades: null, minimoPorCategoria: 3, pesos: [{ id: 'p1', nome: 'Leve', max: 75 }, { id: 'p2', nome: 'Pesado', max: null }], gruposCordao: [{ id: 'iniciantes', nome: 'Iniciante a Fugitivo', cordoes: ['Iniciante', 'Escravo', 'Fugitivo'] }, { id: 'graduados', nome: 'Quilombola em diante', cordoes: ['Quilombola', 'Vagante', 'Liberto', 'Instrutor', 'Professor', 'Mestre', 'Mestre/Presidente'] }] };
+    const gruposCordao = gruposCordaoDemo();
+    const atletas = M.atletasDemo(ns, 7, 32, { escada: ORDEM_CORDOES, comApelido: ESCOLA.modalidade === 'capoeira' });
+    // Configuração enxuta para a demonstração encher as categorias: 2 faixas de peso + os grupos da escada da escola.
+    const config = { sexos: true, idades: null, minimoPorCategoria: 3, pesos: [{ id: 'p1', nome: 'Leve', max: 75 }, { id: 'p2', nome: 'Pesado', max: null }], gruposCordao };
     const academiaId = ehAdmin() ? null : perfil.academiaGerenciadaId;
     await setDoc(doc(db, 'campeonatos', id), await comMinhaEscola({
-      nome: 'Campeonato Interno Liberdade 2026 (demonstração)', tipo: 'interno', data: hojeIso(), hora: '09:00', local: 'Ginásio do núcleo', cidade: `${ESCOLA.cidade} / ${ESCOLA.uf}`,
+      nome: `Campeonato Interno ${ESCOLA.nomeCurto || ESCOLA.nome || ''} ${new Date().getFullYear()} (demonstração)`.replace(/\s+/g, ' ').trim(), tipo: 'interno', data: hojeIso(), hora: '09:00', local: 'Ginásio do núcleo', cidade: `${ESCOLA.cidade} / ${ESCOLA.uf}`,
       descricao: 'Dados fictícios para apresentação do módulo: 32 atletas, categorias por graduação, peso e sexo, chaves de eliminação simples. Pode ser apagado a qualquer momento.',
       regulamentoUrl: '', academiaId, academiaNome: academiaId ? nomeNucleo(academiaId) : '', organizadorUid: uid, organizadorNome: perfil.nome || '',
       status: 'inscricoes', inscritosTotal: atletas.length, lutasFeitas: 0, categorias: [], config, criadoEm: new Date().toISOString(), demo: true,
@@ -306,8 +331,8 @@ function folhaInscricao(c, pessoa, editando) {
       <div class="linha">
         <div class="campo"><label>Sexo</label><div class="segment" id="iSexo"><button type="button" aria-pressed="${pessoa.sexo === 'M'}" data-v="M">Masculino</button><button type="button" aria-pressed="${pessoa.sexo === 'F'}" data-v="F">Feminino</button></div></div>
         <div class="campo"><label for="iPeso">Peso (kg)</label><input id="iPeso" type="number" min="20" max="200" step="0.1" required value="${esc(pessoa.peso || '')}" placeholder="Ex.: 72"></div>
-        <div class="campo"><label for="iApelido">Apelido na capoeira (opcional)</label><input id="iApelido" maxlength="24" value="${esc(pessoa.apelido || '')}" placeholder="Como é chamado na roda"></div>
-        <div class="campo"><label for="iCordao">Cordão</label><select id="iCordao">${ORDEM_CORDOES.map((k) => `<option ${k === (pessoa.cordao || 'Iniciante') ? 'selected' : ''}>${esc(k)}</option>`).join('')}</select></div>
+        <div class="campo"><label for="iApelido">Apelido (opcional)</label><input id="iApelido" maxlength="24" value="${esc(pessoa.apelido || '')}" placeholder="Como é conhecido"></div>
+        <div class="campo"><label for="iCordao">${esc(pecaMai())}</label><select id="iCordao">${ORDEM_CORDOES.map((k) => `<option ${k === (pessoa.cordao || ORDEM_CORDOES[0] || 'Iniciante') ? 'selected' : ''}>${esc(k)}</option>`).join('')}</select></div>
       </div>
       <div class="acoes"><button type="submit" class="bt bt-verde"><i class="fas fa-check"></i> ${editando ? 'Salvar' : 'Confirmar inscrição'}</button><button type="button" class="bt bt-vidro" data-fechar>Cancelar</button></div>
     </form>`);

@@ -1404,7 +1404,16 @@ if (idx === -1) idx = 0;
 const cor = lista[idx].cor;
 const porcentagem = calcularPorcentagemEvolucaoDe(a);
 const estrelaCount = a.academiaGerenciadaId ? calcularEstrelaViva(a.academiaGerenciadaId, todosUsuarios) : 0;
-const volta = (porcentagem / 100).toFixed(3);
+// Faixa/cordão real do responsável, com graus (resolve o "a faixa não aparece"):
+const ehFund = souFundador(a);
+const nomeGradHero = a.cordaoAtual || (lista[0] && lista[0].nome) || 'Iniciante';
+const gGradHero = itemEscadaDe(a, nomeGradHero);
+const rotuloGradHero = rotuloGrad(nomeGradHero, a.grausAtual, a.grausVermelhos);
+const pecaMaiHero = (() => { const p = String(ESCOLA.peca || 'graduação'); return p.charAt(0).toUpperCase() + p.slice(1); })();
+const faixaHero = gGradHero ? faixaSVG(gGradHero, { graus: Number(a.grausAtual) || 0, grausVermelhos: Number(a.grausVermelhos) || 0, largura: 260, altura: 24, titulo: rotuloGradHero }) : '';
+const souEuHero = sessaoAtual && a.id === sessaoAtual.uid;
+// O fundador está no topo da escada: a barra de prontidão (0%) não faz sentido pra ele; mostramos a faixa.
+const volta = ehFund ? '1' : (porcentagem / 100).toFixed(3);
 const estrelasHtml = estrelaCount > 0
 ? `<span style="color:var(--star-filled)">${'★'.repeat(estrelaCount)}</span><span style="color:rgba(255,255,255,.32)">${'★'.repeat(7 - estrelaCount)}</span> <span class="hero-fundador-estrela-num">${estrelaCount}/7 estrela viva</span>`
 : '';
@@ -1422,14 +1431,16 @@ return `
 <h2>${escapeHTML(a.nome || 'Responsável')}</h2>
 <span class="hero-fundador-nucleo"><i class="fas fa-link"></i> ${escapeHTML(rotuloDiretoDe(a))}</span>
 ${mostrarTotalGrupo ? `<span class="hero-fundador-total-grupo"><i class="fas fa-users"></i> Total de atletas do grupo: ${contarTotalAtletasGrupo(a.id, todosUsuarios, todosNucleos)}</span>` : ''}
-<span class="hero-fundador-cordao">Cordão ${escapeHTML(a.cordaoAtual || 'Iniciante')}</span>
+<span class="hero-fundador-cordao">${escapeHTML(pecaMaiHero)} ${escapeHTML(rotuloGradHero)}</span>
 <div class="hero-fundador-estrelas">${estrelasHtml}</div>
 </div>
-<div class="hero-fundador-pct">${porcentagem}<span>%</span></div>
+${ehFund ? '' : `<div class="hero-fundador-pct">${porcentagem}<span>%</span></div>`}
 </div>
-<div class="cordao-track hero-fundador-cordao-track">
+${ehFund
+? `<div class="hero-fundador-faixa">${faixaHero}</div>${souEuHero ? `<div class="hero-fundador-acoes"><button type="button" class="btn-mini btn-mini-claro" onclick="abrirModal('${escapeHTML(a.id)}')"><i class="fas fa-pen"></i> Ajustar minha ${escapeHTML(String(ESCOLA.peca || 'graduação'))} e graus</button></div>` : ''}`
+: `<div class="cordao-track hero-fundador-cordao-track">
 <div class="cordao-fill" style="width:${porcentagem}%; --c1:${cor[0]}; --c2:${cor[1]}; --c3:${cor[2]};"></div>
-</div>
+</div>`}
 </div>`;
 }
 
