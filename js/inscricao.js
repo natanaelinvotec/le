@@ -34,7 +34,7 @@ if (ESCOLA_ID === ESCOLA_NEUTRA) {
   });
 }
 let escolaCfg = null;
-import { CONDICOES, SEM_LIMITACOES, nomeDe, siglaDe, lacoSVG, lacosHTML, normalizarInclusao, apoiosChecklistHTML, ligarChecklist, apoiosMarcados, garantirEstilos } from './inclusao.js?v=20261006';
+import { CONDICOES, SEM_LIMITACOES, nomeDe, siglaDe, lacoSVG, lacosHTML, normalizarInclusao, apoiosChecklistHTML, ligarChecklist, apoiosMarcados, garantirEstilos } from './inclusao.js?v=20261011b';
 
 const steps = document.querySelectorAll('.form-step');
 const indicators = document.querySelectorAll('.step-indicator');

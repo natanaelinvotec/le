@@ -35,7 +35,7 @@ Chamada pela FOTO DA TURMA (fim do treino), na mesma aba Presenças:
   'faceid-foto' (as regras aceitam até 7 dias para trás, para a foto do treino de ontem).
 */
 
-import { CONDICOES, lacosHTML, apoiosHTML, normalizarInclusao, temInclusao, garantirEstilos as estilosInclusao } from './inclusao.js?v=20261006';
+import { CONDICOES, lacosHTML, apoiosHTML, normalizarInclusao, temInclusao, garantirEstilos as estilosInclusao } from './inclusao.js?v=20261011b';
 estilosInclusao();
 
 const FACEAPI_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1/dist/face-api.esm.js';

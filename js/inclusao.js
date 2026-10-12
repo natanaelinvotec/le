@@ -163,7 +163,14 @@ export const PASTA_MATERIAIS = 'materiais/inclusao';
 // O que existe de verdade na pasta materiais/inclusao (o navegador não lista pasta — atualize
 // aqui ao subir um PDF novo). Versões por arte entram como `<arte>: ['tea', …, 'guia']` e o
 // arquivo se chama `<condicao>-<arte>.pdf` / `guia-inclusao-<arte>.pdf`.
-export const MATERIAIS_EXISTENTES = { capoeira: ['tea', 'tdah', 'pc', 'sd', 'di', 'dvda', 'tdc', 'guia'] };
+const COND_E_GUIA = ['tea', 'tdah', 'pc', 'sd', 'di', 'dvda', 'tdc', 'guia'];
+export const MATERIAIS_EXISTENTES = {
+  capoeira: COND_E_GUIA, // versão própria (roda, berimbau, ginga), escrita à mão
+  // Demais artes: PDFs gerados por tools/gerar-pdfs-inclusao.mjs (linguagem neutra adaptada à arte).
+  jiujitsu: COND_E_GUIA, judo: COND_E_GUIA, karate: COND_E_GUIA, taekwondo: COND_E_GUIA,
+  muaythai: COND_E_GUIA, boxe: COND_E_GUIA, kickboxing: COND_E_GUIA, mma: COND_E_GUIA,
+  wrestling: COND_E_GUIA, kravmaga: COND_E_GUIA, kungfu: COND_E_GUIA, outra: COND_E_GUIA,
+};
 const temArquivo = (chave, arte) => Array.isArray(MATERIAIS_EXISTENTES[arte]) && MATERIAIS_EXISTENTES[arte].includes(chave);
 export const urlGuia = (arte = ARTE_PADRAO) => (arteOk(arte) === ARTE_PADRAO ? `${PASTA_MATERIAIS}/guia-inclusao-capoeira.pdf` : `${PASTA_MATERIAIS}/guia-inclusao-${arteOk(arte)}.pdf`);
 export const urlMaterial = (id, arte = ARTE_PADRAO) => { const c = condicaoDe(id); if (!c) return urlGuia(arte); const a = arteOk(arte); return a === ARTE_PADRAO ? `${PASTA_MATERIAIS}/${c.id.toLowerCase()}.pdf` : `${PASTA_MATERIAIS}/${c.id.toLowerCase()}-${a}.pdf`; };

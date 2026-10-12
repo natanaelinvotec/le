@@ -11,7 +11,7 @@ import {
 } from './firebase.js';
 import { ESCOLA, CORDOES_ADULTO, CORDOES_KIDS, prontidao, proximoCordao, coresDoCordao, META_PRONTIDAO, escadaDe, criteriosAvaliados } from './escola.js';
 import { situacao as situacaoCarteirinha, textoValidade } from './carteirinha-comum.js';
-import { CONDICOES, lacosHTML, lacoSVG, normalizarInclusao, resumoInclusao, SEM_LIMITACOES, apoiosHTML, apoioDe, materiaisHTML } from './inclusao.js?v=20261006';
+import { CONDICOES, lacosHTML, lacoSVG, normalizarInclusao, resumoInclusao, SEM_LIMITACOES, apoiosHTML, apoioDe, materiaisHTML } from './inclusao.js?v=20261011b';
 import { carregarTurmas, turmaAtivaId, turmaPadrao, corOk } from './turmas.js';
 
 let C = null; // contexto vindo do admin.js

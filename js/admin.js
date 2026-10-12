@@ -28,7 +28,7 @@ lancarDespesaComRateio, todosRateios, marcarRateioPago,
 } from './firebase.js';
 import { iniciarGestao, abrirTela as abrirTelaGestao, renderRelatoriosGerais, exportarExcel, exportarPDF } from './gestao.js?v=20261011b';
 import { iniciarAniversarios, renderAniversarios, lembrete48h } from './aniversarios.js?v=20261001';
-import { CONDICOES, lacosHTML, lacoSVG, normalizarInclusao, temInclusao, resumoInclusao, apoiosChecklistHTML, ligarChecklist, apoiosMarcados, materiaisHTML, garantirEstilos as estilosInclusao } from './inclusao.js?v=20261011';
+import { CONDICOES, lacosHTML, lacoSVG, normalizarInclusao, temInclusao, resumoInclusao, apoiosChecklistHTML, ligarChecklist, apoiosMarcados, materiaisHTML, adaptarTexto, garantirEstilos as estilosInclusao } from './inclusao.js?v=20261011b';
 estilosInclusao();
 { const mi = document.getElementById('materiaisInclusao'); if (mi) mi.innerHTML = materiaisHTML([], { modo: 'cards' }); } // repintado por turma em pintarMateriaisInclusao()
 import { iniciarExperiencia, abrirAcessibilidade, tutorial, pedirAceiteSeNecessario } from './experiencia.js';
@@ -82,8 +82,11 @@ function arteDoAlunoSelecionado() {
   return arteDaTurma(t);
 }
 function pintarMateriaisInclusao() {
+  const arte = arteDaTurma(turmaAtiva || turmaAtivaObj());
   const mi = document.getElementById('materiaisInclusao');
-  if (mi) mi.innerHTML = materiaisHTML([], { modo: 'cards', arte: arteDaTurma(turmaAtiva || turmaAtivaObj()) });
+  if (mi) mi.innerHTML = materiaisHTML([], { modo: 'cards', arte });
+  const aj = document.getElementById('materiaisInclusaoAjuda');
+  if (aj) aj.textContent = adaptarTexto('Um PDF por condição (como aparece na roda, o que ajuda, o que evitar, sinais para pausar) e o guia completo com a ficha de adaptação e o fluxo no app. Para instrutores, professores e responsáveis de núcleo.', arte);
 }
 const turmaAtivaEhPadrao = () => { const t = turmaAtiva || turmaAtivaObj(); return !t || !!t.padrao; };
 // Núcleo com turmas criadas: aí sim o painel filtra (a padrão fica só com quem não tem turmaId).

@@ -20,7 +20,7 @@ import {
   trocarSenha, recuperarSenha, emailDaSessao, SENHA_PADRAO,
 } from './firebase.js';
 import { abrirApresentacao, temApresentacao, podeTerApresentacao, podeAbrirSozinho, textoCargo } from './apresentacao.js?v=20261001';
-import { CONDICOES, SEM_LIMITACOES, lacoSVG, lacosHTML, normalizarInclusao, apoiosChecklistHTML, ligarChecklist, apoiosMarcados, garantirEstilos as estilosInclusao } from './inclusao.js?v=20261006';
+import { CONDICOES, SEM_LIMITACOES, lacoSVG, lacosHTML, normalizarInclusao, apoiosChecklistHTML, ligarChecklist, apoiosMarcados, garantirEstilos as estilosInclusao } from './inclusao.js?v=20261011b';
 
 export { podeTerApresentacao, temApresentacao };
 
