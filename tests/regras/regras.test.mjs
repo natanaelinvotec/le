@@ -554,7 +554,10 @@ test('ativação (etapa 2): dono não se ativa nem mexe na escada; só o Admin a
   await assertSucceeds(getDocs(collection(plat(), 'escolas')), 'Mega painel lista as escolas');
   await assertFails(getDocs(collection(db('profeta'), 'escolas')), 'Fundador de escola não lista as escolas da plataforma');
   await assertFails(updateDoc(doc(db('nat'), 'usuarios', 'nat'), { grausAtual: 4 }), 'ninguém se dá grau');
-  await assertSucceeds(getDocs(query(collection(db(null), 'nucleos'), where('escolaId', '==', 'gracie-cg'), where('ativo', '==', true))), 'inscrição (sem login) lista os núcleos da escola do link');
+  // Núcleo cru não é mais público (tem GPS, mensalidade e professor); a inscrição sem login
+  // lista pelo espelho sanitizado nucleosPublicos.
+  await assertFails(getDocs(query(collection(db(null), 'nucleos'), where('escolaId', '==', 'gracie-cg'), where('ativo', '==', true))), 'núcleo cru não é mais público');
+  await assertSucceeds(getDocs(query(collection(db(null), 'nucleosPublicos'), where('escolaId', '==', 'gracie-cg'), where('ativo', '==', true))), 'inscrição (sem login) lista pelo espelho público');
 });
 
 test('e-mails próprios: pedido de link público e enxuto; chave do serviço só o Admin grava e ninguém lê', async () => {
