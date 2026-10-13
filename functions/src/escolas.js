@@ -307,6 +307,7 @@ export function escolaPublica(id, e) {
     instagram: TEXTO(e.instagram, 60),
     responsavel: e.responsavel ? { nome: TEXTO(e.responsavel.nome, 80), graduacao: TEXTO(e.responsavel.graduacao, 60) } : null,
     modelo: TEXTO(e.modelo, 20),
+    template: TEXTO(e.template, 20) || null, // F4.1: template do site por escola (padrão = o da modalidade)
     dominio: normalizarDominio(e.dominio) || null,
     logo: URLS(f.logo, 1)[0] || null,
     fotoLider: URLS(f.lider, 1)[0] || null,

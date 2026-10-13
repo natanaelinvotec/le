@@ -121,6 +121,10 @@
           "destination": "/app/v.html"
         },
         {
+          "source": "/teamigor",
+          "destination": "/app/site-escola.html"
+        },
+        {
           "source": "/*",
           "destination": "/app/login.html"
         }

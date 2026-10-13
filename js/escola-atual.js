@@ -81,7 +81,7 @@ export function escolaIdDoEndereco(url = location, { usarUltima = true } = {}) {
 // Sem nada que diga a escola: na plataforma é a marca neutra; nos outros endereços, a escola nº 1.
 export const escolaIdPadrao = () => (HOSTS_PLATAFORMA.includes(host()) ? ESCOLA_NEUTRA : ESCOLA_PADRAO);
 
-async function escolaIdDoDominio() {
+export async function escolaIdDoDominio() {
   const h = host();
   if (!h || HOSTS[h] || HOSTS_PLATAFORMA.includes(h) || h === 'localhost' || /^\d+\.\d+\.\d+\.\d+$/.test(h)) return null;
   try { const s = await getDoc(doc(db, 'dominios', h)); return s.exists() ? s.data().escolaId || null : null; } catch (e) { return null; }
