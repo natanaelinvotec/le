@@ -226,7 +226,13 @@ export const SENHA_PADRAO = 'capoeira2026';
 export async function entrar(email, senha) {
   const cred = await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), senha);
   const perfil = await getDoc(doc(db, 'usuarios', cred.user.uid));
-  if (!perfil.exists()) throw new Error('Conta sem perfil cadastrado. Fale com a administração.');
+  if (!perfil.exists()) {
+    // Login válido, mas sem cadastro ainda: normalmente é o dono de uma escola recém-cadastrada,
+    // esperando a ativação. O código deixa a tela de login mostrar a mensagem certa (não "senha errada").
+    const err = new Error('Conta sem perfil cadastrado.');
+    err.code = 'app/sem-perfil';
+    throw err;
+  }
   const dados = { uid: cred.user.uid, ...perfil.data() };
   await levarSessaoParaEscolaDaConta(cred.user);
   return dados;

@@ -75,6 +75,14 @@ tentativas = 0;
 try { sessionStorage.setItem('apr.aoEntrar', '1'); } catch (e) { /* navegador sem storage */ }
 { const destino = destinoPorPapeis(perfil); try { localStorage.setItem('le.destino', destino.startsWith('admin') ? 'admin' : 'app'); } catch (e) { /* ok */ } window.location.href = destino; }
 } catch (e) {
+// Login certo, mas conta ainda sem cadastro: quase sempre o dono de uma escola recém-criada,
+// esperando a AtletaPay ativar. Mostra a mensagem certa e não conta como tentativa errada.
+if (e && e.code === 'app/sem-perfil') {
+mostrarErro('Sua conta ainda não está liberada. Se você acabou de cadastrar sua escola na AtletaPay, ela está em análise e será ativada em breve — tente de novo mais tarde. Se você é aluno, fale com o seu professor.');
+btn.disabled = false;
+btn.innerHTML = 'Acessar Painel <i class="fas fa-arrow-right"></i>';
+return;
+}
 tentativas += 1;
 if (tentativas >= 5) {
 bloqueadoAte = Date.now() + 30000;
