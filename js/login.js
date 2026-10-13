@@ -1,6 +1,6 @@
 // login.js — v3: autenticação real via Firebase Authentication.
 // Substitui o esquema antigo (hash SHA-256 comparado direto no Firestore).
-import { entrar, recuperarSenha, prepararEscolaDaPagina } from './firebase.js';
+import { entrar, recuperarSenha, prepararEscolaDaPagina, contaPendente } from './firebase.js';
 
 // Multi-escola: a tela de entrar já mostra a escola do link (login.html?escola=<id>)
 // ou a última escola usada neste aparelho; depois do login vale a escola da conta.
@@ -78,7 +78,16 @@ try { sessionStorage.setItem('apr.aoEntrar', '1'); } catch (e) { /* navegador se
 // Login certo, mas conta ainda sem cadastro: quase sempre o dono de uma escola recém-criada,
 // esperando a AtletaPay ativar. Mostra a mensagem certa e não conta como tentativa errada.
 if (e && e.code === 'app/sem-perfil') {
-mostrarErro('Sua conta ainda não está liberada. Se você acabou de cadastrar sua escola na AtletaPay, ela está em análise e será ativada em breve — tente de novo mais tarde. Se você é aluno, fale com o seu professor.');
+// Descobre se é dono de escola em preparação, para mostrar o nome e o status certos.
+let msg = 'Sua conta ainda não está liberada. Se você acabou de cadastrar sua escola na AtletaPay, ela está em análise e será ativada em breve — tente de novo mais tarde. Se você é aluno, fale com o seu professor.';
+try {
+const p = await contaPendente();
+if (p && p.escolaNome) {
+const fase = p.status === 'ativa' ? 'está sendo finalizada' : p.status === 'fila' ? 'está na fila de ativação' : p.status === 'rascunho' ? 'ainda não foi enviada para ativação' : 'está em análise';
+msg = `Estamos preparando a sua conta. A escola “${p.escolaNome}” ${fase} — assim que a AtletaPay ativar, seu painel libera automaticamente e você recebe um e-mail. Tente de novo mais tarde.`;
+}
+} catch (er) { /* usa a mensagem genérica */ }
+mostrarErro(msg);
 btn.disabled = false;
 btn.innerHTML = 'Acessar Painel <i class="fas fa-arrow-right"></i>';
 return;

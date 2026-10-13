@@ -221,7 +221,9 @@ function abrirDetalhe(id, chaveEmFoco) {
     if (!s.exists()) { pagina.innerHTML = `<div class="vazio"><i class="fas fa-trophy"></i><b>Campeonato não encontrado</b><p>Pode ter sido apagado.</p><a class="bt bt-vidro" href="#">Voltar</a></div>`; return; }
     atual = { id: s.id, ...s.data() }; desenharDetalhe();
   }, (e) => { console.error(e); pagina.innerHTML = `<div class="vazio"><i class="fas fa-lock"></i><b>Sem acesso</b></div>`; }));
-  desligarDet.push(onSnapshot(collection(db, 'campeonatos', id, 'inscricoes'), (s) => { inscritos = s.docs.map((d) => ({ uid: d.id, ...d.data() })); if (atual) desenharDetalhe(); }));
+  // A lista de inscritos é fechada para quem é de outra escola (protege menores em campeonato
+  // entre escolas): se a leitura for negada, segue sem a lista — as chaves, sim, aparecem.
+  desligarDet.push(onSnapshot(collection(db, 'campeonatos', id, 'inscricoes'), (s) => { inscritos = s.docs.map((d) => ({ uid: d.id, ...d.data() })); if (atual) desenharDetalhe(); }, () => { inscritos = []; if (atual) desenharDetalhe(); }));
   desligarDet.push(onSnapshot(collection(db, 'campeonatos', id, 'chaves'), (s) => { chaves = {}; s.docs.forEach((d) => { chaves[d.id] = M.desempacotar(d.data()); }); if (atual) desenharDetalhe(); }));
 }
 let catFoco = null;
@@ -412,7 +414,7 @@ async function gerarChaves(c) {
     const semente = Date.now() % 100000;
     await Promise.all(cats.map((k, i) => {
       const atletas = k.inscritos.map((u) => inscritos.find((x) => x.uid === u)).filter(Boolean);
-      const ch = M.montarChave(atletas, { semente: semente + i });
+      const ch = M.montarChave(atletas, { semente: semente + i, publicoExterno: c.tipo === 'externo' });
       return setDoc(doc(db, 'campeonatos', c.id, 'chaves', k.id), M.empacotar({ ...ch, categoriaId: k.id, categoriaNome: k.nome }));
     }));
     await updateDoc(doc(db, 'campeonatos', c.id), { status: 'chaves' });
@@ -438,7 +440,7 @@ function ligarChaves(c, org) {
     if (M.resumoChave(ch).feitas && !confirm('Esta chave já tem resultados. Sortear de novo apaga todos. Continuar?')) return;
     const k = categoriasAtuais().find((x) => x.id === catFoco);
     const atletas = (k ? k.inscritos : Object.keys(ch.atletas)).map((u) => inscritos.find((x) => x.uid === u)).filter(Boolean);
-    const nova = M.montarChave(atletas, { semente: Date.now() % 100000 });
+    const nova = M.montarChave(atletas, { semente: Date.now() % 100000, publicoExterno: c.tipo === 'externo' });
     await setDoc(doc(db, 'campeonatos', c.id, 'chaves', catFoco), M.empacotar({ ...nova, categoriaId: catFoco, categoriaNome: ch.categoriaNome || '' }));
     toast('Chave sorteada de novo');
   });

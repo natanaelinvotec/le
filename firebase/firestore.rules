@@ -425,7 +425,10 @@ match /inscricoes/{uid} {
 function campPai() { return get(/databases/$(database)/documents/campeonatos/$(id)).data; }
 function camposInsc() { return request.resource.data.keys().hasOnly(['uid', 'nome', 'apelido', 'fotoUrl', 'cordao', 'academiaId', 'academiaNome', 'sexo', 'peso', 'idade', 'categoriaId', 'demo', 'em', 'por', 'pesagemOk']); }
 function possoVer() { return campPai().get('escolaId', '') == minhaEscola() || aberto(campPai()) || ehPlataforma(); }
-allow read: if logado() && possoVer();
+// Leitura da inscrição NÃO é mais aberta a qualquer escola (protege dados de menor em campeonato
+// externo): só a própria escola do campeonato, o próprio atleta, o organizador e a plataforma.
+// Outra escola vê os atletas pelas CHAVES (só nome + graduação). Inscrever-se segue por possoVer().
+allow read: if logado() && (campPai().get('escolaId', '') == minhaEscola() || request.auth.uid == uid || organizo(campPai()) || ehPlataforma());
 // O próprio atleta: só enquanto as inscrições estão abertas, com os próprios dados (da própria escola, ou campeonato entre escolas).
 allow create, update: if logado() && camposInsc() && (
 (request.auth.uid == uid && possoVer() && campPai().status == 'inscricoes' && request.resource.data.get('demo', false) == false) ||

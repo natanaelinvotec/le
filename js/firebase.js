@@ -237,6 +237,28 @@ export async function entrar(email, senha) {
   await levarSessaoParaEscolaDaConta(cred.user);
   return dados;
 }
+
+// Dono de escola que entrou antes da ativação (login válido, ainda sem cadastro de usuário):
+// descobre a escola dele (donos/{uid} → escolas/{id}) para a tela de login mostrar o nome e o
+// status em vez de um erro seco. Só é chamada no caso 'app/sem-perfil'; falha em silêncio.
+export async function contaPendente() {
+  try {
+    const u = auth.currentUser;
+    if (!u) return null;
+    const d = await getDoc(doc(db, 'donos', u.uid));
+    if (!d.exists()) return null;
+    const escolaId = d.data().escolaId;
+    if (!escolaId) return { escolaNome: d.data().nome || '', status: null };
+    const e = await getDoc(doc(db, 'escolas', escolaId));
+    if (!e.exists()) return { escolaNome: '', status: null };
+    const dados = e.data();
+    return {
+      escolaNome: dados.nome || dados.nomeCurto || '',
+      status: dados.status || null,
+      ativacao: (dados.ativacao && dados.ativacao.status) || null,
+    };
+  } catch (err) { return null; }
+}
 // Entrou pela tela de OUTRA escola (ex.: conta da Liberdade em /teamigor/login): a sessão vai
 // para a gaveta da escola da conta, e a próxima tela abre nela. A gaveta desta escola fica livre.
 async function levarSessaoParaEscolaDaConta(u) {

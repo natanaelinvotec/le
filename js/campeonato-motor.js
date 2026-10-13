@@ -133,9 +133,18 @@ function ordemEspalhada(tam) {
   return Array.from({ length: tam }, (_, i) => { let r = 0; for (let b = 0; b < bits; b++) r |= ((i >> b) & 1) << (bits - 1 - b); return r; });
 }
 
-export function montarChave(atletas, { semente = 1, formato = 'simples' } = {}) {
+export function montarChave(atletas, { semente = 1, formato = 'simples', publicoExterno = false } = {}) {
   const lista = (atletas || []).filter((a) => a && a.uid);
-  const mapa = {}; lista.forEach((a) => { mapa[a.uid] = { nome: a.nome || 'Atleta', apelido: a.apelido || '', cordao: a.cordao || '', academiaId: a.academiaId || null, academiaNome: a.academiaNome || '', fotoUrl: a.fotoUrl || '', idade: a.idade ?? null, peso: a.peso ?? null }; });
+  // Campeonato entre escolas: menor de idade aparece na chave só com nome + graduação
+  // (sem foto, idade ou peso) para as outras escolas. A categorização já aconteceu antes,
+  // então esconder esses campos aqui não muda nada no sorteio — só o que é exibido.
+  const menorExterno = (a) => publicoExterno && a.idade != null && Number(a.idade) < 18;
+  const mapa = {}; lista.forEach((a) => {
+    const base = { nome: a.nome || 'Atleta', apelido: a.apelido || '', cordao: a.cordao || '', academiaId: a.academiaId || null, academiaNome: a.academiaNome || '' };
+    mapa[a.uid] = menorExterno(a)
+      ? { ...base, fotoUrl: '', idade: null, peso: null }
+      : { ...base, fotoUrl: a.fotoUrl || '', idade: a.idade ?? null, peso: a.peso ?? null };
+  });
   const n = lista.length;
   if (n === 0) return { formato, atletas: mapa, rodadas: [], status: 'vazia', criadaEm: new Date().toISOString() };
   if (n === 1) {
