@@ -53,7 +53,7 @@ export const FIREBASE_CONFIG = {
 
 // App Check (reCAPTCHA Enterprise / Fraud Defense). Vazio = desligado. Cole aqui a CHAVE DO SITE (a
 // pública) depois de registrar o app em Console → App Check (docs/SEGURANCA.md).
-export const APP_CHECK_SITE_KEY = '';
+export const APP_CHECK_SITE_KEY = '6LeRyO0tAAAAAF_4yu1rXdqhI3zqcnbCLPImSpMc';
 
 // Notificações push (Console → Cloud Messaging → Certificados push da Web).
 // Vazio = usa a chave padrão do Firebase, que já funciona.
