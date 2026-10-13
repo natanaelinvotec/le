@@ -199,14 +199,22 @@ const numeroHTML = (v) => (v === null || v === undefined ? '—' : Number(v).toL
 async function salvarEdicao(ev) {
   const f = ev.target.closest('form[data-editar]'); if (!f) return;
   ev.preventDefault();
-  const id = f.dataset.editar; const v = (n) => String(f.elements[n].value || '').trim();
+  const id = f.dataset.editar; const v = (n) => String(f.elements[n] ? f.elements[n].value || '' : '').trim();
   const cor = (n) => (/^#[0-9a-f]{6}$/i.test(v(n)) ? v(n) : null);
   const dados = {
     nome: v('nome').slice(0, 80), nomeCurto: v('nomeCurto').slice(0, 30), cidade: v('cidade').slice(0, 60), uf: v('uf').toUpperCase().slice(0, 2),
     endereco: v('endereco').slice(0, 140), instagram: v('instagram').replace(/^@/, '').slice(0, 60),
+    lider: v('lider').slice(0, 30), pecaGraduacao: v('pecaGraduacao').slice(0, 20),
+    donoNome: v('donoNome').slice(0, 80), donoEmail: v('donoEmail').toLowerCase().slice(0, 120), donoCelular: v('donoCelular').slice(0, 30),
     cores: Object.fromEntries([['navy', cor('corNavy')], ['teal', cor('corTeal')], ['verde', cor('corVerde')]].filter(([, c]) => c)),
     atualizadoEm: new Date().toISOString(),
   };
+  // Responsável (Fundador) só é gravado quando tem nome — não apaga o que já existe.
+  const respNome = v('respNome').slice(0, 80);
+  if (respNome) dados.responsavel = { nome: respNome, graduacao: v('respGraduacao').slice(0, 60) };
+  // Domínio próprio: o servidor cuida do mapa de domínios ao gravar (só grava quando preenchido).
+  const dominio = v('dominio').toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '').slice(0, 80);
+  if (dominio) dados.dominio = dominio;
   if (!dados.nome) { toast('O nome não pode ficar vazio.'); return; }
   const b = f.querySelector('button[type=submit]'); b.disabled = true;
   try { await updateDoc(doc(db, 'escolas', id), dados); editando.delete(id); if (document.activeElement) document.activeElement.blur(); toast('Dados salvos. O site e o app já mostram a versão nova.'); render(); }
@@ -214,6 +222,7 @@ async function salvarEdicao(ev) {
 }
 function formEdicao(e) {
   const c = e.cores || {};
+  const resp = e.responsavel || {};
   return `<div class="ec-editar"><form class="form" data-editar="${esc(e.id)}">
     <div class="ce-campos">
       <div class="campo"><label>Nome</label><input name="nome" value="${esc(e.nome || '')}" maxlength="80" required></div>
@@ -222,6 +231,14 @@ function formEdicao(e) {
       <div class="campo"><label>UF</label><input name="uf" value="${esc(e.uf || '')}" maxlength="2"></div>
       <div class="campo" style="grid-column:1/-1"><label>Endereço</label><input name="endereco" value="${esc(e.endereco || '')}" maxlength="140"></div>
       <div class="campo"><label>Instagram</label><input name="instagram" value="${esc(e.instagram || '')}" maxlength="60" placeholder="@escola"></div>
+      <div class="campo"><label>Domínio próprio</label><input name="dominio" value="${esc(e.dominio || '')}" maxlength="80" placeholder="escola.com.br"></div>
+      <div class="campo"><label>Responsável (Fundador)</label><input name="respNome" value="${esc(resp.nome || '')}" maxlength="80" placeholder="Nome do mestre/professor"></div>
+      <div class="campo"><label>Graduação do responsável</label><input name="respGraduacao" value="${esc(resp.graduacao || '')}" maxlength="60" placeholder="Mestre, Professor…"></div>
+      <div class="campo"><label>Título do líder</label><input name="lider" value="${esc(e.lider || '')}" maxlength="30" placeholder="Mestre, Sensei, Professor…"></div>
+      <div class="campo"><label>Peça de graduação</label><input name="pecaGraduacao" value="${esc(e.pecaGraduacao || '')}" maxlength="20" placeholder="cordão, faixa…"></div>
+      <div class="campo"><label>Dono — nome</label><input name="donoNome" value="${esc(e.donoNome || '')}" maxlength="80"></div>
+      <div class="campo"><label>Dono — e-mail</label><input name="donoEmail" type="email" value="${esc(e.donoEmail || '')}" maxlength="120"></div>
+      <div class="campo"><label>Dono — celular</label><input name="donoCelular" value="${esc(e.donoCelular || '')}" maxlength="30"></div>
       <div class="campo"><label>Cores (principal · destaque · botão)</label><div class="ce-cores"><input type="color" name="corNavy" value="${esc(c.navy || '#1E2A78')}" aria-label="Cor principal"><input type="color" name="corTeal" value="${esc(c.teal || '#389E92')}" aria-label="Cor de destaque"><input type="color" name="corVerde" value="${esc(c.verde || '#FF7A1A')}" aria-label="Cor dos botões"></div></div>
     </div>
     <div class="acoes"><button type="submit" class="bt bt-laranja bt-sm"><i class="fas fa-check"></i> Salvar dados</button><button type="button" class="bt bt-branco bt-sm" data-fechar-edicao="${esc(e.id)}">Cancelar</button></div>
@@ -258,6 +275,8 @@ function cartaoEscola(e) {
   bts.push(`<button type="button" class="bt bt-branco bt-sm" data-numeros="${esc(e.id)}"><i class="fas fa-chart-simple"></i> Números</button>`);
   bts.push(`<button type="button" class="bt bt-branco bt-sm" data-editar="${esc(e.id)}"><i class="fas fa-pen"></i> Editar dados</button>`);
   if (e.status === 'ativa') bts.push(`<button type="button" class="bt bt-branco bt-sm perigo" data-pausar="${esc(e.id)}"><i class="fas fa-pause"></i> Pausar</button>`);
+  // Exclusão permanente — nunca para a escola nº 1 (fundadora) nem a conta da plataforma.
+  if (e.id !== 'liberdade' && e.id !== '_plataforma') bts.push(`<button type="button" class="bt bt-branco bt-sm perigo" data-excluir="${esc(e.id)}"><i class="fas fa-trash-can"></i> Excluir definitivamente</button>`);
   const n = numeros.get(e.id);
   const blocoNumeros = !n ? '' : n.carregando ? '<div class="ec-numeros"><span class="sub"><i class="fas fa-spinner fa-spin"></i> Contando…</span></div>'
     : `<div class="ec-numeros">${[['Cadastros', n.alunos], ['Ativos', n.ativos], ['Núcleos', n.nucleos], ['Presenças', n.presencas], ['Posts na Rede', n.posts]].map(([r, v]) => `<div><b class="mono">${numeroHTML(v)}</b><span>${r}</span></div>`).join('')}</div>`;
@@ -285,11 +304,38 @@ function cartaoEscola(e) {
   </article>`;
 }
 
+// ===== Exclusão permanente de uma escola (cadastro errado) — confirmação dupla; o servidor limpa tudo =====
+// Espera o servidor terminar o comando (ok/erro/negado), com limite de tempo.
+function aguardarComando(ref) {
+  return new Promise((ok) => {
+    const parar = onSnapshot(ref, (s) => { const c = s.data() || {}; if (['ok', 'erro', 'negado'].includes(c.status)) { parar(); ok(c); } }, () => { parar(); ok({ status: 'erro', erro: 'Sem acesso ao resultado.' }); });
+    setTimeout(() => { parar(); ok({ status: 'erro', erro: 'O servidor demorou para responder. Confira as funções no GitHub (Actions).' }); }, 120000);
+  });
+}
+async function excluirEscola(id) {
+  if (id === 'liberdade' || id === '_plataforma') { toast('Esta escola não pode ser excluída por aqui.'); return; }
+  const e = escolas.find((x) => x.id === id); if (!e) return;
+  const nome = e.nome || e.nomeCurto || id;
+  const aviso = `EXCLUIR a escola "${nome}" para sempre?\n\nIsto apaga em definitivo: o cadastro da escola, o site público, o endereço reservado, o domínio, TODAS as pessoas da escola (com login, fotos e carteirinha), núcleos, turmas, presenças, posts, avisos, eventos, pagamentos e a auditoria dela.\n\nNão dá para desfazer. Use só quando o cadastro foi um erro.`;
+  if (!confirm(aviso)) return;
+  const digitado = prompt(`Para confirmar, digite o NOME EXATO da escola:\n\n${nome}`);
+  if (digitado === null) return;
+  if (digitado.trim().toLowerCase() !== String(nome).trim().toLowerCase()) { toast('O nome digitado não confere. Exclusão cancelada.'); return; }
+  toast('Excluindo a escola e limpando os registros…');
+  try {
+    const ref = await addDoc(collection(db, 'comandos'), { tipo: 'excluirEscola', escolaId: id, confirmacao: digitado.trim(), porUid: meuUid, status: 'pendente', criadoEm: new Date().toISOString() });
+    const r = await aguardarComando(ref);
+    if (r.status === 'ok') { const d = r.resultado || {}; toast(`Escola excluída: ${d.pessoas || 0} pessoa(s) e ${d.documentos || 0} registro(s) removidos.`); }
+    else toast(`Não deu para excluir: ${r.erro || 'erro desconhecido'}`);
+  } catch (er) { toast(erroAmigavel(er)); }
+}
+
 async function acao(ev) {
   const b = ev.target.closest('button'); if (!b || b.disabled) return;
   if (b.dataset.numeros) { carregarNumeros(b.dataset.numeros); return; }
   if (b.dataset.editar) { editando.add(b.dataset.editar); render(); return; }
   if (b.dataset.fecharEdicao) { editando.delete(b.dataset.fecharEdicao); render(); return; }
+  if (b.dataset.excluir) { excluirEscola(b.dataset.excluir); return; }
   const achar = (id) => escolas.find((x) => x.id === id);
   try {
     if (b.dataset.ativar) {

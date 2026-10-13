@@ -5,7 +5,7 @@ import { criarDb, criarMessaging, criarBucket, criarAuth } from './fake-admin.mj
 import { sincronizarPerfil } from '../src/perfil.js';
 import * as G from '../src/gatilhos.js';
 import { registrar } from '../src/auditoria.js';
-import { executarMigracoes, excluirConta, rotinaDiaria } from '../src/rotinas.js';
+import { executarMigracoes, excluirConta, excluirEscolaDefinitiva, rotinaDiaria } from '../src/rotinas.js';
 import { termosOfensivos } from '../src/compartilhado/moderacao.js';
 import { motivosSafeSearch, urlParaGs } from '../src/moderacao.js';
 
@@ -1398,4 +1398,51 @@ test('critérios: lista antiga é completada no fim; lista editada e capoeira fi
   assert.deepEqual(completarCriterios(editada, 'jiujitsu'), editada);
   const cap = padraoCrit('capoeira').criterios.slice(0, 10);
   assert.deepEqual(completarCriterios(cap, 'capoeira'), cap);
+});
+
+test('excluirEscolaDefinitiva: apaga a escola e tudo dela; trava a fundadora e a confirmação', async () => {
+  const ini = base({
+    escolas: {
+      liberdade: { nome: 'Capoeira Liberdade e Expressão', slug: 'liberdade', status: 'ativa' },
+      ruim: { nome: 'Escola Errada', slug: 'erro-cadastro', status: 'fila', dominio: 'erro.com.br' },
+    },
+    escolasPublicas: { ruim: { nome: 'Escola Errada', status: 'ativa' } },
+    escolasSlugs: { 'erro-cadastro': { escolaId: 'ruim', donoUid: 'dononovo' } },
+    dominios: { 'erro.com.br': { escolaId: 'ruim' } },
+    nucleos: { 'ruim-sede': { nome: 'Sede', escolaId: 'ruim', professorUid: 'dononovo' } },
+    posts: { p9: { autorUid: 'dononovo', escolaId: 'ruim', texto: 'oi' } },
+    presencas: { x9: { uid: 'dononovo', escolaId: 'ruim' } },
+  });
+  // Pessoa só da escola errada (entra no Authentication pelo ctxDe).
+  ini.usuarios.dononovo = { nome: 'Dono Novo', papeis: ['aluno', 'mestre'], escolaId: 'ruim', academiaId: 'ruim-sede' };
+  const { f, ctx, auth } = ctxDe(ini);
+
+  // Trava dura: a escola nº 1 (fundadora) nunca é apagada por aqui.
+  await assert.rejects(() => excluirEscolaDefinitiva(ctx, { escolaId: 'liberdade', confirmacao: 'Capoeira Liberdade e Expressão' }, {}), /fundadora/);
+  // Trava _plataforma.
+  await assert.rejects(() => excluirEscolaDefinitiva(ctx, { escolaId: '_plataforma', confirmacao: 'x' }, {}), /plataforma/);
+  // Confirmação errada: nada é apagado.
+  await assert.rejects(() => excluirEscolaDefinitiva(ctx, { escolaId: 'ruim', confirmacao: 'nome errado' }, {}), /não confere/);
+  assert.ok(f.ler('escolas/ruim'), 'escola segue de pé após confirmação errada');
+  assert.ok(f.ler('usuarios/dononovo'), 'pessoa não foi tocada após confirmação errada');
+
+  // Exclusão de verdade (nome confere; caixa diferente de propósito).
+  const r = await excluirEscolaDefinitiva(ctx, { escolaId: 'ruim', confirmacao: 'escola errada' }, { porUid: 'plat', porNome: 'Plataforma' });
+  assert.equal(f.ler('escolas/ruim'), undefined, 'escola apagada');
+  assert.equal(f.ler('escolasPublicas/ruim'), undefined, 'cartão público apagado');
+  assert.equal(f.ler('escolasSlugs/erro-cadastro'), undefined, 'slug liberado');
+  assert.equal(f.ler('dominios/erro.com.br'), undefined, 'domínio liberado');
+  assert.equal(f.ler('nucleos/ruim-sede'), undefined, 'núcleo apagado');
+  assert.equal(f.ler('posts/p9'), undefined, 'post apagado');
+  assert.equal(f.ler('presencas/x9'), undefined, 'presença apagada');
+  assert.equal(f.ler('usuarios/dononovo'), undefined, 'cadastro da pessoa apagado');
+  assert.equal(auth.usuarios.has('dononovo'), false, 'login apagado do Authentication');
+  assert.ok(r.pessoas >= 1 && r.documentos >= 1, 'contagem do resultado');
+
+  // Liberdade intacta e auditoria registrada na escola da plataforma.
+  assert.ok(f.ler('escolas/liberdade'), 'a fundadora continua intacta');
+  const aud = Object.values(f.lerCol('auditoria')).filter((a) => a.acao === 'excluiu a escola');
+  assert.equal(aud.length, 1);
+  assert.equal(aud[0].escolaId, '_plataforma');
+  assert.equal(aud[0].docId, 'ruim');
 });

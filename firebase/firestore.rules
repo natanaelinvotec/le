@@ -220,7 +220,7 @@ match /comandos/{id} {
 allow read: if ehPlataforma() || (adminDeEscola() && resource.data.porUid == request.auth.uid);
 allow create: if request.resource.data.porUid == request.auth.uid &&
 request.resource.data.status == 'pendente' && (
-(ehPlataforma() && request.resource.data.tipo in ['excluirConta', 'recalcularAtleta', 'recalcularTodos', 'migrar', 'desfazerGraduacao', 'testarEmail']) ||
+(ehPlataforma() && request.resource.data.tipo in ['excluirConta', 'recalcularAtleta', 'recalcularTodos', 'migrar', 'desfazerGraduacao', 'testarEmail', 'excluirEscola']) ||
 (adminDeEscola() && request.resource.data.tipo in ['excluirConta', 'recalcularAtleta', 'desfazerGraduacao'] &&
  request.resource.data.get('uid', '') is string && request.resource.data.get('uid', '') != '' &&
  escolaDoUsuario(request.resource.data.uid) == minhaEscola()));

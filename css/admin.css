@@ -8,6 +8,10 @@
    existindo — só a aparência mudou.
    ====================================================================== */
 
+/* Convenção de cor dos botões: VERDE (var(--green)/--accent-green) = ação que
+   confirma ou avança (salvar, aprovar, prosseguir); AZUL (var(--primary-blue))
+   = ação secundária/navegação. Ao criar novos botões, siga esta regra. */
+
 :root {
   --bg-app: #F3F7FB; /* superfícies tintadas; a página em si é branca (Céu Claro) */
   --bg-pagina: #FFFFFF;
@@ -20,7 +24,7 @@
   --sky-texto: #1B5FC2;
   --text-dark: #0D211D;
   --text-muted: #5B6B68;
-  --text-soft: #8795A0;
+  --text-soft: #5f7079; /* contraste AA sobre fundo claro (antes #8795A0, ~2.6:1 reprovava) */
 
   --primary-teal: #0B5C52;
   --teal-light: #389E92;
@@ -190,11 +194,14 @@ button { font-family: var(--font-body); }
   .nav-item-conta { display: flex; } .nav-grupo.nav-item-conta { display: block; }
   html.menu-aberto, html.menu-aberto body { overflow: hidden; }
   .menu-toggle { display: flex; align-items: center; justify-content: center; order: 1; flex: none; }
-  .top-nav { padding: 10px 14px; gap: 8px; min-height: 64px; }
+  .top-nav { padding: 10px 14px; gap: 8px; min-height: 64px; flex-wrap: wrap; }
   .logo-area { order: 2; flex: 1; justify-content: center; }
   .topo-logo { display: block; width: 44px; height: 44px; border-radius: 14px; }
-  .user-area { order: 3; flex: none; gap: 6px; margin-left: 0; }
-  .user-area .search-bar, .faixa-admin-master, .faixa-fundador, .btn-fundador-link, .admin-profile { display: none; }
+  .user-area { order: 3; flex: 1 1 100%; gap: 6px; margin-left: 0; flex-wrap: wrap; justify-content: flex-end; }
+  .faixa-admin-master, .faixa-fundador, .btn-fundador-link, .admin-profile { display: none; }
+  /* Busca de aluno volta a aparecer no celular, em largura cheia abaixo dos ícones. */
+  .user-area .search-bar { display: flex; order: 4; flex: 1 1 100%; margin-top: 6px; }
+  .user-area .search-bar input { width: 100%; flex: 1; }
 }
 @media (prefers-reduced-motion: reduce) { .nav-links { transition: none; } }
 @keyframes dropIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
@@ -475,6 +482,18 @@ select.input-padrao { appearance: none; -webkit-appearance: none; background-ima
 .mod-checkbox-linha input { width: 16px; height: 16px; accent-color: var(--primary-teal); }
 .mod-checkbox-fundador { color: #A9790D; }
 .modal-footer-centered { display: flex; justify-content: center; }
+
+/* Celular: modais viram folha de baixo com o rodapé (salvar) sempre visível. */
+@media (max-width: 700px) {
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .modal-content { max-height: 100dvh; border-radius: 24px 24px 0 0; }
+  .modal-footer-centered {
+    position: sticky; bottom: 0; background: var(--card-bg);
+    border-top: 1px solid var(--border-color);
+    padding: 14px 0 max(14px, env(safe-area-inset-bottom));
+  }
+  .modal-footer-centered .btn-salvar-modal { width: 100%; }
+}
 
 /* ---------------------------------------------------------------- TOASTS */
 .toast-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1200; }
@@ -1158,3 +1177,9 @@ select.input-padrao { appearance: none; -webkit-appearance: none; background-ima
 .gs-pront .gs-pront-meta { position: absolute; top: 3px; bottom: 3px; width: 2px; margin-left: -1px; background: var(--text-dark); opacity: .45; z-index: 1; }
 .gs-pront small { position: relative; z-index: 2; }
 .gs-pront-av { font-size: .7rem; color: var(--text-muted); text-align: center; }
+
+/* Anti-zoom no iOS: inputs com < 16px fazem o Safari dar zoom ao focar.
+   Em telas de toque/celular, força 16px nos campos (não afeta o desktop). */
+@media (max-width: 900px) {
+  input, select, textarea, .input-padrao { font-size: 16px; }
+}

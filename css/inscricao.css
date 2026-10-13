@@ -123,3 +123,9 @@ input:focus, select:focus, input:focus-visible, select:focus-visible { border-co
 .foto-wrap-inscricao .lacos-foto { right: 6px; bottom: 10px; }
 .foto-wrap-inscricao .lacos-foto:empty { display: none; }
 @media print { .inclusao-box { border: 1px solid #333; background: transparent; } .inclusao-ajuda, .inclusao-dica, .inclusao-chips button { display: none !important; } #inclusaoSelect { display: none; } .foto-wrap-inscricao .lacos-foto { display: none; } }
+
+/* Anti-zoom no iOS: inputs com < 16px fazem o Safari dar zoom ao focar.
+   Em telas de toque/celular, força 16px nos campos (não afeta o desktop). */
+@media (max-width: 900px) {
+  input, select, textarea, .input-padrao { font-size: 16px; }
+}

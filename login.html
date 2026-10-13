@@ -59,6 +59,12 @@ fundo menta, cartão branco de canto largo, Sora/Manrope, botão verde. -->
         .divisor { height: 1px; background: var(--border-color); margin: 18px 0 2px; }
         .rodape-login { text-align: center; font-size: 0.72rem; color: var(--text-soft); margin-top: 18px; }
         .rodape-login a { color: var(--text-muted); text-decoration: none; font-weight: 700; }
+
+        /* Anti-zoom no iOS: inputs com < 16px fazem o Safari dar zoom ao focar.
+           Em telas de toque/celular, força 16px nos campos (não afeta o desktop). */
+        @media (max-width: 900px) {
+          input, select, textarea { font-size: 16px; }
+        }
     </style>
 </head>
 <body>

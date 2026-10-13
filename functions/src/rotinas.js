@@ -5,7 +5,7 @@ import { sincronizarCarteirinha, apagarCarteirinha, temCarteirinha } from './car
 import { apagarCertificados, conferirCertificados, cancelarCertificado, cancelarAcimaDe, idAvisoCordao, alinharAoCordaoAtual } from './certificado.js';
 import { notificar, gestoresDoNucleo } from './notificar.js';
 import { responsaveisDe, apagarSubcolecao, apagarArquivosDoStorage } from './gatilhos.js';
-import { migrarEscolaId, migrarClaims, migrarEscolasPublicas, migrarEscolaId1c, ESCOLA_PADRAO } from './escolas.js';
+import { migrarEscolaId, migrarClaims, migrarEscolasPublicas, migrarEscolaId1c, ESCOLA_PADRAO, ESCOLA_PLATAFORMA, normalizarDominio } from './escolas.js';
 import { testarEmail } from './emails.js';
 import { ehOutraEscola, idAvisoGraduacao } from './graduacao-escola.js';
 
@@ -228,6 +228,71 @@ export async function excluirConta(ctx, uid, { porUid = null, porNome = '' } = {
   return r;
 }
 
+// ---------- Exclusão permanente de uma escola (só a plataforma, pelo Mega painel) ----------
+// Para cadastro errado: apaga a escola e TUDO o que é dela — as pessoas (reaproveita
+// excluirConta: login, fotos, perfil, carteirinha, certificados), os núcleos, turmas,
+// presenças, posts, avisos, eventos, campeonatos, pagamentos, materiais, denúncias,
+// auditoria, conversas, o cartão público, o slug e o domínio. É irreversível.
+// Travas de segurança: a escola nº 1 (fundadora) e a "escola" da plataforma NUNCA
+// são apagadas por aqui; e o nome digitado no painel tem de bater (confirmação dupla).
+export async function excluirEscolaDefinitiva(ctx, c, { porUid = null, porNome = '' } = {}) {
+  const id = String(c.escolaId || '').trim();
+  if (!id) throw new Error('Pedido sem a escola a excluir.');
+  if (id === ESCOLA_PADRAO) throw new Error('A escola nº 1 (fundadora) não pode ser excluída por aqui.');
+  if (id === ESCOLA_PLATAFORMA) throw new Error('A conta da plataforma não é uma escola.');
+  const ref = ctx.db.doc(`escolas/${id}`);
+  const se = await ref.get();
+  if (!se.exists) throw new Error('Escola não encontrada (talvez já tenha sido excluída).');
+  const e = se.data();
+  // Confirmação dupla: o nome digitado no painel precisa bater com o da escola.
+  const alvo = String(e.nome || e.nomeCurto || id).trim();
+  if (String(c.confirmacao || '').trim().toLowerCase() !== alvo.toLowerCase()) {
+    throw new Error('O nome digitado não confere com o da escola. Exclusão cancelada.');
+  }
+  const r = { pessoas: 0, nucleos: 0, documentos: 0, colecoes: {} };
+  // 1. Cada pessoa da escola sai pela exclusão de conta (login, fotos, perfil, carteirinha).
+  //    Nunca a conta da plataforma, nunca quem está pedindo a exclusão.
+  await emPaginas(ctx.db.collection('usuarios').where('escolaId', '==', id).orderBy('__name__'), async (d) => {
+    if (d.id === porUid) return;
+    const u = d.data();
+    if (Array.isArray(u.papeis) && u.papeis.includes('plataforma')) return;
+    await excluirConta(ctx, d.id, { porUid, porNome }).catch((err) => (ctx.log || console).warn('excluirEscola/pessoa', d.id, err && err.message));
+    r.pessoas++;
+  });
+  // 2. Todo o resto das coleções da escola (usuarios e perfisPublicos já saíram acima).
+  const colecoes = ['nucleos', 'turmas', 'presencas', 'posts', 'avisos', 'eventos', 'solicitacoes', 'pagamentos', 'campeonatos', 'denuncias', 'stories', 'materiais', 'auditoria', 'conversas', 'fotosCarteirinha'];
+  for (const col of colecoes) {
+    const n = await emPaginas(ctx.db.collection(col).where('escolaId', '==', id).orderBy('__name__'), async (d) => {
+      if (col === 'posts') await apagarSubcolecao(ctx, `posts/${d.id}/comentarios`).catch(() => {});
+      if (col === 'conversas') await apagarSubcolecao(ctx, `conversas/${d.id}/mensagens`).catch(() => {});
+      if (col === 'eventos') await apagarSubcolecao(ctx, `eventos/${d.id}/confirmados`).catch(() => {});
+      await d.ref.delete();
+    });
+    if (n) { r.colecoes[col] = n; r.documentos += n; }
+    if (col === 'nucleos') r.nucleos = n;
+  }
+  // 3. Identidade da escola: cartão público, slug reservado, domínio e o próprio documento.
+  const slug = e.slug || id;
+  await ctx.db.doc(`escolasPublicas/${id}`).delete().catch(() => {});
+  await ctx.db.doc(`escolasSlugs/${slug}`).delete().catch(() => {});
+  const host = normalizarDominio(e.dominio);
+  if (host) {
+    const sd = await ctx.db.doc(`dominios/${host}`).get();
+    if (sd.exists && sd.data().escolaId === id) await ctx.db.doc(`dominios/${host}`).delete().catch(() => {});
+  }
+  // Fotos da escola no Storage (logo, fachada, equipe…) ficam em escolas/<id>/.
+  if (ctx.bucket) { try { await ctx.bucket.deleteFiles({ prefix: `escolas/${id}/` }); } catch (err) { /* ok */ } }
+  await ref.delete();
+  // 4. Auditoria — gravada na "escola" da plataforma, já que a auditoria da própria escola foi apagada.
+  await ctx.db.collection('auditoria').add({
+    escolaId: ESCOLA_PLATAFORMA, quando: new Date().toISOString(), quemUid: porUid, quemNome: porNome,
+    colecao: 'escolas', docId: id, alvoNome: alvo, acao: 'excluiu a escola', campos: [],
+    resumo: `${porNome || 'Plataforma'} excluiu a escola "${alvo}" (${id}): ${r.pessoas} pessoa(s) e ${r.documentos} registro(s).`,
+    antes: null, depois: r,
+  });
+  return r;
+}
+
 // ---------- Pedidos do painel (comandos/{id}) ----------
 // Só vale se quem gravou o pedido é Admin Master (conferido aqui de novo,
 // além das regras do Firestore).
@@ -258,6 +323,9 @@ export async function executarComando(ctx, ev) {
     if (c.tipo === 'excluirConta') {
       if (!c.uid || c.uid === quemUid) throw new Error('Escolha outro atleta (o Admin não exclui a própria conta por aqui).');
       resultado = await excluirConta(ctx, String(c.uid), { porUid: quemUid, porNome: quem.nome || '' });
+    } else if (c.tipo === 'excluirEscola') {
+      // Só a plataforma chega aqui (o portão acima barra o Admin de escola para este tipo).
+      resultado = await excluirEscolaDefinitiva(ctx, c, { porUid: quemUid, porNome: quem.nome || '' });
     } else if (c.tipo === 'recalcularAtleta') {
       const r = await sincronizarPerfil(ctx, String(c.uid), { presencas: true, rede: true, formacao: true });
       resultado = { brasoes: r.dados ? r.dados.brasoesTotal : 0 };
