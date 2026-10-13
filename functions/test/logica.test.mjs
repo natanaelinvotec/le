@@ -230,6 +230,16 @@ test('rotina diária: apaga story vencido e notificação velha', async () => {
   assert.ok(r.perfis >= 6);
 });
 
+test('rotina diária (escala): pula os inativos no recálculo de perfis', async () => {
+  const ini = base();
+  ini.usuarios.nat = { ...ini.usuarios.nat, statusAtual: 'Inativo' };
+  ini.usuarios.kid = { ...ini.usuarios.kid, ativo: false };
+  const { ctx } = ctxDe(ini);
+  const r = await rotinaDiaria(ctx);
+  assert.equal(r.pulados, 2, 'dois inativos pulados (sem recálculo)');
+  assert.equal(r.perfis, Object.keys(ini.usuarios).length, 'todos iterados; só o trabalho dos inativos é poupado');
+});
+
 test('filtro de palavras: pega variações, não pega capoeira nem palavras parecidas', () => {
   assert.deepEqual(termosOfensivos('Que p0rr4 é essa'), ['porra']);
   assert.ok(termosOfensivos('FILHO DA PUTA').length);
@@ -1445,4 +1455,27 @@ test('excluirEscolaDefinitiva: apaga a escola e tudo dela; trava a fundadora e a
   assert.equal(aud.length, 1);
   assert.equal(aud[0].escolaId, '_plataforma');
   assert.equal(aud[0].docId, 'ruim');
+});
+
+
+import { nucleoPublico, aoEscreverNucleoPublico, migrarNucleosPublicos } from '../src/escolas.js';
+test('nucleosPublicos: espelho sanitizado (sem GPS/mensalidade/professor) e some quando inativo', async () => {
+  const { f, ctx } = ctxDe(base({
+    nucleos: {
+      profeta: { nome: 'Academia Mestre Profeta', escolaId: 'liberdade', ativo: true, sede: true, cidade: 'Campo Grande', uf: 'MS', mensalidadeValor: 150, professorUid: 'profeta', professorNome: 'Isaias', lat: -20.4, lng: -54.6 },
+      inativa: { nome: 'Antiga', escolaId: 'liberdade', ativo: false },
+    },
+  }));
+  const pub = nucleoPublico('profeta', f.ler('nucleos/profeta'));
+  assert.equal(pub.nome, 'Academia Mestre Profeta');
+  assert.equal(pub.escolaId, 'liberdade');
+  assert.equal(pub.sede, true);
+  assert.equal(pub.mensalidadeValor, undefined, 'mensalidade NAO vai para o publico');
+  assert.equal(pub.professorUid, undefined, 'professor NAO vai para o publico');
+  assert.equal(pub.lat, undefined, 'GPS NAO vai para o publico');
+  await migrarNucleosPublicos(ctx);
+  assert.ok(f.ler('nucleosPublicos/profeta'), 'nucleo ativo tem cartao publico');
+  assert.equal(f.ler('nucleosPublicos/inativa'), undefined, 'nucleo inativo nao tem cartao');
+  await aoEscreverNucleoPublico(ctx, { params: { id: 'profeta' }, antes: null, depois: { ...f.ler('nucleos/profeta'), ativo: false } });
+  assert.equal(f.ler('nucleosPublicos/profeta'), undefined, 'desativou -> cartao removido');
 });

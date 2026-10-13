@@ -427,10 +427,15 @@ export const historicoAvaliacoes = async (uid) =>
   (await getDocs(query(collection(db, 'usuarios', uid, 'avaliacoes'), orderBy('criadoEm', 'desc')))).docs.map((d) => d.data());
 
 // ===== Núcleos/academias (leitura pública p/ aparecer na inscrição) =====
-// Logado: só os núcleos da própria escola. Na inscrição (sem login), a escola vem do endereço.
+// Inscrição sem login (escolaId vem do link): lê o espelho sanitizado nucleosPublicos
+// (só nome/sede/cidade — sem GPS, mensalidade ou professor). Logado: os núcleos da
+// própria escola, direto de nucleos (as regras exigem login + mesma escola).
 // escolaId: a escola do link de inscrição (inscricao.html?escola=<id>); sem ele, a do login.
-export const listarNucleosAtivos = async (escolaId = null) =>
-  (await getDocs(query(collection(db, 'nucleos'), ...(escolaId ? [where('escolaId', '==', escolaId)] : await ondeEscola()), where('ativo', '==', true)))).docs.map((d) => ({ id: d.id, ...d.data() }));
+export const listarNucleosAtivos = async (escolaId = null) => {
+  const col = escolaId ? 'nucleosPublicos' : 'nucleos';
+  const filtros = escolaId ? [where('escolaId', '==', escolaId)] : await ondeEscola();
+  return (await getDocs(query(collection(db, col), ...filtros, where('ativo', '==', true)))).docs.map((d) => ({ id: d.id, ...d.data() }));
+};
 
 // ===== Solicitações (mestre/professor → admin; e aluno → mestre/admin no
 // caso de vínculo de parentesco) =====

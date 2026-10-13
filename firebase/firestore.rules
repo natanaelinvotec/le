@@ -255,13 +255,16 @@ return request.resource.data.keys().hasOnly(['videoUrl', 'inicioNome', 'titulo',
 && request.resource.data.videoUrl.size() < 1500
 && (request.resource.data.videoUrl.matches('https://.*') || request.resource.data.videoUrl.matches('apresentacoes/.*'));
 }
-allow read: if request.auth != null;
+// Leitura só mesma-escola (antes era qualquer logado — vazava vídeo entre escolas).
+allow read: if request.auth != null && (ehPlataforma() || perfilDela().get('escolaId', '') == minhaEscola());
 allow create, update: if request.auth != null && podeEditar() && dadosValidos();
 allow delete: if request.auth != null && podeEditar();
 }
 
 match /nucleos/{id} {
-allow read: if true;
+// Leitura fechada: logado e da própria escola (o doc tem GPS, mensalidade e professor).
+// A inscrição sem login lê nucleosPublicos/{id} (espelho sanitizado, logo abaixo).
+allow read: if logado() && (daMinhaEscola() || ehPlataforma());
 // O Fundador cuida dos núcleos da PRÓPRIA escola e não muda a escola de um núcleo
 // (os alunos herdam a escola pelo núcleo). Ligar núcleo a outra escola: só o Admin.
 // Auditoria 08/10: sem escolaId o servidor etiquetava o núcleo como da escola nº 1 — o Fundador
@@ -269,6 +272,13 @@ allow read: if true;
 allow create: if ehPlataforma() || (souFundador() && request.resource.data.get('escolaId', '') == minhaEscola());
 allow update: if ehPlataforma() || (souFundador() && resource.data.get('escolaId', '') == minhaEscola() && escolaInalterada());
 allow delete: if ehPlataforma() || (souFundador() && resource.data.get('escolaId', '') == minhaEscola());
+}
+
+// Cartão público de cada núcleo ativo (só nome/sede/cidade/UF): a inscrição sem login
+// usa para montar o seletor de núcleo. Só o servidor escreve (functions/src/escolas.js).
+match /nucleosPublicos/{id} {
+allow read: if true;
+allow write: if false;
 }
 
 // ===== Turmas por arte marcial (v37) =====

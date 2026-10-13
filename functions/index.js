@@ -20,7 +20,7 @@ import { aoEscreverFotoCarteirinha, sincronizarCarteirinha } from './src/carteir
 import { processarLembretes } from './src/certificado.js';
 import { processarAniversarios } from './src/aniversarios.js';
 import { aoEscreverCampeonato } from './src/campeonatos.js';
-import { comEscola, aoEscreverEscola } from './src/escolas.js';
+import { comEscola, aoEscreverEscola, aoEscreverNucleoPublico } from './src/escolas.js';
 import { aoAtivarEscola } from './src/ativacao.js';
 import { atenderPedidoEmail, aoEscreverSegredo } from './src/emails.js';
 import { otimizarImagens } from './src/imagens.js';
@@ -63,7 +63,12 @@ export const eventoEscrito = onDocumentWrittenWithAuthContext('eventos/{id}', se
 export const denunciaCriada = onDocumentCreated('denuncias/{id}', seguro('denuncia', (e) => comEscola('denuncias', G.aoCriarDenuncia)(ctxBase(), evCriado(e))));
 export const solicitacaoEscrita = onDocumentWrittenWithAuthContext('solicitacoes/{id}', seguro('solicitacao', (e) => comEscola('solicitacoes', G.aoEscreverSolicitacao)(ctxBase(), ev(e))));
 export const pagamentoEscrito = onDocumentWrittenWithAuthContext('pagamentos/{id}', seguro('pagamento', (e) => comEscola('pagamentos', G.aoEscreverPagamento)(ctxBase(), ev(e))));
-export const nucleoEscrito = onDocumentWrittenWithAuthContext('nucleos/{id}', seguro('nucleo', (e) => comEscola('nucleos', G.aoEscreverNucleo)(ctxBase(), ev(e))));
+export const nucleoEscrito = onDocumentWrittenWithAuthContext('nucleos/{id}', seguro('nucleo', async (e) => {
+  const ctx = ctxBase(); const evento = ev(e);
+  await comEscola('nucleos', G.aoEscreverNucleo)(ctx, evento);
+  // Cartão público sanitizado do núcleo (só nome/sede/cidade) para a inscrição sem login.
+  await aoEscreverNucleoPublico(ctx, evento);
+}));
 export const fotoCarteirinhaEscrita = onDocumentWrittenWithAuthContext('fotosCarteirinha/{uid}', seguro('fotoCarteirinha', (e) => comEscola('fotosCarteirinha', aoEscreverFotoCarteirinha)(ctxBase(), ev(e))));
 // Pai, mãe, irmãos e avós do atleta: o servidor gera/remove o código de cada um.
 export const beneficiariosEscritos = onDocumentWrittenWithAuthContext('beneficiarios/{uid}', seguro('beneficiarios', (e) => sincronizarCarteirinha(ctxBase(), e.params.uid)));

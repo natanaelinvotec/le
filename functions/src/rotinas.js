@@ -5,7 +5,7 @@ import { sincronizarCarteirinha, apagarCarteirinha, temCarteirinha } from './car
 import { apagarCertificados, conferirCertificados, cancelarCertificado, cancelarAcimaDe, idAvisoCordao, alinharAoCordaoAtual } from './certificado.js';
 import { notificar, gestoresDoNucleo } from './notificar.js';
 import { responsaveisDe, apagarSubcolecao, apagarArquivosDoStorage } from './gatilhos.js';
-import { migrarEscolaId, migrarClaims, migrarEscolasPublicas, migrarEscolaId1c, ESCOLA_PADRAO, ESCOLA_PLATAFORMA, normalizarDominio } from './escolas.js';
+import { migrarEscolaId, migrarClaims, migrarEscolasPublicas, migrarEscolaId1c, migrarNucleosPublicos, ESCOLA_PADRAO, ESCOLA_PLATAFORMA, normalizarDominio } from './escolas.js';
 import { testarEmail } from './emails.js';
 import { ehOutraEscola, idAvisoGraduacao } from './graduacao-escola.js';
 
@@ -28,7 +28,7 @@ async function emPaginas(consulta, fn, tamanho = 300) {
 // ---------- Todo dia de madrugada ----------
 export async function rotinaDiaria(ctx) {
   const agora = Date.now();
-  const r = { storiesApagados: 0, notificacoesApagadas: 0, auditoriaApagada: 0, perfis: 0, conversas: 0 };
+  const r = { storiesApagados: 0, notificacoesApagadas: 0, auditoriaApagada: 0, perfis: 0, pulados: 0, conversas: 0 };
   // 1. Stories vencidos há mais de 1 dia: apaga o documento e a foto.
   const velhos = await ctx.db.collection('stories').where('expiraEm', '<', new Date(agora - DIA).toISOString()).limit(300).get();
   for (const d of velhos.docs) {
@@ -47,6 +47,10 @@ export async function rotinaDiaria(ctx) {
   //    mensalidade lançada hoje no núcleo muda a regra de todos os alunos dele).
   r.carteirinhas = 0;
   r.perfis = await emPaginas(ctx.db.collection('usuarios').orderBy('__name__'), async (d) => {
+    // Escala: pula quem está inativo. O perfil de um inativo não muda com o calendário
+    // (não treina); ao ser reativado, a escrita no cadastro dispara o recálculo pelo gatilho.
+    const dd = d.data();
+    if (dd.statusAtual === 'Inativo' || dd.ativo === false) { r.pulados++; return; }
     await sincronizarPerfil(ctx, d.id, { presencas: true, compromisso: true, formacao: true }).catch(() => null); // presenças, mensalidades e tempo de grupo mudam com o calendário; formação só consulta para quem gerencia núcleo
     if (temCarteirinha(d.data())) { await sincronizarCarteirinha(ctx, d.id).then(() => { r.carteirinhas++; }).catch(() => null); }
     // Certificados de cordão (escada da capoeira) são só da escola nº 1; as outras escolas têm
@@ -143,6 +147,8 @@ export const MIGRACOES = [
   ['m8_escola_id', migrarEscolaId],
   // Cartão público de cada escola ativa (escolasPublicas) + domínios próprios (dominios/{host}).
   ['m10_escolas_publicas', migrarEscolasPublicas],
+  // Cartão público sanitizado de cada núcleo (nucleosPublicos) para a inscrição sem login.
+  ['m12_nucleos_publicos', migrarNucleosPublicos],
   // 1c parte 3: auditoria, conversas e fotos de carteirinha ganham escola (o Fundador vê só a dele).
   ['m11_escola_id_1c', migrarEscolaId1c],
   // Login de cada pessoa com escola e papéis (custom claims). Por último: se faltar permissão, só ela fica pendente.

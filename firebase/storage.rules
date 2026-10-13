@@ -48,7 +48,8 @@ service firebase.storage {
     // Grava a própria pessoa (inscrição, Meus dados, Rede), o Admin/Fundador,
     // o responsável do núcleo onde ela treina e o instrutor dela (painel). Só logado vê.
     match /fotos/{uid}/{arquivo} {
-      allow get: if request.auth != null;
+      // Só mesma-escola (plataforma vê tudo). Antes qualquer logado abria foto de outra escola.
+      allow get: if request.auth != null && (souAdmin() || mesmaEscola(uid));
       allow write: if request.auth != null && imagem(1)
                    && (request.auth.uid == uid || souAdminOuFundadorDe(uid) || gerenciaNucleoDe(uid) || souInstrutorDe(uid));
       allow delete: if request.auth != null
@@ -100,7 +101,8 @@ service firebase.storage {
 
     // Apresentações em vídeo (Instrutor/Professor/Mestre): apresentacoes/<uid>/.
     match /apresentacoes/{uid}/{arquivo} {
-      allow get: if request.auth != null;
+      // Só mesma-escola (plataforma vê tudo). Antes qualquer logado abria vídeo de outra escola.
+      allow get: if request.auth != null && (souAdmin() || mesmaEscola(uid));
       allow write: if request.auth != null
                    && request.resource.contentType.matches('video/.*')
                    && request.resource.size < 20 * 1024 * 1024

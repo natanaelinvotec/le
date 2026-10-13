@@ -339,3 +339,35 @@ export async function aoEscreverEscola(ctx, ev) {
 export async function migrarEscolasPublicas(ctx) {
   return emLotes(ctx.db.collection('escolas').orderBy('__name__'), async (d) => !!(await aoEscreverEscola(ctx, { params: { id: d.id }, antes: null, depois: d.data() })));
 }
+
+// ---------- Cartão público de cada núcleo (nucleosPublicos/{id}) ----------
+// nucleos/{id} tem GPS, valor de mensalidade e o nome do professor — leitura fechada
+// (logado + mesma escola). A inscrição pública (sem login) precisa só do nome e se é sede
+// para montar o seletor de núcleo; o servidor copia esse mínimo, campo a campo, para
+// nucleosPublicos/{id} (leitura pública) enquanto o núcleo estiver ATIVO. Inativo: some.
+export function nucleoPublico(id, n) {
+  if (!n || n.ativo !== true || !n.escolaId) return null;
+  return {
+    id,
+    nome: TEXTO(n.nome, 80),
+    escolaId: TEXTO(n.escolaId, 40),
+    sede: n.sede === true,
+    cidade: TEXTO(n.cidade, 60),
+    uf: TEXTO(n.uf, 2),
+    ativo: true,
+    atualizadoEm: new Date().toISOString(),
+  };
+}
+
+export async function aoEscreverNucleoPublico(ctx, ev) {
+  const id = ev.params && Object.values(ev.params)[0];
+  if (!id) return null;
+  const pub = nucleoPublico(id, ev.depois);
+  if (pub) await ctx.db.doc(`nucleosPublicos/${id}`).set(pub);
+  else await ctx.db.doc(`nucleosPublicos/${id}`).delete().catch(() => {});
+  return pub;
+}
+
+export async function migrarNucleosPublicos(ctx) {
+  return emLotes(ctx.db.collection('nucleos').orderBy('__name__'), async (d) => !!(await aoEscreverNucleoPublico(ctx, { params: { id: d.id }, antes: null, depois: d.data() })));
+}
