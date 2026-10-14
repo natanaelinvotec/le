@@ -154,14 +154,25 @@ service firebase.storage {
       allow delete: if request.auth != null && (request.auth.uid == uid || souAdmin() || (souAdminDaEscola() && mesmaEscola(uid)));
     }
 
-    // Fotos do site público (painel "Gerenciar o site"): qualquer um vê,
-    // só o Admin Master grava/apaga. Até 2 MB (o painel já comprime para ~250 KB).
+    // Fotos ANTIGAS do site (site/<arquivo>): links já gravados continuam abrindo.
+    // Uploads novos vão para site/<uid>/ (abaixo). Mantém a gravação por claim como
+    // reserva, mas o painel não usa mais este caminho.
     match /site/{arquivo} {
       allow read: if true;
-      allow write: if request.auth != null && imagem(2)
-                   && adminDoSite();
-      allow delete: if request.auth != null
-                    && adminDoSite();
+      allow write: if request.auth != null && imagem(2) && adminDoSite();
+      allow delete: if request.auth != null && adminDoSite();
+    }
+
+    // Fotos NOVAS do site (painel "Gerenciar o site"): cada pessoa grava só na
+    // PRÓPRIA pasta site/<uid>/, conferindo só o login (request.auth.uid == uid) —
+    // SEM leitura cruzada Storage→Firestore e SEM depender de custom claim (que pode
+    // estar desatualizado). Mesmo padrão do onboarding/ (que já funciona). Qualquer
+    // um lê (a foto só aparece no site se o Admin gravar a URL em siteConteudo, e
+    // essa gravação é conferida pelas regras do Firestore). Até 2 MB.
+    match /site/{uid}/{arquivo} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == uid && imagem(2);
+      allow delete: if request.auth != null && request.auth.uid == uid;
     }
 
     // Tudo o que não está listado acima: fechado.

@@ -12,7 +12,7 @@ Antes de cada publicação a versão no ar é copiada para siteConteudo/site-ant
 
 import {
   db, storage, doc, getDoc, setDoc, collection, getDocs, storageRef, uploadBytes, getDownloadURL,
-  observarSessao, entrar, sair, buscar, recuperarSenha, listar,
+  observarSessao, entrar, sair, buscar, recuperarSenha, listar, meuUid,
 } from './firebase.js';
 import { SITE_PADRAO } from './site-padrao.js?v=20261006';
 import { mesclar, url as urlSegura, urlLink, urlSite, esc, hojeLocal } from './site-render.js?v=20261006';
@@ -270,7 +270,13 @@ async function enviarFotoDoSite(arq, { larga, png, quadrada }) {
   if (arq.size > 25 * 1024 * 1024) throw new Error('Imagem muito grande (máx. 25 MB).');
   const img = await prepararImagem(arq, quadrada ? 'siteQuadrada' : larga ? 'siteLarga' : png ? 'sitePng' : 'site');
   if (img.bytes > 2 * 1024 * 1024) throw new Error('Mesmo comprimida a imagem passou de 2 MB — use uma foto menor.');
-  const nome = `site/${new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14)}-${Math.random().toString(36).slice(2, 8)}.${img.ext}`;
+  // Foto do site vai para a pasta do próprio Admin (site/<uid>/…), como o onboarding/:
+  // a regra do Storage confere só o login (request.auth.uid == uid), sem leitura
+  // cruzada Storage→Firestore nem depender de custom claim (que pode estar velho).
+  // Só a URL que o Admin grava em siteConteudo (regra do Firestore) aparece no site.
+  const uid = meuUid();
+  if (!uid) throw new Error('Sessão expirada — entre de novo para enviar as fotos.');
+  const nome = `site/${uid}/${new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14)}-${Math.random().toString(36).slice(2, 8)}.${img.ext}`;
   const r = storageRef(storage, nome);
   await uploadBytes(r, img.blob(), { contentType: img.tipo, cacheControl: 'public,max-age=31536000' });
   return getDownloadURL(r);
