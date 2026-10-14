@@ -14,7 +14,16 @@ service firebase.storage {
     function souAdmin() { return 'plataforma' in perfilDe(request.auth.uid).get('papeis', []); }
     function souAdminDaEscola() { return 'admin' in perfilDe(request.auth.uid).get('papeis', []); }
     function mesmaEscola(uid) { return perfilDe(uid).get('escolaId', '-') == perfilDe(request.auth.uid).get('escolaId', ''); }
-    function adminDoSite() { return souAdmin() || (souAdminDaEscola() && perfilDe(request.auth.uid).get('escolaId', '') == 'liberdade'); }
+    // Autoriza pelo CUSTOM CLAIM do token (papeis/escolaId gravados no login —
+    // functions/src/escolas.js, CAMPOS_DOS_CLAIMS), SEM leitura cruzada
+    // Storage→Firestore. Essa leitura cruzada (firestore.get) negava o upload das
+    // fotos do site com storage/unauthorized — a mesma correção já feita no
+    // onboarding/ (linhas acima). O firestore.rules usa os mesmos claims.
+    function adminDoSite() {
+      return request.auth != null
+          && ('plataforma' in request.auth.token.get('papeis', [])
+              || ('admin' in request.auth.token.get('papeis', []) && request.auth.token.get('escolaId', '') == 'liberdade'));
+    }
     // Fundador (acessoGeral) só vale DENTRO da própria escola (auditoria 08/10: antes o
     // dono de qualquer escola da AtletaPay alcançava fotos e documentos de todas as escolas).
     function souFundadorDe(uid) {
