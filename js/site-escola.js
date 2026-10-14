@@ -1,16 +1,16 @@
-/* site-escola.js — gerador de site público multi-escola (Fase 4.1, PRODUÇÃO).
+/* site-escola.js — gerador de site público multi-escola (Fase 4.2, PRODUÇÃO).
  *
  * Servido em atletapay.com.br/<escola> (e em domínio próprio da escola). Monta
- * um site de apresentação bonito a partir do que a escola publica, SÓ de dados
- * PÚBLICOS do Firestore (leitura anônima, nunca login, nunca coleção privada):
+ * um site de apresentação cinematográfico a partir do que a escola publica, SÓ de
+ * dados PÚBLICOS do Firestore (leitura anônima, nunca login, nunca coleção privada):
  *   - escolasPublicas/{id}     (allow read: if true) — identidade da escola.
  *   - nucleosPublicos (escolaId==id, ativo==true)     — nomes dos núcleos.
  *
  * A escola vem do ENDEREÇO (atletapay.com.br/<escola>) e, se não, do domínio
  * próprio — nunca do login (site público; resolverEscolaId é login-first, errado
- * aqui). Motor visual (9 templates + motion) portado de f41-preview.html; aqui
- * ele lê dado real e degrada com elegância quando falta coisa. Toda string passa
- * por esc() e todo link/foto por url() — o site nunca confia no que está gravado.
+ * aqui). Camada visual elevada (hero cinematográfico, claro/escuro, ladder animada)
+ * sobre a mesma camada de dados. Motifs SVG bespoke por modalidade. Toda string
+ * passa por esc() e todo link/foto por url() — o site nunca confia no que está gravado.
  */
 import { db, doc, getDoc, getDocs, collection, query, where } from './firebase.js';
 import { escolaIdDoEndereco, escolaIdDoDominio } from './escola-atual.js';
@@ -18,15 +18,12 @@ import { escolaIdDoEndereco, escolaIdDoDominio } from './escola-atual.js';
 /* ========================================================================== */
 /*  Utilidades seguras                                                        */
 /* ========================================================================== */
-// esc() endurecido: escapa também aspas, porque o mesmo texto entra tanto no
-// corpo quanto em atributos (href, alt, src). Superset do esc() da pré-visualização.
 function esc(v){
   return String(v == null ? '' : v).replace(/[&<>"']/g, function(c){
     return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
   });
 }
-// url(): só aceita caminho do próprio site (assets/...) ou https://. Nada de
-// javascript:, data:, http:// sem TLS, etc. (mesma política de js/site-render.js).
+// url(): só caminho do próprio site (assets/...) ou https://. Nada de javascript:, data:, http://.
 function url(u){
   var s = String(u == null ? '' : u).trim();
   if(!s) return '';
@@ -36,218 +33,36 @@ function url(u){
 }
 
 /* ========================================================================== */
-/*  MOTION LAYER (portado da pré-visualização)                                */
-/* ========================================================================== */
-var Motion = (function(global){
-  "use strict";
-  var REDUCE_Q = (global.matchMedia && global.matchMedia("(prefers-reduced-motion: reduce)")) || null;
-  function reduced(){ return !!(REDUCE_Q && REDUCE_Q.matches); }
-
-  var EASE = "cubic-bezier(0.23, 1, 0.32, 1)"; /* --ease-out */
-  var hasRendered = false;
-  var token = 0;
-  var timers = [];
-
-  function clearTimers(){ for(var i=0;i<timers.length;i++){ clearTimeout(timers[i]); } timers = []; }
-  function later(fn, ms){ timers.push(setTimeout(fn, ms)); }
-
-  function restRest(el){
-    if(!el) return;
-    el.style.transition = "";
-    el.style.transform = "";
-    el.style.opacity = "";
-    el.style.willChange = "";
-  }
-
-  function snapshot(container){
-    container = container || document.getElementById("site");
-    if(!container || reduced()) return;
-    var host = container.parentNode;
-    if(!host) return;
-    removeOverlay(container);
-    try{
-      container.classList.add("motion-root");
-      var ov = document.createElement("div");
-      ov.className = "container motion-overlay";
-      ov.setAttribute("data-motion-overlay", "1");
-      ov.setAttribute("aria-hidden", "true");
-      var inline = container.getAttribute("style");
-      if(inline) ov.setAttribute("style", inline + ";position:absolute;top:0;left:0;right:0;z-index:40;pointer-events:none");
-      ov.innerHTML = container.innerHTML;
-      host.appendChild(ov);
-    }catch(e){ /* non-fatal */ }
-  }
-
-  function removeOverlay(container){
-    if(!container) return;
-    var scope = container.parentNode || container;
-    var olds = scope.querySelectorAll("[data-motion-overlay]");
-    for(var i=0;i<olds.length;i++){ if(olds[i].parentNode) olds[i].parentNode.removeChild(olds[i]); }
-  }
-
-  function fadeOverlayOut(container, dur){
-    var scope = container.parentNode || container;
-    var ov = scope.querySelector("[data-motion-overlay]");
-    if(!ov) return;
-    ov.style.transition = "opacity " + dur + "ms " + EASE + ", transform " + dur + "ms " + EASE;
-    requestAnimationFrame(function(){
-      ov.style.opacity = "0";
-      ov.style.transform = "scale(1.012)";
-    });
-    later(function(){ removeOverlay(container); }, dur + 90);
-  }
-
-  function blocks(container){
-    var out = [];
-    var kids = container.children;
-    for(var i=0;i<kids.length;i++){ if(!kids[i].hasAttribute("data-motion-overlay")) out.push(kids[i]); }
-    return out;
-  }
-
-  function prime(el, y){
-    el.style.transition = "none";
-    el.style.willChange = "transform, opacity";
-    el.style.opacity = "0";
-    el.style.transform = "translate3d(0," + y + "px,0)";
-  }
-  function release(el, dur, delay){
-    el.style.transition =
-      "opacity " + dur + "ms " + EASE + " " + delay + "ms, " +
-      "transform " + dur + "ms " + EASE + " " + delay + "ms";
-    el.style.opacity = "";
-    el.style.transform = "";
-  }
-
-  function growBelts(container, baseDelay){
-    var belts = container.querySelectorAll(".belt-track");
-    var step = 70, dur = 560;
-    for(var i=0;i<belts.length;i++){
-      (function(el, i){
-        el.style.transition = "none";
-        el.style.willChange = "transform, opacity";
-        el.style.transformOrigin = "left center";
-        el.style.opacity = ".25";
-        el.style.transform = "scaleX(.08)";
-        void el.offsetWidth;
-        var d = baseDelay + 120 + i * step;
-        el.style.transition =
-          "opacity " + dur + "ms " + EASE + " " + d + "ms, " +
-          "transform " + dur + "ms " + EASE + " " + d + "ms";
-        el.style.opacity = "";
-        el.style.transform = "";
-      })(belts[i], i);
-    }
-    var cord = container.querySelector(".cordao");
-    if(cord){
-      cord.style.transition = "none";
-      cord.style.willChange = "transform, opacity";
-      cord.style.transformOrigin = "left center";
-      cord.style.opacity = ".2";
-      cord.style.transform = "scaleX(.2)";
-      void cord.offsetWidth;
-      var cd = baseDelay + 120;
-      cord.style.transition =
-        "opacity " + 620 + "ms " + EASE + " " + cd + "ms, " +
-        "transform " + 620 + "ms " + EASE + " " + cd + "ms";
-      cord.style.opacity = "";
-      cord.style.transform = "";
-    }
-  }
-
-  function enter(container){
-    container = container || document.getElementById("site");
-    if(!container) return;
-    container.classList.add("motion-root");
-
-    token++;
-    var mine = token;
-    clearTimers();
-
-    var kids = blocks(container);
-
-    if(reduced()){
-      removeOverlay(container);
-      for(var r=0;r<kids.length;r++) restRest(kids[r]);
-      var bl = container.querySelectorAll(".belt-track, .cordao");
-      for(var b=0;b<bl.length;b++) restRest(bl[b]);
-      hasRendered = true;
-      return;
-    }
-
-    var isSwitch = hasRendered;
-    hasRendered = true;
-
-    var dur = isSwitch ? 440 : 600;
-    var step = isSwitch ? 48 : 70;
-    var fromY = isSwitch ? 10 : 16;
-
-    for(var i=0;i<kids.length;i++) prime(kids[i], fromY);
-    void container.offsetWidth;
-
-    var gradIndex = -1;
-    for(var j=0;j<kids.length;j++){
-      release(kids[j], dur, j * step);
-      if(gradIndex < 0 && kids[j].querySelector &&
-         kids[j].querySelector(".belt-track, .cordao")){
-        gradIndex = j;
-      }
-    }
-
-    if(gradIndex >= 0) growBelts(container, gradIndex * step);
-
-    fadeOverlayOut(container, 320);
-
-    var total = (kids.length * step) + dur + 700 + 60;
-    later(function(){
-      if(mine !== token) return;
-      for(var k=0;k<kids.length;k++) restRest(kids[k]);
-      var done = container.querySelectorAll(".belt-track, .cordao");
-      for(var d=0;d<done.length;d++){
-        done[d].style.transition = "";
-        done[d].style.willChange = "";
-        done[d].style.transform = "";
-        done[d].style.opacity = "";
-        done[d].style.transformOrigin = "";
-      }
-    }, total);
-  }
-
-  return { enter: enter, snapshot: snapshot };
-})(window);
-
-/* ========================================================================== */
 /*  Vocabulário por modalidade / template                                     */
 /* ========================================================================== */
 var VOCAB = {
-  capoeira:{ saudacao:"Salve!", local:"roda", luta:"jogo", treino:"treino", artigo:"A", nomeMod:"Capoeira" },
+  capoeira:{ saudacao:"Axé!", local:"roda", luta:"jogo", treino:"treino", artigo:"A", nomeMod:"Capoeira" },
   jiujitsu:{ saudacao:"Oss!",   local:"tatame", luta:"rola", treino:"treino", artigo:"O", nomeMod:"Jiu-jitsu" },
   judo:{ saudacao:"Oss!", local:"tatame", luta:"randori", treino:"treino", artigo:"O", nomeMod:"Judô" },
   karate:{ saudacao:"Oss!", local:"dojo", luta:"kumite", treino:"treino", artigo:"O", nomeMod:"Karatê" },
   taekwondo:{ saudacao:"Taekwon!", local:"dojang", luta:"kyorugi", treino:"treino", artigo:"O", nomeMod:"Taekwondo" },
-  muaythai:{ saudacao:"Sawasdee!", local:"ringue", luta:"sparring", treino:"treino", artigo:"O", nomeMod:"Muay Thai" },
-  boxe:{ saudacao:"Bom treino!", local:"ringue", luta:"sparring", treino:"treino", artigo:"O", nomeMod:"Boxe" },
-  mma:{ saudacao:"Bom treino!", local:"octógono", luta:"sparring", treino:"treino", artigo:"O", nomeMod:"MMA" },
+  muaythai:{ saudacao:"Chók!", local:"ringue", luta:"sparring", treino:"treino", artigo:"O", nomeMod:"Muay Thai" },
+  boxe:{ saudacao:"Vamos!", local:"ringue", luta:"sparring", treino:"treino", artigo:"O", nomeMod:"Boxe" },
+  mma:{ saudacao:"Vamos!", local:"octógono", luta:"sparring", treino:"treino", artigo:"O", nomeMod:"MMA" },
   arena:{ saudacao:"Bem-vindo", local:"academia", luta:"treino", treino:"treino", artigo:"A", nomeMod:"Artes marciais" }
 };
 
-// Modalidade → template padrão (quando a escola não escolheu um). Fora deste mapa: arena.
 var MOD_TEMPLATE = {
   capoeira:"capoeira", jiujitsu:"jiujitsu", judo:"judo", karate:"karate",
   taekwondo:"taekwondo", muaythai:"muaythai", boxe:"boxe", mma:"mma"
 };
-// Líder e peça de graduação por modalidade (fallback quando o cartão não traz).
 var LIDER = { capoeira:"Mestre", jiujitsu:"Professor", judo:"Sensei", karate:"Sensei",
   taekwondo:"Sabom", muaythai:"Kru", boxe:"Treinador", mma:"Coach" };
 var PECA = { capoeira:"cordão", jiujitsu:"faixa", judo:"faixa", karate:"faixa",
   taekwondo:"faixa", muaythai:"prajied", boxe:"nível", mma:"nível" };
 
 function templateDe(tpl, modalidade){
-  if(tpl && VOCAB[tpl]) return tpl;               // escola escolheu um dos 9 templates válidos
-  return MOD_TEMPLATE[modalidade] || "arena";     // senão, o da modalidade; senão, arena
+  if(tpl && VOCAB[tpl]) return tpl;
+  return MOD_TEMPLATE[modalidade] || "arena";
 }
 
 /* ========================================================================== */
-/*  Helpers de renderização (portados)                                        */
+/*  Helpers                                                                   */
 /* ========================================================================== */
 function readable(hex){
   var c = String(hex || "").replace('#','');
@@ -258,6 +73,16 @@ function readable(hex){
   return L>0.62 ? '#14181f' : '#ffffff';
 }
 function isLight(hex){ return readable(hex)!=='#ffffff'; }
+// Clareia (amt>0) ou escurece (amt<0) um hex. Fora de faixa: devolve o próprio hex.
+function shade(hex, amt){
+  var c=String(hex||'').replace('#',''); if(c.length===3)c=c[0]+c[0]+c[1]+c[1]+c[2]+c[2];
+  var r=parseInt(c.slice(0,2),16), g=parseInt(c.slice(2,4),16), b=parseInt(c.slice(4,6),16);
+  if(isNaN(r)||isNaN(g)||isNaN(b)) return hex;
+  var f=1+amt;
+  function cl(x){ return Math.max(0,Math.min(255,Math.round(x*f))); }
+  function h2(x){ var s=x.toString(16); return s.length<2?'0'+s:s; }
+  return '#'+h2(cl(r))+h2(cl(g))+h2(cl(b));
+}
 function initials(nomeCurto){
   nomeCurto = String(nomeCurto || '');
   var skip={e:1,de:1,da:1,do:1,dos:1,das:1};
@@ -277,19 +102,59 @@ function plural(n,s,p){ return n+' '+(n===1?s:p); }
 /*  Ícones (svg inline)                                                       */
 /* ========================================================================== */
 var IC = {
-  pin:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
-  users:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13A4 4 0 0 1 16 11"/></svg>',
-  badge:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M8.5 12.5 7 22l5-3 5 3-1.5-9.5"/></svg>',
-  star:'<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.6 6.1 21.3l1.2-6.6L2.5 9.5l6.6-.9L12 2.5z"/></svg>',
-  info:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>',
-  ig:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/></svg>',
-  arrow:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
-  app:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>'
+  pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
+  users:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13A4 4 0 0 1 16 11"/></svg>',
+  badge:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M8.5 12.5 7 22l5-3 5 3-1.5-9.5"/></svg>',
+  star:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.6 6.1 21.3l1.2-6.6L2.5 9.5l6.6-.9L12 2.5z"/></svg>',
+  info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>',
+  ig:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/></svg>',
+  arrow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+  app:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>',
+  user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>'
 };
+var SUN_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>';
+var MOON_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
 
 /* ========================================================================== */
-/*  Motivos do hero (svg gerado) — cores inlined como hex real (SVG não        */
-/*  resolve var() em atributos de apresentação).                               */
+/*  Tema claro/escuro (preferência do visitante, persistida)                  */
+/* ========================================================================== */
+function effectiveDark(){
+  var t = document.documentElement.getAttribute('data-theme');
+  if(t==='dark') return true;
+  if(t==='light') return false;
+  return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+}
+function paintToggles(){
+  var bs = document.querySelectorAll('.theme-toggle');
+  for(var i=0;i<bs.length;i++){ bs[i].innerHTML = effectiveDark() ? SUN_ICON : MOON_ICON; }
+}
+function applyTheme(mode){
+  document.documentElement.setAttribute('data-theme', mode);
+  try{ localStorage.setItem('ap-tema', mode); }catch(e){ /* navegador sem storage */ }
+  paintToggles();
+}
+function initTheme(){
+  var m=null; try{ m=localStorage.getItem('ap-tema'); }catch(e){ m=null; }
+  if(m==='dark'||m==='light') document.documentElement.setAttribute('data-theme', m);
+}
+
+/* ========================================================================== */
+/*  Entrada (IntersectionObserver)                                            */
+/* ========================================================================== */
+function observeAnim(root){
+  var els = root.querySelectorAll('.anim');
+  if(!('IntersectionObserver' in window) || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)){
+    for(var i=0;i<els.length;i++) els[i].classList.add('in');
+    return;
+  }
+  var io = new IntersectionObserver(function(ents){
+    ents.forEach(function(x){ if(x.isIntersecting){ x.target.classList.add('in'); io.unobserve(x.target); } });
+  }, { threshold:0.12, rootMargin:'0px 0px -8% 0px' });
+  for(var j=0;j<els.length;j++) io.observe(els[j]);
+}
+
+/* ========================================================================== */
+/*  Motivos do hero (svg gerado, bespoke por modalidade)                      */
 /* ========================================================================== */
 function motif(template, c){
   var ED=c.destaque, EB=c.botao;
@@ -414,7 +279,7 @@ function motif(template, c){
       +'<circle cx="420" cy="200" r="15" fill="none" stroke="'+EB+'" stroke-width="2" stroke-opacity=".7"/>'
       +'</svg>';
   }
-  // arena: neutro geométrico — quadrados concêntricos girados + linhas radiais
+  // arena: neutro geométrico
   var sq='';
   for(var i=1;i<=7;i++){
     var s=i*46;
@@ -431,7 +296,7 @@ function motif(template, c){
 }
 
 /* ========================================================================== */
-/*  Builders de seção (portados, agora lendo o objeto school mapeado)         */
+/*  Builders de seção                                                         */
 /* ========================================================================== */
 function sobreCopy(s, tpl, v){
   if(tpl==='capoeira'){
@@ -443,142 +308,174 @@ function sobreCopy(s, tpl, v){
   return esc(s.nome)+' conduz cada '+v.treino+' com método e atenção individual. O '+esc(s.lider)+' acompanha a evolução de quem está começando e de quem já treina há tempo, em um ambiente organizado e acolhedor. Fica em '+esc(s.cidade)+' — '+esc(s.uf)+', com espaço para todas as idades.';
 }
 
-function gradSection(s, tpl, v){
-  var inner;
+function ladderInner(s, v){
   var pecaCap = esc(s.peca.charAt(0).toUpperCase()+s.peca.slice(1));
   if(s.escada && s.escada.length){
+    var n = s.escada.length;
     var rows = s.escada.map(function(b,j){
-      var lite = isLight(b.cor) ? ' lite' : '';
-      return '<div class="belt" style="--bc:'+esc(b.cor)+';--j:'+j+'">'
-        +'<div class="belt-track'+lite+'"><span class="belt-tip"></span></div>'
-        +'<div class="belt-name">'+pecaCap+' '+esc(b.nome)+'<small>Etapa '+(j+1)+'</small></div>'
+      var cor = b.cor;
+      var fill = 'linear-gradient(90deg,'+esc(cor)+','+esc(shade(cor,-0.28))+')';
+      var lite = isLight(cor) ? ' lite' : '';
+      var w = Math.round(34 + (n>1 ? (j/(n-1)) : 0)*62);
+      return '<div class="rung" style="--j:'+j+'">'
+        +'<span class="st">'+(j+1<10?'0':'')+(j+1)+'</span>'
+        +'<span class="bar"><span class="fill'+lite+'" style="background:'+fill+';width:'+w+'%"></span></span>'
+        +'<span class="lbl">'+pecaCap+' '+esc(b.nome)+'<small>Etapa '+(j+1)+'</small></span>'
         +'</div>';
     }).join('');
-    inner = '<div class="ladder">'+rows+'</div>'
+    return '<div class="ladder">'+rows+'</div>'
       +'<div class="grad-note">'+IC.info+'<span>A sequência de '+esc(s.peca)+'s segue a graduação cadastrada pela escola. Cada etapa marca um ponto da jornada no '+v.local+'.</span></div>';
-  } else {
-    inner = '<div class="cordao-wrap"><div class="cordao"></div></div>'
-      +'<div class="grad-note">'+IC.info+'<span>A graduação por '+esc(s.peca)+' da '+esc(s.nomeCurto)+' aparece aqui assim que o '+esc(s.lider)+' cadastrar os '+esc(s.peca)+'s no AtletaPay. Nada é inventado: mostramos a faixa de cores oficial quando ela for definida.</span></div>';
   }
-  return '<section class="anim" style="--i:3"><div class="eyebrow"><span class="dot"></span>Graduação</div>'
-    +'<h2 class="sec-h">A jornada por '+esc(s.peca)+'</h2>'
-    +'<div class="card grad">'+inner+'</div></section>';
+  return '<div class="cordao"></div>'
+    +'<div class="grad-note">'+IC.info+'<span>A graduação por '+esc(s.peca)+' da '+esc(s.nomeCurto)+' aparece aqui assim que o '+esc(s.lider)+' cadastrar os '+esc(s.peca)+'s no AtletaPay. Nada é inventado: mostramos a faixa de cores oficial quando ela for definida.</span></div>';
 }
 
 /* ========================================================================== */
 /*  Render principal                                                          */
 /* ========================================================================== */
+function aplicarTokens(site, c){
+  site.style.setProperty('--p',  c.principal);
+  site.style.setProperty('--p2', shade(c.principal, -0.35));
+  site.style.setProperty('--a',  c.destaque);
+  site.style.setProperty('--a2', c.botao);
+  site.style.setProperty('--a-ink', readable(c.botao));
+}
+
+function wireChrome(site){
+  var tt = site.querySelector('.theme-toggle');
+  if(tt){ tt.innerHTML = effectiveDark() ? SUN_ICON : MOON_ICON; tt.onclick = function(){ applyTheme(effectiveDark() ? 'light' : 'dark'); }; }
+  observeAnim(site);
+}
+
 function render(s, tpl){
   var v = VOCAB[tpl] || VOCAB.arena;
   var c = s.cores;
   var contr = contrDe(s.nome);
-  var inscricaoURL = '/'+encodeURIComponent(s.slug)+'/inscricao';
+  var ins = '/'+encodeURIComponent(s.slug)+'/inscricao';
+  var login = '/'+encodeURIComponent(s.slug)+'/login';
+  var site = document.getElementById('site');
+  if(!site) return;
+  aplicarTokens(site, c);
 
-  var siteStyle = '--ep:'+c.principal+';--ed:'+c.destaque+';--eb:'+c.botao
-    +';--eb-text:'+readable(c.botao)+';--ed-text:'+readable(c.destaque)+';';
-
-  var tagline = v.artigo+' '+v.local+' '+contr+' '+esc(s.nome)+', em '+esc(s.cidade)+' — '+esc(s.uf)+'.';
-
-  var chips = ''
-    + '<span class="stat">'+IC.pin+esc(s.cidade)+' — '+esc(s.uf)+'</span>'
-    + '<span class="stat">'+IC.star+'<b>'+esc(v.nomeMod)+'</b></span>'
-    + (s.nucleos.length ? '<span class="stat">'+IC.users+plural(s.nucleos.length,'núcleo','núcleos')+'</span>' : '')
-    + '<span class="stat">'+IC.badge+esc(s.lider)+' à frente</span>';
-
-  var nucCards = s.nucleos.map(function(n){
-    var limpo = n.replace(/^Academia\s+/i,'').replace(/^Professora?\s+/i,'').replace(/^Instrutor\s+/i,'').replace(/^Mestre\s+/i,'') || n;
-    return '<div class="card nuc"><div class="nm">'+esc(initials(limpo))+'</div><div class="nn">'+esc(n)+'</div></div>';
-  }).join('');
-
-  // Monograma do hero: logo real (quando houver e for URL segura) ou as iniciais.
   var logoSeguro = url(s.logo);
   var mono = logoSeguro
     ? '<img src="'+esc(logoSeguro)+'" alt="'+esc('Logo '+s.nomeCurto)+'" loading="eager" decoding="async">'
     : esc(initials(s.nomeCurto));
+  var hasTreinar = !!(s.nucleos.length || s.endereco);
 
-  var hero = '<div class="hero anim" style="--i:0">'
+  // --- NAV ---
+  var nav = '<header class="nav"><div class="wrap">'
+    + '<a class="logo" href="#top"><span class="crest">'+mono+'</span>'
+    +   '<span class="nm"><b>'+esc(s.nomeCurto)+'</b><span>'+esc(v.nomeMod)+' · '+esc(s.cidade)+'</span></span></a>'
+    + '<nav class="nlinks"><a href="#sobre">Sobre</a><a href="#grad">Graduação</a>'
+    +   (hasTreinar ? '<a href="#treinar">Onde treinar</a>' : '')+'</nav>'
+    + '<button class="theme-toggle" type="button" aria-label="Alternar tema claro ou escuro"></button>'
+    + '<a class="btn btn-ghost hide-sm" href="'+esc(login)+'">'+IC.user+' Área do aluno</a>'
+    + '<a class="btn btn-go" href="'+esc(ins)+'">Fazer inscrição '+IC.arrow+'</a>'
+    + '</div></header>';
+
+  // --- HERO ---
+  var tagline = v.artigo+' '+v.local+' '+contr+' '+esc(s.nome)+', em '+esc(s.cidade)+' — '+esc(s.uf)+'.';
+  var chips = ''
+    + '<span class="chip">'+IC.pin+esc(s.cidade)+' — '+esc(s.uf)+'</span>'
+    + '<span class="chip">'+IC.star+'<b>'+esc(v.nomeMod)+'</b></span>'
+    + (s.nucleos.length ? '<span class="chip">'+IC.users+plural(s.nucleos.length,'núcleo','núcleos')+'</span>' : '')
+    + '<span class="chip">'+IC.badge+esc(s.lider)+' à frente</span>';
+  var crestBig = logoSeguro
+    ? '<img src="'+esc(logoSeguro)+'" alt="'+esc('Logo '+s.nomeCurto)+'" loading="eager" decoding="async">'
+    : esc(initials(s.nomeCurto));
+  var hero = '<section class="hero" id="top">'
     + motif(tpl, c)
-    + '<div class="hero-inner">'
-    +   '<span class="chip-saud"><span class="spark"></span>'+esc(v.saudacao)+'</span>'
-    +   '<div class="hero-id"><div class="mono">'+mono+'</div>'
-    +     '<h1>'+esc(s.nome)+'</h1></div>'
-    +   '<p class="tagline">'+tagline+'</p>'
-    +   '<div class="cta-row">'
-    +     '<a class="btn btn-primary" href="'+esc(inscricaoURL)+'">Fazer inscrição '+IC.arrow+'</a>'
-    +     '<a class="btn btn-ghost" href="#contato">'+IC.app+' Abrir o app</a>'
+    + '<span class="veil" aria-hidden="true"></span>'
+    + '<div class="wrap"><div class="hero-grid">'
+    +   '<div>'
+    +     '<span class="badge"><span class="pulse"></span>'+esc(v.saudacao)+'</span>'
+    +     '<h1>'+esc(s.nome)+'</h1>'
+    +     '<p class="sub">'+tagline+'</p>'
+    +     '<div class="hero-cta"><a class="btn btn-go btn-lg" href="'+esc(ins)+'">Fazer inscrição '+IC.arrow+'</a>'
+    +       (hasTreinar ? '<a class="btn btn-line btn-lg" href="#treinar">'+IC.pin+' Onde treinar</a>' : '')+'</div>'
+    +     (s.endereco ? '<div class="hero-loc">'+IC.pin+esc(s.endereco)+'</div>' : '')
     +   '</div>'
-    +   (s.endereco ? '<span class="loc">'+IC.pin+esc(s.endereco)+'</span>' : '')
-    + '</div></div>';
+    +   '<div class="crest-stage"><span class="ring" aria-hidden="true"></span><span class="ring r2" aria-hidden="true"></span>'
+    +     '<span class="big-crest">'+crestBig+'</span><span class="sat" aria-hidden="true">'+IC.star+'</span></div>'
+    + '</div><div class="hero-chips">'+chips+'</div></div>'
+    + '</section>';
 
-  var sobre = '<section class="anim" style="--i:1"><div class="eyebrow"><span class="dot"></span>Sobre</div>'
-    + '<h2 class="sec-h">Quem treina aqui</h2>'
-    + '<div class="card sobre"><p>'+sobreCopy(s,tpl,v)+'</p><div class="chips">'+chips+'</div></div></section>';
+  // --- SOBRE ---
+  var sobre = '<section class="anim" id="sobre"><div class="eyebrow"><span class="dot"></span>Sobre</div>'
+    + '<h2 class="sec-h">Quem treina <em class="ed">aqui</em></h2>'
+    + '<div class="sobre-card"><p>'+sobreCopy(s,tpl,v)+'</p></div></section>';
 
-  var grad = gradSection(s,tpl,v);
+  // --- GRADUAÇÃO ---
+  var grad = '<section class="anim" id="grad"><div class="eyebrow"><span class="dot"></span>Graduação</div>'
+    + '<h2 class="sec-h">A jornada por <em class="ed">'+esc(s.peca)+'</em></h2>'
+    + '<div class="grad">'+ladderInner(s,v)+'</div></section>';
 
+  // --- ONDE TREINAR ---
   var treinar = '';
   if(s.nucleos.length){
-    treinar = '<section class="anim" style="--i:4"><div class="eyebrow"><span class="dot"></span>Onde treinar</div>'
-      + '<h2 class="sec-h">Nossos núcleos</h2>'
+    var nucCards = s.nucleos.map(function(n){
+      var limpo = n.replace(/^Academia\s+/i,'').replace(/^Professora?\s+/i,'').replace(/^Instrutor\s+/i,'').replace(/^Mestre\s+/i,'') || n;
+      return '<article class="nucleus"><span class="ini">'+esc(initials(limpo))+'</span><span class="nn">'+esc(n)+'</span></article>';
+    }).join('');
+    treinar = '<section class="anim" id="treinar"><div class="eyebrow"><span class="dot"></span>Onde treinar</div>'
+      + '<h2 class="sec-h">Nossos <em class="ed">núcleos</em></h2>'
       + '<p class="lede">'+(s.nucleos.length>1 ? 'A '+esc(s.nomeCurto)+' reúne vários núcleos sob o mesmo grupo.' : 'Treinos conduzidos diretamente pela equipe da '+esc(s.nomeCurto)+'.')+'</p>'
-      + '<div class="nucleos">'+nucCards+'</div>'
+      + '<div class="nuclei">'+nucCards+'</div>'
       + (s.endereco ? '<div class="addr-line">'+IC.pin+'<span>Endereço: <span class="sel">'+esc(s.endereco)+'</span></span></div>' : '')
       + '</section>';
   } else if(s.endereco){
-    treinar = '<section class="anim" style="--i:4"><div class="eyebrow"><span class="dot"></span>Onde treinar</div>'
-      + '<h2 class="sec-h">Onde ficamos</h2>'
+    treinar = '<section class="anim" id="treinar"><div class="eyebrow"><span class="dot"></span>Onde treinar</div>'
+      + '<h2 class="sec-h">Onde <em class="ed">ficamos</em></h2>'
       + '<div class="addr-line">'+IC.pin+'<span>Endereço: <span class="sel">'+esc(s.endereco)+'</span></span></div>'
       + '</section>';
   }
 
-  var contato = '<section class="anim" id="contato" style="--i:5"><div class="eyebrow"><span class="dot"></span>Contato e inscrição</div>'
-    + '<h2 class="sec-h">Dê o primeiro passo</h2>'
-    + '<div class="card contato">'
-    +   '<div class="contato-grid">'
-    +     (s.instagram ? '<div class="ci"><div class="ic">'+IC.ig+'</div><div><div class="k">Instagram</div><div class="v">@'+esc(s.instagram)+'</div></div></div>' : '')
-    +     (s.endereco ? '<div class="ci"><div class="ic">'+IC.pin+'</div><div><div class="k">Endereço</div><div class="v">'+esc(s.endereco)+'</div></div></div>' : '')
-    +     (s.dominio ? '<div class="ci"><div class="ic">'+IC.app+'</div><div><div class="k">Site</div><div class="v">'+esc(s.dominio)+'</div></div></div>' : '')
-    +   '</div>'
-    +   '<a class="btn btn-primary" href="'+esc(inscricaoURL)+'">Fazer inscrição '+IC.arrow+'</a>'
+  // --- CONTATO / CLOSING ---
+  var contato = '<section class="anim" id="contato"><div class="closing"><div class="eyebrow"><span class="dot"></span>Contato e inscrição</div>'
+    + '<h2>Dê o <em class="ed">primeiro passo</em></h2>'
+    + '<div class="contact">'
+    +   (s.instagram ? '<div class="ci"><span class="ic">'+IC.ig+'</span><div><small>Instagram</small><b>@'+esc(s.instagram)+'</b></div></div>' : '')
+    +   (s.endereco ? '<div class="ci"><span class="ic">'+IC.pin+'</span><div><small>Endereço</small><b>'+esc(s.endereco)+'</b></div></div>' : '')
+    +   (s.dominio ? '<div class="ci"><span class="ic">'+IC.app+'</span><div><small>Site</small><b>'+esc(s.dominio)+'</b></div></div>' : '')
+    + '</div>'
+    + '<a class="btn btn-go btn-lg big-cta" href="'+esc(ins)+'">Fazer inscrição '+IC.arrow+'</a>'
     + '</div></section>';
 
-  var foot = '<div class="foot anim" style="--i:6">'
-    + '<span class="made"><span class="logo">AP</span>Site gerado pelo AtletaPay</span>'
-    + '<span>'+esc(s.cidade)+' — '+esc(s.uf)+'</span>'
-    + '</div>';
+  // --- FOOTER ---
+  var foot = '<footer class="foot"><div class="wrap">'
+    + '<div class="ap"><span class="mk">A</span>Site gerado pelo <b>&nbsp;AtletaPay</b></div>'
+    + '<div class="meta">'+esc(s.cidade)+' — '+esc(s.uf)+' · atletapay.com.br/'+esc(s.slug)+'</div>'
+    + '</div></footer>';
 
-  var site = document.getElementById('site');
-  if(!site) return;
-  site.setAttribute('style', siteStyle);
-  site.innerHTML = hero + sobre + grad + treinar + contato + foot;
-  if(Motion) Motion.enter(site);
+  site.innerHTML = nav + hero + '<div class="wrap">' + sobre + grad + treinar + contato + '</div>' + foot;
+  wireChrome(site);
 }
 
-// Página de aviso (escola não encontrada / não ativada / raiz da plataforma) —
-// mesmo sistema visual, mensagem curta e um link para o AtletaPay.
+// Página de aviso (escola não encontrada / não ativada / raiz) — mesmo sistema visual.
 function renderAviso(titulo, texto){
   var c = { principal:'#002D72', destaque:'#389E92', botao:'#00E676' };
   var site = document.getElementById('site');
   if(!site) return;
-  site.setAttribute('style', '--ep:'+c.principal+';--ed:'+c.destaque+';--eb:'+c.botao
-    +';--eb-text:'+readable(c.botao)+';--ed-text:'+readable(c.destaque)+';');
+  aplicarTokens(site, c);
   site.innerHTML =
-    '<div class="hero anim" style="--i:0">'
+    '<section class="hero" id="top">'
     + motif('arena', c)
-    + '<div class="hero-inner">'
-    +   '<span class="chip-saud"><span class="spark"></span>AtletaPay</span>'
-    +   '<div class="hero-id"><div class="mono">AP</div><h1>'+esc(titulo)+'</h1></div>'
-    +   '<p class="tagline">'+esc(texto)+'</p>'
-    +   '<div class="cta-row"><a class="btn btn-primary" href="https://atletapay.com.br">Ir para o AtletaPay '+IC.arrow+'</a></div>'
-    + '</div></div>';
-  if(Motion) Motion.enter(site);
+    + '<span class="veil" aria-hidden="true"></span>'
+    + '<div class="wrap"><div class="hero-grid"><div>'
+    +   '<span class="badge"><span class="pulse"></span>AtletaPay</span>'
+    +   '<h1>'+esc(titulo)+'</h1>'
+    +   '<p class="sub">'+esc(texto)+'</p>'
+    +   '<div class="hero-cta"><a class="btn btn-go btn-lg" href="https://atletapay.com.br">Ir para o AtletaPay '+IC.arrow+'</a></div>'
+    + '</div><div class="crest-stage"><span class="ring" aria-hidden="true"></span><span class="ring r2" aria-hidden="true"></span>'
+    +   '<span class="big-crest">AP</span><span class="sat" aria-hidden="true">'+IC.star+'</span></div>'
+    + '</div></div></section>';
+  wireChrome(site);
 }
 
 /* ========================================================================== */
 /*  Mapeamento escolasPublicas → formato do motor                             */
 /* ========================================================================== */
-// cores: mapa de chaves próprias da escola (minúsculas) → { principal, destaque, botao }.
-// Reconhece nomes conhecidos; senão cai por POSIÇÃO; senão, paleta institucional.
 function mapCores(cores){
   var FB = { principal:'#002D72', destaque:'#389E92', botao:'#00E676' };
   var c = (cores && typeof cores === 'object') ? cores : {};
@@ -592,8 +489,6 @@ function mapCores(cores){
   };
 }
 
-// escada: aceita o objeto escadaLimpa ({ adulto:[{nome,cor:[c1,c2,c3]}], ... }) OU
-// um array simples [{nome,cor}]. Achata para [{nome, cor:"#hex"}] (cor representativa).
 function mapEscada(e){
   if(!e) return null;
   var arr = Array.isArray(e) ? e : (e && Array.isArray(e.adulto) ? e.adulto : null);
@@ -668,8 +563,6 @@ function aplicarSeo(s){
 /* ========================================================================== */
 /*  Resolução + fluxo                                                         */
 /* ========================================================================== */
-// SÓ pelo endereço (caminho) e, se não disser, pelo domínio próprio — nunca pelo
-// login (site público). usarUltima:false: não herda a "última escola" do aparelho.
 async function resolverId(){
   var id = null;
   try{ id = escolaIdDoEndereco(location, { usarUltima:false }); }catch(e){ id = null; }
@@ -680,7 +573,6 @@ async function resolverId(){
 
 async function iniciar(){
   var id = await resolverId();
-  // Raiz da plataforma (sem escola no endereço e sem domínio próprio): aviso neutro.
   if(!id){
     renderAviso('AtletaPay', 'Sites de escolas de artes marciais. Acesse pelo endereço da sua escola (atletapay.com.br/nome-da-escola).');
     return;
@@ -709,6 +601,7 @@ async function iniciar(){
   render(s, s.template);
 }
 
+initTheme();
 iniciar().catch(function(e){
   console.warn('site-escola: falha ao montar', e);
   try{ renderAviso('AtletaPay', 'Não foi possível carregar este site agora. Tente novamente em instantes.'); }catch(_){ /* ok */ }
