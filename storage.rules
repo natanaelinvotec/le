@@ -1,0 +1,185 @@
+// Regras do Firebase Storage — Capoeira Liberdade e Expressão
+// Publicação: automática pelo GitHub Actions (.github/workflows/firebase.yml).
+// Também dá pra colar no Console: Storage → Regras.
+// Algumas regras consultam usuarios/{uid} no Firestore; na primeira vez o
+// Console pode pedir para "conceder permissão" ao Firestore — conceda.
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function perfilDe(id) { return firestore.get(/databases/(default)/documents/usuarios/$(id)).data; }
+    // 'plataforma' = dono da AtletaPay (todas as escolas). 'admin' = Admin Master de UMA escola:
+    // conta como dono só dentro da própria escola (separação de 08/10/2026).
+    function souAdmin() { return 'plataforma' in perfilDe(request.auth.uid).get('papeis', []); }
+    function souAdminDaEscola() { return 'admin' in perfilDe(request.auth.uid).get('papeis', []); }
+    function mesmaEscola(uid) { return perfilDe(uid).get('escolaId', '-') == perfilDe(request.auth.uid).get('escolaId', ''); }
+    // Autoriza pelo CUSTOM CLAIM do token (papeis/escolaId gravados no login —
+    // functions/src/escolas.js, CAMPOS_DOS_CLAIMS), SEM leitura cruzada
+    // Storage→Firestore. Essa leitura cruzada (firestore.get) negava o upload das
+    // fotos do site com storage/unauthorized — a mesma correção já feita no
+    // onboarding/ (linhas acima). O firestore.rules usa os mesmos claims.
+    function adminDoSite() {
+      return request.auth != null
+          && ('plataforma' in request.auth.token.get('papeis', [])
+              || ('admin' in request.auth.token.get('papeis', []) && request.auth.token.get('escolaId', '') == 'liberdade'));
+    }
+    // Fundador (acessoGeral) só vale DENTRO da própria escola (auditoria 08/10: antes o
+    // dono de qualquer escola da AtletaPay alcançava fotos e documentos de todas as escolas).
+    function souFundadorDe(uid) {
+      return (perfilDe(request.auth.uid).get('acessoGeral', false) == true || souAdminDaEscola()) && mesmaEscola(uid);
+    }
+    function souAdminOuFundadorDe(uid) { return souAdmin() || souFundadorDe(uid); }
+    function gerenciaNucleoDe(uid) {
+      return 'mestre' in perfilDe(request.auth.uid).get('papeis', [])
+          && perfilDe(request.auth.uid).get('academiaGerenciadaId', null) != null
+          && perfilDe(uid).get('academiaId', '') == perfilDe(request.auth.uid).get('academiaGerenciadaId', null);
+    }
+    function souInstrutorDe(uid) {
+      return 'instrutor' in perfilDe(request.auth.uid).get('papeis', [])
+          && perfilDe(uid).get('instrutorUid', '') == request.auth.uid;
+    }
+    function podeMexerNaApresentacao(uid) {
+      return souAdminOuFundadorDe(uid)
+          || (request.auth.uid == uid && (
+                perfilDe(request.auth.uid).get('cordaoAtual', '') in ['Instrutor', 'Professor', 'Mestre', 'Mestre/Presidente']
+                || perfilDe(request.auth.uid).get('papeis', []).hasAny(['mestre', 'instrutor'])))
+          || gerenciaNucleoDe(uid);
+    }
+    // Teto por pasta (regra única de imagens, 08/10): o app já envia cada foto reduzida
+    // (js/imagem.js — perfil ~60 KB, post ~220 KB, logo ~120 KB); o teto só barra quem
+    // tentar subir a foto crua. A rotina otimizarImagens do servidor reduz as antigas.
+    function imagem(maxMB) {
+      return request.resource.contentType.matches('image/.*') && request.resource.size < maxMB * 1024 * 1024;
+    }
+
+    // Foto de perfil/carteirinha: pasta de cada pessoa fotos/<uid>/.
+    // Grava a própria pessoa (inscrição, Meus dados, Rede), o Admin/Fundador,
+    // o responsável do núcleo onde ela treina e o instrutor dela (painel). Só logado vê.
+    match /fotos/{uid}/{arquivo} {
+      // Só mesma-escola (plataforma vê tudo). Antes qualquer logado abria foto de outra escola.
+      allow get: if request.auth != null && (souAdmin() || mesmaEscola(uid));
+      allow write: if request.auth != null && imagem(1)
+                   && (request.auth.uid == uid || souAdminOuFundadorDe(uid) || gerenciaNucleoDe(uid) || souInstrutorDe(uid));
+      allow delete: if request.auth != null
+                    && (request.auth.uid == uid || souAdminOuFundadorDe(uid) || gerenciaNucleoDe(uid));
+    }
+
+    // AtletaPay (08/10): logo e fotos do cadastro e do painel da escola vão para a pasta
+    // do próprio dono, onboarding/<uid>/<escola>/. A regra confere só o login (sem
+    // firestore.get): o upload não depende da leitura cruzada Storage → Firestore, que
+    // negava o envio com storage/unauthorized. Quem é dono de qual escola continua
+    // garantido no Firestore: só o dono grava as URLs em escolas/{id}.fotos.
+    match /onboarding/{uid}/{escolaId}/{arquivo} {
+      allow get: if true;
+      allow list: if false;
+      allow create, update: if request.auth != null && request.auth.uid == uid && imagem(2)
+                            && escolaId.matches('^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$');
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Pasta antiga (cadastros até 08/10): os links continuam abrindo; o dono ainda pode
+    // gravar/apagar se a leitura cruzada estiver liberada no projeto.
+    match /escolas/{escolaId}/{resto=**} {
+      allow read: if true;
+      allow write: if request.auth != null && imagem(2)
+                   && firestore.get(/databases/(default)/documents/escolas/$(escolaId)).data.donoUid == request.auth.uid;
+      allow delete: if request.auth != null
+                    && firestore.get(/databases/(default)/documents/escolas/$(escolaId)).data.donoUid == request.auth.uid;
+    }
+
+    // Pasta antiga das fotos de perfil (links já gravados continuam abrindo).
+    // Uploads novos vão para fotos/<uid>/ — aqui ninguém grava mais.
+    match /fotos_alunos/{arquivo} {
+      allow get: if true;
+      allow write: if false;
+    }
+
+    // Rede Liberdade: cada pessoa grava só na própria pasta rede/<uid>/.
+    // Fotos já chegam comprimidas (~350 KB); vídeos curtos (até 20 s) chegam
+    // recomprimidos pelo app. Leitura só pra quem está logado (rede fechada).
+    match /rede/{uid}/{arquivo} {
+      allow get: if request.auth != null;
+      allow list: if request.auth != null && request.auth.uid == uid;
+      allow write: if request.auth != null
+                   && request.auth.uid == uid
+                   && (imagem(1) ||
+                       (request.resource.contentType.matches('video/.*') && request.resource.size < 12 * 1024 * 1024));
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Apresentações em vídeo (Instrutor/Professor/Mestre): apresentacoes/<uid>/.
+    match /apresentacoes/{uid}/{arquivo} {
+      // Só mesma-escola (plataforma vê tudo). Antes qualquer logado abria vídeo de outra escola.
+      allow get: if request.auth != null && (souAdmin() || mesmaEscola(uid));
+      allow write: if request.auth != null
+                   && request.resource.contentType.matches('video/.*')
+                   && request.resource.size < 20 * 1024 * 1024
+                   && podeMexerNaApresentacao(uid);
+      allow delete: if request.auth != null && podeMexerNaApresentacao(uid);
+    }
+
+    // Foto de DOCUMENTO da carteirinha (separada da foto de perfil, que é livre
+    // na Rede): carteirinha/<uid>/. Envia a pessoa, o responsável legal dela
+    // ou o núcleo. Só quem cuida do atleta vê.
+    function souResponsavelDe(uid) { return perfilDe(uid).get('responsavelUid', '') == request.auth.uid; }
+    match /carteirinha/{uid}/{arquivo} {
+      allow read: if request.auth != null
+                  && (request.auth.uid == uid || souResponsavelDe(uid) || souAdminOuFundadorDe(uid) || gerenciaNucleoDe(uid) || souInstrutorDe(uid));
+      // Atleta/responsável só CRIAM arquivo novo (não trocam um já enviado ou aprovado).
+      allow create: if request.auth != null && imagem(1)
+                    && (request.auth.uid == uid || souResponsavelDe(uid) || souAdminOuFundadorDe(uid) || gerenciaNucleoDe(uid));
+      allow update: if request.auth != null && imagem(1) && (souAdminOuFundadorDe(uid) || gerenciaNucleoDe(uid));
+      allow delete: if request.auth != null && (souAdminOuFundadorDe(uid) || gerenciaNucleoDe(uid));
+    }
+    // Cópia pública da foto aprovada (só adulto), feita pelo servidor. O nome
+    // leva o código secreto da carteirinha: abre por link, mas não dá para listar.
+    match /carteirinha-publica/{arquivo} {
+      allow get: if true;
+      allow list, write: if false;
+    }
+
+    // Assinatura real para os certificados: assinaturas/<uid>/. Abre por link
+    // (a página do certificado é pública); ninguém lista. Grava a própria pessoa,
+    // se ela assina certificados (Fundador ou responsável de núcleo), ou o Admin.
+    function assinaCertificados() {
+      return perfilDe(request.auth.uid).get('acessoGeral', false) == true
+          || ('mestre' in perfilDe(request.auth.uid).get('papeis', []) && perfilDe(request.auth.uid).get('academiaGerenciadaId', null) != null);
+    }
+    match /assinaturas/{uid}/{arquivo} {
+      allow get: if true;
+      allow list: if false;
+      allow write: if request.auth != null && imagem(1)
+                   && ((request.auth.uid == uid && assinaCertificados()) || souAdmin() || (souAdminDaEscola() && mesmaEscola(uid)));
+      allow delete: if request.auth != null && (request.auth.uid == uid || souAdmin() || (souAdminDaEscola() && mesmaEscola(uid)));
+    }
+
+    // Fotos do site (painel "Gerenciar o site"). Caminho antigo/flat site/<arquivo>.
+    // Grava qualquer pessoa LOGADA (imagem até 2 MB) — sem leitura cruzada nem claim,
+    // que eram as fontes das falhas (storage/unauthorized). A SEGURANÇA de verdade está
+    // no Firestore: só a URL que o Admin grava em siteConteudo aparece no site; foto
+    // subida por outra pessoa fica órfã e nunca é referenciada. Leitura pública.
+    match /site/{arquivo} {
+      allow read: if true;
+      allow write: if request.auth != null && imagem(2);
+      allow delete: if request.auth != null;
+    }
+
+    // Fotos NOVAS do site (painel "Gerenciar o site"): cada pessoa grava só na
+    // PRÓPRIA pasta site/<uid>/, conferindo só o login (request.auth.uid == uid) —
+    // SEM leitura cruzada Storage→Firestore e SEM depender de custom claim (que pode
+    // estar desatualizado). Mesmo padrão do onboarding/ (que já funciona). Qualquer
+    // um lê (a foto só aparece no site se o Admin gravar a URL em siteConteudo, e
+    // essa gravação é conferida pelas regras do Firestore). Até 2 MB.
+    match /site/{uid}/{arquivo} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == uid && imagem(2);
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Tudo o que não está listado acima: fechado.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
