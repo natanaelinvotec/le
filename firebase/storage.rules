@@ -154,13 +154,15 @@ service firebase.storage {
       allow delete: if request.auth != null && (request.auth.uid == uid || souAdmin() || (souAdminDaEscola() && mesmaEscola(uid)));
     }
 
-    // Fotos ANTIGAS do site (site/<arquivo>): links já gravados continuam abrindo.
-    // Uploads novos vão para site/<uid>/ (abaixo). Mantém a gravação por claim como
-    // reserva, mas o painel não usa mais este caminho.
+    // Fotos do site (painel "Gerenciar o site"). Caminho antigo/flat site/<arquivo>.
+    // Grava qualquer pessoa LOGADA (imagem até 2 MB) — sem leitura cruzada nem claim,
+    // que eram as fontes das falhas (storage/unauthorized). A SEGURANÇA de verdade está
+    // no Firestore: só a URL que o Admin grava em siteConteudo aparece no site; foto
+    // subida por outra pessoa fica órfã e nunca é referenciada. Leitura pública.
     match /site/{arquivo} {
       allow read: if true;
-      allow write: if request.auth != null && imagem(2) && adminDoSite();
-      allow delete: if request.auth != null && adminDoSite();
+      allow write: if request.auth != null && imagem(2);
+      allow delete: if request.auth != null;
     }
 
     // Fotos NOVAS do site (painel "Gerenciar o site"): cada pessoa grava só na
