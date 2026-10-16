@@ -59,16 +59,34 @@ const CORES = {
 };
 const PECA = { capoeira:"cordão", jiujitsu:"faixa", judo:"faixa", karate:"faixa", taekwondo:"faixa", muaythai:"prajied", boxe:"nível", mma:"nível" };
 
+// Escada fictícia da Equipe Horizons por modalidade (em produção vem de escolasPublicas.escada).
+const E = (...p) => p.map(([nome, cor]) => ({ nome, cor }));
+const ESCADA = {
+  karate:   E(['Branca','#f4f4f4'],['Amarela','#f2c524'],['Laranja','#ef7d1a'],['Verde','#2f9e44'],['Azul','#1c64c2'],['Roxa','#6f42c1'],['Marrom','#6b3e1e'],['Preta','#141414']),
+  capoeira: E(['Crua','#e6d8b8'],['Amarelo','#f2c524'],['Laranja','#ef7d1a'],['Azul','#1c64c2'],['Verde','#2f9e44'],['Roxo','#6f42c1'],['Marrom','#6b3e1e'],['Vermelho','#c62828']),
+  jiujitsu: E(['Branca','#f4f4f4'],['Azul','#1c64c2'],['Roxa','#6f42c1'],['Marrom','#6b3e1e'],['Preta','#141414']),
+  muaythai: E(['Branca','#f4f4f4'],['Amarela','#f2c524'],['Laranja','#ef7d1a'],['Verde','#2f9e44'],['Azul','#1c64c2'],['Marrom','#6b3e1e'],['Vermelha','#c62828'],['Preta','#141414']),
+  boxe:     E(['Iniciante','#cfd8dc'],['Intermediário','#90a4ae'],['Avançado','#546e7a'],['Competição','#d4a017']),
+  mma:      E(['Iniciante','#cfd8dc'],['Intermediário','#90a4ae'],['Avançado','#546e7a'],['Competição','#00E676'])
+};
+
 const s = {
   id:'horizons', slug:'horizons', nome:'Equipe Horizons', nomeCurto:'Horizons',
   modalidade: mod, cidade:'Campo Grande', uf:'MS',
   endereco:'Rua dos Horizontes, 1200 · Jardim dos Estados', instagram:'equipehorizons', dominio:'',
   cores: CORES[mod] || CORES.karate,
   lider:'Ricardo Nakamura', peca: PECA[mod] || 'graduação', logo: logoSVG,
-  escada: null, nucleos:['Horizons Centro', 'Horizons Norte'], template:'horizons',
+  escada: ESCADA[mod] || ESCADA.karate, template:'horizons',
+  // nucleos (só nomes, formato do arena) + nucleosInfo (campos públicos de nucleosPublicos)
+  nucleos:['Horizons Centro', 'Horizons Norte', 'Horizons Lagoa'],
+  nucleosInfo:[
+    { nome:'Horizons Centro', sede:true,  cidade:'Campo Grande', uf:'MS' },
+    { nome:'Horizons Norte',  sede:false, cidade:'Campo Grande', uf:'MS' },
+    { nome:'Horizons Lagoa',  sede:false, cidade:'Campo Grande', uf:'MS' }
+  ],
   fotoLider: P(15937400, 900, 1200),
   fotos: FOTOS[mod] || FOTOS.karate,
-  graduacoes: ['Branca','Amarela','Laranja','Verde','Azul','Roxa','Marrom','Preta'],
+  graduacoes: (ESCADA[mod] || ESCADA.karate).map(b => b.nome),
   responsavel: { nome:'Ricardo Nakamura', graduacao: (LIDER[mod]||'Professor') + ' · 5º Dan' },
   // equipe[] opcional: quando o cadastro tiver mais pessoas, aparecem aqui (fotoRecorte = PNG com fundo transparente p/ efeito 3D)
   equipe: [

@@ -2,14 +2,20 @@
  *
  * Primeiro pré-build oficial da biblioteca. Layout próprio (não é variação do
  * "arena"): hero em cartão com corte diagonal, letreiro, 3 vertentes, bloco de
- * mestres com foto em moldura oval saindo do fundo, jornada, 3 programas,
- * contato em cartão sobre "mapa" e rodapé angulado.
+ * mestres com foto em moldura oval saindo do fundo, jornada, graduação (escada
+ * real), 3 programas, núcleos, "App e Rede" (funções do ecossistema AtletaPay),
+ * contato em cartão sobre "mapa" e rodapé angulado com links do Sistema.
+ *
+ * Ecossistema: as mesmas portas que o site Liberdade expõe, nas rotas por escola
+ * (/<slug>/login, inscricao, instalar, instalar-rede, carteirinha, checkin,
+ * campeonatos, certificados, rede, admin, privacidade — ver firebase.json).
  *
  * Contrato: renderHorizons(s, h)
  *   s — escola já mapeada por site-escola.js (mapEscola): nome, nomeCurto, slug,
  *       modalidade, cidade, uf, endereco, instagram, dominio, cores, lider, peca,
- *       logo, fotoLider, fotos{fachada[],treino[],equipe[]}, graduacoes[], escada,
- *       nucleos[], responsavel{nome,graduacao}, equipe[] (opcional, futuro).
+ *       logo, fotoLider, fotos{fachada[],treino[],equipe[]}, graduacoes[],
+ *       escada[{nome,cor}], nucleos[], nucleosInfo[{nome,sede,cidade,uf}],
+ *       responsavel{nome,graduacao}, equipe[] (opcional), geo{lat,lng} (opcional).
  *   h — utilidades do gerador: { esc, url, VOCAB, LIDER, modalidadeBase }.
  *
  * Segurança: todo texto passa por h.esc(); toda URL por h.url() (só https:// ou
@@ -275,13 +281,89 @@ function css(t){
 .hz .foot .logo{color:var(--white)}\
 .hz .foot .cp{font-size:.9rem;opacity:.7}\
 .hz .foot .cp b{color:var(--cream);font-weight:700}\
+.hz .foot .in{display:grid;grid-template-columns:1fr auto;gap:26px 40px;align-items:start}\
+.hz .foot .sys{display:flex;flex-direction:column;align-items:flex-end;gap:12px}\
+.hz .foot .sys .k{opacity:.55;font-size:.7rem}\
+.hz .foot .sys nav{display:flex;flex-wrap:wrap;gap:8px 22px;justify-content:flex-end}\
+.hz .foot .sys a{position:relative;font-size:.92rem;opacity:.85;padding:.2em 0}\
+.hz .foot .sys a::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:currentColor;transform:scaleX(0);transform-origin:right;transition:transform .45s var(--ease)}\
+.hz .foot .sys a:hover::after{transform:scaleX(1);transform-origin:left}\
+.hz .foot .cp{grid-column:1/-1;border-top:1px solid rgba(255,255,255,.12);padding-top:18px}\
 \
-@media (prefers-reduced-motion:reduce){.hz *,.hz *::before,.hz *::after{animation:none!important;transition:none!important}.hz.js .rv{opacity:1;transform:none}.hz .hero h1 .l span{transform:none}.hz .hero .sub,.hz .hero .cta{opacity:1}.hz .coach .gi h2 span{clip-path:none}.hz.js .card.rv{transform:translateY(-50%)}}\
-@media (max-width:1000px){.hz .vert,.hz .feats,.hz .progs{grid-template-columns:1fr 1fr}}\
-@media (max-width:760px){.hz .nl{display:none}.hz .nl.open{display:flex;position:absolute;top:calc(100% + 6px);right:clamp(22px,3.4vw,52px);flex-direction:column;align-items:flex-start;gap:16px;background:var(--ink);color:var(--white);padding:22px 26px;border-radius:var(--r-md);box-shadow:0 24px 60px rgba(0,0,0,.4)}\
-.hz .burger{display:inline-flex}.hz .hero{clip-path:polygon(0 0,100% 0,100% 100%,60% 100%,58% 96%,0 96%)}.hz .hero .tag{display:none}.hz .hero h1 .big{font-size:.98em}\
+.hz .grad{padding-top:clamp(30px,4vw,60px);padding-bottom:clamp(40px,5vw,70px)}\
+.hz .belts{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:clamp(12px,1.6vw,22px);max-width:1320px;margin-inline:auto}\
+.hz .blt{text-align:center;padding:16px 10px 14px;border-radius:var(--r-md);background:var(--white);transition:transform .6s var(--ease),box-shadow .6s var(--ease)}\
+.hz .blt:hover{transform:translateY(-8px);box-shadow:0 30px 60px -30px rgba(0,0,0,.35)}\
+.hz .blt .num{display:block;font-family:var(--display);font-weight:700;font-size:.72rem;letter-spacing:.2em;color:var(--muted)}\
+.hz .blt .band{position:relative;height:46px;margin:12px -4px 14px;border-radius:8px;background:var(--c,#cfcac0);box-shadow:inset 0 0 0 1px rgba(0,0,0,.1),inset 0 -8px 0 rgba(0,0,0,.14);transition:transform .6s var(--ease)}\
+.hz .blt .band::before{content:"";position:absolute;left:14%;top:0;bottom:0;width:7%;background:rgba(0,0,0,.18);border-radius:3px}\
+.hz .blt .band::after{content:"";position:absolute;right:12%;top:30%;bottom:30%;width:4px;background:rgba(255,255,255,.55);border-radius:2px}\
+.hz .blt:hover .band{transform:scaleY(1.12) rotate(-2deg)}\
+.hz .blt h3{font-family:var(--display);font-weight:800;font-size:1.05rem;line-height:1.15}\
+.hz .blt small{display:block;margin-top:4px;color:var(--muted);font-size:.78rem}\
+.hz .gradcta{display:flex;align-items:center;justify-content:center;gap:18px 28px;flex-wrap:wrap;margin-top:clamp(36px,4vw,56px);text-align:center}\
+.hz .gradcta p{color:var(--muted);max-width:46ch}\
+\
+.hz #hz-nucleos{padding-top:clamp(40px,5vw,70px);padding-bottom:0}\
+.hz .nucs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:clamp(16px,2vw,26px);max-width:1320px;margin-inline:auto}\
+.hz .nc{position:relative;display:flex;flex-direction:column;gap:10px;padding:clamp(24px,2.6vw,34px);border-radius:var(--r-md);background:var(--white);overflow:hidden;transition:transform .6s var(--ease),box-shadow .6s var(--ease)}\
+.hz .nc::after{content:"";position:absolute;right:-40px;bottom:-40px;width:140px;height:140px;border-radius:50%;background:var(--acc);opacity:.08;transition:transform .8s var(--ease)}\
+.hz .nc:hover{transform:translateY(-8px);box-shadow:0 30px 60px -30px rgba(0,0,0,.35)}\
+.hz .nc:hover::after{transform:scale(1.6)}\
+.hz .nc .ic{width:52px;height:52px;display:grid;place-items:center;border-radius:50%;background:var(--cream);color:var(--acc)}\
+.hz .nc .ic svg{width:24px;height:24px}\
+.hz .nc h3{font-family:var(--display);font-weight:800;font-size:1.4rem;letter-spacing:-.01em;padding-right:70px}\
+.hz .nc .sede{position:absolute;top:18px;right:18px;font-family:var(--display);font-weight:700;font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;background:var(--acc);color:var(--acc-ink);border-radius:var(--pill);padding:.5em .9em}\
+.hz .nc p{color:var(--muted);font-size:.95rem;line-height:1.5}\
+.hz .nc .go{margin-top:auto;display:inline-flex;align-items:center;gap:8px;font-family:var(--display);font-weight:700;font-size:.85rem;letter-spacing:.08em;text-transform:uppercase;color:var(--acc);position:relative;z-index:1}\
+.hz .nc .go svg{width:1em;height:1em;transition:transform .5s var(--ease)}\
+.hz .nc:hover .go svg{transform:translateX(5px)}\
+\
+.hz .appsec{background:var(--ink);color:var(--cream);margin:clamp(50px,6vw,90px) var(--m) 0;border-radius:var(--r-lg);padding:clamp(64px,8vw,120px) clamp(24px,5vw,80px);position:relative;overflow:hidden;isolation:isolate}\
+.hz .appsec::before{content:"";position:absolute;width:60vw;height:60vw;max-width:900px;max-height:900px;border-radius:50%;background:radial-gradient(circle,var(--acc),transparent 60%);opacity:.38;right:-20%;top:-30%;z-index:-1;filter:blur(40px)}\
+.hz .appgrid{display:grid;grid-template-columns:1.1fr .9fr;gap:clamp(36px,6vw,90px);align-items:center;max-width:1320px;margin-inline:auto}\
+.hz .appsec .k{opacity:.8}\
+.hz .appsec h2{font-size:clamp(2.2rem,1.3rem + 4.2vw,4.6rem);margin-top:10px}\
+.hz .appsec .lead{margin-top:18px;max-width:52ch;opacity:.85;font-size:clamp(1.05rem,1rem + .4vw,1.25rem)}\
+.hz .rec{list-style:none;margin:30px 0 0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:12px}\
+.hz .rec a{display:flex;gap:14px;align-items:flex-start;height:100%;padding:16px 18px;border-radius:16px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);transition:background .5s var(--ease),transform .5s var(--ease)}\
+.hz .rec a:hover{background:rgba(255,255,255,.12);transform:translateX(4px)}\
+.hz .rec .ic{flex:none;width:40px;height:40px;display:grid;place-items:center;border-radius:12px;background:var(--btn);color:var(--btn-ink)}\
+.hz .rec .ic svg{width:20px;height:20px}\
+.hz .rec b{display:block;font-family:var(--display);font-weight:700;font-size:1rem}\
+.hz .rec small{display:block;opacity:.72;font-size:.85rem;line-height:1.4;margin-top:2px}\
+.hz .appsec .ac{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:30px}\
+.hz .appsec .ac .btn img{width:26px;height:26px;border-radius:7px}\
+.hz .appsec .btn.ghost{color:var(--cream)}.hz .appsec .btn.ghost:hover{color:var(--ink)}\
+.hz .phone{position:relative;width:min(100%,320px);margin-inline:auto;border-radius:44px;background:#0b0b0b;box-shadow:0 50px 90px -40px rgba(0,0,0,.8),inset 0 0 0 2px rgba(255,255,255,.12);padding:14px;transition:transform .6s var(--ease)}\
+.hz .phone .scr{height:100%;border-radius:32px;background:var(--cream);color:var(--ink);overflow:hidden;display:flex;flex-direction:column}\
+.hz .phone .notch{position:absolute;left:50%;top:14px;transform:translateX(-50%);width:36%;height:26px;border-radius:0 0 18px 18px;background:#0b0b0b;z-index:2}\
+.hz .phone .top{background:var(--acc);color:var(--acc-ink);padding:54px 22px 22px;display:flex;align-items:center;gap:12px}\
+.hz .phone .top .mk{width:44px;height:44px;flex:none;border-radius:50%;background:var(--white);color:var(--ink);display:grid;place-items:center;font-family:var(--display);font-weight:800;overflow:hidden}\
+.hz .phone .top .mk img{width:100%;height:100%;object-fit:cover}\
+.hz .phone .top b{display:block;font-family:var(--display);font-weight:800;font-size:1rem;line-height:1.1}\
+.hz .phone .top small{display:block;font-size:.68rem;opacity:.85;letter-spacing:.14em;text-transform:uppercase;margin-top:3px}\
+.hz .phone .body{padding:18px 18px 34px;display:flex;flex-direction:column;gap:12px}\
+.hz .phone .tile{background:var(--white);border-radius:16px;padding:14px 16px}\
+.hz .phone .tile .k{font-size:.62rem;letter-spacing:.18em;color:var(--muted);opacity:1}\
+.hz .phone .tile h4{font-family:var(--display);font-weight:800;font-size:1rem;margin-top:4px}\
+.hz .phone .therm{height:12px;border-radius:6px;background:var(--cream-2);margin-top:10px;overflow:hidden;position:relative}\
+.hz .phone .therm i{position:absolute;inset:0;width:62%;border-radius:6px;background:linear-gradient(90deg,var(--c1),var(--c2));transform-origin:left;transform:scaleX(0);transition:transform 1.6s var(--ease) .3s}\
+.hz .phone.in .therm i{transform:none}\
+.hz .phone .row{display:flex;gap:10px}\
+.hz .phone .row .tile{flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:6px}\
+.hz .phone .row .tile svg{width:22px;height:22px;color:var(--acc)}\
+.hz .phone .row .tile span{font-family:var(--display);font-weight:700;font-size:.78rem}\
+\
+@media (prefers-reduced-motion:reduce){.hz *,.hz *::before,.hz *::after{animation:none!important;transition:none!important}.hz.js .rv{opacity:1;transform:none}.hz .hero h1 .l span{transform:none}.hz .hero .sub,.hz .hero .cta{opacity:1}.hz .coach .gi h2 span{clip-path:none}.hz.js .card.rv{transform:translateY(-50%)}.hz .phone .therm i{transform:none}}\
+@media (max-width:1100px){.hz .nl{display:none}.hz .nl.open{display:flex;position:absolute;top:calc(100% + 6px);right:clamp(22px,3.4vw,52px);flex-direction:column;align-items:flex-start;gap:16px;background:var(--ink);color:var(--white);padding:22px 26px;border-radius:var(--r-md);box-shadow:0 24px 60px rgba(0,0,0,.4)}\
+.hz .burger{display:inline-flex}}\
+@media (max-width:1000px){.hz .vert,.hz .feats,.hz .progs{grid-template-columns:1fr 1fr}.hz .appgrid{grid-template-columns:1fr}.hz .phone{width:min(100%,280px)}}\
+@media (max-width:760px){.hz .hero{clip-path:polygon(0 0,100% 0,100% 100%,60% 100%,58% 96%,0 96%)}.hz .hero .tag{display:none}.hz .hero h1 .big{font-size:.98em}\
 .hz .vert,.hz .feats,.hz .progs{grid-template-columns:1fr}.hz .mestre{grid-template-columns:1fr;gap:26px}.hz .mestre:nth-of-type(even) .pop{order:0}.hz .pop{width:min(100%,420px)}\
 .hz .coach{clip-path:polygon(0 90px,48% 36px,49% 100px,100% 0,100% 100%,0 100%);padding-top:150px}\
+.hz .belts{grid-template-columns:repeat(auto-fit,minmax(104px,1fr))}.hz .rec{grid-template-columns:1fr}\
+.hz .foot .in{grid-template-columns:1fr}.hz .foot .sys{align-items:flex-start}.hz .foot .sys nav{justify-content:flex-start}\
 .hz .card .cc{grid-template-columns:1fr 1fr}.hz .mapwrap .openmap{display:none}.hz .pg{min-height:440px}}';
 }
 
@@ -296,7 +378,14 @@ var I = {
   ig:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>',
   book:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5l8 4 8-4v14l-8 4z"/><path d="M12 9v14"/></svg>',
   user:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
-  trophy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M6 3h12v6a6 6 0 0 1-12 0z"/><path d="M6 5H3v2a3 3 0 0 0 3 3M18 5h3v2a3 3 0 0 1-3 3"/></svg>'
+  trophy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M6 3h12v6a6 6 0 0 1-12 0z"/><path d="M6 5H3v2a3 3 0 0 0 3 3M18 5h3v2a3 3 0 0 1-3 3"/></svg>',
+  // Ecossistema AtletaPay (app do aluno)
+  gauge: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16a8 8 0 0 1 16 0"/><path d="M12 16l4.5-5.5"/><circle cx="12" cy="16" r="1.6" fill="currentColor"/></svg>',
+  card:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="12" r="2.2"/><path d="M14 10h4M14 14h4"/></svg>',
+  qr:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h3v3M20 14v6h-3"/></svg>',
+  cal:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+  award: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M8.5 13.5L7 22l5-3 5 3-1.5-8.5"/></svg>',
+  net:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="M12 7.5v4M10.5 13l-4 3M13.5 13l4 3"/></svg>'
 };
 
 /* ========================================================================== */
@@ -308,6 +397,16 @@ function initials(n){
   return ((p[0][0] || '') + (p.length > 1 ? p[p.length-1][0] : '')).toUpperCase();
 }
 function plural(n, a, b){ return n + ' ' + (n === 1 ? a : b); }
+// Plural da peça de graduação: faixa→faixas, cordão→cordões, nível→níveis, prajied→prajieds.
+function pluralPeca(p){
+  var s = String(p || 'graduação').trim();
+  if(/ão$/i.test(s)) return s.replace(/ão$/i, 'ões');
+  if(/l$/i.test(s)) return s.replace(/l$/i, 'is');
+  if(/[sz]$/i.test(s)) return s;
+  return s + 's';
+}
+// Cor de faixa vinda do cadastro: só #rgb/#rrggbb; fora disso, neutro (nunca injeta CSS).
+function corFaixa(v){ var s = String(v || '').trim(); return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(s) ? s : ''; }
 
 // Mapa: SVG de malha urbana estilizada (fallback quando a escola não tem coordenadas).
 function mapaGrade(){
@@ -348,8 +447,33 @@ export function renderHorizons(s, h){
   if(!st){ st = document.createElement('style'); st.id = 'hz-css'; document.head.appendChild(st); }
   st.textContent = css(t);
 
-  var ins = '/'+encodeURIComponent(s.slug)+'/inscricao';
-  var login = '/'+encodeURIComponent(s.slug)+'/login';
+  // Rotas do ecossistema AtletaPay desta escola (firebase.json: /<slug>/<rota> → /app/<rota>.html;
+  // cada página descobre a escola pelo primeiro segmento do caminho).
+  var R = function(rota){ return '/'+encodeURIComponent(s.slug)+'/'+rota; };
+  var ins = R('inscricao');
+  var login = R('login');
+
+  // Escada de graduação: cores reais do cadastro (s.escada) ou só os nomes (s.graduacoes).
+  var escada = [];
+  if(Array.isArray(s.escada) && s.escada.length){
+    s.escada.forEach(function(b){ if(b && b.nome) escada.push({ nome:String(b.nome), cor:corFaixa(b.cor) }); });
+  } else if(Array.isArray(s.graduacoes)){
+    s.graduacoes.forEach(function(n){ if(typeof n === 'string' && n.trim()) escada.push({ nome:n.trim(), cor:'' }); });
+  }
+  escada = escada.slice(0, 20);
+  var pecaPl = pluralPeca(s.peca);
+  // "rumo à próxima faixa" / "rumo ao próximo cordão|nível|prajied" (gênero pela terminação).
+  var proxPeca = (/a$/i.test(s.peca) ? 'à próxima ' : 'ao próximo ') + s.peca;
+
+  // Núcleos: com campos públicos (nucleosInfo) ou só nomes (nucleos).
+  var nucs = [];
+  if(Array.isArray(s.nucleosInfo) && s.nucleosInfo.length){
+    s.nucleosInfo.forEach(function(n){ if(n && n.nome) nucs.push({ nome:String(n.nome), sede:n.sede === true, cidade:String(n.cidade || ''), uf:String(n.uf || '') }); });
+  } else if(Array.isArray(s.nucleos)){
+    s.nucleos.forEach(function(n){ if(typeof n === 'string' && n.trim()) nucs.push({ nome:n.trim(), sede:false, cidade:'', uf:'' }); });
+  }
+  nucs = nucs.slice(0, 12);
+
   var fotos = s.fotos || {};
   var treino = (fotos.treino || []).map(url).filter(Boolean);
   var fachada = (fotos.fachada || []).map(url).filter(Boolean);
@@ -366,7 +490,11 @@ export function renderHorizons(s, h){
 
   // --- NAV + HERO ---
   var nav = '<nav class="nav">'+marca
-    + '<div class="nl" id="hz-nl"><a href="#hz-vertentes">Vertentes</a><a href="#hz-mestres">Equipe</a><a href="#hz-programas">Programas</a><a href="#hz-contato">Contato</a>'
+    + '<div class="nl" id="hz-nl"><a href="#hz-vertentes">Vertentes</a><a href="#hz-mestres">Equipe</a>'
+    + (escada.length ? '<a href="#hz-graduacao">Graduação</a>' : '<a href="#hz-programas">Programas</a>')
+    + (nucs.length ? '<a href="#hz-nucleos">Núcleos</a>' : '')
+    + '<a href="#hz-app">App</a><a href="#hz-contato">Contato</a>'
+    + '<a class="btn ghost" href="'+esc(login)+'">Área do aluno</a>'
     + '<a class="btn light" href="'+esc(ins)+'" data-magnet>Fazer inscrição</a></div>'
     + '<button class="burger" id="hz-burger" type="button" aria-expanded="false" aria-controls="hz-nl">Menu</button></nav>';
 
@@ -448,6 +576,61 @@ export function renderHorizons(s, h){
   var programas = '<section class="sec w" id="hz-programas"><div class="hd rv"><span class="k">Habilidades para a vida toda</span><h2 class="d">Programas</h2></div>'
     + '<div class="progs st">'+progs+'</div></section>';
 
+  // --- GRADUAÇÃO --- a escada real da escola (cores do cadastro). Botão leva ao app (login).
+  var grad = '';
+  if(escada.length){
+    var pecaCap = s.peca.charAt(0).toUpperCase() + s.peca.slice(1);
+    var tiles = escada.map(function(b, j){
+      return '<div class="blt rv" style="--i:'+j+(b.cor ? ';--c:'+esc(b.cor) : '')+'"><span class="num">'+(j < 9 ? '0' : '')+(j+1)+'</span>'
+        + '<div class="band" aria-hidden="true"></div><h3>'+esc(b.nome)+'</h3><small>'+esc(pecaCap)+' · etapa '+(j+1)+'</small></div>';
+    }).join('');
+    grad = '<section class="sec w grad" id="hz-graduacao"><div class="hd rv"><span class="k">Graduação real, direto do app</span>'
+      + '<h2 class="d">A escada de '+esc(pecaPl)+' da '+esc(s.nomeCurto)+'</h2></div>'
+      + '<div class="belts st">'+tiles+'</div>'
+      + '<div class="gradcta rv"><p>Cada aluno acompanha no app o termômetro de prontidão rumo '+esc(proxPeca)+', com as avaliações feitas pela equipe.</p>'
+      + '<a class="btn" href="'+esc(login)+'" data-magnet>Ver minha graduação '+I.arrow+'</a></div></section>';
+  }
+
+  // --- NÚCLEOS --- só os cadastrados (nucleosPublicos). Sem horário/endereço inventado.
+  var nucleos = '';
+  if(nucs.length){
+    var ncards = nucs.map(function(n, i){
+      var loc = [n.cidade, n.uf].filter(Boolean).join(' · ');
+      return '<article class="nc rv" style="--i:'+i+'">'+(n.sede ? '<span class="sede">Sede</span>' : '')
+        + '<div class="ic">'+I.pin+'</div><h3>'+esc(n.nome)+'</h3>'
+        + '<p>'+(loc ? esc(loc)+'<br>' : '')+'Dias e horários na área do aluno.</p>'
+        + '<a class="go" href="'+esc(ins)+'">Treinar aqui '+I.arrow+'</a></article>';
+    }).join('');
+    nucleos = '<section class="sec w" id="hz-nucleos"><div class="hd rv"><span class="k">'+esc(plural(nucs.length, 'núcleo', 'núcleos'))+' sob a mesma bandeira</span>'
+      + '<h2 class="d">Onde treinar</h2></div><div class="nucs st">'+ncards+'</div></section>';
+  }
+
+  // --- APP E REDE --- funções do app de gestão (mesmas do site Liberdade), apontando para as rotas reais.
+  var rec = [
+    [I.gauge, 'Termômetro de prontidão', 'Avaliações da equipe e o caminho '+proxPeca, login],
+    [I.card,  'Carteirinha digital',     'Identificação do atleta com graduação e núcleo', R('carteirinha')],
+    [I.qr,    'Check-in no treino',      'Presença registrada em um toque', R('checkin')],
+    [I.cal,   'Campeonatos e agenda',    'Eventos da equipe e inscrições', R('campeonatos')],
+    [I.award, 'Certificados',            'Graduações e participações registradas', R('certificados')],
+    [I.net,   'Rede da equipe',          'Avisos, stories e mensagens só para quem treina', R('rede')]
+  ].map(function(r){
+    return '<li><a href="'+esc(r[3])+'"><span class="ic">'+r[0]+'</span><span><b>'+esc(r[1])+'</b><small>'+esc(r[2])+'</small></span></a></li>';
+  }).join('');
+  var c1 = (escada[0] && escada[0].cor) || t.dest, c2 = (escada.length && escada[escada.length-1].cor) || t.acc;
+  var phone = '<div class="phone rv" aria-hidden="true" style="--c1:'+esc(c1)+';--c2:'+esc(c2)+'"><div class="notch"></div><div class="scr">'
+    + '<div class="top"><span class="mk">'+(logo ? '<img src="'+esc(logo)+'" alt="">' : esc(ini))+'</span><div><b>'+esc(s.nomeCurto)+'</b><small>Área do aluno</small></div></div>'
+    + '<div class="body"><div class="tile"><span class="k">Termômetro de prontidão</span><h4>Rumo '+esc(proxPeca)+'</h4><div class="therm"><i></i></div></div>'
+    + '<div class="row"><div class="tile">'+I.card+'<span>Carteirinha</span></div><div class="tile">'+I.qr+'<span>Check-in</span></div></div>'
+    + '<div class="row"><div class="tile">'+I.cal+'<span>Agenda</span></div><div class="tile">'+I.net+'<span>Rede</span></div></div>'
+    + '</div></div></div>';
+  var appSec = '<section class="appsec" id="hz-app"><div class="appgrid"><div class="rv">'
+    + '<span class="k">App AtletaPay · '+esc(s.nomeCurto)+'</span><h2 class="d">A equipe inteira no bolso</h2>'
+    + '<p class="lead">Sem loja de aplicativos: o aluno instala direto deste site. Graduação, carteirinha, check-in e agenda no mesmo lugar.</p>'
+    + '<ul class="rec">'+rec+'</ul>'
+    + '<div class="ac"><a class="btn" href="'+esc(R('instalar'))+'" data-magnet><img src="assets/app-icon-192.png" alt="" width="26" height="26">Instalar o app</a>'
+    + '<a class="btn ghost" href="'+esc(R('instalar-rede'))+'" data-magnet><img src="assets/rede-icon-192.png" alt="" width="26" height="26">Instalar a Rede</a></div>'
+    + '</div>'+phone+'</div></section>';
+
   // --- CONTATO sobre o mapa ---
   var geo = s.geo && isFinite(s.geo.lat) && isFinite(s.geo.lng) ? s.geo : null;
   var mapa = geo
@@ -470,11 +653,14 @@ export function renderHorizons(s, h){
     + '</div></section>';
 
   // --- FOOTER ---
-  var foot = '<footer class="foot"><div class="in">'+marca.replace('href="#top"', 'href="#top"')
+  var foot = '<footer class="foot"><div class="in">'+marca
+    + '<div class="sys"><span class="k">Sistema</span><nav aria-label="Sistema">'
+    +   '<a href="'+esc(login)+'">Área do aluno</a><a href="'+esc(ins)+'">Inscrição</a><a href="'+esc(R('admin'))+'">Professores</a>'
+    +   '<a href="'+esc(R('instalar'))+'">Instalar o app</a><a href="'+esc(R('privacidade'))+'">Privacidade</a></nav></div>'
     + '<p class="cp">© '+new Date().getFullYear()+' '+esc(s.nome)+' · Site gerado pelo <b>AtletaPay</b> · atletapay.com.br/'+esc(s.slug)+'</p></div></footer>';
 
   site.className = 'hz';
-  site.innerHTML = hero + mq + vertentes + coach + jornada + programas + contato + foot;
+  site.innerHTML = hero + mq + vertentes + coach + jornada + grad + programas + nucleos + appSec + contato + foot;
   wire(site);
 }
 
@@ -522,9 +708,10 @@ function wire(site){
       b.addEventListener('mousemove', function(e){ var r = b.getBoundingClientRect(), x = e.clientX - r.left - r.width/2, y = e.clientY - r.top - r.height/2; b.style.transform = 'translate('+(x*.22)+'px,'+(y*.28)+'px)'; });
       b.addEventListener('mouseleave', function(){ b.style.transform = ''; });
     });
-    site.querySelectorAll('.vc .ph').forEach(function(ph){
+    site.querySelectorAll('.vc .ph, .phone').forEach(function(ph){
+      var amp = ph.classList.contains('phone') ? 10 : 6;
       ph.style.transition = 'transform .6s cubic-bezier(.16,1,.3,1)';
-      ph.addEventListener('mousemove', function(e){ var r = ph.getBoundingClientRect(), x = (e.clientX - r.left)/r.width - .5, y = (e.clientY - r.top)/r.height - .5; ph.style.transform = 'perspective(900px) rotateX('+(-y*6)+'deg) rotateY('+(x*8)+'deg)'; });
+      ph.addEventListener('mousemove', function(e){ var r = ph.getBoundingClientRect(), x = (e.clientX - r.left)/r.width - .5, y = (e.clientY - r.top)/r.height - .5; ph.style.transform = 'perspective(900px) rotateX('+(-y*amp)+'deg) rotateY('+(x*amp*1.3)+'deg)'; });
       ph.addEventListener('mouseleave', function(){ ph.style.transform = ''; });
     });
   }

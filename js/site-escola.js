@@ -608,14 +608,22 @@ async function iniciar(){
     return;
   }
 
-  var nucleos = [];
+  // nucleos: só nomes (formato que o layout "arena" usa). nucleosInfo: os mesmos
+  // núcleos com os campos públicos que nucleoPublico() já exporta (sede, cidade, uf),
+  // para templates com cartões de núcleo (horizons). Ambos saem da mesma consulta.
+  var nucleos = [], nucleosInfo = [];
   try{
     var ns = await getDocs(query(collection(db, 'nucleosPublicos'), where('escolaId', '==', id), where('ativo', '==', true)));
-    nucleos = ns.docs.map(function(d){ return (d.data() || {}).nome; })
-      .filter(function(n){ return typeof n === 'string' && n.trim(); });
-  }catch(e){ nucleos = []; }
+    ns.docs.forEach(function(d){
+      var n = d.data() || {};
+      if(typeof n.nome !== 'string' || !n.nome.trim()) return;
+      nucleos.push(n.nome);
+      nucleosInfo.push({ nome: n.nome, sede: n.sede === true, cidade: typeof n.cidade === 'string' ? n.cidade : '', uf: typeof n.uf === 'string' ? n.uf : '' });
+    });
+  }catch(e){ nucleos = []; nucleosInfo = []; }
 
   var s = mapEscola(pub, id, nucleos);
+  s.nucleosInfo = nucleosInfo;
   try{ aplicarSeo(s); }catch(e){ /* SEO é cosmético: nunca derruba o render */ }
 
   // Template com layout próprio: carrega o módulo sob demanda. Se falhar (rede,
