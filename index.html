@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noai, noimageai">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AtletaPay — Em breve</title>
+<meta name="description" content="A plataforma de gestão para escolas de artes marciais está chegando. Site, app, carteirinha, graduação, campeonato e mensalidades — tudo num lugar só.">
+<link rel="icon" type="image/svg+xml" href="assets/marca.svg">
+<link rel="apple-touch-icon" href="assets/marca-192.png">
+<meta name="theme-color" content="#04122B">
+<meta property="og:title" content="AtletaPay — Em breve">
+<meta property="og:description" content="A plataforma de gestão para escolas de artes marciais está chegando.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/marca-512.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Archivo:wght@400;500;700&display=swap">
+<style>
+  :root{
+    --verde:#389E92; --navy:#002D72; --azul:#0B2E70; --escuro:#04122B;
+    --destaque:#00E676; --neutro:#EAF2F1;
+    --suave:cubic-bezier(.16,1,.3,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{overflow-x:clip}
+  body{
+    min-height:100svh; color:#EAF2F1;
+    font-family:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
+    background:radial-gradient(120% 90% at 85% -10%, #10457f 0%, transparent 55%),
+               radial-gradient(90% 80% at 10% 110%, rgba(56,158,146,.35) 0%, transparent 55%),
+               linear-gradient(160deg,#0A3E8C 0%, var(--navy) 48%, var(--escuro) 100%);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px;
+    padding:32px 18px; position:relative;
+  }
+  /* Octógono da marca pulsando ao fundo (bem sutil) */
+  .arena{position:fixed; inset:0; overflow:hidden; pointer-events:none; z-index:0}
+  .arena svg{position:absolute; top:50%; left:50%; width:min(140vmin,1100px); height:min(140vmin,1100px);
+    transform:translate(-50%,-50%); opacity:.06; animation:girar 60s linear infinite}
+  .brilho{position:absolute; top:50%; left:50%; width:620px; height:620px; transform:translate(-50%,-55%);
+    background:radial-gradient(circle, rgba(0,230,118,.22), transparent 62%); filter:blur(10px); animation:respira 7s var(--suave) infinite}
+
+  .cartao{
+    position:relative; z-index:1; width:min(680px,100%);
+    text-align:center; padding:clamp(28px,5vw,52px) clamp(22px,4vw,48px);
+    border-radius:28px; border:1px solid rgba(255,255,255,.12);
+    background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+    box-shadow:0 30px 80px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.14);
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    animation:entra .7s var(--suave) both;
+  }
+  .logo{width:clamp(78px,16vw,104px); height:auto; filter:drop-shadow(0 10px 26px rgba(0,0,0,.5)); animation:flutua 5s ease-in-out 1s infinite}
+  .marca{margin-top:16px; font-family:"Big Shoulders Display",sans-serif; font-weight:900;
+    font-size:clamp(2.4rem,9vw,3.6rem); line-height:.92; letter-spacing:.01em; text-transform:uppercase}
+  .marca b{color:var(--destaque)}
+  .pill{display:inline-flex; align-items:center; gap:9px; margin:18px 0 8px;
+    padding:7px 16px; border-radius:999px; font-weight:700; font-size:.72rem;
+    letter-spacing:.22em; text-transform:uppercase; color:#052c16;
+    background:linear-gradient(135deg,var(--destaque),#49f0a0); box-shadow:0 8px 24px rgba(0,230,118,.3)}
+  .pill .ponto{width:8px;height:8px;border-radius:50%;background:#052c16;animation:pisca 1.6s var(--suave) infinite}
+  h1{font-family:"Big Shoulders Display",sans-serif; font-weight:800; text-transform:uppercase;
+    font-size:clamp(1.5rem,5.4vw,2.3rem); line-height:1.02; text-wrap:balance; margin:10px 0 0}
+  p.sub{margin:16px auto 0; max-width:46ch; font-size:clamp(.98rem,2.4vw,1.08rem); line-height:1.55; color:rgba(234,242,241,.82)}
+
+  /* Barra "amarrando" — decorativa, sem porcentagem falsa */
+  .faixa{position:relative; height:12px; margin:26px auto 4px; max-width:420px; border-radius:999px;
+    background:rgba(255,255,255,.1); overflow:hidden; box-shadow:inset 0 2px 5px rgba(0,0,0,.3)}
+  .faixa i{position:absolute; inset:0; width:42%; border-radius:999px;
+    background:linear-gradient(90deg,var(--verde),var(--destaque)); box-shadow:0 0 18px rgba(0,230,118,.6);
+    animation:corre 2.4s var(--suave) infinite}
+  .legenda{font-size:.8rem; color:rgba(234,242,241,.6); letter-spacing:.02em}
+
+  .artes{margin-top:26px; display:flex; flex-wrap:wrap; gap:8px 10px; justify-content:center}
+  .artes span{font-size:.74rem; font-weight:500; color:rgba(234,242,241,.78);
+    padding:5px 11px; border-radius:999px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04)}
+
+  .contato{margin-top:28px; display:flex; flex-wrap:wrap; gap:12px; justify-content:center; align-items:center}
+  .btn{display:inline-flex; align-items:center; gap:9px; text-decoration:none; font-weight:700; font-size:.95rem;
+    padding:12px 22px; border-radius:14px; transition:transform .35s var(--suave), box-shadow .35s, background .3s}
+  .btn-verde{background:linear-gradient(135deg,var(--destaque),#30d884); color:#052c16; box-shadow:0 12px 30px rgba(0,230,118,.3)}
+  .btn-verde:hover{transform:translateY(-2px); box-shadow:0 16px 38px rgba(0,230,118,.42)}
+  .btn-vidro{color:#EAF2F1; border:1px solid rgba(255,255,255,.22); background:rgba(255,255,255,.06)}
+  .btn-vidro:hover{transform:translateY(-2px); background:rgba(255,255,255,.12)}
+
+  footer{position:relative; z-index:1; font-size:.76rem; color:rgba(234,242,241,.5); text-align:center}
+
+  @keyframes entra{from{opacity:0; transform:translateY(16px) scale(.98)} to{opacity:1; transform:none}}
+  @keyframes flutua{0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)}}
+  @keyframes respira{0%,100%{opacity:.5; transform:translate(-50%,-55%) scale(1)} 50%{opacity:.9; transform:translate(-50%,-55%) scale(1.12)}}
+  @keyframes girar{to{transform:translate(-50%,-50%) rotate(360deg)}}
+  @keyframes pisca{0%,100%{opacity:1} 50%{opacity:.25}}
+  @keyframes corre{0%{left:-45%} 100%{left:105%}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+  @media (max-width:420px){ .cartao{border-radius:22px} }
+</style>
+</head>
+<body>
+  <div class="arena" aria-hidden="true">
+    <div class="brilho"></div>
+    <svg viewBox="0 0 200 200" fill="none" stroke="#00E676" stroke-width="2">
+      <polygon points="60,20 140,20 180,60 180,140 140,180 60,180 20,140 20,60" />
+      <polygon points="70,40 130,40 160,70 160,130 130,160 70,160 40,130 40,70" stroke="#389E92" stroke-width="1.4" opacity=".7"/>
+    </svg>
+  </div>
+
+  <main class="cartao">
+    <img class="logo" src="/assets/marca.svg" alt="AtletaPay" width="200" height="200">
+    <div class="marca">Atleta<b>Pay</b></div>
+
+    <span class="pill"><span class="ponto"></span> Em breve</span>
+    <h1>Estamos amarrando os últimos detalhes</h1>
+    <p class="sub">A plataforma completa de gestão para escolas de artes marciais está quase no ar: site próprio, app, carteirinha digital, graduação, campeonatos e controle de mensalidades — tudo num lugar só.</p>
+
+    <div class="faixa" aria-hidden="true"><i></i></div>
+    <div class="legenda">Preparando a arena</div>
+
+    <div class="artes" aria-label="Artes marciais atendidas">
+      <span>Capoeira</span><span>Jiu-jitsu</span><span>Judô</span><span>Karatê</span>
+      <span>Taekwondo</span><span>Muay Thai</span><span>Boxe</span><span>MMA</span><span>e mais</span>
+    </div>
+
+    <div class="contato">
+      <a class="btn btn-verde" href="mailto:contato@atletapay.com.br?subject=Quero%20saber%20quando%20o%20AtletaPay%20abrir">Quero ser avisado</a>
+      <a class="btn btn-vidro" href="mailto:contato@atletapay.com.br">contato@atletapay.com.br</a>
+    </div>
+  </main>
+
+  <footer>© <span id="ano"></span> AtletaPay — Gestão para artes marciais</footer>
+  <script>document.getElementById('ano').textContent=new Date().getFullYear();</script>
+</body>
+</html>
