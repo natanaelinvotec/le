@@ -53,6 +53,13 @@ export var TEMPLATES = {
     modalidades: ['kravmaga', 'judo', 'taekwondo', 'todas'],
     modulo: './site-tpl-escudo.js',
     miniatura: 'assets/templates/escudo.svg'
+  },
+  mongkon: {
+    nome: 'Mongkon',
+    descricao: 'Formas redondas: preto quente com dourado, fotos em anéis giratórios, níveis como cordas (prajieds), botões-pílula, pôster do atleta em destaque, horários e o bloco do app em cartão creme.',
+    modalidades: ['muaythai', 'boxe', 'mma', 'todas'],
+    modulo: './site-tpl-mongkon.js',
+    miniatura: 'assets/templates/mongkon.svg'
   }
 };
 

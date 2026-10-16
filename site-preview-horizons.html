@@ -35,7 +35,7 @@ const LIDER = { capoeira:"Mestre", jiujitsu:"Professor", judo:"Sensei", karate:"
 
 const qs = new URLSearchParams(location.search);
 const tpl = TEMPLATES[qs.get('tpl')] && TEMPLATES[qs.get('tpl')].modulo ? qs.get('tpl') : 'horizons';
-const mod = qs.get('mod') || (tpl === 'luva' ? 'boxe' : tpl === 'escudo' ? 'kravmaga' : 'karate');
+const mod = qs.get('mod') || (tpl === 'luva' ? 'boxe' : tpl === 'escudo' ? 'kravmaga' : tpl === 'mongkon' ? 'muaythai' : 'karate');
 const P = (id, w=1200, h=null) => `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=${w}${h?`&h=${h}&fit=crop`:''}`;
 
 // Logo da Equipe Horizons (sol no horizonte) como se fosse o logo cadastrado pela escola.
@@ -119,6 +119,18 @@ s.conteudo = tpl === 'escudo' ? { secoes: {
   agenda: { itens: [{ dia:'08', mes:'11', titulo:'Exame de graduação', local:'Núcleo Centro · P1 a P3', hora:'09:00' }, { dia:'22', mes:'11', titulo:'Workshop defesa feminina', local:'Aberto ao público · Núcleo Norte', hora:'14:00' }, { dia:'06', mes:'12', titulo:'Seminário com instrutor convidado', local:'Núcleo Centro', hora:'10:00' }, { dia:'13', mes:'12', titulo:'Treinão de encerramento', local:'Todos os núcleos · Parque das Nações', hora:'08:00' }] },
   horarios: { itens: HOR },
   parceiros: { itens: [{ nome:'Nutri+' }, { nome:'Fisio Vida' }, { nome:'Tático Store' }, { nome:'Clube MS' }] }
+} } : tpl === 'mongkon' ? { secoes: {
+  // Imagens criadas pelo fundador (IA) para a demo do Mongkon: hero de sparring e pôster do atleta (PNG transparente).
+  hero: mod === 'muaythai' ? { foto: 'assets/mongkon/sparring.webp' } : {},
+  atleta: { nome: 'Thiago Silva', foto: 'assets/mongkon/nofear.webp', titulo: 'Treine *duro*, lute fácil.', texto: 'Thiago Silva começou no Núcleo Centro e hoje representa a Equipe Horizons nos eventos profissionais. O mesmo ' + (VOCAB[mod]?.local || 'tatame') + ', a mesma equipe, o mesmo app que acompanha a sua evolução.', vitorias: '24', derrotas: '0', empates: '0' },
+  contato: { whatsapp: '67999990000' },
+  horarios: { itens: [
+    { dia:'seg', aula:'Fundamentos', horario:'07:00–08:00', local:'Centro' }, { dia:'seg', aula:'Sparring', horario:'19:30–21:00', local:'Centro' },
+    { dia:'ter', aula:'Thai pads', horario:'06:30–07:30', local:'Norte' }, { dia:'ter', aula:'Feminino', horario:'19:00–20:00', local:'Centro' },
+    { dia:'qua', aula:'Fundamentos', horario:'07:00–08:00', local:'Centro' }, { dia:'qua', aula:'Infantil', horario:'17:30–18:30', local:'Lagoa' },
+    { dia:'qui', aula:'Clinch', horario:'12:00–13:00', local:'Centro' }, { dia:'qui', aula:'Sparring', horario:'19:30–21:00', local:'Centro' },
+    { dia:'sex', aula:'Thai pads', horario:'06:30–07:30', local:'Norte' }, { dia:'sex', aula:'Equipe de competição', horario:'19:00–21:00', local:'Centro' },
+    { dia:'sab', aula:'Aula aberta', horario:'09:00–10:30', local:'Lagoa' } ] }
 } } : tpl === 'luva' ? { secoes: {
   citacao: { autor: 'Ricardo Nakamura', cargo: 'Treinador-chefe · Equipe Horizons' },
   contato: { whatsapp: '67999990000' },

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" role="img" aria-label="Template Mongkon">
+  <rect width="320" height="200" fill="#0f0d0b"/>
+  <rect x="8" y="8" width="304" height="112" rx="22" fill="#17140f"/>
+  <circle cx="30" cy="26" r="8" fill="none" stroke="#c8912e" stroke-width="2.5"/><rect x="44" y="23" width="30" height="5" rx="2.5" fill="#efe6d6"/>
+  <rect x="190" y="21" width="46" height="10" rx="5" fill="none" stroke="#efe6d6" stroke-opacity=".5" stroke-width="1.5"/><rect x="244" y="21" width="58" height="10" rx="5" fill="#c8912e"/>
+  <circle cx="40" cy="62" r="14" fill="none" stroke="#c8912e" stroke-width="2" stroke-dasharray="60 28"/>
+  <rect x="20" y="86" width="120" height="14" rx="3" fill="#efe6d6"/><rect x="146" y="86" width="60" height="14" rx="3" fill="#c8912e"/>
+  <rect x="222" y="60" width="80" height="48" rx="12" fill="#0f0d0b" fill-opacity=".6" stroke="#efe6d6" stroke-opacity=".15"/>
+  <rect x="232" y="70" width="52" height="4" rx="2" fill="#a8998a"/><rect x="232" y="79" width="44" height="4" rx="2" fill="#a8998a"/><rect x="232" y="92" width="34" height="9" rx="4.5" fill="#c8912e"/>
+  <rect x="8" y="112" width="304" height="16" rx="8" fill="#c8912e"/>
+  <circle cx="60" cy="120" r="2.5" fill="#17140f"/><circle cx="130" cy="120" r="2.5" fill="#17140f"/><circle cx="200" cy="120" r="2.5" fill="#17140f"/><circle cx="270" cy="120" r="2.5" fill="#17140f"/>
+  <rect x="8" y="140" width="94" height="52" rx="14" fill="#17140f"/><rect x="113" y="140" width="94" height="52" rx="14" fill="#17140f"/><rect x="218" y="140" width="94" height="52" rx="14" fill="#17140f"/>
+  <circle cx="30" cy="160" r="9" fill="none" stroke="#f4f4f4" stroke-width="4"/><circle cx="135" cy="160" r="9" fill="none" stroke="#f2c524" stroke-width="4"/><circle cx="240" cy="160" r="9" fill="none" stroke="#c62828" stroke-width="4"/>
+  <rect x="48" y="156" width="40" height="5" rx="2.5" fill="#efe6d6"/><rect x="153" y="156" width="40" height="5" rx="2.5" fill="#efe6d6"/><rect x="258" y="156" width="40" height="5" rx="2.5" fill="#efe6d6"/>
+  <rect x="48" y="166" width="28" height="4" rx="2" fill="#a8998a"/><rect x="153" y="166" width="28" height="4" rx="2" fill="#a8998a"/><rect x="258" y="166" width="28" height="4" rx="2" fill="#a8998a"/>
+</svg>
