@@ -15,7 +15,8 @@
  *
  * Formato do schema:
  *   { secoes: [ { id, r (rótulo), ajuda, campos: [ campo ] } ] }
- *   campo = { c (chave), r (rótulo), t?: 'texto'|'area'|'foto'|'lista'|'link', max?: n (caracteres ou itens),
+ *   campo = { c (chave), r (rótulo), t?: 'texto'|'area'|'foto'|'lista'|'link'|'select', max?: n (caracteres ou itens),
+ *             opcoes?: [[valor, rótulo]] (select), linhas?: n (area),
  *             ph?: placeholder, png?: true (foto com transparência), item?: [campo] (campos de cada item da lista),
  *             resumo?: chave do item usada como título na lista }
  *   O conteúdo gravado espelha o schema: secoes[id][c] = texto | url | [ {c: valor} ].
@@ -38,6 +39,13 @@ export var TEMPLATES = {
     modalidades: ['todas'],
     modulo: './site-tpl-horizons.js',
     miniatura: 'assets/templates/horizons.svg'
+  },
+  luva: {
+    nome: 'Luva',
+    descricao: 'Clube de luta em alto contraste: carvão com grão de filme, um acento forte, tipografia condensada, cordas do ringue, níveis, horários da semana e o bloco do app.',
+    modalidades: ['boxe', 'muaythai', 'mma', 'todas'],
+    modulo: './site-tpl-luva.js',
+    miniatura: 'assets/templates/luva.svg'
   }
 };
 

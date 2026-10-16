@@ -41,7 +41,8 @@ const el = (tag, attrs = {}, ...filhos) => {
   for (const f of filhos) if (f != null) n.append(f);
   return n;
 };
-const limparTexto = (v, max = MAX_TEXTO) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
+// Mantém quebras de linha (tópicos e horários usam uma por linha); colapsa o resto do espaço.
+const limparTexto = (v, max = MAX_TEXTO) => String(v ?? '').replace(/\r/g, '').replace(/[^\S\n]+/g, ' ').replace(/\n{2,}/g, '\n').trim().slice(0, max);
 const ehUrlOk = (u) => /^https:\/\/[^\s"'<>\\]+$/i.test(u) || (/^[a-z0-9][a-z0-9._/-]*$/i.test(u) && !u.includes('..'));
 
 // Só o que o site lê: strings (até 400) e listas (até 12) de objetos de strings. Vazios caem.
@@ -112,7 +113,7 @@ function estilos() {
 #meuSite .ms-ajuda{margin:0;color:var(--ms-mut);font-size:.86rem;line-height:1.5}
 #meuSite .ms-campo{display:grid;gap:5px;font-size:.84rem;font-weight:600;color:var(--ms-mut)}
 #meuSite .ms-campo>span:first-child{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
-#meuSite .ms-campo input,#meuSite .ms-campo textarea{width:100%;font:inherit;font-size:.95rem;color:inherit;border:1px solid var(--ms-b);border-radius:10px;padding:9px 12px;background:var(--ms-bg)}
+#meuSite .ms-campo input,#meuSite .ms-campo textarea,#meuSite .ms-campo select{width:100%;font:inherit;font-size:.95rem;color:inherit;border:1px solid var(--ms-b);border-radius:10px;padding:9px 12px;background:var(--ms-bg)}
 #meuSite .ms-campo textarea{min-height:76px;resize:vertical}
 #meuSite .ms-campo input:focus,#meuSite .ms-campo textarea:focus{outline:2px solid var(--ms-ac);outline-offset:1px;border-color:transparent}
 #meuSite .ms-cont{justify-self:end;font-size:.72rem;font-weight:500}
@@ -200,10 +201,20 @@ function definir(sid, c, v) {
   marcarSujo();
 }
 
+function campoSelect(def, get, set) {
+  const sel = el('select');
+  sel.append(el('option', { value: '', text: def.ph || 'Escolha…' }));
+  (def.opcoes || []).forEach((o) => { const [v, r] = Array.isArray(o) ? o : [o, o]; sel.append(el('option', { value: v, text: r })); });
+  sel.value = (def.opcoes || []).some((o) => (Array.isArray(o) ? o[0] : o) === get()) ? get() : '';
+  sel.addEventListener('change', () => set(sel.value));
+  return el('label', { class: 'ms-campo' }, el('span', {}, def.r), sel);
+}
+
 function campoTexto(def, get, set) {
   const area = def.t === 'area';
   const input = el(area ? 'textarea' : 'input', { maxlength: def.max || MAX_TEXTO, placeholder: def.ph || '' });
   if (!area) input.type = 'text';
+  if (area && def.linhas) input.rows = def.linhas;
   input.value = get() || '';
   const cont = el('span', { class: 'ms-cont' });
   const atualizaCont = () => { cont.textContent = `${input.value.length}/${def.max || MAX_TEXTO}`; };
@@ -257,6 +268,7 @@ function campoLista(def, sid) {
 
 function campo(def, get, set) {
   if (def.t === 'foto') return campoFoto(def, get, set);
+  if (def.t === 'select') return campoSelect(def, get, set);
   return campoTexto(def, get, set);
 }
 

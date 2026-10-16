@@ -3,21 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Prévia · template Horizons</title>
+<title>Prévia · templates AtletaPay</title>
 <meta name="robots" content="noindex">
 <style>html,body{margin:0;background:#f3f0e8} #site{min-height:100vh} .pv{position:fixed;left:12px;bottom:12px;z-index:99;font:12px/1.4 system-ui,sans-serif;background:#131313;color:#fff;padding:8px 12px;border-radius:999px;opacity:.85}
 .pv a{color:#ffd37a;text-decoration:none;margin-left:6px}</style>
 </head>
 <body>
 <div id="site"></div>
-<div class="pv">Prévia com dados fictícios · modalidade:
-  <a href="?mod=karate">karatê</a><a href="?mod=capoeira">capoeira</a><a href="?mod=jiujitsu">jiu-jitsu</a><a href="?mod=muaythai">muay thai</a><a href="?mod=boxe">boxe</a><a href="?mod=mma">mma</a>
-</div>
+<div class="pv" id="pv">Prévia fictícia · template: <span id="pvT"></span> · modalidade: <span id="pvM"></span></div>
 <script type="module">
 /* Prévia do template "horizons" SEM Firestore: monta um objeto `s` igual ao que
    site-escola.js produz em mapEscola() e chama o módulo diretamente.
    Fotos: stock (Pexels, uso livre) só para visualização — em produção vêm do cadastro da escola. */
-import { renderHorizons } from './js/site-tpl-horizons.js';
+import { TEMPLATES, carregarTemplate } from './js/site-templates.js';
 
 const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 const url = (u) => { const s = String(u == null ? '' : u).trim(); if(!s) return ''; if(/^https:\/\/[^\s"'<>\\]+$/i.test(s)) return s; if(/^[a-z0-9][a-z0-9._\/-]*$/i.test(s) && !s.includes('..')) return s; if(/^data:image\/svg\+xml[,;]/i.test(s)) return s; return ''; };
@@ -34,7 +32,9 @@ const VOCAB = {
 };
 const LIDER = { capoeira:"Mestre", jiujitsu:"Professor", judo:"Sensei", karate:"Sensei", taekwondo:"Sabom", muaythai:"Kru", boxe:"Treinador", mma:"Coach" };
 
-const mod = new URLSearchParams(location.search).get('mod') || 'karate';
+const qs = new URLSearchParams(location.search);
+const tpl = TEMPLATES[qs.get('tpl')] && TEMPLATES[qs.get('tpl')].modulo ? qs.get('tpl') : 'horizons';
+const mod = qs.get('mod') || (tpl === 'luva' ? 'boxe' : 'karate');
 const P = (id, w=1200, h=null) => `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=${w}${h?`&h=${h}&fit=crop`:''}`;
 
 // Logo da Equipe Horizons (sol no horizonte) como se fosse o logo cadastrado pela escola.
@@ -46,7 +46,7 @@ const FOTOS = {
   capoeira: { fachada:[P(11045334,2000)], treino:[P(4035671,900,1125),P(4804067,900,1125),P(7992146,900,1125)], equipe:[] },
   jiujitsu: { fachada:[P(6253172,2000)], treino:[P(6253172,900,1125),P(8612527,900,1125),P(9651851,900,1125)], equipe:[] },
   muaythai: { fachada:[P(2581662,2000)], treino:[P(19406132,900,1125),P(30567997,900,1125),P(7992146,900,1125),P(4401639,1000,1300),P(7991621,1000,1300),P(4804301,1000,1300)], equipe:[] },
-  boxe:     { fachada:[P(4401639,2000)], treino:[P(4804301,900,1125),P(7991621,900,1125),P(4804067,900,1125)], equipe:[] },
+  boxe:     { fachada:[P(8745178,2000)], treino:[P(5750886,1400),P(6456308,1400),P(31403621,1400),P(5424583,900,1200),P(7991688,900,1200),P(6740342,900,1200),P(6699106,900,1200),P(4753898,2000)], equipe:[] },
   mma:      { fachada:[P(17892072,2000)], treino:[P(6295992,900,1125),P(17892069,900,1125),P(8612527,900,1125)], equipe:[] }
 };
 const CORES = {
@@ -70,6 +70,8 @@ const ESCADA = {
   mma:      E(['Iniciante','#cfd8dc'],['Intermediário','#90a4ae'],['Avançado','#546e7a'],['Competição','#00E676'])
 };
 
+// Fotos da equipe por modalidade (boxe tem o próprio trio; demais usam as de karatê).
+const EQF = mod === 'boxe' ? [P(38510608,900,1125), P(6740346,900,1125), P(8612588,900,1125)] : [P(15937400,900,1200), P(6005463,900,1200), P(10655538,900,1200)];
 const s = {
   id:'horizons', slug:'horizons', nome:'Equipe Horizons', nomeCurto:'Horizons',
   modalidade: mod, cidade:'Campo Grande', uf:'MS',
@@ -84,7 +86,7 @@ const s = {
     { nome:'Horizons Norte',  sede:false, cidade:'Campo Grande', uf:'MS' },
     { nome:'Horizons Lagoa',  sede:false, cidade:'Campo Grande', uf:'MS' }
   ],
-  fotoLider: P(15937400, 900, 1200),
+  fotoLider: EQF[0],
   fotos: FOTOS[mod] || FOTOS.karate,
   graduacoes: (ESCADA[mod] || ESCADA.karate).map(b => b.nome),
   responsavel: { nome:'Ricardo Nakamura', graduacao: (LIDER[mod]||'Professor') + ' · 5º Dan' },
@@ -92,16 +94,33 @@ const s = {
   // fotoRecorte = PNG/WebP com fundo transparente (oval cru embutido) → efeito 3D "saindo" do bloco.
   // Na prévia vêm de assets/horizons/ (caminho local relativo, aceito por url()); em produção, da escola.
   equipe: [
-    { nome:'Ricardo Nakamura', graduacao:(LIDER[mod]||'Professor')+' · 5º Dan', bio:'Fundador da Equipe Horizons. Forma atletas há mais de duas décadas com uma regra só: técnica antes de força.', foto:P(15937400,900,1200), fotoRecorte:'assets/horizons/ricardo.webp' },
-    { nome:'Ana Beatriz Horta', graduacao:(LIDER[mod]||'Professora')+' · 3º Dan', bio:'Coordena as turmas femininas e o programa competitivo. Aulas conhecidas pela atenção ao detalhe.', foto:P(6005463,900,1200), fotoRecorte:'assets/horizons/ana.webp' },
-    { nome:'Caio Ferreira', graduacao:(LIDER[mod]||'Professor')+' · 2º Dan', bio:'Técnico da equipe de competição: estratégia, condicionamento e cabeça fria.', foto:P(10655538,900,1200), fotoRecorte:'assets/horizons/caio.webp' }
+    { nome:'Ricardo Nakamura', graduacao:(LIDER[mod]||'Professor')+' · 5º Dan', bio:'Fundador da Equipe Horizons. Forma atletas há mais de duas décadas com uma regra só: técnica antes de força.', foto:EQF[0], fotoRecorte:'assets/horizons/ricardo.webp' },
+    { nome:'Ana Beatriz Horta', graduacao:(LIDER[mod]||'Professora')+' · 3º Dan', bio:'Coordena as turmas femininas e o programa competitivo. Aulas conhecidas pela atenção ao detalhe.', foto:EQF[1], fotoRecorte:'assets/horizons/ana.webp' },
+    { nome:'Caio Ferreira', graduacao:(LIDER[mod]||'Professor')+' · 2º Dan', bio:'Técnico da equipe de competição: estratégia, condicionamento e cabeça fria.', foto:EQF[2], fotoRecorte:'assets/horizons/caio.webp' }
   ],
   // Coordenadas fictícias (Jardim dos Estados, Campo Grande) → mapa real na seção de contato.
   geo: { lat: -20.4569, lng: -54.5995 }
 };
 
-renderHorizons(s, { esc, url, VOCAB, LIDER, modalidadeBase: VOCAB[mod] ? mod : 'arena' });
-document.title = `Prévia Horizons · ${VOCAB[mod]?.nomeMod || mod}`;
+// Conteúdo fictício do painel (siteConteudo) só para o Luva mostrar horários e citação preenchidos.
+s.conteudo = tpl === 'luva' ? { secoes: {
+  citacao: { autor: 'Ricardo Nakamura', cargo: 'Treinador-chefe · Equipe Horizons' },
+  contato: { whatsapp: '67999990000' },
+  horarios: { itens: [
+    { dia:'seg', aula:'Fundamentos', horario:'07:00–08:00', local:'Centro' }, { dia:'seg', aula:'Sparring', horario:'19:30–21:00', local:'Centro' },
+    { dia:'ter', aula:'Treino físico', horario:'06:30–07:30', local:'Norte' }, { dia:'ter', aula:'Feminino', horario:'19:00–20:00', local:'Centro' },
+    { dia:'qua', aula:'Fundamentos', horario:'07:00–08:00', local:'Centro' }, { dia:'qua', aula:'Infantil', horario:'17:30–18:30', local:'Lagoa' },
+    { dia:'qui', aula:'Manopla', horario:'12:00–13:00', local:'Centro' }, { dia:'qui', aula:'Sparring', horario:'19:30–21:00', local:'Centro' },
+    { dia:'sex', aula:'Treino físico', horario:'06:30–07:30', local:'Norte' }, { dia:'sex', aula:'Equipe de competição', horario:'19:00–21:00', local:'Centro' },
+    { dia:'sab', aula:'Aula aberta', horario:'09:00–10:30', local:'Lagoa' } ] }
+} } : null;
+const m = await carregarTemplate(tpl);
+(m.render || m.renderHorizons)(s, { esc, url, VOCAB, LIDER, modalidadeBase: VOCAB[mod] ? mod : 'arena' });
+document.title = `Prévia ${TEMPLATES[tpl].nome} · ${VOCAB[mod]?.nomeMod || mod}`;
+// barrinha de navegação da prévia
+const outros = Object.keys(TEMPLATES).filter((k) => TEMPLATES[k].modulo);
+document.getElementById('pvT').innerHTML = outros.map((k) => `<a href="?tpl=${k}&mod=${mod}"${k === tpl ? ' style="color:#fff;text-decoration:underline"' : ''}>${TEMPLATES[k].nome}</a>`).join('');
+document.getElementById('pvM').innerHTML = ['karate','capoeira','jiujitsu','muaythai','boxe','mma'].map((k) => `<a href="?tpl=${tpl}&mod=${k}"${k === mod ? ' style="color:#fff;text-decoration:underline"' : ''}>${VOCAB[k].nomeMod}</a>`).join('');
 </script>
 </body>
 </html>

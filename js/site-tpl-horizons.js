@@ -713,9 +713,10 @@ export function renderHorizons(s, h){
   var geo = s.geo && isFinite(Number(s.geo.lat)) && isFinite(Number(s.geo.lng)) ? { lat:Number(s.geo.lat), lng:Number(s.geo.lng) } : null;
   var enderecoFull = s.endereco ? s.endereco+(s.cidade ? ', '+s.cidade : '')+(s.uf ? ' - '+s.uf : '') : '';
   var mapaQ = geo ? geo.lat.toFixed(6)+','+geo.lng.toFixed(6) : enderecoFull;
-  var mapa = mapaQ
-    ? '<iframe title="Mapa" src="https://www.google.com/maps?q='+esc(encodeURIComponent(mapaQ))+'&amp;z=16&amp;hl=pt-BR&amp;output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>'
-    : mapaGrade();
+  // geo → OpenStreetMap (embed feito para iframe, sem chave); só endereço → Google por endereço; nada → malha.
+  var mapa = geo
+    ? '<iframe title="Mapa" src="https://www.openstreetmap.org/export/embed.html?bbox='+esc((geo.lng-0.013).toFixed(4))+'%2C'+esc((geo.lat-0.01).toFixed(4))+'%2C'+esc((geo.lng+0.013).toFixed(4))+'%2C'+esc((geo.lat+0.01).toFixed(4))+'&amp;layer=mapnik&amp;marker='+esc(geo.lat.toFixed(5))+'%2C'+esc(geo.lng.toFixed(5))+'" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>'
+    : (mapaQ ? '<iframe title="Mapa" src="https://www.google.com/maps?q='+esc(encodeURIComponent(mapaQ))+'&amp;z=16&amp;hl=pt-BR&amp;output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>' : mapaGrade());
   var mapsHref = mapaQ ? 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(mapaQ) : '';
   var contato = '<section class="mapsec" id="hz-contato"><div class="cap" aria-hidden="true"></div><div class="mapwrap">'+mapa
     + '<div class="card rv"><h2 class="d">'+esc(cx('contato', 'titulo', 'Fale com a gente'))+'</h2>'
