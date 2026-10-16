@@ -333,7 +333,8 @@ function carregar() {
   $('carregando').classList.add('on');
   frame.src = srcPrevia();
   $('btnFull').href = srcPrevia(false);
-  history.replaceState(null, '', '?' + new URLSearchParams({ tpl: st.tpl, mod: st.mod }).toString());
+  // Caminho absoluto: o build publica com <base href="/app/">, e um '?…' relativo viraria /app/?… (a página Em breve).
+  history.replaceState(null, '', location.pathname + '?' + new URLSearchParams({ tpl: st.tpl, mod: st.mod }).toString());
   gravarSessao();
   pintarBarra();
   // rede lenta: libera o palco mesmo sem o aviso da prévia

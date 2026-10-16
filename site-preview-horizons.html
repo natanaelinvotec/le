@@ -191,9 +191,11 @@ addEventListener('message', (e) => {
 if (parent !== window) parent.postMessage({ tipo: 'ap-vitrine-pronta', tpl, mod }, location.origin);
 
 // barrinha de navegação da prévia (uso direto, fora da vitrine)
+// Caminho absoluto: com <base href="/app/"> um href "?…" relativo cairia em /app/ (Em breve).
+const AQUI = esc(location.pathname);
 const outros = Object.keys(TEMPLATES).filter((k) => TEMPLATES[k].modulo);
-document.getElementById('pvT').innerHTML = outros.map((k) => `<a href="?tpl=${k}&mod=${mod}"${k === tpl ? ' style="color:#fff;text-decoration:underline"' : ''}>${TEMPLATES[k].nome}</a>`).join('');
-document.getElementById('pvM').innerHTML = ['karate','capoeira','jiujitsu','muaythai','boxe','mma','kravmaga'].map((k) => `<a href="?tpl=${tpl}&mod=${k}"${k === mod ? ' style="color:#fff;text-decoration:underline"' : ''}>${VOCAB[k].nomeMod}</a>`).join('');
+document.getElementById('pvT').innerHTML = outros.map((k) => `<a href="${AQUI}?tpl=${k}&mod=${mod}"${k === tpl ? ' style="color:#fff;text-decoration:underline"' : ''}>${TEMPLATES[k].nome}</a>`).join('');
+document.getElementById('pvM').innerHTML = ['karate','capoeira','jiujitsu','muaythai','boxe','mma','kravmaga'].map((k) => `<a href="${AQUI}?tpl=${tpl}&mod=${k}"${k === mod ? ' style="color:#fff;text-decoration:underline"' : ''}>${VOCAB[k].nomeMod}</a>`).join('');
 </script>
 </body>
 </html>
