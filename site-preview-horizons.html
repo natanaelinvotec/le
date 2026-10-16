@@ -89,12 +89,15 @@ const s = {
   graduacoes: (ESCADA[mod] || ESCADA.karate).map(b => b.nome),
   responsavel: { nome:'Ricardo Nakamura', graduacao: (LIDER[mod]||'Professor') + ' · 5º Dan' },
   // equipe[] opcional: quando o cadastro tiver mais pessoas, aparecem aqui (fotoRecorte = PNG com fundo transparente p/ efeito 3D)
+  // fotoRecorte = PNG/WebP com fundo transparente (oval cru embutido) → efeito 3D "saindo" do bloco.
+  // Na prévia vêm de assets/horizons/ (caminho local relativo, aceito por url()); em produção, da escola.
   equipe: [
-    { nome:'Ricardo Nakamura', graduacao:(LIDER[mod]||'Professor')+' · 5º Dan', bio:'Fundador da Equipe Horizons. Forma atletas há mais de duas décadas com uma regra só: técnica antes de força.', foto:P(15937400,900,1200) },
-    { nome:'Ana Beatriz Horta', graduacao:(LIDER[mod]||'Professora')+' · 3º Dan', bio:'Coordena as turmas femininas e o programa competitivo. Aulas conhecidas pela atenção ao detalhe.', foto:P(6005463,900,1200) },
-    { nome:'Caio Ferreira', graduacao:(LIDER[mod]||'Professor')+' · 2º Dan', bio:'Técnico da equipe de competição: estratégia, condicionamento e cabeça fria.', foto:P(10655538,900,1200) }
+    { nome:'Ricardo Nakamura', graduacao:(LIDER[mod]||'Professor')+' · 5º Dan', bio:'Fundador da Equipe Horizons. Forma atletas há mais de duas décadas com uma regra só: técnica antes de força.', foto:P(15937400,900,1200), fotoRecorte:'assets/horizons/ricardo.webp' },
+    { nome:'Ana Beatriz Horta', graduacao:(LIDER[mod]||'Professora')+' · 3º Dan', bio:'Coordena as turmas femininas e o programa competitivo. Aulas conhecidas pela atenção ao detalhe.', foto:P(6005463,900,1200), fotoRecorte:'assets/horizons/ana.webp' },
+    { nome:'Caio Ferreira', graduacao:(LIDER[mod]||'Professor')+' · 2º Dan', bio:'Técnico da equipe de competição: estratégia, condicionamento e cabeça fria.', foto:P(10655538,900,1200), fotoRecorte:'assets/horizons/caio.webp' }
   ],
-  geo: null
+  // Coordenadas fictícias (Jardim dos Estados, Campo Grande) → mapa real na seção de contato.
+  geo: { lat: -20.4569, lng: -54.5995 }
 };
 
 renderHorizons(s, { esc, url, VOCAB, LIDER, modalidadeBase: VOCAB[mod] ? mod : 'arena' });
