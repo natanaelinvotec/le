@@ -11,7 +11,7 @@
 // Offline: sem internet o app abre com o que já foi carregado e o Firestore
 // mostra os dados do cache local dele. Fotos já vistas ficam guardadas (até 800).
 // Push: o Firebase Cloud Messaging entrega a notificação mesmo com o app fechado.
-const VERSAO = 'le-app-v44'; // ← mude SÓ isto a cada atualização publicada (ver quadro abaixo)
+const VERSAO = 'le-app-v45'; // ← mude SÓ isto a cada atualização publicada (ver quadro abaixo)
 const CACHE_TELAS = `${VERSAO}-telas`;
 const CACHE_FOTOS = `${VERSAO}-fotos`;
 const CACHE_LIBS = 'le-libs-v1'; // não depende da VERSAO: endereços versionados não mudam
@@ -202,6 +202,11 @@ self.addEventListener('fetch', (e) => {
   }
 
   if (url.origin !== self.location.origin) return;
+
+  // Vitrine de templates, prévias e os módulos de layout do site: SEMPRE da rede (não passam por este cache).
+  // São ferramentas de teste e o site público das escolas — mudam a cada upload e não precisam abrir offline.
+  // Guardados aqui, ficavam presos na versão antiga (e com cabeçalhos antigos, ex.: X-Frame-Options) até a VERSAO mudar.
+  if (/\/(vitrine|site-preview-[\w-]+|site-escola)(\.html)?$/.test(url.pathname) || /\/js\/site-(tpl-[\w-]+|templates|escola|gerenciar)\.js$/.test(url.pathname)) return;
 
   // Telas, scripts e estilos do próprio site: do aparelho, sem conferir cada
   // arquivo a cada abertura. A atualização é pela VERSAO (ver o quadro no topo).

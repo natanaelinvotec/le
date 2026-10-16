@@ -180,7 +180,13 @@ function desenhar() {
   document.title = `Prévia ${TEMPLATES[tpl].nome} · ${VOCAB[mod]?.nomeMod || mod}`;
 }
 desenhar();
-if (qs.get('embed') === '1') document.getElementById('pv').hidden = true;
+if (qs.get('embed') === '1') {
+  document.getElementById('pv').hidden = true;
+  // Dentro da moldura de tablet/celular da vitrine: rola sem mostrar a barra de rolagem.
+  const est = document.createElement('style');
+  est.textContent = 'html{scrollbar-width:none}html::-webkit-scrollbar{display:none}';
+  document.head.appendChild(est);
+}
 addEventListener('message', (e) => {
   if (e.origin !== location.origin || e.source !== parent) return;
   const d = e.data;
