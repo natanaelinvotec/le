@@ -15,7 +15,7 @@
 /* Prévia do template "horizons" SEM Firestore: monta um objeto `s` igual ao que
    site-escola.js produz em mapEscola() e chama o módulo diretamente.
    Fotos: stock (Pexels, uso livre) só para visualização — em produção vêm do cadastro da escola. */
-import { TEMPLATES, carregarTemplate } from './js/site-templates.js';
+import { TEMPLATES, carregarTemplate } from './js/site-templates.js?v=47';
 
 const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 const url = (u) => { const s = String(u == null ? '' : u).trim(); if(!s) return ''; if(/^https:\/\/[^\s"'<>\\]+$/i.test(s)) return s; if(/^[a-z0-9][a-z0-9._\/-]*$/i.test(s) && !s.includes('..')) return s; if(/^data:image\/svg\+xml[,;]/i.test(s)) return s; return ''; };
@@ -35,26 +35,35 @@ const LIDER = { capoeira:"Mestre", jiujitsu:"Professor", judo:"Sensei", karate:"
 
 const qs = new URLSearchParams(location.search);
 const tpl = TEMPLATES[qs.get('tpl')] && TEMPLATES[qs.get('tpl')].modulo ? qs.get('tpl') : 'horizons';
-const mod = qs.get('mod') || (tpl === 'luva' ? 'boxe' : tpl === 'escudo' ? 'kravmaga' : tpl === 'mongkon' ? 'muaythai' : tpl === 'ginga' ? 'capoeira' : 'karate');
+const mod = qs.get('mod') || (tpl === 'luva' ? 'boxe' : tpl === 'escudo' ? 'kravmaga' : tpl === 'mongkon' ? 'muaythai' : tpl === 'ginga' ? 'capoeira' : tpl === 'dobok' ? 'taekwondo' : 'karate');
 const P = (id, w=1200, h=null) => `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=${w}${h?`&h=${h}&fit=crop`:''}`;
 
 // Logo da Equipe Horizons (sol no horizonte) como se fosse o logo cadastrado pela escola.
 const logoSVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#131313"/><defs><clipPath id="c"><rect width="64" height="38"/></clipPath></defs><circle cx="32" cy="38" r="20" fill="#f3f0e8" clip-path="url(#c)"/><rect x="6" y="38" width="52" height="4.5" rx="2.25" fill="#f3f0e8"/><rect x="14" y="47" width="36" height="3.5" rx="1.75" fill="#f3f0e8" opacity=".75"/><rect x="22" y="55" width="20" height="3" rx="1.5" fill="#f3f0e8" opacity=".5"/></svg>');
 
-const FOTOS = {
-  karate:   { fachada:[P(9395507,2000)], treino:[P(7045474,900,1125),P(10655533,900,1125),P(9651851,900,1125),P(33396517,1000,1300),P(10655516,1000,1300),P(6005463,1000,1300)], equipe:[P(33396517,1600)] },
-  capoeira: { fachada:[P(11045334,2000)], treino:[P(4035671,900,1125),P(4804067,900,1125),P(7992146,900,1125)], equipe:[] },
-  jiujitsu: { fachada:[P(6253172,2000)], treino:[P(6253172,900,1125),P(8612527,900,1125),P(9651851,900,1125)], equipe:[] },
-  muaythai: { fachada:[P(2581662,2000)], treino:[P(19406132,900,1125),P(30567997,900,1125),P(7992146,900,1125),P(4401639,1000,1300),P(7991621,1000,1300),P(4804301,1000,1300)], equipe:[] },
-  boxe:     { fachada:[P(8745178,2000)], treino:[P(5750886,1400),P(6456308,1400),P(31403621,1400),P(5424583,900,1200),P(7991688,900,1200),P(6740342,900,1200),P(6699106,900,1200),P(4753898,2000)], equipe:[] },
-  kravmaga: { fachada:[P(7045491,1600)], treino:[P(7045584,1400),P(6455245,1400),P(32321639,1600),P(7045661,900,900),P(10823763,900,900),P(7045738,900,900),P(6296025,900,900),P(6295767,900,900),P(6296032,900,900)], equipe:[] },
-  mma:      { fachada:[P(17892072,2000)], treino:[P(6295992,900,1125),P(17892069,900,1125),P(8612527,900,1125)], equipe:[] }
+// Banco de fotos POR ARTE (Pexels, uso livre) — cada modalidade tem fachada, 9+ fotos de treino e o trio da equipe
+// da própria arte, para nenhuma combinação template × modalidade ficar com foto faltando ou de outra arte.
+const F = (fach, treino, equipe, eq) => ({ fachada:[P(fach, 2000)], treino:treino.map((id) => P(id, 1200)), equipe:(equipe || []).map((id) => P(id, 1600)), eq:eq.map((id) => P(id, 900, 1125)) });
+const BANCO = {
+  karate:    F(9395507,  [6005463, 10655538, 9651851, 10655527, 10655518, 6005459, 10655516, 5081178, 5081175, 10655533], [33396517], [7045637, 10752031, 7045755]),
+  capoeira:  F(37792465, [37192940, 30495349, 26864611, 28975509, 37192943, 3340318, 33744269, 28975498, 26864618, 26864612], [], [19988288, 29355129, 27685128]),
+  jiujitsu:  F(38732379, [15545735, 11391978, 38732386, 17292197, 8612524, 11740030, 15545733, 8611422, 7988953, 38732382], [], [8612519, 38718050, 11740029]),
+  judo:      F(6253347,  [6765022, 6253310, 6765041, 4392782, 6765024, 6765038, 6253172, 6765017, 6253296, 6765028], [], [36864268, 6765048, 6253298]),
+  taekwondo: F(36563836, [37901792, 7045376, 7990087, 37901794, 38963062, 30777338, 7991197, 33122161, 38233888, 7045368], [], [7990631, 7045404, 20501962]),
+  muaythai:  F(8611379,  [8611942, 5750947, 8991299, 38120873, 35030387, 8612065, 23531688, 9027447, 17474778, 598686], [], [19406133, 7991891, 5750958]),
+  boxe:      F(8745178,  [5750886, 6456308, 31403621, 5424583, 7991688, 6740342, 6699106, 4753898, 6740347, 10222634], [], [6456182, 7992142, 8612588]),
+  mma:       F(6296020,  [6296010, 5424733, 5424550, 29015506, 5424766, 5485465, 5424557, 5424566, 5424533, 17400109], [], [13809280, 5750870, 29015508]),
+  kravmaga:  F(7045491,  [7045584, 6455245, 32321639, 7045661, 10823763, 7045738, 6296025, 6295767, 6296032, 7045757], [], [7045757, 6455243, 7045658])
 };
+const B = BANCO[mod] || BANCO.karate;
+const FOTOS = Object.fromEntries(Object.entries(BANCO).map(([k, v]) => [k, { fachada:v.fachada, treino:v.treino, equipe:v.equipe }]));
 const CORES = {
   karate:{ principal:'#e4432e', destaque:'#131313', botao:'#e4432e' },
   capoeira:{ principal:'#1f7a4d', destaque:'#f2b705', botao:'#f2b705' },
   jiujitsu:{ principal:'#1b3a8a', destaque:'#389E92', botao:'#00E676' },
+  judo:{ principal:'#123a7a', destaque:'#c8102e', botao:'#c8102e' },
+  taekwondo:{ principal:'#0e2a66', destaque:'#e1262d', botao:'#e1262d' },
   muaythai:{ principal:'#8a1c1c', destaque:'#c8912e', botao:'#c8912e' },
   boxe:{ principal:'#131313', destaque:'#d4a017', botao:'#d4a017' },
   mma:{ principal:'#101418', destaque:'#00E676', botao:'#00E676' },
@@ -68,14 +77,15 @@ const ESCADA = {
   karate:   E(['Branca','#f4f4f4'],['Amarela','#f2c524'],['Laranja','#ef7d1a'],['Verde','#2f9e44'],['Azul','#1c64c2'],['Roxa','#6f42c1'],['Marrom','#6b3e1e'],['Preta','#141414']),
   capoeira: E(['Crua','#e6d8b8'],['Amarelo','#f2c524'],['Laranja','#ef7d1a'],['Azul','#1c64c2'],['Verde','#2f9e44'],['Roxo','#6f42c1'],['Marrom','#6b3e1e'],['Vermelho','#c62828']),
   jiujitsu: E(['Branca','#f4f4f4'],['Azul','#1c64c2'],['Roxa','#6f42c1'],['Marrom','#6b3e1e'],['Preta','#141414']),
+  judo:     E(['Branca','#f4f4f4'],['Cinza','#9aa3ad'],['Azul','#1c64c2'],['Amarela','#f2c524'],['Laranja','#ef7d1a'],['Verde','#2f9e44'],['Roxa','#6f42c1'],['Marrom','#6b3e1e'],['Preta','#141414']),
+  taekwondo:E(['Branca','#f6f6f2'],['Amarela','#f2c524'],['Verde','#2f9e44'],['Azul','#1c64c2'],['Vermelha','#c62828'],['Preta','#111111']),
   muaythai: E(['Branca','#f4f4f4'],['Amarela','#f2c524'],['Laranja','#ef7d1a'],['Verde','#2f9e44'],['Azul','#1c64c2'],['Marrom','#6b3e1e'],['Vermelha','#c62828'],['Preta','#141414']),
   boxe:     E(['Iniciante','#cfd8dc'],['Intermediário','#90a4ae'],['Avançado','#546e7a'],['Competição','#d4a017']),
   kravmaga: E(['P1','#f4f4f4'],['P2','#f2c524'],['P3','#ef7d1a'],['P4','#2f9e44'],['P5','#1c64c2'],['G1','#6b3e1e']),
   mma:      E(['Iniciante','#cfd8dc'],['Intermediário','#90a4ae'],['Avançado','#546e7a'],['Competição','#00E676'])
 };
-
-// Fotos da equipe por modalidade (boxe tem o próprio trio; demais usam as de karatê).
-const EQF = mod === 'boxe' ? [P(38510608,900,1125), P(6740346,900,1125), P(8612588,900,1125)] : mod === 'kravmaga' ? [P(7045757,900,1125), P(6455243,900,1125), P(7045658,900,1125)] : [P(15937400,900,1200), P(6005463,900,1200), P(10655538,900,1200)];
+const TITULO = (n) => mod === 'kravmaga' ? (n === 5 ? 'Graduado · G2' : 'Instrutor · P5') : ['boxe', 'mma'].includes(mod) ? (LIDER[mod] || 'Treinador') + (n === 5 ? ' · chefe' : '') : (LIDER[mod] || 'Professor') + ' · ' + n + 'º Dan';
+const EQF = B.eq;
 const s = {
   id:'horizons', slug:'horizons', nome:'Equipe Horizons', nomeCurto:'Horizons',
   modalidade: mod, cidade:'Campo Grande', uf:'MS',
@@ -83,7 +93,6 @@ const s = {
   cores: CORES[mod] || CORES.karate,
   lider:'Ricardo Nakamura', peca: PECA[mod] || 'graduação', logo: logoSVG,
   escada: ESCADA[mod] || ESCADA.karate, template:'horizons',
-  // nucleos (só nomes, formato do arena) + nucleosInfo (campos públicos de nucleosPublicos)
   nucleos:['Horizons Centro', 'Horizons Norte', 'Horizons Lagoa'],
   nucleosInfo:[
     { nome:'Horizons Centro', sede:true,  cidade:'Campo Grande', uf:'MS' },
@@ -93,81 +102,108 @@ const s = {
   fotoLider: EQF[0],
   fotos: FOTOS[mod] || FOTOS.karate,
   graduacoes: (ESCADA[mod] || ESCADA.karate).map(b => b.nome),
-  responsavel: { nome:'Ricardo Nakamura', graduacao: (LIDER[mod]||'Professor') + ' · 5º Dan' },
-  // equipe[] opcional: quando o cadastro tiver mais pessoas, aparecem aqui (fotoRecorte = PNG com fundo transparente p/ efeito 3D)
-  // fotoRecorte = PNG/WebP com fundo transparente (oval cru embutido) → efeito 3D "saindo" do bloco.
-  // Na prévia vêm de assets/horizons/ (caminho local relativo, aceito por url()); em produção, da escola.
+  responsavel: { nome:'Ricardo Nakamura', graduacao: TITULO(5) },
+  // equipe: fotos da PRÓPRIA arte. O recorte 3D (fotoRecorte, Horizons) existe só para as fotos de karatê.
   equipe: [
-    { nome:'Ricardo Nakamura', graduacao: mod === 'kravmaga' ? 'Graduado · G2' : (LIDER[mod]||'Professor')+' · 5º Dan', bio:'Fundador da Equipe Horizons. Forma atletas há mais de duas décadas com uma regra só: técnica antes de força.', foto:EQF[0], fotoRecorte:'assets/horizons/ricardo.webp' },
-    { nome:'Ana Beatriz Horta', graduacao:(LIDER[mod]||'Professora')+' · 3º Dan', bio:'Coordena as turmas femininas e o programa competitivo. Aulas conhecidas pela atenção ao detalhe.', foto:EQF[1], fotoRecorte:'assets/horizons/ana.webp' },
-    { nome:'Caio Ferreira', graduacao:(LIDER[mod]||'Professor')+' · 2º Dan', bio:'Técnico da equipe de competição: estratégia, condicionamento e cabeça fria.', foto:EQF[2], fotoRecorte:'assets/horizons/caio.webp' }
+    { nome:'Ricardo Nakamura', graduacao: TITULO(5), bio:'Fundador da Equipe Horizons. Forma atletas há mais de duas décadas com uma regra só: técnica antes de força.', foto:EQF[0] },
+    { nome:'Ana Beatriz Horta', graduacao: TITULO(3), bio:'Coordena as turmas femininas e o programa competitivo. Aulas conhecidas pela atenção ao detalhe.', foto:EQF[1] },
+    { nome:'Caio Ferreira', graduacao: TITULO(2), bio:'Técnico da equipe de competição: estratégia, condicionamento e cabeça fria.', foto:EQF[2] }
   ],
-  // Coordenadas fictícias (Jardim dos Estados, Campo Grande) → mapa real na seção de contato.
   geo: { lat: -20.4569, lng: -54.5995 }
 };
+if (mod === 'karate') ['ricardo', 'ana', 'caio'].forEach((n, i) => { s.equipe[i].fotoRecorte = `assets/horizons/${n}.webp`; });
 
-// Conteúdo fictício do painel (siteConteudo) só para o Luva mostrar horários e citação preenchidos.
+// ---- Conteúdo fictício do painel, coerente com a arte escolhida ----
+const AULAS = {
+  karate:['Kihon e kata', 'Kumite', 'Infantil', 'Adulto', 'Faixas avançadas'], judo:['Técnica de projeção', 'Randori', 'Infantil', 'Adulto', 'Ne-waza'],
+  jiujitsu:['Fundamentos', 'Rola livre', 'Kids', 'No-gi', 'Competição'], taekwondo:['Poomsae', 'Kyorugi', 'Tigrinhos', 'Adulto', 'Treino livre'],
+  muaythai:['Fundamentos', 'Thai pads', 'Clinch', 'Sparring', 'Feminino'], boxe:['Fundamentos', 'Manopla', 'Sparring', 'Treino físico', 'Feminino'],
+  mma:['Fundamentos', 'Striking', 'Wrestling', 'Grappling no-gi', 'Sparring'], kravmaga:['Fundamentos', 'Defesa feminina', 'Condicionamento', 'Avançado · cenários', 'Jovens'],
+  capoeira:['Fundamentos', 'Roda', 'Musicalidade', 'Infantil', 'Acrobacia']
+};
+const A = AULAS[mod] || AULAS.karate;
+const PUB = ['Todas as graduações', 'Todas as idades', 'Infantil', 'Adulto', 'Avançado'];
 const HOR = [
-    { dia:'seg', aula:'Fundamentos', horario:'19:00–20:30', local:'Núcleo Centro' }, { dia:'seg', aula:'Feminino', horario:'20:30–21:30', local:'Núcleo Norte' },
-    { dia:'ter', aula:'Condicionamento', horario:'06:30–07:30', local:'Núcleo Centro' }, { dia:'ter', aula:'Jovens', horario:'17:30–18:30', local:'Núcleo Lagoa' },
-    { dia:'qua', aula:'Fundamentos', horario:'19:00–20:30', local:'Núcleo Centro' }, { dia:'qua', aula:'Avançado · cenários', horario:'20:30–22:00', local:'Núcleo Centro' },
-    { dia:'qui', aula:'Condicionamento', horario:'06:30–07:30', local:'Núcleo Norte' }, { dia:'sex', aula:'Fundamentos', horario:'19:00–20:30', local:'Núcleo Lagoa' },
-    { dia:'sab', aula:'Treinão aberto', horario:'08:00–09:30', local:'Parque das Nações' } ];
-s.conteudo = tpl === 'escudo' ? { secoes: {
-  contato: { whatsapp: '67999990000' },
-  graduacao: { itens: [{ etapa:'Iniciante', sigla:'P1' }, { etapa:'Básico', sigla:'P2' }, { etapa:'Intermediário', sigla:'P3' }, { etapa:'Intermediário', sigla:'P4' }, { etapa:'Avançado', sigla:'P5' }, { etapa:'Avançado', sigla:'G1' }] },
-  agenda: { itens: [{ dia:'08', mes:'11', titulo:'Exame de graduação', local:'Núcleo Centro · P1 a P3', hora:'09:00' }, { dia:'22', mes:'11', titulo:'Workshop defesa feminina', local:'Aberto ao público · Núcleo Norte', hora:'14:00' }, { dia:'06', mes:'12', titulo:'Seminário com instrutor convidado', local:'Núcleo Centro', hora:'10:00' }, { dia:'13', mes:'12', titulo:'Treinão de encerramento', local:'Todos os núcleos · Parque das Nações', hora:'08:00' }] },
-  horarios: { itens: HOR },
-  parceiros: { itens: [{ nome:'Nutri+' }, { nome:'Fisio Vida' }, { nome:'Tático Store' }, { nome:'Clube MS' }] }
-} } : tpl === 'mongkon' ? { secoes: {
-  // Imagens criadas pelo fundador (IA) para a demo do Mongkon: hero de sparring e pôster do atleta (PNG transparente).
-  hero: mod === 'muaythai' ? { foto: 'assets/mongkon/sparring.webp' } : {},
-  atleta: { nome: 'Thiago Silva', foto: 'assets/mongkon/nofear.webp', titulo: 'Treine *duro*, lute fácil.', texto: 'Thiago Silva começou no Núcleo Centro e hoje representa a Equipe Horizons nos eventos profissionais. O mesmo ' + (VOCAB[mod]?.local || 'tatame') + ', a mesma equipe, o mesmo app que acompanha a sua evolução.', vitorias: '24', derrotas: '0', empates: '0' },
-  contato: { whatsapp: '67999990000' },
-  horarios: { itens: [
-    { dia:'seg', aula:'Fundamentos', horario:'07:00–08:00', local:'Centro' }, { dia:'seg', aula:'Sparring', horario:'19:30–21:00', local:'Centro' },
-    { dia:'ter', aula:'Thai pads', horario:'06:30–07:30', local:'Norte' }, { dia:'ter', aula:'Feminino', horario:'19:00–20:00', local:'Centro' },
-    { dia:'qua', aula:'Fundamentos', horario:'07:00–08:00', local:'Centro' }, { dia:'qua', aula:'Infantil', horario:'17:30–18:30', local:'Lagoa' },
-    { dia:'qui', aula:'Clinch', horario:'12:00–13:00', local:'Centro' }, { dia:'qui', aula:'Sparring', horario:'19:30–21:00', local:'Centro' },
-    { dia:'sex', aula:'Thai pads', horario:'06:30–07:30', local:'Norte' }, { dia:'sex', aula:'Equipe de competição', horario:'19:00–21:00', local:'Centro' },
-    { dia:'sab', aula:'Aula aberta', horario:'09:00–10:30', local:'Lagoa' } ] }
-} } : tpl === 'luva' ? { secoes: {
-  citacao: { autor: 'Ricardo Nakamura', cargo: 'Treinador-chefe · Equipe Horizons' },
-  contato: { whatsapp: '67999990000' },
-  horarios: { itens: [
-    { dia:'seg', aula:'Fundamentos', horario:'07:00–08:00', local:'Centro' }, { dia:'seg', aula:'Sparring', horario:'19:30–21:00', local:'Centro' },
-    { dia:'ter', aula:'Treino físico', horario:'06:30–07:30', local:'Norte' }, { dia:'ter', aula:'Feminino', horario:'19:00–20:00', local:'Centro' },
-    { dia:'qua', aula:'Fundamentos', horario:'07:00–08:00', local:'Centro' }, { dia:'qua', aula:'Infantil', horario:'17:30–18:30', local:'Lagoa' },
-    { dia:'qui', aula:'Manopla', horario:'12:00–13:00', local:'Centro' }, { dia:'qui', aula:'Sparring', horario:'19:30–21:00', local:'Centro' },
-    { dia:'sex', aula:'Treino físico', horario:'06:30–07:30', local:'Norte' }, { dia:'sex', aula:'Equipe de competição', horario:'19:00–21:00', local:'Centro' },
-    { dia:'sab', aula:'Aula aberta', horario:'09:00–10:30', local:'Lagoa' } ] }
-} } : null;
+  { dia:'seg', aula:A[0], horario:'07:00–08:00', local:'Centro', publico:PUB[0] }, { dia:'seg', aula:A[2], horario:'17:30–18:30', local:'Lagoa', publico:'Infantil' },
+  { dia:'seg', aula:A[1], horario:'19:30–21:00', local:'Centro', publico:PUB[4] }, { dia:'ter', aula:A[3], horario:'06:30–07:30', local:'Norte', publico:'Adulto' },
+  { dia:'ter', aula:A[4], horario:'19:00–20:00', local:'Centro', publico:PUB[0] }, { dia:'qua', aula:A[0], horario:'07:00–08:00', local:'Centro', publico:PUB[0] },
+  { dia:'qua', aula:A[2], horario:'17:30–18:30', local:'Lagoa', publico:'Infantil' }, { dia:'qui', aula:A[1], horario:'19:30–21:00', local:'Centro', publico:PUB[4] },
+  { dia:'sex', aula:A[3], horario:'06:30–07:30', local:'Norte', publico:'Adulto' }, { dia:'sex', aula:A[4], horario:'19:00–21:00', local:'Centro', publico:PUB[0] },
+  { dia:'sab', aula:'Aula aberta', horario:'09:00–10:30', local:'Lagoa', publico:PUB[1] } ];
+const PRODUTOS = {
+  karate:[['Karategi oficial', 'Lona leve, bordado da equipe no peito.', 'R$ 249,00'], ['Faixa bordada', 'Com o nome do atleta e o logo da escola.', 'R$ 59,00'], ['Luva de kumite', 'Aprovada para competições regionais.', 'R$ 129,00'], ['Protetor bucal', 'Moldável, com estojo.', 'R$ 29,00']],
+  judo:[['Judogi trançado', 'Trama reforçada, aprovado para competição.', 'R$ 329,00'], ['Faixa oficial', 'Algodão grosso que não desata no randori.', 'R$ 49,00'], ['Camiseta da equipe', 'Dry fit com o brasão da escola.', 'R$ 69,00'], ['Mochila de treino', 'Cabe o judogi e a garrafa.', 'R$ 159,00']],
+  jiujitsu:[['Kimono trançado A2', 'Leve, resistente e com os patches da equipe.', 'R$ 389,00'], ['Faixa', 'Com ponteira para os graus.', 'R$ 59,00'], ['Rash guard', 'Para os treinos sem kimono.', 'R$ 149,00'], ['Shorts de grappling', 'Elástico firme e tecido que não prende.', 'R$ 119,00']],
+  taekwondo:[['Dobok gola preta', 'Tecido leve com o bordado da equipe.', 'R$ 219,00'], ['Faixa bordada', 'Com o nome do atleta.', 'R$ 69,00'], ['Protetor (hogu)', 'Dupla face azul e vermelha.', 'R$ 289,00'], ['Capacete', 'Espuma de alta densidade.', 'R$ 189,00']],
+  muaythai:[['Luva de muay thai 14oz', 'Couro sintético e fechamento em velcro.', 'R$ 349,00'], ['Shorts de muay thai', 'Cetim com o nome da equipe.', 'R$ 159,00'], ['Caneleira', 'Proteção de canela e peito do pé.', 'R$ 229,00'], ['Prajied da equipe', 'A braçadeira com as cores do time.', 'R$ 49,00']],
+  boxe:[['Luva de boxe 12oz', 'Para manopla, saco e sparring.', 'R$ 299,00'], ['Bandagem 3m', 'Algodão com elastano, par.', 'R$ 29,00'], ['Protetor bucal', 'Moldável, com estojo.', 'R$ 39,00'], ['Corda de pular', 'Rolamento e cabo de aço.', 'R$ 59,00']],
+  mma:[['Luva de MMA', 'Dedos livres e punho firme.', 'R$ 249,00'], ['Rash guard', 'Compressão para o grappling.', 'R$ 149,00'], ['Shorts de luta', 'Abertura lateral para os chutes.', 'R$ 139,00'], ['Caneleira', 'Para o sparring de striking.', 'R$ 229,00']],
+  kravmaga:[['Camiseta de treino', 'Dry fit com o símbolo da escola.', 'R$ 79,00'], ['Luva de MMA', 'Dedos livres para as defesas.', 'R$ 229,00'], ['Faca de treino', 'Borracha, para as simulações.', 'R$ 39,00'], ['Protetor bucal', 'Moldável, com estojo.', 'R$ 29,00']],
+  capoeira:[['Abadá oficial', 'Tecido leve e resistente, com o brasão do grupo.', 'R$ 95,00'], ['Cordão de graduação', 'Trançado nas cores da escada do grupo.', 'R$ 45,00'], ['Berimbau', 'Verga de biriba e cabaça afinada.', 'R$ 220,00'], ['Pandeiro', 'Platinelas firmes e ótima projeção.', 'R$ 170,00']]
+};
+const LOJA = { whatsapp: '67999990000', produtos: (PRODUTOS[mod] || PRODUTOS.karate).map(([nome, texto, preco]) => ({ nome, texto, preco })) };
+const dia = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+const V0 = VOCAB[mod] || VOCAB.arena;
+// Eventos e avisos como se tivessem vindo do APP com "Mostrar no site" (agendaPublica).
+s.agenda = [
+  { tipo:'evento', titulo:'Exame de graduação', data:dia(21), hora:'09:00', local:'Núcleo Centro', texto:'', nucleo:'' },
+  { tipo:'evento', titulo:'Campeonato estadual de ' + V0.nomeMod, data:dia(35), hora:'08:00', local:'Ginásio Guanandizão', texto:'', nucleo:'' },
+  { tipo:'evento', titulo:'Seminário com mestre convidado', data:dia(48), hora:'14:00', local:'Núcleo Norte', texto:'', nucleo:'Norte' },
+  { tipo:'aviso', titulo:'Inscrições abertas para o exame', texto:'Confirme pelo app com "Eu vou" — a lista fecha uma semana antes.', data:'', hora:'', local:'', criadoEm:new Date(Date.now() - 86400000).toISOString() },
+  { tipo:'aviso', titulo:'Sem treino no feriado', texto:'Voltamos na segunda no horário normal.', data:'', hora:'', local:'', criadoEm:new Date(Date.now() - 3 * 86400000).toISOString() },
+  { tipo:'aviso', titulo:'Turma nova às quintas, 19h', texto:'Vagas abertas para iniciantes no Núcleo Centro.', data:'', hora:'', local:'', criadoEm:new Date(Date.now() - 6 * 86400000).toISOString() } ];
 
-// Ginga (clone do site da Liberdade): fotos de capoeira, cordões com 3 cores, núcleos completos, loja,
-// parceiro e — como se tivessem vindo do APP com "Mostrar no site" — eventos e avisos (s.agenda).
+const ZAP = { whatsapp: '67999990000' };
+s.conteudo = { secoes: { contato: ZAP, horarios: { itens: HOR }, loja: LOJA } };
+const SEC = s.conteudo.secoes;
+if (tpl === 'escudo') {
+  if (mod === 'kravmaga') SEC.graduacao = { itens: [{ etapa:'Iniciante', sigla:'P1' }, { etapa:'Básico', sigla:'P2' }, { etapa:'Intermediário', sigla:'P3' }, { etapa:'Intermediário', sigla:'P4' }, { etapa:'Avançado', sigla:'P5' }, { etapa:'Avançado', sigla:'G1' }] };
+  SEC.agenda = { itens: [{ dia:'13', mes:'12', titulo:'Treinão de encerramento', local:'Todos os núcleos · Parque das Nações', hora:'08:00' }] };
+  SEC.parceiros = { itens: [{ nome:'Nutri+' }, { nome:'Fisio Vida' }, { nome:'Clube MS' }, { nome:'Arena Sports' }] };
+}
+if (tpl === 'mongkon') {
+  // Imagens criadas pelo fundador (IA) para a demo do Mongkon: hero de sparring e pôster do atleta (PNG transparente).
+  if (mod === 'muaythai') SEC.hero = { foto: 'assets/mongkon/sparring.webp' };
+  if (['muaythai', 'boxe', 'mma'].includes(mod)) SEC.atleta = { nome: 'Thiago Silva', foto: 'assets/mongkon/nofear.webp', titulo: 'Treine *duro*, lute fácil.', texto: 'Thiago Silva começou no Núcleo Centro e hoje representa a Equipe Horizons nos eventos profissionais. O mesmo ' + V0.local + ', a mesma equipe, o mesmo app que acompanha a sua evolução.', vitorias: '24', derrotas: '0', empates: '0' };
+}
+if (tpl === 'luva') SEC.citacao = { autor: 'Ricardo Nakamura', cargo: TITULO(5) + ' · Equipe Horizons' };
+if (tpl === 'dobok') {
+  if (mod === 'taekwondo') SEC.graduacao = { itens: [{ grau:'10º gub' }, { grau:'8º gub' }, { grau:'6º gub' }, { grau:'4º gub' }, { grau:'2º gub' }, { grau:'1º dan' }] };
+  SEC.resultados = { itens: [{ dia:'30', mes:'10', evento:'Campeonato estadual', local:'Campo Grande · 14 atletas', ouro:'7', prata:'4', bronze:'9' }, { dia:'12', mes:'10', evento:'Open regional', local:'Dourados · 9 atletas', ouro:'5', prata:'2', bronze:'3' }] };
+  SEC.principios = { depoimento: 'Ela chegou tímida e hoje é a primeira a cumprimentar todo mundo no treino.', autor: 'Mãe da Lívia, 9 anos' };
+  SEC.conquistas = { itens: [{ tipo:'ouro', titulo:'Estadual 2026', detalhe:'7 ouros · 4 pratas · 9 bronzes' }, { tipo:'trofeu', titulo:'Campeã por equipes', detalhe:'Copa Centro-Oeste · 2024, 2025' }, { tipo:'prata', titulo:'Brasileiro Sub-21', detalhe:'2 pratas · 2025' }, { tipo:'ouro', titulo:'Open regional', detalhe:'1º lugar · 2023, 2026' }, { tipo:'bronze', titulo:'Jogos Abertos', detalhe:'Bronze por equipes · 2025' }] };
+  SEC.videos = { link: 'https://www.youtube.com/', titulo: 'Final do estadual: Horizons em ação', itens: [
+    { titulo:'Exame de graduação', categoria:'Exame', link:'https://www.youtube.com/' }, { titulo:'Treino no parque', categoria:'Treino', link:'https://www.youtube.com/' },
+    { titulo:'Alongamento para chute alto', categoria:'Dica', link:'https://www.youtube.com/' }, { titulo:'Fundamentos passo a passo', categoria:'Técnica', link:'https://www.youtube.com/' } ] };
+  SEC.nucleos = { lista: [{ nome:'Centro', endereco:'Rua dos Horizontes, 1200 — Jardim dos Estados', dias:'Seg · Ter · Qua · Sex · Sáb', whatsapp:'67999990001' }, { nome:'Norte', endereco:'Av. Norte, 450 — Vila Norte', dias:'Ter · Qui · Sex', whatsapp:'67999990002' }, { nome:'Lagoa', endereco:'Rua da Lagoa, 77 — Lagoa', dias:'Seg · Qua · Sáb (infantil)', whatsapp:'67999990003' }] };
+  SEC.redes = { instagram:'12', youtube:'https://www.youtube.com/', youtubeN:'4', facebook:'https://www.facebook.com/', facebookN:'8' };
+  SEC.contato = { whatsapp: '67999990000', email:'contato@equipehorizons.com.br', parceiros: [{ nome:'Fisio Vida' }, { nome:'Nutri+' }, { nome:'Clube MS' }, { nome:'Arena Sports' }] };
+}
+
+// Ginga (clone do site da Liberdade): cordões com 3 cores, núcleos completos, loja, parceiro e agenda do app.
 if (tpl === 'ginga') {
-  const dia = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
-  if (mod === 'capoeira') s.fotos = { fachada: [P(37792465, 1600)], treino: [P(37192940, 1200), P(30495349, 1200), P(26864611, 1200), P(28975509, 900, 700), P(37192943, 900, 700), P(3340318, 1600), P(33744269, 900, 700)], equipe: [] };
   const T = (a, b, c) => [a, b || a, c || a];
   s.escada3 = mod === 'capoeira' ? [['Crua', T('#E6D8B8')], ['Crua/Amarela', T('#E6D8B8', '#F2C524')], ['Amarela', T('#F2C524')], ['Amarela/Laranja', T('#F2C524', '#EF7D1A')], ['Laranja', T('#EF7D1A')], ['Laranja/Azul', T('#EF7D1A', '#1C64C2')], ['Azul', T('#1C64C2')], ['Verde', T('#2F9E44')], ['Roxa', T('#6F42C1')], ['Marrom', T('#6B3E1E')], ['Vermelha', T('#C62828')]].map(([nome, cor]) => ({ nome, cor })) : null;
   if (mod === 'capoeira') s.cores = { principal: '#002D72', destaque: '#389E92', botao: '#00E676' };
-  s.conteudo = { secoes: {
-    nucleos: { lista: [
-      { nome: 'Mestre Ricardo', bairro: 'Centro', dias: 'Segunda, quarta e sexta', horario: '19h00 às 20h30', endereco: 'Rua dos Horizontes, 1200 — Centro', whatsapp: '67999990001', foto: P(19988288, 300, 300), infantil: '', noite: '1' },
-      { nome: 'Professora Ana', bairro: 'Norte', dias: 'Terça e quinta', horario: '18h00 às 19h00', endereco: 'Av. Norte, 450 — Vila Norte', whatsapp: '67999990002', foto: P(29355129, 300, 300), infantil: '1', noite: '' },
-      { nome: 'Professor Caio', bairro: 'Lagoa', dias: 'Segunda a sábado', horario: 'Horários pelo WhatsApp', endereco: 'Rua da Lagoa, 77 — Lagoa', whatsapp: '67999990003', foto: P(27685128, 300, 300), infantil: '1', noite: '1' } ] },
-    mestres: { lista: [
-      { nome: 'Mestre Ricardo', cargo: 'Fundador', foto: P(19988288, 300, 300) }, { nome: 'Profª Ana', cargo: 'Musicalidade e cantigas', foto: P(29355129, 300, 300) },
-      { nome: 'Prof. Caio', cargo: 'Acrobacias e floreios', foto: P(27685128, 300, 300) }, { nome: 'Profª Brisa', cargo: 'Turmas infantis', foto: P(8578931, 300, 300) },
-      { nome: 'Prof. Tatu', cargo: 'Base e fundamentos', foto: P(14059771, 300, 300) }, { nome: 'Instr. Sabiá', cargo: 'Instrutor graduado', foto: P(2035236, 300, 300) } ] },
-    loja: { whatsapp: '67999990001', produtos: [
+  const capo = mod === 'capoeira';
+  // Professores: na capoeira, retratos do grupo; nas outras artes, o trio da própria arte.
+  const R3 = capo ? [P(19988288, 300, 300), P(29355129, 300, 300), P(27685128, 300, 300)] : EQF.map((u) => u.replace(/w=900&h=1125/, 'w=300&h=300'));
+  SEC.nucleos = { lista: [
+    { nome: 'Mestre Ricardo', bairro: 'Centro', dias: 'Segunda, quarta e sexta', horario: '19h00 às 20h30', endereco: 'Rua dos Horizontes, 1200 — Centro', whatsapp: '67999990001', foto: R3[0], infantil: '', noite: '1' },
+    { nome: 'Professora Ana', bairro: 'Norte', dias: 'Terça e quinta', horario: '18h00 às 19h00', endereco: 'Av. Norte, 450 — Vila Norte', whatsapp: '67999990002', foto: R3[1], infantil: '1', noite: '' },
+    { nome: 'Professor Caio', bairro: 'Lagoa', dias: 'Segunda a sábado', horario: 'Horários pelo WhatsApp', endereco: 'Rua da Lagoa, 77 — Lagoa', whatsapp: '67999990003', foto: R3[2], infantil: '1', noite: '1' } ] };
+  SEC.mestres = { lista: capo ? [
+      { nome: 'Mestre Ricardo', cargo: 'Fundador', foto: R3[0] }, { nome: 'Profª Ana', cargo: 'Musicalidade e cantigas', foto: R3[1] },
+      { nome: 'Prof. Caio', cargo: 'Acrobacias e floreios', foto: R3[2] }, { nome: 'Profª Brisa', cargo: 'Turmas infantis', foto: P(8578931, 300, 300) },
+      { nome: 'Prof. Tatu', cargo: 'Base e fundamentos', foto: P(14059771, 300, 300) }, { nome: 'Instr. Sabiá', cargo: 'Instrutor graduado', foto: P(2035236, 300, 300) } ]
+    : s.equipe.map((m, i) => ({ nome: m.nome, cargo: m.graduacao, foto: R3[i] })) };
+  SEC.loja = capo ? { whatsapp: '67999990001', produtos: [
       { nome: 'Abadá Oficial', texto: 'Tecido leve e resistente, com o brasão do grupo.', preco: 'R$ 95,00', foto: P(3340319, 500, 600) },
       { nome: 'Berimbau', texto: 'Verga de biriba, cabaça afinada e arame de qualidade.', preco: 'R$ 220,00', foto: P(15576958, 500, 600) },
-      { nome: 'Pandeiro', texto: 'Tarraxas reforçadas e ótima projeção sonora.', preco: 'R$ 170,00', foto: P(28975495, 500, 600) } ] },
-    parceiros: { lista: [{ nome: 'Clínica Movimento', logo: 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 120"><rect width="280" height="120" rx="24" fill="#fff"/><circle cx="58" cy="60" r="34" fill="#0E8F7E"/><path d="M40 62h12l6-16 10 30 6-14h10" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><text x="106" y="56" font-family="Arial,sans-serif" font-size="25" font-weight="800" fill="#0B3B2E">Clínica</text><text x="106" y="84" font-family="Arial,sans-serif" font-size="25" font-weight="800" fill="#0E8F7E">Movimento</text></svg>'), frase: 'Cuidar do corpo também é treino!', destaque: '20%', beneficio: 'de desconto em fisioterapia e avaliação física', como: 'Na recepção, mostre a carteirinha do app. Vale para o atleta e os familiares cadastrados.', whatsapp: '67999990009', link: 'exemplo.com.br' }] },
-    agenda: { lista: [{ titulo: 'Encontro de Capoeira do Cerrado', dia: dia(-20).slice(8, 10), mes: dia(-20).slice(5, 7), ano: dia(-20).slice(0, 4), local: 'Ginásio Municipal', mapa: 'Campo Grande - MS' }] },
-  } };
-  s.agenda = [
+      { nome: 'Pandeiro', texto: 'Tarraxas reforçadas e ótima projeção sonora.', preco: 'R$ 170,00', foto: P(28975495, 500, 600) } ] } : LOJA;
+  SEC.parceiros = { lista: [{ nome: 'Clínica Movimento', logo: 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 120"><rect width="280" height="120" rx="24" fill="#fff"/><circle cx="58" cy="60" r="34" fill="#0E8F7E"/><path d="M40 62h12l6-16 10 30 6-14h10" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><text x="106" y="56" font-family="Arial,sans-serif" font-size="25" font-weight="800" fill="#0B3B2E">Clínica</text><text x="106" y="84" font-family="Arial,sans-serif" font-size="25" font-weight="800" fill="#0E8F7E">Movimento</text></svg>'), frase: 'Cuidar do corpo também é treino!', destaque: '20%', beneficio: 'de desconto em fisioterapia e avaliação física', como: 'Na recepção, mostre a carteirinha do app. Vale para o atleta e os familiares cadastrados.', whatsapp: '67999990009', link: 'exemplo.com.br' }] };
+  SEC.agenda = { lista: [{ titulo: capo ? 'Encontro de Capoeira do Cerrado' : 'Encontro regional de ' + V0.nomeMod, dia: dia(-20).slice(8, 10), mes: dia(-20).slice(5, 7), ano: dia(-20).slice(0, 4), local: 'Ginásio Municipal', mapa: 'Campo Grande - MS' }] };
+  if (capo) s.agenda = [
     { tipo: 'evento', titulo: 'Batizado e Troca de Cordas', data: dia(36), hora: '16:00', local: 'Ginásio do Centro', texto: 'Cerimônia anual com mestres convidados.', nucleo: '' },
     { tipo: 'evento', titulo: 'Roda aberta de fim de ano', data: dia(57), hora: '17:00', local: 'Praça Central', texto: '', nucleo: '' },
     { tipo: 'evento', titulo: 'Oficina de berimbau', data: dia(50), hora: '09:00', local: 'Núcleo Norte', texto: '', nucleo: 'Norte' },
@@ -233,7 +269,7 @@ if (parent !== window) parent.postMessage({ tipo: 'ap-vitrine-pronta', tpl, mod 
 const AQUI = esc(location.pathname);
 const outros = Object.keys(TEMPLATES).filter((k) => TEMPLATES[k].modulo);
 document.getElementById('pvT').innerHTML = outros.map((k) => `<a href="${AQUI}?tpl=${k}&mod=${mod}"${k === tpl ? ' style="color:#fff;text-decoration:underline"' : ''}>${TEMPLATES[k].nome}</a>`).join('');
-document.getElementById('pvM').innerHTML = ['karate','capoeira','jiujitsu','muaythai','boxe','mma','kravmaga'].map((k) => `<a href="${AQUI}?tpl=${tpl}&mod=${k}"${k === mod ? ' style="color:#fff;text-decoration:underline"' : ''}>${VOCAB[k].nomeMod}</a>`).join('');
+document.getElementById('pvM').innerHTML = ['karate','capoeira','jiujitsu','judo','taekwondo','muaythai','boxe','mma','kravmaga'].map((k) => `<a href="${AQUI}?tpl=${tpl}&mod=${k}"${k === mod ? ' style="color:#fff;text-decoration:underline"' : ''}>${VOCAB[k].nomeMod}</a>`).join('');
 </script>
 </body>
 </html>

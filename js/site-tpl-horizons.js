@@ -29,6 +29,8 @@
 /* ========================================================================== */
 /*  Contrato da biblioteca (site-templates.js): meta + schema                  */
 /* ========================================================================== */
+import { SECAO_LOJA, produtosLoja, ilustracao, linkCompra } from './site-loja.js';
+
 export var meta = {
   nome: 'Horizons',
   descricao: 'Hero em cartão com corte diagonal, letreiro, vertentes, equipe em 3D, escada de graduação, núcleos e o bloco do app.',
@@ -70,6 +72,7 @@ export var schema = { secoes: [
       { c:'titulo', r:'Título', max:40 }, { c:'texto', r:'Descrição', t:'area', max:160 }, { c:'foto', r:'Foto', t:'foto' } ] } ] },
   { id:'nucleos', r:'Núcleos', ajuda:'Os núcleos vêm do cadastro da escola. Aqui só os textos.', campos:[
     { c:'selo', r:'Etiqueta', max:50 }, { c:'titulo', r:'Título', max:40, ph:'Onde treinar' } ] },
+  SECAO_LOJA([ { c:'selo', r:'Etiqueta', max:50, ph:'Vista a equipe' }, { c:'titulo', r:'Título', max:40, ph:'Loja oficial' } ]),
   { id:'app', r:'App e Rede', campos:[
     { c:'selo', r:'Etiqueta', max:50 }, { c:'titulo', r:'Título', max:40, ph:'A equipe inteira no bolso' },
     { c:'texto', r:'Texto', t:'area', max:220 } ] },
@@ -418,7 +421,21 @@ function css(t){
 .hz .coach{clip-path:polygon(0 90px,48% 36px,49% 100px,100% 0,100% 100%,0 100%);padding-top:150px}\
 .hz .belts{grid-template-columns:repeat(auto-fit,minmax(104px,1fr))}.hz .rec{grid-template-columns:1fr}\
 .hz .foot .in{grid-template-columns:1fr}.hz .foot .sys{align-items:flex-start}.hz .foot .sys nav{justify-content:flex-start}\
-.hz .card .cc{grid-template-columns:1fr 1fr}.hz .mapwrap .openmap{display:none}.hz .pg{min-height:440px}}';
+.hz .card .cc{grid-template-columns:1fr 1fr}.hz .mapwrap .openmap{display:none}.hz .pg{min-height:440px}}\
+.hz .lojas{background:var(--cream-2)}\
+.hz .lj-lead{color:var(--muted);max-width:52ch}\
+.hz .lj-grid{max-width:1360px;margin-inline:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:clamp(16px,2vw,26px)}\
+.hz .lj{display:flex;flex-direction:column;background:var(--white);border-radius:var(--r-lg);overflow:hidden;box-shadow:0 30px 60px -46px rgba(0,0,0,.45);transition:transform .6s var(--ease),box-shadow .6s var(--ease)}\
+.hz .lj:hover{transform:translateY(-8px);box-shadow:0 40px 70px -40px rgba(0,0,0,.5)}\
+.hz .lj-ph{aspect-ratio:1;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at 50% 60%,var(--white) 0,var(--cream) 70%)}\
+.hz .lj-ph img{width:100%;height:100%;object-fit:cover;transition:transform 1s var(--ease)}\
+.hz .lj-svg{display:block;width:74%;transition:transform .9s var(--ease)}.hz .lj-svg svg{display:block;width:100%;height:auto;filter:drop-shadow(0 18px 18px rgba(0,0,0,.18))}\
+.hz .lj:hover .lj-ph img,.hz .lj:hover .lj-svg{transform:scale(1.06)}\
+.hz .lj-tx{display:flex;flex-direction:column;gap:8px;padding:20px 22px 24px;flex:1}\
+.hz .lj h3{font-size:1.35rem;line-height:1.05;overflow-wrap:anywhere}\
+.hz .lj p{color:var(--muted);font-size:.95rem}\
+.hz .lj-ft{margin-top:auto;padding-top:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}\
+.hz .lj-ft b{font-size:1.4rem}.hz .lj-ft .btn{padding:.8em 1.3em}';
 }
 
 /* ========================================================================== */
@@ -561,6 +578,7 @@ export function renderHorizons(s, h){
     + '<div class="nl" id="hz-nl"><a href="#hz-vertentes">Vertentes</a><a href="#hz-mestres">Equipe</a>'
     + (escada.length ? '<a href="#hz-graduacao">Graduação</a>' : '<a href="#hz-programas">Programas</a>')
     + (nucs.length ? '<a href="#hz-nucleos">Núcleos</a>' : '')
+    + (produtosLoja(C, 8).length ? '<a href="#hz-loja">Loja</a>' : '')
     + '<a href="#hz-app">App</a><a href="#hz-contato">Contato</a>'
     + '<a class="btn ghost" href="'+esc(login)+'">Área do aluno</a>'
     + '<a class="btn light" href="'+esc(ins)+'" data-magnet>Fazer inscrição</a></div>'
@@ -743,7 +761,20 @@ export function renderHorizons(s, h){
     + '<p class="cp">© '+new Date().getFullYear()+' '+esc(s.nome)+' · Site gerado pelo <b>AtletaPay</b> · atletapay.com.br/'+esc(s.slug)+'</p></div></footer>';
 
   site.className = 'hz';
-  site.innerHTML = hero + mq + vertentes + coach + jornada + grad + programas + nucleos + appSec + contato + foot;
+
+  // --- LOJA OFICIAL (só com produtos; sem foto = desenho pelo nome) ---
+  var prods = produtosLoja(C, 8), loja = '';
+  var zapLoja = cx('loja', 'whatsapp', '') || cx('contato', 'whatsapp', '');
+  var coresLoja = { principal:(s.cores && s.cores.principal) || '', destaque:(s.cores && (s.cores.botao || s.cores.destaque)) || '' };
+  function ljMidia(p){ var f = url(p.foto); return f ? '<img src="'+esc(f)+'" alt="'+esc(p.nome)+'" loading="lazy">' : '<span class="lj-svg" role="img" aria-label="'+esc(p.nome)+'">'+ilustracao(p.nome, coresLoja)+'</span>'; }
+  function ljBotao(p, cls, inner){ var w = linkCompra(zapLoja, p); return w ? '<a class="'+cls+'" href="'+esc(w)+'" target="_blank" rel="noopener noreferrer">'+inner+'</a>' : ''; }
+  if(prods.length){
+    loja = '<section class="sec w lojas" id="hz-loja"><div class="hd rv"><span class="k">'+esc(cx('loja', 'selo', 'Vista a equipe'))+'</span><h2 class="d">'+esc(cx('loja', 'titulo', 'Loja oficial'))+'</h2>'
+      + '<p class="lj-lead">'+esc(cx('loja', 'texto', 'Uniforme e equipamento escolhidos pela equipe — com a marca da escola.'))+'</p></div><div class="lj-grid">'
+      + prods.map(function(x, i){ return '<article class="lj rv" style="--i:'+i+'"><div class="lj-ph">'+ljMidia(x)+'</div><div class="lj-tx"><h3 class="d">'+esc(x.nome)+'</h3>'+(x.texto ? '<p>'+esc(x.texto)+'</p>' : '')
+        + '<div class="lj-ft">'+(x.preco ? '<b class="d">'+esc(x.preco)+'</b>' : '<span></span>')+ljBotao(x, 'btn', 'Comprar '+I.arrow)+'</div></div></article>'; }).join('')+'</div></section>';
+  }
+  site.innerHTML = hero + mq + vertentes + coach + jornada + grad + programas + nucleos + loja + appSec + contato + foot;
   wire(site);
 }
 

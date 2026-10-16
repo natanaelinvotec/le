@@ -20,6 +20,8 @@
  * tabelas rolam no próprio contêiner), 480 (galeria 2 col.).
  */
 
+import { SECAO_LOJA, produtosLoja, ilustracao, linkCompra } from './site-loja.js';
+
 export var meta = {
   nome: 'Escudo',
   descricao: 'Academia esportiva clara: marinho com hachura, acento tático, paralelogramos, quadro de graduação em tabela, agenda, quadro semanal, parceiros e galeria.',
@@ -55,6 +57,7 @@ export var schema = { secoes: [
   { id:'horarios', r:'Horários', ajuda:'Quadro semanal em tabela. Sem itens, a seção não aparece.', campos:[
     { c:'selo', r:'Etiqueta', max:40, ph:'Sessões de treino' }, { c:'titulo', r:'Título', max:40, ph:'Quadro semanal' }, { c:'nota', r:'Observação abaixo do quadro', max:140 },
     { c:'itens', r:'Aulas', t:'lista', max:30, resumo:'aula', nomeItem:'Aula', item:[ { c:'dia', r:'Dia', t:'select', opcoes:DIAS, ph:'Dia da semana' }, { c:'aula', r:'Aula', max:40 }, { c:'horario', r:'Horário', max:20, ph:'19:00–20:30' }, { c:'local', r:'Local / núcleo', max:40 } ] } ] },
+  SECAO_LOJA([ { c:'selo', r:'Etiqueta', max:40, ph:'Vista a equipe' }, { c:'titulo', r:'Título', max:30, ph:'Loja' }, { c:'destaque', r:'Parte do título em destaque', max:20, ph:'oficial' } ]),
   { id:'app', r:'App e Rede', campos:[ { c:'selo', r:'Etiqueta', max:50 }, { c:'titulo', r:'Título', max:40, ph:'A escola no bolso' }, { c:'texto', r:'Texto', t:'area', max:220 } ] },
   { id:'parceiros', r:'Parceiros e galeria', ajuda:'Logos dos parceiros (PNG sem fundo fica melhor). A galeria usa as fotos de treino do cadastro; aqui você pode trocar até 6.', campos:[
     { c:'selo', r:'Etiqueta', max:40, ph:'Parceiros' }, { c:'titulo', r:'Título', max:40, ph:'Quem treina com a gente' },
@@ -329,6 +332,20 @@ function css(t){
 .es .btn span img{display:inline-block;vertical-align:-5px;margin-right:4px;border-radius:5px}\
 .es .coaches{grid-template-columns:repeat(var(--n,3),1fr)}\
 .es .phone .therm i{background:linear-gradient(90deg,var(--c1,#8aa0b8),var(--c2,var(--acc)))}\
+.es .lj-lead{color:var(--mute);max-width:46ch}\
+.es .lj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:clamp(16px,2vw,24px)}\
+.es .lj{display:flex;flex-direction:column;background:var(--white);box-shadow:0 30px 60px -44px rgba(12,26,43,.45);transition:transform .6s var(--ease),box-shadow .6s var(--ease)}\
+.es .lj:hover{transform:translateY(-8px);box-shadow:0 40px 70px -40px rgba(12,26,43,.55)}\
+.es .lj-ph{position:relative;aspect-ratio:1;display:grid;place-items:center;overflow:hidden;background:linear-gradient(160deg,var(--paper),var(--paper-2));clip-path:polygon(0 0,100% 0,100% 88%,0 100%)}\
+.es .lj-ph::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(-60deg,rgba(12,26,43,.035) 0 2px,transparent 2px 18px)}\
+.es .lj-ph img{position:relative;width:100%;height:100%;object-fit:cover;transition:transform 1s var(--ease)}\
+.es .lj-svg{position:relative;display:block;width:74%;transition:transform .9s var(--ease)}.es .lj-svg svg{display:block;width:100%;height:auto;filter:drop-shadow(0 16px 16px rgba(12,26,43,.22))}\
+.es .lj:hover .lj-ph img,.es .lj:hover .lj-svg{transform:scale(1.06)}\
+.es .lj-tx{display:flex;flex-direction:column;gap:8px;padding:8px 20px 22px;flex:1}\
+.es .lj h3{font-size:1.6rem;line-height:.95;text-transform:uppercase;overflow-wrap:anywhere}\
+.es .lj p{color:var(--mute);font-size:.95rem}\
+.es .lj-ft{margin-top:auto;padding-top:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}\
+.es .lj-ft b{font-size:1.8rem;color:var(--navy)}.es .lj-ft .btn{padding:.6em 1.1em;font-size:.95rem}\
 @media (max-width:760px){.es .coaches{grid-template-columns:1fr}}\
 @media (max-width:480px){.es .gal{grid-template-columns:repeat(2,1fr)}.es .partners{gap:10px}.es .pt{width:44%}}';
 }
@@ -380,6 +397,8 @@ export function render(s, h){
   var t = { navy: hex6(c.principal) || '#0c1a2b', acc: hex6(c.botao) || hex6(c.destaque) || '#ffc400' };
   // principal muito clara não funciona como "marinho" (texto branco em cima): escurece.
   if(readable(t.navy) !== '#ffffff') t.navy = mix(t.navy, '#0c1a2b', .75);
+  // acento quase branco some no papel claro (títulos e botões): usa o amarelo tático padrão.
+  if(/^#(f[0-9a-f]){3}$/i.test(t.acc)) t.acc = '#ffc400';
   t.navy2 = mix(t.navy, '#ffffff', .07); t.navy3 = mix(t.navy, '#ffffff', .16); t.acc2 = mix(t.acc, '#ffffff', .3); t.accInk = readable(t.acc);
 
   var site = document.getElementById('site');
@@ -439,7 +458,7 @@ export function render(s, h){
 
   // --- NAV + HERO ---
   var nav = '<nav class="nav">'+marca
-    + '<div class="nl" id="es-nl"><a href="#es-clube">Clube</a>'+(escada.length ? '<a href="#es-graduacao">Graduação</a>' : '')+'<a href="#es-equipe">Equipe</a>'+(temHor ? '<a href="#es-horarios">Horários</a>' : '')+'<a href="#es-app">App</a><a href="#es-contato">Contato</a>'
+    + '<div class="nl" id="es-nl"><a href="#es-clube">Clube</a>'+(escada.length ? '<a href="#es-graduacao">Graduação</a>' : '')+'<a href="#es-equipe">Equipe</a>'+(temHor ? '<a href="#es-horarios">Horários</a>' : '')+(produtosLoja(C, 8).length ? '<a href="#es-loja">Loja</a>' : '')+'<a href="#es-app">App</a><a href="#es-contato">Contato</a>'
     + '<a class="btn ghost" href="'+esc(login)+'"><span>Área do aluno</span></a><a class="btn" href="'+esc(ins)+'" data-magnet><span>Fazer inscrição</span></a></div>'
     + '<button class="burger" id="es-burger" type="button" aria-expanded="false" aria-controls="es-nl">Menu</button></nav>';
   var hp = HERO[modKey] || HERO.arena;
@@ -591,7 +610,20 @@ export function render(s, h){
     + '<p class="cp"><span>© '+new Date().getFullYear()+' '+esc(s.nome)+' · Site gerado pelo <b>AtletaPay</b></span><span>atletapay.com.br/'+esc(s.slug)+'</span></p></div></footer>';
 
   site.className = 'es';
-  site.innerHTML = hero + servicos + duo + principios + publico + cta + equipe + horarios + appSec + parceiros + foot;
+
+  // --- LOJA OFICIAL (só com produtos; sem foto = desenho pelo nome) ---
+  var prods = produtosLoja(C, 8), loja = '';
+  var zapLoja = cx('loja', 'whatsapp', '') || cx('contato', 'whatsapp', '');
+  var coresLoja = { principal:(s.cores && s.cores.principal) || '', destaque:(s.cores && (s.cores.botao || s.cores.destaque)) || '' };
+  function ljMidia(p){ var f = url(p.foto); return f ? '<img src="'+esc(f)+'" alt="'+esc(p.nome)+'" loading="lazy">' : '<span class="lj-svg" role="img" aria-label="'+esc(p.nome)+'">'+ilustracao(p.nome, coresLoja)+'</span>'; }
+  function ljBotao(p, cls, inner){ var w = linkCompra(zapLoja, p); return w ? '<a class="'+cls+'" href="'+esc(w)+'" target="_blank" rel="noopener noreferrer">'+inner+'</a>' : ''; }
+  if(prods.length){
+    loja = '<section class="sec w lojas" id="es-loja"><div class="ct"><div class="hd rv"><div><span class="k">'+esc(cx('loja', 'selo', 'Vista a equipe'))+'</span><h2 class="d">'+tit('loja', { titulo:'Loja', destaque:'oficial' })+'</h2></div>'
+      + '<p class="lj-lead">'+esc(cx('loja', 'texto', 'Uniforme e equipamento escolhidos pelos instrutores para treinar com segurança.'))+'</p></div><div class="lj-grid st">'
+      + prods.map(function(x, i){ return '<article class="lj rv" style="--i:'+i+'"><div class="lj-ph">'+ljMidia(x)+'</div><div class="lj-tx"><h3 class="d">'+esc(x.nome)+'</h3>'+(x.texto ? '<p>'+esc(x.texto)+'</p>' : '')
+        + '<div class="lj-ft">'+(x.preco ? '<b class="d">'+esc(x.preco)+'</b>' : '<span></span>')+ljBotao(x, 'btn', '<span>Comprar</span>')+'</div></div></article>'; }).join('')+'</div></div></section>';
+  }
+  site.innerHTML = hero + servicos + duo + principios + publico + cta + equipe + horarios + loja + appSec + parceiros + foot;
   wire(site);
 }
 

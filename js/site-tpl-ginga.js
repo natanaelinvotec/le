@@ -24,6 +24,8 @@
 /* ========================================================================== */
 /*  Contrato da biblioteca: meta + schema                                      */
 /* ========================================================================== */
+import { ilustracao } from './site-loja.js';
+
 export var meta = {
   nome: 'Ginga',
   descricao: 'O site da Liberdade e Expressão para a sua escola: topo com fotos em arco, cordões que crescem, núcleos com WhatsApp, corpo docente, agenda e avisos do app, loja, aula experimental e parceiros.',
@@ -61,7 +63,7 @@ export var schema = { secoes: [
       { c:'horario', r:'Horário', max:12, ph:'19h00' }, { c:'local', r:'Local', max:60 }, { c:'mapa', r:'Endereço para o mapa', max:120 }, { c:'fotos', r:'Álbum de fotos (link https)', t:'link', max:200 } ] } ] },
   { id:'app', r:'App e Rede', campos:[ SELO, TIT, DEST, { c:'texto', r:'Texto', t:'area', max:240 } ] },
   { id:'loja', r:'Loja', ajuda:'Sem produtos, a seção não aparece.', campos:[ SELO, TIT, DEST, { c:'texto', r:'Texto', t:'area', max:200 }, { c:'whatsapp', r:'WhatsApp da loja', max:13 },
-    { c:'produtos', r:'Produtos', t:'lista', max:6, resumo:'nome', nomeItem:'Produto', item:[ { c:'nome', r:'Nome', max:40 }, { c:'texto', r:'Descrição', t:'area', max:120 }, { c:'preco', r:'Preço', max:16, ph:'R$ 90,00' }, { c:'foto', r:'Foto', t:'foto' } ] } ] },
+    { c:'produtos', r:'Produtos', t:'lista', max:6, resumo:'nome', nomeItem:'Produto', item:[ { c:'nome', r:'Nome', max:40 }, { c:'texto', r:'Descrição', t:'area', max:120 }, { c:'preco', r:'Preço', max:16, ph:'R$ 90,00' }, { c:'foto', r:'Foto (sem foto, entra um desenho pelo nome)', t:'foto' } ] } ] },
   { id:'chamada', r:'Aula experimental', ajuda:'Com núcleos com WhatsApp, aparece o formulário que abre o WhatsApp do núcleo escolhido. Sem WhatsApp, o botão leva à inscrição.', campos:[ TIT, DEST, { c:'texto', r:'Texto', t:'area', max:200 },
     { c:'foto', r:'Foto de fundo', t:'foto' }, { c:'formTitulo', r:'Título do formulário', max:40 }, { c:'formAjuda', r:'Texto abaixo do botão', max:80 } ] },
   { id:'parceiros', r:'Parceiros', ajuda:'Sem parceiros, a seção não aparece.', campos:[ SELO, TIT, DEST, { c:'texto', r:'Texto', t:'area', max:200 },
@@ -434,7 +436,10 @@ function css(t){
 .gi img{max-width:100%;display:block}.gi a{color:var(--marinho);text-decoration:none}.gi a:hover{color:var(--teal)}\
 .gi :focus-visible{outline:3px solid var(--verde);outline-offset:3px;border-radius:8px}\
 .gi h1,.gi h2,.gi h3{margin:0;font-family:"Sora",sans-serif;letter-spacing:-.03em}.gi p{margin:0}\
-' + base;
+' + base + '\
+.gi .produto .foto.desenho{display:grid;place-items:center;background:radial-gradient(circle at 50% 58%,#fff 0,var(--fundo-2) 60%,var(--linha) 100%)}\
+.gi .produto .lj-svg{display:block;width:88%;transition:transform .9s var(--ease)}.gi .produto .lj-svg svg{display:block;width:100%;height:auto;filter:drop-shadow(0 12px 12px rgba(0,0,0,.18))}\
+.gi .produto:hover .lj-svg{transform:scale(1.06) rotate(-2deg)}';
 }
 
 /* ========================================================================== */
@@ -708,11 +713,11 @@ export function render(s, h){
   var loja = '';
   if(produtos.length){
     var zapLoja = cx('loja', 'whatsapp', '');
-    loja = '<section class="sec" id="loja"><div class="cab linha"><div>'+selo(cx('loja', 'selo', 'LOJA OFICIAL'))+titulo(cx('loja', 'titulo', 'O uniforme'), cx('loja', 'destaque', 'e os instrumentos'))+'</div>'
-      + '<p class="lead">'+esc(cx('loja', 'texto', 'Uniforme com o brasão do grupo e materiais selecionados pelos professores.'))+'</p></div>'
+    loja = '<section class="sec" id="loja"><div class="cab linha"><div>'+selo(cx('loja', 'selo', 'LOJA OFICIAL'))+titulo(cx('loja', 'titulo', chave === 'capoeira' ? 'O uniforme' : 'Loja'), cx('loja', 'destaque', chave === 'capoeira' ? 'e os instrumentos' : 'oficial'))+'</div>'
+      + '<p class="lead">'+esc(cx('loja', 'texto', chave === 'capoeira' ? 'Uniforme com o brasão do grupo e materiais selecionados pelos professores.' : 'Uniforme e equipamento escolhidos pelos professores, com a marca da escola.'))+'</p></div>'
       + '<div class="grade-3">'+produtos.map(function(p){
         var w = linkWhats(zapLoja, 'Olá! Quero comprar: '+cs(p, 'nome')+(cs(p, 'preco') ? ' ('+cs(p, 'preco')+')' : '')+'.');
-        return '<article class="card produto zoom revela"><div class="foto">'+img(cs(p, 'foto'), cs(p, 'nome'))+'</div><div class="corpo"><h3>'+esc(cs(p, 'nome'))+'</h3><p>'+esc(cs(p, 'texto'))+'</p>'
+        return '<article class="card produto zoom revela"><div class="foto'+(url(cs(p, 'foto')) ? '' : ' desenho')+'">'+(url(cs(p, 'foto')) ? img(cs(p, 'foto'), cs(p, 'nome')) : '<span class="lj-svg" role="img" aria-label="'+esc(cs(p, 'nome'))+'">'+ilustracao(cs(p, 'nome'), { principal:t.marinho, destaque:t.verde })+'</span>')+'</div><div class="corpo"><h3>'+esc(cs(p, 'nome'))+'</h3><p>'+esc(cs(p, 'texto'))+'</p>'
           + '<div class="preco"><b>'+esc(cs(p, 'preco'))+'</b>'+(w ? '<a class="bt bt-claro" href="'+esc(w)+'" target="_blank" rel="noopener noreferrer">Comprar</a>' : '')+'</div></div></article>';
       }).join('')+'</div></section>';
   }
