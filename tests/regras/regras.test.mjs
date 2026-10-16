@@ -148,6 +148,14 @@ test('multi-escola: escolaId é do servidor; Fundador só mexe nos núcleos da p
   await assertSucceeds(getDoc(doc(db(null), 'dominios', 'liberdadeeexpressao.com.br')));
   await assertFails(getDocs(collection(db('admin'), 'dominios')), 'ninguém lista os domínios');
   await assertFails(setDoc(doc(db('profeta'), 'dominios', 'x.com'), { escolaId: 'liberdade' }));
+  // Agenda pública do site (cópia de eventos/avisos marcados "Mostrar no site"): visitante lê e lista por escola;
+  // só o servidor grava — nem o Admin, nem a plataforma pelo app, nem o Fundador.
+  await assertSucceeds(getDocs(query(collection(db(null), 'agendaPublica'), where('escolaId', '==', 'liberdade'), limit(60))));
+  await assertFails(setDoc(doc(db('admin'), 'agendaPublica', 'evento_x'), { escolaId: 'liberdade', tipo: 'evento', titulo: 'Falso' }));
+  await assertFails(setDoc(doc(plat(), 'agendaPublica', 'aviso_x'), { escolaId: 'liberdade', tipo: 'aviso', titulo: 'Falso' }));
+  await assertFails(setDoc(doc(db('profeta'), 'agendaPublica', 'aviso_y'), { escolaId: 'liberdade', tipo: 'aviso', titulo: 'Falso' }));
+  // Vitrine de templates: lista os cartões públicos marcados para a vitrine (sem login).
+  await assertSucceeds(getDocs(query(collection(db(null), 'escolasPublicas'), where('vitrine', '==', true), limit(50))));
 });
 
 test('a pessoa não muda a própria graduação, idade nem total de brasões', async () => {

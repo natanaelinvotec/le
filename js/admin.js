@@ -2656,6 +2656,8 @@ local: sanitizeInput(document.getElementById('avisoLocal').value) || null,
 academiaId,
 autorUid: sessaoAtual.uid,
 autorNome: sessaoAtual.nome,
+// Site da escola: o servidor copia só título/texto/data/local para o mural público (agendaPublica).
+noSite: !!(document.getElementById('avisoSite') && document.getElementById('avisoSite').checked),
 });
 toast('Aviso publicado!');
 formNovoAviso.reset();

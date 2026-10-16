@@ -12,7 +12,7 @@
  * sobre a mesma camada de dados. Motifs SVG bespoke por modalidade. Toda string
  * passa por esc() e todo link/foto por url() — o site nunca confia no que está gravado.
  */
-import { db, doc, getDoc, getDocs, collection, query, where } from './firebase.js';
+import { db, doc, getDoc, getDocs, collection, query, where, limit } from './firebase.js';
 import { escolaIdDoEndereco, escolaIdDoDominio } from './escola-atual.js';
 import { layoutsComModulo, templateExiste } from './site-templates.js';
 
@@ -511,6 +511,42 @@ function mapEscada(e){
   return out.length ? out : null;
 }
 
+// Mesma escada, mas com as até 3 cores de cada graduação (cordão tricolor da capoeira). Só hex válido.
+function mapEscada3(e){
+  var arr = Array.isArray(e) ? e : (e && Array.isArray(e.adulto) ? e.adulto : null);
+  if(!arr || !arr.length) return null;
+  var ok = function(c){ return /^#[0-9a-f]{3,6}$/i.test(String(c)) ? String(c) : null; };
+  var out = arr.map(function(b){
+    if(!b) return null;
+    var nome = String(b.nome || '').trim(); if(!nome) return null;
+    var cs = (Array.isArray(b.cor) ? b.cor : [b.cor]).map(ok).filter(Boolean).slice(0, 3);
+    if(!cs.length) cs = ['#9aa7b4'];
+    return { nome: nome, cor: [cs[0], cs[1] || cs[0], cs[2] || cs[0]] };
+  }).filter(Boolean);
+  return out.length ? out : null;
+}
+
+// Agenda pública da escola: eventos e avisos publicados NO APP com "Mostrar no site".
+// O servidor espelha só campos seguros em agendaPublica/{tipo}_{id} (functions/src/site-publico.js);
+// aqui só lemos e revalidamos. Avisos: os dos últimos 45 dias. Eventos: futuros e dos últimos 60 dias.
+async function lerAgendaPublica(id){
+  try{
+    var snap = await getDocs(query(collection(db, 'agendaPublica'), where('escolaId', '==', id), limit(60)));
+    var txt = function(v, m){ return typeof v === 'string' ? v.trim().slice(0, m) : ''; };
+    var hoje = new Date(); var ini = function(dias){ return new Date(hoje.getTime() - dias * 86400000).toISOString().slice(0, 10); };
+    return snap.docs.map(function(d){
+      var a = d.data() || {};
+      var data = /^\d{4}-\d{2}-\d{2}$/.test(a.data || '') ? a.data : '';
+      return { tipo: a.tipo === 'aviso' ? 'aviso' : 'evento', titulo: txt(a.titulo, 80), texto: txt(a.texto, 240), data: data,
+        hora: /^\d{2}:\d{2}$/.test(a.hora || '') ? a.hora : '', local: txt(a.local, 140), nucleo: txt(a.nucleo, 60), criadoEm: txt(a.criadoEm, 30) };
+    }).filter(function(a){
+      if(!a.titulo) return false;
+      if(a.tipo === 'aviso') return (a.data || a.criadoEm.slice(0, 10)) >= ini(45);
+      return !a.data || a.data >= ini(60);
+    }).sort(function(x, y){ return (y.criadoEm || '').localeCompare(x.criadoEm || ''); });
+  }catch(e){ return []; }
+}
+
 function mapEscola(pub, id, nucleos){
   var modalidade = String(pub.modalidade || 'capoeira').toLowerCase();
   return {
@@ -529,6 +565,7 @@ function mapEscola(pub, id, nucleos){
     peca: String(pub.pecaGraduacao || PECA[modalidade] || 'graduação'),
     logo: pub.logo || '',
     escada: mapEscada(pub.escada),
+    escada3: mapEscada3(pub.escada),
     nucleos: (nucleos && nucleos.length) ? nucleos : (pub.nucleoSede ? [pub.nucleoSede] : []),
     template: templateDe(pub.template, modalidade),
     // Campos extras usados pelos templates com layout próprio (ex.: horizons).
@@ -638,6 +675,8 @@ async function iniciar(){
     conteudo = cs && cs.exists() ? cs.data() : null;
   }catch(e){ conteudo = null; }
   aplicarConteudo(s, conteudo);
+  var agenda = await lerAgendaPublica(id);
+  s.agenda = agenda;
 
   // Prévia ao vivo da aba "Meu site" (iframe, mesma origem): recebe o rascunho por
   // postMessage e re-renderiza SEM gravar nada. Só com ?previa=1 e só da própria origem.
@@ -645,7 +684,7 @@ async function iniciar(){
     addEventListener('message', function(e){
       if(e.origin !== location.origin || !e.data || e.data.tipo !== 'ap-previa') return;
       var dados = e.data.conteudo && typeof e.data.conteudo === 'object' ? e.data.conteudo : null;
-      var s2 = mapEscola(pub, id, nucleos); s2.nucleosInfo = nucleosInfo;
+      var s2 = mapEscola(pub, id, nucleos); s2.nucleosInfo = nucleosInfo; s2.agenda = agenda;
       aplicarConteudo(s2, dados);
       montar(s2, { seo:false });
     });

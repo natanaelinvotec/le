@@ -272,6 +272,8 @@ function cartaoEscola(e) {
   if (e.status === 'ativa' && a.status === 'ok') bts.push(`<button type="button" class="bt bt-branco bt-sm" data-copiar="${esc(linkInscricao)}"><i class="fas fa-link"></i> Copiar link de inscrição</button>`);
   if (e.donoEmail) bts.push(`<button type="button" class="bt bt-branco bt-sm" data-senha="${esc(e.donoEmail)}"><i class="fas fa-key"></i> Enviar link de nova senha ao dono</button>`);
   if (e.status === 'ativa' && a.status === 'ok') bts.push(`<a class="bt bt-branco bt-sm" href="${esc(`${APP_URL}/${encodeURIComponent(enderecoDe(e))}/login`)}" target="_blank" rel="noopener"><i class="fas fa-arrow-up-right-from-square"></i> Abrir o app da escola</a>`);
+  // Vitrine de templates (atletapay.com.br/app/vitrine): o site desta escola aparece como exemplo do template dela.
+  if (e.status === 'ativa' && a.status === 'ok') bts.push(`<button type="button" class="bt ${e.vitrine ? 'bt-laranja' : 'bt-branco'} bt-sm" data-vitrine="${esc(e.id)}" aria-pressed="${e.vitrine ? 'true' : 'false'}"><i class="fas fa-store"></i> ${e.vitrine ? 'Na vitrine · tirar' : 'Mostrar na vitrine'}</button>`);
   bts.push(`<button type="button" class="bt bt-branco bt-sm" data-numeros="${esc(e.id)}"><i class="fas fa-chart-simple"></i> Números</button>`);
   bts.push(`<button type="button" class="bt bt-branco bt-sm" data-editar="${esc(e.id)}"><i class="fas fa-pen"></i> Editar dados</button>`);
   if (e.status === 'ativa') bts.push(`<button type="button" class="bt bt-branco bt-sm perigo" data-pausar="${esc(e.id)}"><i class="fas fa-pause"></i> Pausar</button>`);
@@ -350,6 +352,13 @@ async function acao(ev) {
       b.disabled = true;
       await updateDoc(doc(db, 'escolas', b.dataset.tentar), { ativacao: { status: 'pedido', em: new Date().toISOString(), porUid: meuUid }, atualizadoEm: new Date().toISOString() });
       toast('Tentando de novo…');
+    } else if (b.dataset.vitrine) {
+      const e = achar(b.dataset.vitrine);
+      const ligar = !e.vitrine;
+      if (ligar && !confirm(`Mostrar o site de "${e.nome}" na vitrine de templates?\n\nNovos clientes vão ver o link do site desta escola como exemplo do template. Combine antes com o dono.`)) return;
+      b.disabled = true;
+      await updateDoc(doc(db, 'escolas', e.id), { vitrine: ligar, atualizadoEm: new Date().toISOString() });
+      toast(ligar ? 'Site na vitrine — aparece para quem escolhe o template.' : 'Site tirado da vitrine.');
     } else if (b.dataset.pausar) {
       const e = achar(b.dataset.pausar);
       if (!confirm(`Pausar "${e.nome}"?\n\nO site público sai do ar. Os dados, a sede e os cadastros dos alunos continuam guardados — "Reativar" volta tudo.`)) return;

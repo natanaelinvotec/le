@@ -192,6 +192,30 @@ a{color:inherit;text-decoration:none}
 .sim-pe .btn.ghost:hover{background:#fff;box-shadow:inset 0 0 0 1.5px var(--navy)}
 .sim-pe .btn.prim{flex:1}
 
+/* ---------- sites no ar com o tema ---------- */
+.noar{position:relative;z-index:20;display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;padding:9px clamp(12px,2vw,22px);background:linear-gradient(90deg,rgba(0,230,118,.16),rgba(56,158,146,.12));border-bottom:1px solid var(--linha-inv);font-size:.86rem;animation:noar .6s var(--ease)}
+@keyframes noar{from{opacity:0;transform:translateY(-6px)}}
+.noar .nr-ic{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--verde);color:var(--navy-ink)}
+.noar .nr-ic svg{width:15px;height:15px}
+.noar .nr-tx{font-weight:700;color:#fff}
+.noar .nr-tx b{color:var(--verde)}
+.noar .nr-links{display:flex;gap:8px;flex-wrap:wrap}
+.noar a.nr-site{display:inline-flex;align-items:center;gap:7px;padding:.45em .95em;border-radius:var(--pill);background:#fff;color:var(--navy);font-weight:800;font-size:.82rem;transition:transform .4s var(--ease),box-shadow .4s var(--ease)}
+.noar a.nr-site small{font-weight:600;color:#5b6b7f}
+.noar a.nr-site svg{width:13px;height:13px}
+.noar a.nr-site:hover{transform:translateY(-2px);box-shadow:0 10px 24px -12px rgba(0,230,118,.8)}
+.noar .nr-trocar{border:0;border-radius:var(--pill);padding:.45em .95em;background:transparent;color:#fff;font-weight:800;font-size:.82rem;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.4)}
+.noar .nr-trocar:hover{background:rgba(255,255,255,.1)}
+.noar .nr-x{margin-left:auto;width:30px;height:30px;border:0;border-radius:50%;background:rgba(255,255,255,.08);color:#fff;display:grid;place-items:center}
+.noar .nr-x:hover{background:rgba(255,255,255,.18)}
+.tag.noar-tag{background:rgba(255,255,255,.92);color:var(--navy)}
+.conheca{display:grid;gap:8px;padding:14px;border-radius:16px;background:#fff;border:1.5px dashed rgba(56,158,146,.45)}
+.conheca>b{font-size:.8rem;color:var(--navy)}
+.conheca a{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:var(--neutro);color:var(--navy);font-weight:800;font-size:.84rem;text-decoration:none;transition:background .3s,transform .4s var(--ease)}
+.conheca a small{display:block;font-weight:600;color:var(--tx-2);font-size:.74rem}
+.conheca a:hover{background:#dff0ec;transform:translateX(3px)}
+.conheca a svg{width:15px;height:15px;flex:none;color:var(--teal)}
+
 /* ---------- toast ---------- */
 .toast{position:fixed;left:50%;bottom:22px;z-index:80;transform:translate(-50%,20px);opacity:0;padding:.75em 1.2em;border-radius:var(--pill);background:#fff;color:var(--navy);font-weight:800;font-size:.86rem;box-shadow:0 20px 40px -16px rgba(0,0,0,.6);transition:opacity .4s var(--ease),transform .5s var(--ease);pointer-events:none}
 .toast.on{opacity:1;transform:translate(-50%,0)}
@@ -209,6 +233,7 @@ a{color:inherit;text-decoration:none}
   .palco.desk,.palco{display:block}
 }
 @media (max-width:520px){
+  .noar{padding-right:52px;gap:8px}.noar .nr-x{position:absolute;right:10px;top:8px}.noar a.nr-site small{display:none}.noar .nr-ic{display:none}
   .marca b{font-size:1rem}
   .grupo.tpl .circ{display:none}
   .sim{top:auto;left:8px;right:8px;bottom:8px;width:auto;height:min(60dvh,560px);transform:translateY(calc(100% + 16px))}
@@ -253,6 +278,11 @@ a{color:inherit;text-decoration:none}
   </div>
 </header>
 
+<div class="noar" id="noar" hidden role="region" aria-label="Sites no ar com este tema">
+  <span class="nr-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span>
+  <span class="nr-tx" id="noarTx"></span><span class="nr-links" id="noarLinks"></span>
+  <button class="nr-x" id="noarX" type="button" aria-label="Fechar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+</div>
 <main class="palco desk" id="palco">
   <div class="disp-box" id="dispBox">
     <div class="moldura"><iframe id="frame" title="Prévia do site" referrerpolicy="same-origin"></iframe></div>
@@ -273,7 +303,7 @@ a{color:inherit;text-decoration:none}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script type="module">
-import { TEMPLATES } from './js/site-templates.js?v=20261016b';
+import { TEMPLATES } from './js/site-templates.js?v=20261016c';
 
 /* ---------- dados ---------- */
 const PREVIA = 'site-preview-horizons.html';
@@ -356,6 +386,56 @@ function aoVivo() {
   }, 220);
 }
 
+/* ---------- sites no ar com cada tema ---------- */
+const IC_EXT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg>';
+const httpsOk = (u) => /^https:\/\/[a-z0-9.-]+\.[a-z]{2,}(\/[^\s"'<>]*)?$/i.test(String(u || ''));
+let dinamicos = [];
+function sitesDe(k) {
+  const fixos = ((TEMPLATES[k] && TEMPLATES[k].noAr) || []).filter((x) => x && x.nome && httpsOk(x.url)).map((x) => ({ nome: String(x.nome).slice(0, 80), cidade: String(x.cidade || '').slice(0, 60), url: x.url }));
+  const todos = fixos.concat(dinamicos.filter((x) => x.template === k));
+  const vistos = new Set(); return todos.filter((x) => (vistos.has(x.url) ? false : vistos.add(x.url)));
+}
+function linkSite(x, classe, prefixo) {
+  const a = el('a', { class: classe, href: x.url, target: '_blank', rel: 'noopener noreferrer', 'aria-label': 'Abrir o site ' + x.nome + ' em nova aba' },
+    el('span', {}, prefixo ? prefixo + ' — ' : '', x.nome, x.cidade ? el('small', { text: (classe ? ' · ' : '') + x.cidade }) : null));
+  const i = document.createElement('span'); i.innerHTML = IC_EXT; a.append(i.firstChild); // ícone estático (constante do código)
+  return a;
+}
+let noarFechado = '';
+function pintarNoAr() {
+  const caixa = $('noar'), chave = st.tpl + '|' + st.mod;
+  const sites = sitesDe(st.tpl);
+  let texto = null, trocarPara = '';
+  if (sites.length) texto = ['Conheça academias que já usam o tema ', el('b', { text: TEMPLATES[st.tpl].nome }), ':'];
+  else {
+    // Sem site no ar com este tema: sugere o tema indicado para a modalidade que já tem site pronto.
+    const k = LISTA.find((x) => indicado(x, st.mod) && !(TEMPLATES[x].modalidades || []).every((m) => m === 'todas') && sitesDe(x).length);
+    if (k) { trocarPara = k; texto = ['Para ' + NOME_MOD[st.mod] + ', conheça quem já usa o tema ', el('b', { text: TEMPLATES[k].nome }), ':']; }
+  }
+  if (!texto || noarFechado === chave) { caixa.hidden = true; return; }
+  $('noarTx').replaceChildren(...texto);
+  const links = (trocarPara ? sitesDe(trocarPara) : sites).slice(0, 4).map((x) => linkSite(x, 'nr-site'));
+  if (trocarPara) { const b = el('button', { class: 'nr-trocar', type: 'button', text: 'Ver o tema ' + TEMPLATES[trocarPara].nome }); b.addEventListener('click', () => trocarTpl(trocarPara)); links.push(b); }
+  $('noarLinks').replaceChildren(...links);
+  caixa.hidden = false;
+}
+$('noarX').addEventListener('click', () => { noarFechado = st.tpl + '|' + st.mod; $('noar').hidden = true; encaixar(); });
+// Escolas da plataforma que a AtletaPay marcou "Mostrar na vitrine" (cartão público; leitura sem login).
+(async () => {
+  try {
+    // Import sob demanda: se o SDK do Firebase não carregar (rede), a vitrine segue funcionando com os sites fixos.
+    const { db, collection, query, where, limit, getDocs } = await import('./js/firebase.js');
+    const q = await getDocs(query(collection(db, 'escolasPublicas'), where('vitrine', '==', true), limit(50)));
+    dinamicos = q.docs.map((d) => d.data() || {}).filter((p) => p.status === 'ativa' && typeof p.template === 'string' && TEMPLATES[p.template] && TEMPLATES[p.template].modulo)
+      .map((p) => {
+        const dom = String(p.dominio || '').toLowerCase();
+        const u = /^[a-z0-9.-]+\.[a-z]{2,}$/.test(dom) ? 'https://' + dom : 'https://atletapay.com.br/' + encodeURIComponent(String(p.slug || ''));
+        return { nome: String(p.nome || p.nomeCurto || '').slice(0, 80), cidade: [p.cidade, p.uf].filter(Boolean).join(' · ').slice(0, 60), url: u, template: p.template };
+      }).filter((x) => x.nome && httpsOk(x.url));
+    pintarNoAr(); pintarCards(); encaixar();
+  } catch (e) { /* sem rede ou banco fora: ficam só os sites fixos do registro */ }
+})();
+
 /* ---------- barra ---------- */
 function pintarBarra() {
   const t = TEMPLATES[st.tpl];
@@ -364,6 +444,8 @@ function pintarBarra() {
   $('selMod').value = st.mod;
   $('painelInfo').textContent = `${LISTA.length} templates · vendo em ${NOME_MOD[st.mod]}`;
   pintarCards();
+  pintarNoAr();
+  encaixar();
 }
 $('selMod').append(...MODS.map(([v, r]) => el('option', { value: v, text: r })));
 $('selMod').addEventListener('change', (e) => { st.mod = e.target.value; st.modEscolhida = true; carregar(); if (st.passo === 0 && $('sim').classList.contains('on')) renderPasso(); });
@@ -387,6 +469,7 @@ function pintarCards() {
     const tags = [];
     if (k === st.tpl) tags.push(el('span', { class: 'tag atual', text: 'Em exibição' }));
     if (indicado(k, st.mod)) tags.push(el('span', { class: 'tag ok', text: 'Indicado p/ ' + NOME_MOD[st.mod] }));
+    const nNoAr = sitesDe(k).length; if (nNoAr) tags.push(el('span', { class: 'tag noar-tag', text: nNoAr + (nNoAr === 1 ? ' site no ar' : ' sites no ar') }));
     return el('button', { class: 'card', type: 'button', 'data-tpl': k, 'aria-current': k === st.tpl ? 'true' : 'false' },
       el('div', { class: 'th' }, el('img', { src: t.miniatura, alt: '', loading: 'lazy' }), el('div', { class: 'tg' }, tags)),
       el('div', { class: 'cx' }, el('b', { text: t.nome }), el('p', { text: t.descricao }),
@@ -490,8 +573,12 @@ function passoSite() {
       el('span', {}, el('b', {}, t.nome, indicado(k, st.mod) ? el('em', { text: 'Indicado' }) : null), el('small', { text: t.descricao })));
   }));
   lista.addEventListener('click', (e) => { const b = e.target.closest('[data-tpl]'); if (!b) return; trocarTpl(b.dataset.tpl); lista.querySelectorAll('.tp').forEach((x) => x.setAttribute('aria-checked', String(x === b))); });
+  const comSites = ordem.filter((k) => sitesDe(k).length && (k === st.tpl || indicado(k, st.mod)));
+  const conheca = comSites.length ? el('div', { class: 'conheca' }, el('b', { text: 'Conheça academias que já escolheram estes temas' }),
+    ...comSites.flatMap((k) => sitesDe(k).slice(0, 3).map((x) => linkSite(x, '', TEMPLATES[k].nome)))) : null;
   return el('div', { class: 'etapa' },
     el('p', { text: `É a etapa "Modelo do site". Os indicados para ${NOME_MOD[st.mod]} vêm primeiro; clique e o site troca na hora.` }),
+    conheca,
     lista);
 }
 

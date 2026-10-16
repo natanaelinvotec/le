@@ -1479,3 +1479,31 @@ test('nucleosPublicos: espelho sanitizado (sem GPS/mensalidade/professor) e some
   await aoEscreverNucleoPublico(ctx, { params: { id: 'profeta' }, antes: null, depois: { ...f.ler('nucleos/profeta'), ativo: false } });
   assert.equal(f.ler('nucleosPublicos/profeta'), undefined, 'desativou -> cartao removido');
 });
+
+// ---------- Site da escola: agenda pública (agendaPublica) ----------
+import { itemPublico, idPublico } from '../src/site-publico.js';
+
+test('agenda pública: só com "Mostrar no site", só campos seguros, some ao desmarcar/apagar', async () => {
+  // função pura: sem noSite, sem escola, escola da plataforma ou sem título → nada
+  assert.equal(itemPublico('evento', { nome: 'Batizado', escolaId: 'ct' }), null);
+  assert.equal(itemPublico('evento', { nome: 'Batizado', noSite: true }), null);
+  assert.equal(itemPublico('aviso', { titulo: 'X', noSite: true, escolaId: '_plataforma' }), null);
+  assert.equal(itemPublico('aviso', { titulo: '  ', noSite: true, escolaId: 'ct' }), null);
+  const p = itemPublico('evento', { nome: 'Batizado 2026', data: '2026-11-21', hora: '16:00', local: 'Ginásio', descricao: 'Troca de cordas', taxa: 50, criadoPor: 'uidSecreto', academiaId: 'n1', escolaId: 'ct', noSite: true }, 'Setor Sul');
+  assert.deepEqual(Object.keys(p).sort(), ['atualizadoEm', 'criadoEm', 'data', 'escolaId', 'hora', 'local', 'nucleo', 'texto', 'tipo', 'titulo'].sort());
+  assert.equal(p.titulo, 'Batizado 2026'); assert.equal(p.nucleo, 'Setor Sul'); assert.equal(p.texto, 'Troca de cordas');
+  assert.equal(itemPublico('evento', { nome: 'E', data: '21/11/2026', hora: '4pm', escolaId: 'ct', noSite: true }).data, '');
+  assert.equal(idPublico('aviso', 'a/../b'), 'aviso_ab');
+
+  // gatilhos: evento marcado → cópia; desmarcado → some; aviso apagado → some
+  const { f, ctx } = ctxDe(base({ nucleosPublicos: { n1: { nome: 'Setor Sul', escolaId: 'ct' } } }));
+  await G.aoEscreverEvento(ctx, { params: { id: 'e1' }, antes: null, depois: { nome: 'Roda aberta', data: '2026-12-12', academiaId: 'n1', escolaId: 'ct', noSite: true } });
+  const copia = f.lerCol('agendaPublica')['evento_e1'];
+  assert.ok(copia); assert.equal(copia.escolaId, 'ct'); assert.equal(copia.nucleo, 'Setor Sul'); assert.equal(copia.criadoPor, undefined);
+  await G.aoEscreverEvento(ctx, { params: { id: 'e1' }, antes: { nome: 'Roda aberta', escolaId: 'ct', noSite: true }, depois: { nome: 'Roda aberta', escolaId: 'ct', noSite: false } });
+  assert.equal(f.lerCol('agendaPublica')['evento_e1'], undefined);
+  await G.aoEscreverAviso(ctx, { params: { id: 'a9' }, antes: null, depois: { titulo: 'Aula de sábado mudou', texto: 'Agora às 9h', escolaId: 'ct', noSite: true } });
+  assert.ok(f.lerCol('agendaPublica')['aviso_a9']);
+  await G.aoEscreverAviso(ctx, { params: { id: 'a9' }, antes: { titulo: 'Aula de sábado mudou', escolaId: 'ct', noSite: true }, depois: null });
+  assert.equal(f.lerCol('agendaPublica')['aviso_a9'], undefined);
+});

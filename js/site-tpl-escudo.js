@@ -425,7 +425,13 @@ export function render(s, h){
   var zapFmt = zap ? (zap.length === 11 ? '('+zap.slice(0,2)+') '+zap.slice(2,7)+'-'+zap.slice(7) : zap) : '';
 
   var horItens = lista('horarios', 'itens', 30).filter(function(x){ return cs(x, 'aula'); });
-  var agItens = lista('agenda', 'itens', 6).filter(function(x){ return cs(x, 'titulo'); });
+  // Agenda: eventos publicados NO APP com "Mostrar no site" (s.agenda, de agendaPublica) vêm primeiro,
+  // em ordem de data; depois os digitados no painel. Só futuros (ou sem data) do app.
+  var hojeEs = new Date().toISOString().slice(0, 10);
+  var doApp = (Array.isArray(s.agenda) ? s.agenda : []).filter(function(a){ return a && a.tipo === 'evento' && a.titulo && (!a.data || a.data >= hojeEs); })
+    .sort(function(a, b){ return String(a.data || '9').localeCompare(String(b.data || '9')); })
+    .map(function(a){ var d = String(a.data || ''); return { titulo:String(a.titulo), dia:d.slice(8, 10), mes:d.slice(5, 7), local:String(a.local || a.nucleo || ''), hora:String(a.hora || '') }; });
+  var agItens = doApp.concat(lista('agenda', 'itens', 6).filter(function(x){ return cs(x, 'titulo'); })).slice(0, 6);
   var temHor = horItens.length > 0;
 
   var marca = '<a class="logo" href="#top"><span class="mk"><span>'+(logo ? '<img src="'+esc(logo)+'" alt="'+esc('Logo '+s.nomeCurto)+'">' : esc(ini))+'</span></span><span>'+esc(s.nomeCurto)+'<small>'+esc(V.nomeMod)+'</small></span></a>';

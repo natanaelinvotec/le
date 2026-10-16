@@ -35,7 +35,7 @@ const LIDER = { capoeira:"Mestre", jiujitsu:"Professor", judo:"Sensei", karate:"
 
 const qs = new URLSearchParams(location.search);
 const tpl = TEMPLATES[qs.get('tpl')] && TEMPLATES[qs.get('tpl')].modulo ? qs.get('tpl') : 'horizons';
-const mod = qs.get('mod') || (tpl === 'luva' ? 'boxe' : tpl === 'escudo' ? 'kravmaga' : tpl === 'mongkon' ? 'muaythai' : 'karate');
+const mod = qs.get('mod') || (tpl === 'luva' ? 'boxe' : tpl === 'escudo' ? 'kravmaga' : tpl === 'mongkon' ? 'muaythai' : tpl === 'ginga' ? 'capoeira' : 'karate');
 const P = (id, w=1200, h=null) => `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=${w}${h?`&h=${h}&fit=crop`:''}`;
 
 // Logo da Equipe Horizons (sol no horizonte) como se fosse o logo cadastrado pela escola.
@@ -142,6 +142,38 @@ s.conteudo = tpl === 'escudo' ? { secoes: {
     { dia:'sex', aula:'Treino físico', horario:'06:30–07:30', local:'Norte' }, { dia:'sex', aula:'Equipe de competição', horario:'19:00–21:00', local:'Centro' },
     { dia:'sab', aula:'Aula aberta', horario:'09:00–10:30', local:'Lagoa' } ] }
 } } : null;
+
+// Ginga (clone do site da Liberdade): fotos de capoeira, cordões com 3 cores, núcleos completos, loja,
+// parceiro e — como se tivessem vindo do APP com "Mostrar no site" — eventos e avisos (s.agenda).
+if (tpl === 'ginga') {
+  const dia = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+  if (mod === 'capoeira') s.fotos = { fachada: [P(37792465, 1600)], treino: [P(37192940, 1200), P(30495349, 1200), P(26864611, 1200), P(28975509, 900, 700), P(37192943, 900, 700), P(3340318, 1600), P(33744269, 900, 700)], equipe: [] };
+  const T = (a, b, c) => [a, b || a, c || a];
+  s.escada3 = mod === 'capoeira' ? [['Crua', T('#E6D8B8')], ['Crua/Amarela', T('#E6D8B8', '#F2C524')], ['Amarela', T('#F2C524')], ['Amarela/Laranja', T('#F2C524', '#EF7D1A')], ['Laranja', T('#EF7D1A')], ['Laranja/Azul', T('#EF7D1A', '#1C64C2')], ['Azul', T('#1C64C2')], ['Verde', T('#2F9E44')], ['Roxa', T('#6F42C1')], ['Marrom', T('#6B3E1E')], ['Vermelha', T('#C62828')]].map(([nome, cor]) => ({ nome, cor })) : null;
+  if (mod === 'capoeira') s.cores = { principal: '#002D72', destaque: '#389E92', botao: '#00E676' };
+  s.conteudo = { secoes: {
+    nucleos: { lista: [
+      { nome: 'Mestre Ricardo', bairro: 'Centro', dias: 'Segunda, quarta e sexta', horario: '19h00 às 20h30', endereco: 'Rua dos Horizontes, 1200 — Centro', whatsapp: '67999990001', foto: P(19988288, 300, 300), infantil: '', noite: '1' },
+      { nome: 'Professora Ana', bairro: 'Norte', dias: 'Terça e quinta', horario: '18h00 às 19h00', endereco: 'Av. Norte, 450 — Vila Norte', whatsapp: '67999990002', foto: P(29355129, 300, 300), infantil: '1', noite: '' },
+      { nome: 'Professor Caio', bairro: 'Lagoa', dias: 'Segunda a sábado', horario: 'Horários pelo WhatsApp', endereco: 'Rua da Lagoa, 77 — Lagoa', whatsapp: '67999990003', foto: P(27685128, 300, 300), infantil: '1', noite: '1' } ] },
+    mestres: { lista: [
+      { nome: 'Mestre Ricardo', cargo: 'Fundador', foto: P(19988288, 300, 300) }, { nome: 'Profª Ana', cargo: 'Musicalidade e cantigas', foto: P(29355129, 300, 300) },
+      { nome: 'Prof. Caio', cargo: 'Acrobacias e floreios', foto: P(27685128, 300, 300) }, { nome: 'Profª Brisa', cargo: 'Turmas infantis', foto: P(8578931, 300, 300) },
+      { nome: 'Prof. Tatu', cargo: 'Base e fundamentos', foto: P(14059771, 300, 300) }, { nome: 'Instr. Sabiá', cargo: 'Instrutor graduado', foto: P(2035236, 300, 300) } ] },
+    loja: { whatsapp: '67999990001', produtos: [
+      { nome: 'Abadá Oficial', texto: 'Tecido leve e resistente, com o brasão do grupo.', preco: 'R$ 95,00', foto: P(3340319, 500, 600) },
+      { nome: 'Berimbau', texto: 'Verga de biriba, cabaça afinada e arame de qualidade.', preco: 'R$ 220,00', foto: P(15576958, 500, 600) },
+      { nome: 'Pandeiro', texto: 'Tarraxas reforçadas e ótima projeção sonora.', preco: 'R$ 170,00', foto: P(28975495, 500, 600) } ] },
+    parceiros: { lista: [{ nome: 'Clínica Movimento', logo: 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 120"><rect width="280" height="120" rx="24" fill="#fff"/><circle cx="58" cy="60" r="34" fill="#0E8F7E"/><path d="M40 62h12l6-16 10 30 6-14h10" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><text x="106" y="56" font-family="Arial,sans-serif" font-size="25" font-weight="800" fill="#0B3B2E">Clínica</text><text x="106" y="84" font-family="Arial,sans-serif" font-size="25" font-weight="800" fill="#0E8F7E">Movimento</text></svg>'), frase: 'Cuidar do corpo também é treino!', destaque: '20%', beneficio: 'de desconto em fisioterapia e avaliação física', como: 'Na recepção, mostre a carteirinha do app. Vale para o atleta e os familiares cadastrados.', whatsapp: '67999990009', link: 'exemplo.com.br' }] },
+    agenda: { lista: [{ titulo: 'Encontro de Capoeira do Cerrado', dia: dia(-20).slice(8, 10), mes: dia(-20).slice(5, 7), ano: dia(-20).slice(0, 4), local: 'Ginásio Municipal', mapa: 'Campo Grande - MS' }] },
+  } };
+  s.agenda = [
+    { tipo: 'evento', titulo: 'Batizado e Troca de Cordas', data: dia(36), hora: '16:00', local: 'Ginásio do Centro', texto: 'Cerimônia anual com mestres convidados.', nucleo: '' },
+    { tipo: 'evento', titulo: 'Roda aberta de fim de ano', data: dia(57), hora: '17:00', local: 'Praça Central', texto: '', nucleo: '' },
+    { tipo: 'evento', titulo: 'Oficina de berimbau', data: dia(50), hora: '09:00', local: 'Núcleo Norte', texto: '', nucleo: 'Norte' },
+    { tipo: 'aviso', titulo: 'Treino de sábado começa às 9h', texto: 'A partir deste mês, a roda de sábado começa uma hora mais cedo.', data: '', hora: '', local: 'Todos os núcleos', criadoEm: new Date().toISOString() },
+    { tipo: 'aviso', titulo: 'Inscrições abertas para o batizado', texto: 'Confirme pelo app com "Eu vou" — a lista fecha uma semana antes.', data: dia(29), hora: '', local: '', criadoEm: new Date().toISOString() } ];
+}
 // ---- Personalização (vitrine / simulação de inscrição) ----------------------------------
 // Parâmetros: ?nome=…&principal=#rrggbb&destaque=#rrggbb&embed=1 (embed esconde a barrinha).
 // Ao vivo: a vitrine (mesmo domínio, janela-mãe) manda postMessage {tipo:'ap-vitrine', nome, principal, destaque}

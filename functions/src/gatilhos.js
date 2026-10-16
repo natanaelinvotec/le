@@ -11,6 +11,7 @@ import { emitirCertificado, apagarCertificados, idAvisoCordao, garantirCertifica
 import { coresDoCordao } from './compartilhado/escola.js';
 import { aoGraduarNaEscola, ehOutraEscola } from './graduacao-escola.js';
 import { escolaDoUsuario, ESCOLA_PADRAO } from './escolas.js';
+import { espelharNoSite } from './site-publico.js';
 
 // Campos de usuarios/{uid} que mudam a carteirinha (o próprio espelho entra:
 // se alguém mexer nele, o servidor regrava o valor certo).
@@ -275,12 +276,15 @@ export async function aoAtualizarPerfilPublico(ctx, ev) {
 // ---------- avisos / eventos ----------
 export async function aoEscreverAviso(ctx, ev) {
   await auditar(ctx, 'avisos', ev);
+  // Site da escola: cópia pública (só campos seguros) quando o aviso foi marcado "Mostrar no site".
+  try { await espelharNoSite(ctx, 'aviso', ev.params.id, ev.depois); } catch (e) { (ctx.log || console).warn('agendaPublica aviso', ev.params.id, e && e.message); }
   if (ev.antes || !ev.depois) return;
   const a = ev.depois;
   await notificar(ctx, await membros(ctx, a.academiaId || null, a.escolaId || null), { tipo: 'aviso', titulo: a.titulo || 'Aviso do grupo', texto: String(a.texto || '').slice(0, 160), link: 'rede.html#feed', tag: `aviso_${ev.params.id}` });
 }
 export async function aoEscreverEvento(ctx, ev) {
   await auditar(ctx, 'eventos', ev);
+  try { await espelharNoSite(ctx, 'evento', ev.params.id, ev.depois); } catch (e) { (ctx.log || console).warn('agendaPublica evento', ev.params.id, e && e.message); }
   if (ev.antes || !ev.depois) return;
   const e = ev.depois;
   const quando = e.data ? new Date(`${e.data}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : '';

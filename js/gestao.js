@@ -687,13 +687,14 @@ async function renderEventos() {
       <label class="gs-largo"><span>Local (endereço)</span><input class="input-padrao" name="local" maxlength="140"></label>
       <label><span>Taxa (R$, opcional)</span><input class="input-padrao" type="number" name="taxa" min="0" step="0.01"></label>
       <label class="gs-largo"><span>Descrição</span><textarea class="input-padrao" name="descricao" rows="2" maxlength="400"></textarea></label>
+      <label class="gs-largo" style="flex-direction:row;align-items:flex-start;gap:10px;cursor:pointer"><input type="checkbox" name="noSite" checked style="width:18px;height:18px;margin-top:2px"><span><b>Mostrar no site da escola</b> — entra na agenda do site público (nome, data, hora, local e descrição; nunca a taxa nem os inscritos).</span></label>
       <button type="submit" class="btn-detalhes"><i class="fas fa-check"></i> Publicar evento</button>
     </form><p class="gs-ajuda">Todo mundo do núcleo (ou do grupo) recebe o aviso e se inscreve pela Rede / app com "Eu vou".</p></div>`
     : `<div class="card-padrao"><p class="gs-ajuda"><i class="fas fa-circle-info"></i> Eventos novos são criados pelo Admin/Fundador. Para marcar um evento no seu núcleo, <a href="#" onclick="mudarAba('solicitacoes', event)">abra uma solicitação</a>.</p></div>`}
   <div class="lista-simples">${eventos.map((e, i) => {
     const lista = conf[i].filter((c) => podeCriar || !meuNuc || c.academiaId === meuNuc || e.academiaId === meuNuc);
     return `<div class="card-padrao gs-evento ${e.data < hoje ? 'passado' : ''}"><div class="gs-ev-topo"><div class="gs-ev-data"><b>${esc(String(e.data).slice(8, 10))}</b><small>${new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</small></div>
-      <div class="gs-ev-info"><strong>${esc(e.nome || 'Evento')}</strong><span>${e.hora ? esc(e.hora) + ' · ' : ''}${esc(e.academiaId ? nomeNucleo(e.academiaId) : 'Grupo todo')}${e.local ? ` · ${esc(e.local)}` : ''}${e.taxa ? ` · taxa ${brl(e.taxa)}` : ''}</span></div>
+      <div class="gs-ev-info"><strong>${esc(e.nome || 'Evento')}${e.noSite ? ' <span class="pill pill-aprovado" title="Aparece na agenda do site público">no site</span>' : ''}</strong><span>${e.hora ? esc(e.hora) + ' · ' : ''}${esc(e.academiaId ? nomeNucleo(e.academiaId) : 'Grupo todo')}${e.local ? ` · ${esc(e.local)}` : ''}${e.taxa ? ` · taxa ${brl(e.taxa)}` : ''}</span></div>
       <span class="pill ${lista.length ? 'pill-aprovado' : 'pill-pendente'}">${lista.length} inscrito${lista.length === 1 ? '' : 's'}</span></div>
       <details><summary>Ver inscritos</summary><div class="gs-inscritos">${lista.map((c) => `<span>${esc(c.nome || '')}${c.cordaoAtual ? ` <small>${esc(c.cordaoAtual)}</small>` : ''}</span>`).join('') || '<em>Ninguém inscrito ainda.</em>'}</div></details>
       <div class="gs-ev-acoes">
@@ -701,13 +702,14 @@ async function renderEventos() {
         <button type="button" class="btn-mini" data-exp-ev="${esc(e.id)}" data-formato="pdf" ${lista.length ? '' : 'disabled'}><i class="fas fa-file-pdf"></i> Lista (PDF)</button>
         ${e.taxa && lista.length ? `<button type="button" class="btn-mini btn-mini-aprovar" data-taxa-ev="${esc(e.id)}"><i class="fas fa-receipt"></i> Lançar taxa aos inscritos</button>` : ''}
         <a class="btn-mini" href="rede.html#album/${encodeURIComponent(e.id)}"><i class="fas fa-images"></i> Álbum</a>
+        ${podeCriar ? `<button type="button" class="btn-mini" data-site-ev="${esc(e.id)}"><i class="fas fa-globe"></i> ${e.noSite ? 'Tirar do site' : 'Mostrar no site'}</button>` : ''}
         ${podeCriar ? `<button type="button" class="btn-mini btn-mini-rejeitar" data-apagar-ev="${esc(e.id)}"><i class="fas fa-trash-can"></i> Apagar</button>` : ''}
       </div></div>`;
   }).join('') || '<div class="empty-state"><i class="far fa-calendar"></i>Nenhum evento marcado ainda.</div>'}</div>`;
   const form = el('gsFormEvento');
   if (form) form.addEventListener('submit', async (ev) => {
     ev.preventDefault(); const fd = new FormData(form);
-    const dados = { nome: String(fd.get('nome') || '').trim(), data: fd.get('data'), hora: fd.get('hora') || '', academiaId: fd.get('academiaId') || null, local: String(fd.get('local') || '').trim(), descricao: String(fd.get('descricao') || '').trim(), criadoEm: new Date().toISOString(), criadoPor: C.sessao().uid };
+    const dados = { nome: String(fd.get('nome') || '').trim(), data: fd.get('data'), hora: fd.get('hora') || '', academiaId: fd.get('academiaId') || null, local: String(fd.get('local') || '').trim(), descricao: String(fd.get('descricao') || '').trim(), criadoEm: new Date().toISOString(), criadoPor: C.sessao().uid, noSite: fd.get('noSite') === 'on' };
     if (fd.get('taxa')) dados.taxa = Number(fd.get('taxa')) || 0;
     try { await addDoc(collection(db, 'eventos'), await comMinhaEscola(dados)); C.toast('Evento publicado — o grupo foi avisado.'); renderEventos(); } catch (e) { C.toast('Não foi possível publicar (permissão).', 'error'); }
   });
@@ -725,6 +727,12 @@ async function renderEventos() {
     const res = await Promise.allSettled(alvos.map((u) => lancarPagamento({ alunoId: u.id, alunoNome: u.nome || '', academiaId: u.academiaId || null, valor: Number(e.taxa) || 0, competencia: e.data.slice(0, 7), pago: false, tipo: 'adicional', descricao: `Taxa: ${e.nome || 'evento'}`.slice(0, 60), eventoId: e.id, lancadoPor: C.sessao().uid })));
     const ok = res.filter((r) => r.status === 'fulfilled').length;
     C.toast(`${ok} taxa(s) lançada(s)${ok < alvos.length ? `; ${alvos.length - ok} sem permissão` : ''}.`);
+  }));
+  box.querySelectorAll('[data-site-ev]').forEach((b) => b.addEventListener('click', async () => {
+    const e = eventos.find((x) => x.id === b.dataset.siteEv); if (!e) return;
+    b.disabled = true;
+    try { await updateDoc(doc(db, 'eventos', e.id), { noSite: !e.noSite }); C.toast(e.noSite ? 'Evento tirado do site.' : 'Evento publicado no site da escola.'); renderEventos(); }
+    catch (x) { b.disabled = false; C.toast('Sem permissão para mudar este evento.', 'error'); }
   }));
   box.querySelectorAll('[data-apagar-ev]').forEach((b) => b.addEventListener('click', async () => {
     if (!confirm('Apagar este evento? As inscrições somem da agenda.')) return;

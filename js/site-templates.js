@@ -13,6 +13,8 @@
  *   export var schema               — seções e campos editáveis (formato abaixo). A aba monta o formulário por ele.
  *   export var meta                 — { nome, descricao, modalidades[] } (miniatura vem deste registro).
  *
+ * noAr (opcional, por template): sites prontos com o visual, mostrados na vitrine — [{ nome, url https, cidade }].
+ *
  * Formato do schema:
  *   { secoes: [ { id, r (rótulo), ajuda, campos: [ campo ] } ] }
  *   campo = { c (chave), r (rótulo), t?: 'texto'|'area'|'foto'|'lista'|'link'|'select', max?: n (caracteres ou itens),
@@ -60,6 +62,16 @@ export var TEMPLATES = {
     modalidades: ['muaythai', 'boxe', 'mma', 'todas'],
     modulo: './site-tpl-mongkon.js',
     miniatura: 'assets/templates/mongkon.svg'
+  },
+  ginga: {
+    nome: 'Ginga',
+    descricao: 'O site da Liberdade e Expressão para a sua escola: fotos em arco, cordões que crescem, núcleos com WhatsApp, corpo docente, agenda e avisos do app, loja e aula experimental.',
+    modalidades: ['capoeira', 'todas'],
+    modulo: './site-tpl-ginga.js',
+    miniatura: 'assets/templates/ginga.svg',
+    // Sites já no ar com este visual (a vitrine mostra "Conheça quem já usa"). Os de escolas da
+    // plataforma entram sozinhos quando a AtletaPay liga "Mostrar na vitrine" no painel Master.
+    noAr: [{ nome: 'Capoeira Liberdade e Expressão', url: 'https://liberdadeeexpressao.com.br', cidade: 'Campo Grande · MS' }]
   }
 };
 
