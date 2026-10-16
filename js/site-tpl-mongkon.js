@@ -373,7 +373,7 @@ function css(t){
 .mg{--ink:#0f0d0b;--carbon:#17140f;--carbon-2:#211c15;--cream:#efe6d6;--cream-2:#e4d8c3;--mute:#a8998a;--white:#fff;--line:rgba(239,230,214,.12);\
  --gold:'+t.acc+';--gold-2:'+t.acc2+';--gold-ink:'+t.accInk+';--ember:'+t.ember+';\
  --display:"Unbounded",system-ui,sans-serif;--text:"Manrope",system-ui,sans-serif;--ease:cubic-bezier(.16,1,.3,1);--g:clamp(20px,5vw,96px);--m:clamp(12px,2vw,28px);--r:clamp(28px,4vw,56px);--r2:28px;--pill:999px;\
- position:relative;background:var(--ink);color:var(--cream);font-family:var(--text);font-size:clamp(1rem,.95rem + .3vw,1.125rem);line-height:1.65;-webkit-font-smoothing:antialiased;overflow-x:clip;padding-bottom:1px}\
+ position:relative;background:var(--ink);color:var(--cream);font-family:var(--text);font-size:clamp(1rem,.95rem + .3vw,1.125rem);line-height:1.65;-webkit-font-smoothing:antialiased;overflow-x:clip;display:flow-root}\
 .mg h1,.mg h2,.mg h3,.mg h4,.mg p{margin:0}.mg a{color:inherit;text-decoration:none}.mg img{display:block;max-width:100%}.mg :focus-visible{outline:3px solid var(--gold);outline-offset:3px;border-radius:6px}\
 ' + CSS_BASE.split('@ACC@').join(t.accTri) + '\
 .mg .ringph .ph .ini{display:grid;place-items:center;height:100%;font-family:var(--display);font-weight:800;font-size:clamp(3rem,2rem + 4vw,7rem);color:var(--gold);background:var(--carbon-2)}\

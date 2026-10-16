@@ -1,0 +1,531 @@
+<!doctype html>
+<!-- vitrine.html — ambiente de teste dos templates de site (estilo "full screen preview" de marketplace).
+     Barra no topo: troca de template, modalidade e dispositivo; o site roda embaixo (iframe da
+     site-preview-horizons.html em modo embed). "Escolher este site" abre a simulação da etapa de
+     escolha do site na inscrição: nome da escola, cores e template, com o site mudando ao vivo.
+     Nada é gravado no Firestore: a simulação fica só no sessionStorage desta aba.
+     Novos templates aparecem sozinhos (lidos de js/site-templates.js). -->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow, noai, noimageai">
+<meta name="theme-color" content="#04122B">
+<title>Vitrine de sites · AtletaPay</title>
+<link rel="icon" type="image/svg+xml" href="/assets/marca.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@500;600;700;800&display=swap">
+<style>
+:root{
+  --navy:#002D72;--navy-2:#0B2E70;--navy-ink:#04122B;--teal:#389E92;--verde:#00E676;--neutro:#EAF2F1;
+  --tx:#0d1b2e;--tx-2:#4a5a6e;--tx-3:#7a8899;--inv:#fff;--inv-2:rgba(255,255,255,.72);--inv-3:rgba(255,255,255,.5);
+  --linha:rgba(4,18,43,.1);--linha-inv:rgba(255,255,255,.12);
+  --ease:cubic-bezier(.16,1,.3,1);--r:18px;--pill:999px;
+  --marca:"Sora",system-ui,sans-serif;--txt:"Manrope",system-ui,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{display:flex;flex-direction:column;background:var(--navy-ink);color:var(--inv);font-family:var(--txt);-webkit-font-smoothing:antialiased;overflow:hidden}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:inherit;text-decoration:none}
+[hidden]{display:none!important}
+:focus-visible{outline:3px solid var(--verde);outline-offset:2px;border-radius:10px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- barra superior ---------- */
+.bar{position:relative;z-index:30;display:flex;align-items:center;gap:14px;padding:10px clamp(12px,2vw,22px);min-height:64px;
+  background:linear-gradient(90deg,var(--navy-ink),var(--navy-2) 55%,var(--navy-ink));border-bottom:1px solid var(--linha-inv);box-shadow:0 10px 30px -18px rgba(0,0,0,.8)}
+.marca{display:flex;align-items:center;gap:10px;flex:none}
+.marca img{width:32px;height:32px}
+.marca b{font-family:var(--marca);font-weight:800;font-size:1.12rem;letter-spacing:-.02em}
+.marca b i{font-style:normal;color:var(--verde)}
+.marca small{display:block;font-size:.66rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--inv-3);margin-top:1px}
+.sep{width:1px;height:30px;background:var(--linha-inv);flex:none}
+.grupo{display:flex;align-items:center;gap:8px;min-width:0}
+.circ{flex:none;width:38px;height:38px;border-radius:50%;border:1px solid var(--linha-inv);background:rgba(255,255,255,.04);display:grid;place-items:center;transition:background .3s,transform .4s var(--ease),border-color .3s}
+.circ:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3)}
+.circ:active{transform:scale(.92)}
+.circ svg{width:16px;height:16px}
+.picker{display:flex;align-items:center;gap:10px;min-width:0;padding:5px 14px 5px 5px;border-radius:var(--pill);border:1px solid var(--linha-inv);background:rgba(255,255,255,.06);transition:background .3s,border-color .3s}
+.picker:hover,.picker[aria-expanded="true"]{background:rgba(255,255,255,.13);border-color:rgba(0,230,118,.5)}
+.picker img{width:46px;height:29px;border-radius:7px;object-fit:cover;flex:none;background:#000}
+.picker span{display:flex;flex-direction:column;align-items:flex-start;line-height:1.15;min-width:0}
+.picker small{font-size:.62rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--inv-3)}
+.picker strong{font-family:var(--marca);font-weight:700;font-size:.95rem;white-space:nowrap}
+.picker svg{width:14px;height:14px;flex:none;transition:transform .4s var(--ease)}
+.picker[aria-expanded="true"] svg{transform:rotate(180deg)}
+.sel{appearance:none;border:1px solid var(--linha-inv);background:rgba(255,255,255,.06) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center/14px;
+  border-radius:var(--pill);padding:.6em 2.4em .6em 1em;font-weight:700;font-size:.88rem;color:var(--inv);transition:background-color .3s,border-color .3s}
+.sel:hover{background-color:rgba(255,255,255,.12)}
+.sel option{color:var(--tx)}
+.disp{display:flex;gap:2px;padding:3px;border-radius:var(--pill);background:rgba(255,255,255,.06);border:1px solid var(--linha-inv)}
+.disp button{width:38px;height:32px;border:0;border-radius:var(--pill);background:transparent;display:grid;place-items:center;color:var(--inv-2);transition:background .3s,color .3s}
+.disp button svg{width:17px;height:17px}
+.disp button[aria-pressed="true"]{background:var(--verde);color:var(--navy-ink)}
+.disp button:not([aria-pressed="true"]):hover{background:rgba(255,255,255,.1);color:#fff}
+.esp{flex:1}
+.btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:.55em;border:0;border-radius:var(--pill);padding:.78em 1.35em;font-weight:800;font-size:.88rem;white-space:nowrap;isolation:isolate;overflow:hidden;
+  transition:transform .45s var(--ease),box-shadow .45s var(--ease),background .3s,color .3s}
+.btn svg{width:1.05em;height:1.05em;transition:transform .45s var(--ease)}
+.btn:hover svg{transform:translateX(3px)}
+.btn:active{transform:scale(.97)}
+.btn.prim{background:var(--verde);color:var(--navy-ink);box-shadow:0 10px 30px -12px rgba(0,230,118,.7)}
+.btn.prim::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.55) 50%,transparent 70%);transform:translateX(-120%);transition:transform .9s var(--ease)}
+.btn.prim:hover{transform:translateY(-2px);box-shadow:0 16px 36px -12px rgba(0,230,118,.85)}
+.btn.prim:hover::before{transform:translateX(120%)}
+.btn.ghost{background:transparent;color:var(--inv);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.35)}
+.btn.ghost:hover{background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.7)}
+
+/* ---------- painel de templates (dropdown) ---------- */
+.painel{position:absolute;left:clamp(12px,2vw,22px);right:clamp(12px,2vw,22px);top:calc(100% + 10px);z-index:40;max-height:min(72vh,640px);overflow:auto;
+  padding:18px;border-radius:24px;background:rgba(4,18,43,.86);backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);
+  border:1px solid var(--linha-inv);box-shadow:0 40px 80px -30px rgba(0,0,0,.9);opacity:0;transform:translateY(-8px) scale(.985);transform-origin:top center;pointer-events:none;transition:opacity .35s var(--ease),transform .5s var(--ease)}
+.painel.aberto{opacity:1;transform:none;pointer-events:auto}
+.painel header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 4px 14px}
+.painel h2{margin:0;font-family:var(--marca);font-size:1.05rem;font-weight:700}
+.painel header p{margin:0;font-size:.82rem;color:var(--inv-3)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.card{position:relative;display:flex;flex-direction:column;text-align:left;padding:0;border:1px solid var(--linha-inv);border-radius:var(--r);background:rgba(255,255,255,.04);overflow:hidden;
+  transition:transform .5s var(--ease),border-color .3s,background .3s,box-shadow .5s var(--ease)}
+.card:hover{transform:translateY(-4px);border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.08);box-shadow:0 24px 40px -24px rgba(0,0,0,.9)}
+.card[aria-current="true"]{border-color:var(--verde);box-shadow:0 0 0 1px var(--verde),0 24px 40px -24px rgba(0,230,118,.45)}
+.card .th{position:relative;aspect-ratio:16/10;background:#000;overflow:hidden}
+.card .th img{width:100%;height:100%;object-fit:cover;transition:transform .9s var(--ease)}
+.card:hover .th img{transform:scale(1.05)}
+.card .tg{position:absolute;top:10px;left:10px;display:flex;gap:6px;flex-wrap:wrap}
+.tag{display:inline-flex;align-items:center;gap:5px;padding:.3em .7em;border-radius:var(--pill);font-size:.64rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;background:rgba(4,18,43,.78);color:#fff;backdrop-filter:blur(6px)}
+.tag.ok{background:var(--verde);color:var(--navy-ink)}
+.tag.atual{background:#fff;color:var(--navy)}
+.card .cx{padding:14px 16px 16px;display:grid;gap:6px}
+.card b{font-family:var(--marca);font-weight:700;font-size:1.02rem}
+.card p{margin:0;font-size:.8rem;line-height:1.45;color:var(--inv-2);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.card .mods{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+.card .mods span{font-size:.66rem;font-weight:700;padding:.2em .6em;border-radius:var(--pill);border:1px solid var(--linha-inv);color:var(--inv-2)}
+
+/* ---------- palco ---------- */
+.palco{position:relative;flex:1;min-height:0;display:grid;place-items:center;overflow:hidden;
+  background:radial-gradient(ellipse at 50% -10%,rgba(56,158,146,.28),transparent 55%),radial-gradient(circle at 1px 1px,rgba(255,255,255,.06) 1px,transparent 0) 0 0/22px 22px,var(--navy-ink)}
+.palco.desk{display:block}
+.disp-box{position:relative;transform-origin:top center;transition:width .6s var(--ease),height .6s var(--ease)}
+.palco.desk .disp-box{width:100%!important;height:100%!important;transform:none!important}
+.moldura{position:absolute;inset:0;background:#0a0a0a;border-radius:0;overflow:hidden;transition:border-radius .6s var(--ease),padding .6s var(--ease),box-shadow .6s var(--ease)}
+.palco.tab .moldura{padding:14px;border-radius:34px;box-shadow:0 0 0 2px #1c2433,0 60px 120px -40px rgba(0,0,0,.95)}
+.palco.cel .moldura{padding:12px;border-radius:52px;box-shadow:0 0 0 2px #1c2433,0 60px 120px -40px rgba(0,0,0,.95)}
+.palco.cel .moldura::after{content:"";position:absolute;left:50%;top:22px;width:110px;height:30px;border-radius:16px;background:#000;transform:translateX(-50%);z-index:2}
+.moldura iframe{display:block;width:100%;height:100%;border:0;background:#fff;border-radius:inherit}
+.palco.tab .moldura iframe{border-radius:22px}.palco.cel .moldura iframe{border-radius:40px}
+.carregando{position:absolute;inset:0;z-index:5;display:grid;place-items:center;align-content:center;gap:18px;background:rgba(4,18,43,.82);backdrop-filter:blur(6px);color:var(--inv-2);font-weight:700;font-size:.9rem;opacity:0;pointer-events:none;transition:opacity .4s var(--ease)}
+.carregando.on{opacity:1;pointer-events:auto}
+.octo{width:46px;height:46px;background:conic-gradient(var(--verde),var(--teal),var(--verde));clip-path:polygon(29% 0,71% 0,100% 29%,100% 71%,71% 100%,29% 100%,0 71%,0 29%);animation:gira 1.4s var(--ease) infinite}
+@keyframes gira{to{transform:rotate(360deg)}}
+
+/* ---------- simulação da inscrição (gaveta) ---------- */
+.veu{position:fixed;inset:0;z-index:50;background:rgba(4,18,43,.35);opacity:0;pointer-events:none;transition:opacity .4s var(--ease)}
+.veu.on{opacity:1;pointer-events:auto}
+.sim{position:fixed;z-index:60;top:12px;right:12px;bottom:12px;width:min(440px,calc(100% - 24px));display:flex;flex-direction:column;border-radius:26px;overflow:hidden;
+  background:rgba(234,242,241,.94);backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);color:var(--tx);
+  border:1px solid rgba(255,255,255,.7);box-shadow:0 50px 100px -30px rgba(0,0,0,.75);transform:translateX(calc(100% + 24px));transition:transform .7s var(--ease)}
+.sim.on{transform:none}
+.sim-top{padding:20px 22px 0}
+.sim-top .lin{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sim-top .ey{font-size:.68rem;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--teal)}
+.sim-top h2{margin:6px 0 0;font-family:var(--marca);font-weight:800;font-size:1.35rem;letter-spacing:-.02em;color:var(--navy)}
+.sim .fechar{width:38px;height:38px;border-radius:50%;border:1px solid var(--linha);background:#fff;display:grid;place-items:center;color:var(--navy);transition:transform .45s var(--ease),background .3s}
+.sim .fechar:hover{transform:rotate(90deg);background:var(--neutro)}
+.sim .fechar svg{width:16px;height:16px}
+.passos{list-style:none;margin:16px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.passos li{display:grid;gap:6px;font-size:.66rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--tx-3);transition:color .3s}
+.passos li i{display:block;height:6px;border-radius:3px;background:rgba(4,18,43,.1);overflow:hidden;position:relative}
+.passos li i::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,var(--teal),var(--verde));transform:scaleX(0);transform-origin:left;transition:transform .7s var(--ease)}
+.passos li.feito i::after,.passos li.atual i::after{transform:none}
+.passos li.atual{color:var(--navy)}
+.sim-corpo{flex:1;min-height:0;overflow:auto;padding:20px 22px}
+.etapa{display:grid;gap:16px;animation:entra .55s var(--ease)}
+@keyframes entra{from{opacity:0;transform:translateX(14px)}}
+.etapa > p{margin:0;color:var(--tx-2);font-size:.9rem;line-height:1.5}
+.campo{display:grid;gap:7px}
+.campo label{font-weight:800;font-size:.8rem;color:var(--navy)}
+.campo input[type=text],.campo select{width:100%;padding:.85em 1em;border-radius:14px;border:1.5px solid rgba(4,18,43,.14);background:#fff;font-weight:600;color:var(--tx);transition:border-color .3s,box-shadow .3s}
+.campo input[type=text]:focus,.campo select:focus{outline:0;border-color:var(--teal);box-shadow:0 0 0 4px rgba(56,158,146,.18)}
+.campo small{color:var(--tx-3);font-size:.76rem}
+.cores{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cor{display:flex;align-items:center;gap:10px;padding:10px;border-radius:14px;background:#fff;border:1.5px solid rgba(4,18,43,.1)}
+.cor input{width:44px;height:44px;padding:0;border:0;border-radius:12px;background:none;cursor:pointer}
+.cor input::-webkit-color-swatch-wrapper{padding:0}.cor input::-webkit-color-swatch{border:0;border-radius:12px}
+.cor span{display:grid;line-height:1.2;min-width:0}
+.cor b{font-size:.8rem;color:var(--navy)}
+.cor code{font-size:.74rem;color:var(--tx-3)}
+.presets{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.preset{display:grid;gap:6px;padding:8px;border-radius:14px;border:1.5px solid rgba(4,18,43,.1);background:#fff;text-align:left;font-size:.72rem;font-weight:700;color:var(--tx-2);transition:transform .4s var(--ease),border-color .3s}
+.preset:hover{transform:translateY(-2px);border-color:var(--teal)}
+.preset[aria-pressed="true"]{border-color:var(--navy);box-shadow:0 0 0 1px var(--navy)}
+.preset .sw{display:flex;height:22px;border-radius:8px;overflow:hidden}
+.preset .sw i{flex:1}
+.linkbtn{justify-self:start;border:0;background:none;padding:0;color:var(--teal);font-weight:800;font-size:.8rem;text-decoration:underline;text-underline-offset:3px}
+.tpls{display:grid;gap:10px}
+.tp{display:grid;grid-template-columns:96px 1fr;gap:12px;align-items:center;padding:10px;border-radius:16px;border:1.5px solid rgba(4,18,43,.1);background:#fff;text-align:left;transition:transform .45s var(--ease),border-color .3s,box-shadow .4s}
+.tp:hover{transform:translateX(3px);border-color:var(--teal)}
+.tp[aria-checked="true"]{border-color:var(--verde);box-shadow:0 0 0 1px var(--verde),0 14px 30px -18px rgba(0,230,118,.7)}
+.tp img{width:96px;height:60px;object-fit:cover;border-radius:10px;background:#000}
+.tp b{display:flex;align-items:center;gap:8px;font-family:var(--marca);font-weight:700;color:var(--navy);font-size:.95rem}
+.tp b em{font-style:normal;font-family:var(--txt);font-size:.6rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:.25em .6em;border-radius:var(--pill);background:var(--verde);color:var(--navy-ink)}
+.tp small{display:block;font-size:.76rem;color:var(--tx-2);line-height:1.35;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.resumo{border-radius:20px;overflow:hidden;background:#fff;border:1px solid rgba(4,18,43,.08);box-shadow:0 20px 40px -28px rgba(4,18,43,.5)}
+.resumo .cap{position:relative;aspect-ratio:16/8;background:var(--navy)}
+.resumo .cap img{width:100%;height:100%;object-fit:cover;opacity:.9}
+.resumo .cap span{position:absolute;left:14px;bottom:12px;display:inline-flex;align-items:center;gap:6px;padding:.4em .9em;border-radius:var(--pill);background:var(--verde);color:var(--navy-ink);font-weight:800;font-size:.74rem}
+.resumo dl{margin:0;padding:14px 16px;display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:.86rem}
+.resumo dt{color:var(--tx-3);font-weight:700}
+.resumo dd{margin:0;font-weight:700;color:var(--tx);min-width:0;overflow-wrap:anywhere}
+.resumo dd .sw{display:inline-flex;gap:4px;vertical-align:middle}.resumo dd .sw i{width:18px;height:18px;border-radius:6px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.url{display:flex;align-items:center;gap:8px;padding:12px 14px;border-radius:14px;background:var(--navy);color:#fff;font-weight:700;font-size:.86rem;overflow-wrap:anywhere}
+.url svg{width:16px;height:16px;flex:none;color:var(--verde)}
+.depois{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.depois li{display:grid;grid-template-columns:28px 1fr;gap:10px;font-size:.84rem;color:var(--tx-2);line-height:1.45}
+.depois li b{color:var(--navy)}
+.depois .n{width:28px;height:28px;display:grid;place-items:center;font-weight:800;font-size:.78rem;color:var(--navy);background:#fff;clip-path:polygon(29% 0,71% 0,100% 29%,100% 71%,71% 100%,29% 100%,0 71%,0 29%);box-shadow:inset 0 0 0 2px var(--verde)}
+.aviso{font-size:.76rem;color:var(--tx-3);text-align:center}
+.sim-pe{display:flex;gap:10px;justify-content:space-between;padding:14px 22px 18px;border-top:1px solid var(--linha);background:rgba(255,255,255,.6)}
+.sim-pe .btn.ghost{color:var(--navy);box-shadow:inset 0 0 0 1.5px rgba(0,45,114,.3)}
+.sim-pe .btn.ghost:hover{background:#fff;box-shadow:inset 0 0 0 1.5px var(--navy)}
+.sim-pe .btn.prim{flex:1}
+
+/* ---------- toast ---------- */
+.toast{position:fixed;left:50%;bottom:22px;z-index:80;transform:translate(-50%,20px);opacity:0;padding:.75em 1.2em;border-radius:var(--pill);background:#fff;color:var(--navy);font-weight:800;font-size:.86rem;box-shadow:0 20px 40px -16px rgba(0,0,0,.6);transition:opacity .4s var(--ease),transform .5s var(--ease);pointer-events:none}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- responsivo ---------- */
+@media (max-width:1180px){.marca small,.sep.s2{display:none}.btn .lg{display:none}}
+@media (max-width:900px){
+  .bar{flex-wrap:wrap;gap:10px;padding:10px 12px}
+  .marca{order:1}.esp{order:2}.acoes{order:3}
+  .grupo.tpl{order:4;flex:1 1 55%;min-width:0}
+  .grupo.tpl .picker{flex:1;min-width:0}
+  .picker strong{overflow:hidden;text-overflow:ellipsis}
+  .sel{order:5;flex:0 0 auto;max-width:44%}
+  .sep,.disp,#btnFull{display:none}
+  .palco.desk,.palco{display:block}
+}
+@media (max-width:520px){
+  .marca b{font-size:1rem}
+  .grupo.tpl .circ{display:none}
+  .sim{top:auto;left:8px;right:8px;bottom:8px;width:auto;height:min(60dvh,560px);transform:translateY(calc(100% + 16px))}
+  .sim-top{padding:14px 16px 0}.sim-top h2{font-size:1.1rem}.sim-corpo{padding:14px 16px}.sim-pe{padding:10px 16px 12px}
+  .etapa > p{display:none}
+  .sim.on{transform:none}
+  .painel{max-height:70vh;padding:14px}
+  .cards{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="bar" id="bar">
+  <a class="marca" href="/" aria-label="AtletaPay — início"><img src="/assets/marca.svg" alt=""><span><b>atleta<i>pay</i></b><small>Vitrine de sites</small></span></a>
+  <span class="sep"></span>
+  <div class="grupo tpl">
+    <button class="circ" id="btnAnt" type="button" aria-label="Template anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <button class="picker" id="btnTpl" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="painel">
+      <img id="tplThumb" src="" alt=""><span><small>Template</small><strong id="tplNome">…</strong></span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <button class="circ" id="btnProx" type="button" aria-label="Próximo template"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+  </div>
+  <label class="sr" for="selMod">Modalidade</label>
+  <select class="sel" id="selMod"></select>
+  <span class="sep s2"></span>
+  <div class="disp" role="group" aria-label="Dispositivo">
+    <button type="button" data-disp="desk" aria-pressed="true" aria-label="Computador"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></button>
+    <button type="button" data-disp="tab" aria-pressed="false" aria-label="Tablet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2.5"/><path d="M11 18h2"/></svg></button>
+    <button type="button" data-disp="cel" aria-pressed="false" aria-label="Celular"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 18h2"/></svg></button>
+  </div>
+  <span class="esp"></span>
+  <div class="grupo acoes">
+    <a class="btn ghost" id="btnFull" href="#" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg><span class="lg">Tela cheia</span></a>
+    <button class="btn prim" id="btnEscolher" type="button">Escolher este site <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13 6l6 6-6 6"/></svg></button>
+  </div>
+
+  <div class="painel" id="painel" role="dialog" aria-label="Escolha um template">
+    <header><h2>Templates de site</h2><p id="painelInfo"></p></header>
+    <div class="cards" id="cards"></div>
+  </div>
+</header>
+
+<main class="palco desk" id="palco">
+  <div class="disp-box" id="dispBox">
+    <div class="moldura"><iframe id="frame" title="Prévia do site" referrerpolicy="same-origin"></iframe></div>
+  </div>
+  <div class="carregando on" id="carregando" role="status" aria-live="polite"><span class="octo" aria-hidden="true"></span><span id="carregandoTx">Montando o site…</span></div>
+</main>
+
+<div class="veu" id="veu"></div>
+<aside class="sim" id="sim" role="dialog" aria-modal="false" aria-labelledby="simTitulo" aria-hidden="true">
+  <div class="sim-top">
+    <div class="lin"><span class="ey">Simulação · inscrição da escola</span><button class="fechar" id="simFechar" type="button" aria-label="Fechar simulação"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <h2 id="simTitulo">Monte o site da sua escola</h2>
+    <ol class="passos" id="passos"><li><i></i>Escola</li><li><i></i>Cores</li><li><i></i>Site</li><li><i></i>Pronto</li></ol>
+  </div>
+  <div class="sim-corpo" id="simCorpo"></div>
+  <div class="sim-pe"><button class="btn ghost" id="simVoltar" type="button">Voltar</button><button class="btn prim" id="simAvancar" type="button">Continuar <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13 6l6 6-6 6"/></svg></button></div>
+</aside>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script type="module">
+import { TEMPLATES } from './js/site-templates.js?v=20261016b';
+
+/* ---------- dados ---------- */
+const PREVIA = 'site-preview-horizons.html';
+const MODS = [['karate','Karatê'],['capoeira','Capoeira'],['jiujitsu','Jiu-jitsu'],['judo','Judô'],['taekwondo','Taekwondo'],['muaythai','Muay Thai'],['boxe','Boxe'],['mma','MMA'],['kravmaga','Krav Maga']];
+const NOME_MOD = Object.fromEntries(MODS);
+const NOME_MOD_EXTRA = { kickboxing:'Kickboxing', todas:'Todas' };
+const PRESETS = [
+  ['Cores do exemplo', '', ''],
+  ['AtletaPay', '#002d72', '#00e676'],
+  ['Ouro e carvão', '#17140f', '#c8912e'],
+  ['Marinho tático', '#0c1a2b', '#ffc400'],
+  ['Vermelho dojo', '#131313', '#e4432e'],
+  ['Verde roda', '#1f7a4d', '#f2b705']
+];
+const LISTA = Object.keys(TEMPLATES).filter((k) => TEMPLATES[k].modulo); // só os que têm layout próprio
+const nativa = (k) => { const m = (TEMPLATES[k].modalidades || []).find((x) => NOME_MOD[x]); return m || 'karate'; };
+const indicado = (k, mod) => (TEMPLATES[k].modalidades || []).includes(mod);
+
+/* ---------- utilidades seguras ---------- */
+const $ = (id) => document.getElementById(id);
+const hexOk = (v) => /^#[0-9a-f]{6}$/i.test(String(v || '')) ? String(v).toLowerCase() : '';
+const limparNome = (v) => String(v || '').normalize('NFC').replace(/[^\p{L}\p{N} .'&-]/gu, '').replace(/\s+/g, ' ').trimStart().slice(0, 40);
+const slugify = (n) => String(n || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+const el = (tag, attrs = {}, ...filhos) => { const e = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) { if (v === false || v == null) continue; if (k === 'class') e.className = v; else if (k === 'text') e.textContent = v; else e.setAttribute(k, v === true ? '' : String(v)); } filhos.flat().forEach((f) => f != null && e.append(f)); return e; };
+const lerSessao = () => { try { return JSON.parse(sessionStorage.getItem('ap-vitrine') || 'null') || {}; } catch { return {}; } };
+const gravarSessao = () => { try { sessionStorage.setItem('ap-vitrine', JSON.stringify({ tpl: st.tpl, mod: st.mod, nome: st.nome, principal: st.principal, destaque: st.destaque, modEscolhida: st.modEscolhida })); } catch { /* aba privada: segue sem lembrar */ } };
+let toastT; const toast = (msg) => { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2400); };
+
+/* ---------- estado ---------- */
+const qs = new URLSearchParams(location.search);
+const ses = lerSessao();
+const st = {
+  tpl: LISTA.includes(qs.get('tpl')) ? qs.get('tpl') : (LISTA.includes(ses.tpl) ? ses.tpl : LISTA[LISTA.length - 1]),
+  mod: '', modEscolhida: false,
+  nome: limparNome(ses.nome || ''), principal: hexOk(ses.principal), destaque: hexOk(ses.destaque),
+  disp: 'desk', passo: 0
+};
+if (NOME_MOD[qs.get('mod')]) { st.mod = qs.get('mod'); st.modEscolhida = true; }
+else if (NOME_MOD[ses.mod] && ses.modEscolhida) { st.mod = ses.mod; st.modEscolhida = true; }
+else st.mod = nativa(st.tpl);
+
+/* ---------- iframe ---------- */
+const frame = $('frame');
+function srcPrevia(paraFrame = true) {
+  const p = new URLSearchParams({ tpl: st.tpl, mod: st.mod });
+  if (paraFrame) p.set('embed', '1');
+  if (st.nome.trim()) p.set('nome', st.nome.trim());
+  if (st.principal) p.set('principal', st.principal);
+  if (st.destaque) p.set('destaque', st.destaque);
+  return PREVIA + '?' + p.toString();
+}
+let cargaId = 0;
+function carregar() {
+  cargaId++;
+  const meu = cargaId;
+  $('carregandoTx').textContent = `Montando ${TEMPLATES[st.tpl].nome} · ${NOME_MOD[st.mod]}…`;
+  $('carregando').classList.add('on');
+  frame.src = srcPrevia();
+  $('btnFull').href = srcPrevia(false);
+  history.replaceState(null, '', '?' + new URLSearchParams({ tpl: st.tpl, mod: st.mod }).toString());
+  gravarSessao();
+  pintarBarra();
+  // rede lenta: libera o palco mesmo sem o aviso da prévia
+  setTimeout(() => { if (meu === cargaId) $('carregando').classList.remove('on'); }, 9000);
+}
+frame.addEventListener('load', () => setTimeout(() => $('carregando').classList.remove('on'), 250));
+addEventListener('message', (e) => {
+  if (e.origin !== location.origin || e.source !== frame.contentWindow) return;
+  if (e.data && e.data.tipo === 'ap-vitrine-pronta') $('carregando').classList.remove('on');
+});
+// Nome e cores mudam ao vivo, sem recarregar (a prévia redesenha ao receber a mensagem).
+let vivoT;
+function aoVivo() {
+  clearTimeout(vivoT);
+  vivoT = setTimeout(() => {
+    gravarSessao();
+    $('btnFull').href = srcPrevia(false);
+    try { frame.contentWindow.postMessage({ tipo: 'ap-vitrine', nome: st.nome.trim(), principal: st.principal, destaque: st.destaque }, location.origin); } catch { /* frame ainda carregando: o src já leva os valores */ }
+  }, 220);
+}
+
+/* ---------- barra ---------- */
+function pintarBarra() {
+  const t = TEMPLATES[st.tpl];
+  $('tplNome').textContent = t.nome;
+  $('tplThumb').src = t.miniatura;
+  $('selMod').value = st.mod;
+  $('painelInfo').textContent = `${LISTA.length} templates · vendo em ${NOME_MOD[st.mod]}`;
+  pintarCards();
+}
+$('selMod').append(...MODS.map(([v, r]) => el('option', { value: v, text: r })));
+$('selMod').addEventListener('change', (e) => { st.mod = e.target.value; st.modEscolhida = true; carregar(); if (st.passo === 0 && $('sim').classList.contains('on')) renderPasso(); });
+function trocarTpl(k) {
+  if (!LISTA.includes(k) || k === st.tpl) { fecharPainel(); return; }
+  st.tpl = k;
+  if (!st.modEscolhida) st.mod = nativa(k);
+  carregar();
+  fecharPainel();
+  if ($('sim').classList.contains('on') && st.passo === 2) renderPasso();
+}
+const passo = (d) => { const i = LISTA.indexOf(st.tpl); trocarTpl(LISTA[(i + d + LISTA.length) % LISTA.length]); };
+$('btnAnt').addEventListener('click', () => passo(-1));
+$('btnProx').addEventListener('click', () => passo(1));
+
+/* painel de templates */
+function pintarCards() {
+  const box = $('cards');
+  box.replaceChildren(...LISTA.map((k) => {
+    const t = TEMPLATES[k];
+    const tags = [];
+    if (k === st.tpl) tags.push(el('span', { class: 'tag atual', text: 'Em exibição' }));
+    if (indicado(k, st.mod)) tags.push(el('span', { class: 'tag ok', text: 'Indicado p/ ' + NOME_MOD[st.mod] }));
+    return el('button', { class: 'card', type: 'button', 'data-tpl': k, 'aria-current': k === st.tpl ? 'true' : 'false' },
+      el('div', { class: 'th' }, el('img', { src: t.miniatura, alt: '', loading: 'lazy' }), el('div', { class: 'tg' }, tags)),
+      el('div', { class: 'cx' }, el('b', { text: t.nome }), el('p', { text: t.descricao }),
+        el('div', { class: 'mods' }, (t.modalidades || []).map((m) => el('span', { text: NOME_MOD[m] || NOME_MOD_EXTRA[m] || m })))));
+  }));
+}
+$('cards').addEventListener('click', (e) => { const b = e.target.closest('[data-tpl]'); if (b) trocarTpl(b.dataset.tpl); });
+const abrirPainel = () => { $('painel').classList.add('aberto'); $('btnTpl').setAttribute('aria-expanded', 'true'); const a = $('cards').querySelector('[aria-current="true"]'); a && a.focus({ preventScroll: true }); };
+const fecharPainel = () => { $('painel').classList.remove('aberto'); $('btnTpl').setAttribute('aria-expanded', 'false'); };
+$('btnTpl').addEventListener('click', (e) => { e.stopPropagation(); $('painel').classList.contains('aberto') ? fecharPainel() : abrirPainel(); });
+document.addEventListener('click', (e) => { if (!e.target.closest('#painel') && !e.target.closest('#btnTpl')) fecharPainel(); });
+
+/* ---------- dispositivos ---------- */
+const DIMS = { tab: [820, 1180, 28], cel: [390, 844, 24] }; // largura, altura, moldura (padding x2)
+function encaixar() {
+  const palco = $('palco'), box = $('dispBox');
+  palco.className = 'palco ' + st.disp;
+  if (st.disp === 'desk' || innerWidth <= 900) { palco.className = 'palco desk'; box.style.cssText = ''; return; }
+  const [w, h, f] = DIMS[st.disp];
+  const W = w + f, Hh = h + f;
+  const esc = Math.min(1, (palco.clientHeight - 40) / Hh, (palco.clientWidth - 40) / W);
+  box.style.width = W + 'px'; box.style.height = Hh + 'px';
+  box.style.transform = `scale(${esc.toFixed(4)})`;
+  box.style.marginTop = '20px';
+  palco.style.placeItems = 'start center';
+}
+document.querySelectorAll('[data-disp]').forEach((b) => b.addEventListener('click', () => {
+  st.disp = b.dataset.disp;
+  document.querySelectorAll('[data-disp]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  encaixar();
+}));
+addEventListener('resize', encaixar);
+
+/* ---------- simulação da inscrição ---------- */
+const sim = $('sim');
+function abrirSim() {
+  fecharPainel();
+  st.passo = 0; renderPasso();
+  sim.classList.add('on'); sim.setAttribute('aria-hidden', 'false');
+  if (innerWidth <= 520) $('veu').classList.add('on');
+  setTimeout(() => { const i = sim.querySelector('input,select,button.tp'); i && i.focus(); }, 350);
+}
+function fecharSim() { sim.classList.remove('on'); sim.setAttribute('aria-hidden', 'true'); $('veu').classList.remove('on'); $('btnEscolher').focus(); }
+$('btnEscolher').addEventListener('click', abrirSim);
+$('simFechar').addEventListener('click', fecharSim);
+$('veu').addEventListener('click', fecharSim);
+document.addEventListener('keydown', (e) => { if (e.key !== 'Escape') return; if ($('painel').classList.contains('aberto')) { fecharPainel(); $('btnTpl').focus(); } else if (sim.classList.contains('on')) fecharSim(); });
+
+function renderPasso() {
+  document.querySelectorAll('#passos li').forEach((li, i) => { li.classList.toggle('feito', i < st.passo); li.classList.toggle('atual', i === st.passo); });
+  $('simVoltar').hidden = st.passo === 0;
+  const av = $('simAvancar');
+  av.firstChild.textContent = st.passo === 3 ? 'Ver meu site ' : st.passo === 2 ? 'Confirmar escolha ' : 'Continuar ';
+  const corpo = $('simCorpo');
+  corpo.replaceChildren([passoEscola, passoCores, passoSite, passoPronto][st.passo]());
+  corpo.scrollTop = 0;
+}
+
+function passoEscola() {
+  const inp = el('input', { type: 'text', id: 'simNome', maxlength: 40, autocomplete: 'organization', placeholder: 'Ex.: Academia Leão de Ouro', value: st.nome });
+  inp.addEventListener('input', () => { const v = limparNome(inp.value); if (v !== inp.value) inp.value = v; st.nome = v; aoVivo(); });
+  const sel = el('select', { id: 'simMod' }, MODS.map(([v, r]) => el('option', { value: v, text: r, selected: v === st.mod })));
+  sel.addEventListener('change', () => { st.mod = sel.value; st.modEscolhida = true; carregar(); });
+  return el('div', { class: 'etapa' },
+    el('p', { text: 'É a etapa "A escola" do cadastro. Digite o nome e veja o site mudar na hora — título, rodapé, endereço do site e textos.' }),
+    el('div', { class: 'campo' }, el('label', { for: 'simNome', text: 'Nome da escola' }), inp, el('small', { text: 'Até 40 caracteres. Letras, números, espaço, ponto, hífen e &.' })),
+    el('div', { class: 'campo' }, el('label', { for: 'simMod', text: 'Modalidade' }), sel, el('small', { text: 'Define vocabulário, graduações, cores e fotos de exemplo.' })));
+}
+
+function passoCores() {
+  const mk = (id, rot, chave, padrao) => {
+    const i = el('input', { type: 'color', id, value: st[chave] || padrao });
+    const code = el('code', { text: st[chave] || 'do exemplo' });
+    i.addEventListener('input', () => { st[chave] = hexOk(i.value); code.textContent = st[chave]; marcarPreset(); aoVivo(); });
+    return el('label', { class: 'cor', for: id }, i, el('span', {}, el('b', { text: rot }), code));
+  };
+  const presets = el('div', { class: 'presets', role: 'group', 'aria-label': 'Combinações prontas' }, PRESETS.map(([nome, p, d]) =>
+    el('button', { class: 'preset', type: 'button', 'data-p': p, 'data-d': d, 'aria-pressed': 'false' },
+      el('span', { class: 'sw' }, el('i', { style: 'background:' + (p || 'linear-gradient(135deg,#8a1c1c,#131313)') }), el('i', { style: 'background:' + (d || 'linear-gradient(135deg,#c8912e,#00e676)') })),
+      nome)));
+  function marcarPreset() { presets.querySelectorAll('.preset').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.p === (st.principal || '') && b.dataset.d === (st.destaque || '')))); }
+  presets.addEventListener('click', (e) => {
+    const b = e.target.closest('.preset'); if (!b) return;
+    st.principal = hexOk(b.dataset.p); st.destaque = hexOk(b.dataset.d);
+    aoVivo(); renderPasso();
+  });
+  const box = el('div', { class: 'etapa' },
+    el('p', { text: 'As cores da escola. A principal pinta fundos e faixas; a de destaque, botões e palavras em evidência. Cada template usa as duas do seu jeito.' }),
+    el('div', { class: 'cores' }, mk('simPrincipal', 'Principal', 'principal', '#002d72'), mk('simDestaque', 'Destaque', 'destaque', '#00e676')),
+    el('div', { class: 'campo' }, el('label', { text: 'Combinações prontas' }), presets));
+  queueMicrotask(marcarPreset);
+  return box;
+}
+
+function passoSite() {
+  const ordem = [...LISTA].sort((a, b) => Number(indicado(b, st.mod)) - Number(indicado(a, st.mod)));
+  const lista = el('div', { class: 'tpls', role: 'radiogroup', 'aria-label': 'Template do site' }, ordem.map((k) => {
+    const t = TEMPLATES[k];
+    return el('button', { class: 'tp', type: 'button', role: 'radio', 'aria-checked': String(k === st.tpl), 'data-tpl': k },
+      el('img', { src: t.miniatura, alt: '' }),
+      el('span', {}, el('b', {}, t.nome, indicado(k, st.mod) ? el('em', { text: 'Indicado' }) : null), el('small', { text: t.descricao })));
+  }));
+  lista.addEventListener('click', (e) => { const b = e.target.closest('[data-tpl]'); if (!b) return; trocarTpl(b.dataset.tpl); lista.querySelectorAll('.tp').forEach((x) => x.setAttribute('aria-checked', String(x === b))); });
+  return el('div', { class: 'etapa' },
+    el('p', { text: `É a etapa "Modelo do site". Os indicados para ${NOME_MOD[st.mod]} vêm primeiro; clique e o site troca na hora.` }),
+    lista);
+}
+
+// Ícone estático (constante do código, sem dado do usuário).
+function iconeLink() { const s = el('span', { 'aria-hidden': 'true' }); s.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>'; return s; }
+function passoPronto() {
+  const t = TEMPLATES[st.tpl];
+  const nome = st.nome.trim() || 'Equipe Horizons';
+  const slug = slugify(st.nome) || 'horizons';
+  const sw = el('span', { class: 'sw' }, el('i', { style: 'background:' + (st.principal || '#8a8a8a') }), el('i', { style: 'background:' + (st.destaque || '#bdbdbd') }));
+  return el('div', { class: 'etapa' },
+    el('div', { class: 'resumo' },
+      el('div', { class: 'cap' }, el('img', { src: t.miniatura, alt: '' }), el('span', { text: '✓ Site escolhido' })),
+      el('dl', {},
+        el('dt', { text: 'Escola' }), el('dd', { text: nome }),
+        el('dt', { text: 'Modalidade' }), el('dd', { text: NOME_MOD[st.mod] }),
+        el('dt', { text: 'Template' }), el('dd', { text: t.nome }),
+        el('dt', { text: 'Cores' }), el('dd', {}, st.principal || st.destaque ? sw : document.createTextNode('as do exemplo')))),
+    el('div', { class: 'url' }, iconeLink(), 'atletapay.com.br/' + slug),
+    el('ul', { class: 'depois' },
+      el('li', {}, el('span', { class: 'n', text: '1' }), el('span', {}, el('b', { text: 'O site entra no ar ' }), 'com os textos padrão do ' + t.nome + ' e as fotos enviadas no cadastro.')),
+      el('li', {}, el('span', { class: 'n', text: '2' }), el('span', {}, el('b', { text: 'A aba "Meu site" ' }), 'no painel abre com o editor do ' + t.nome + ': cada texto, foto e lista dele.')),
+      el('li', {}, el('span', { class: 'n', text: '3' }), el('span', {}, el('b', { text: 'Dá para trocar de template ' }), 'quando quiser, sem perder o conteúdo já preenchido.'))),
+    el('p', { class: 'aviso', text: 'Simulação: nada foi gravado. No cadastro real esta escolha vai para o campo template da escola.' }));
+}
+$('simAvancar').addEventListener('click', () => {
+  if (st.passo === 0 && st.nome.trim() && st.nome.trim().length < 3) { toast('O nome precisa de 3 letras ou mais (ou deixe em branco para usar o exemplo).'); return; }
+  if (st.passo === 3) { fecharSim(); st.disp = 'desk'; document.querySelector('[data-disp="desk"]').click(); toast('Este é o site de ' + (st.nome.trim() || 'Equipe Horizons') + '.'); return; }
+  st.passo++; renderPasso();
+});
+$('simVoltar').addEventListener('click', () => { if (st.passo > 0) { st.passo--; renderPasso(); } });
+
+/* ---------- início ---------- */
+if (!LISTA.length) { $('carregandoTx').textContent = 'Nenhum template com layout próprio encontrado.'; }
+else { carregar(); encaixar(); }
+</script>
+</body>
+</html>

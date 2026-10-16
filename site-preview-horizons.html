@@ -142,10 +142,55 @@ s.conteudo = tpl === 'escudo' ? { secoes: {
     { dia:'sex', aula:'Treino físico', horario:'06:30–07:30', local:'Norte' }, { dia:'sex', aula:'Equipe de competição', horario:'19:00–21:00', local:'Centro' },
     { dia:'sab', aula:'Aula aberta', horario:'09:00–10:30', local:'Lagoa' } ] }
 } } : null;
+// ---- Personalização (vitrine / simulação de inscrição) ----------------------------------
+// Parâmetros: ?nome=…&principal=#rrggbb&destaque=#rrggbb&embed=1 (embed esconde a barrinha).
+// Ao vivo: a vitrine (mesmo domínio, janela-mãe) manda postMessage {tipo:'ap-vitrine', nome, principal, destaque}
+// e o site é redesenhado sem recarregar. Tudo é revalidado aqui; nada é gravado.
+const BASE = JSON.stringify(s);
+const hexOk = (v) => /^#[0-9a-f]{6}$/i.test(String(v || '')) ? String(v).toLowerCase() : '';
+const limparNome = (v) => String(v || '').normalize('NFC').replace(/[^\p{L}\p{N} .'&-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 40);
+const GENERICO = /^(equipe|academia|escola|grupo|associa[cç][aã]o|centro|clube|team|instituto|projeto|cia\.?|companhia|ct|de|da|do|dos|das|e)$/i;
+const LIGA = /^(de|da|do|dos|das|e|&)$/i;
+// "Academia Leão de Ouro" → "Leão de Ouro"; "Equipe Horizons" → "Horizons"; "Team Alpha Fight" → "Alpha Fight".
+const curto = (n) => { const w = n.split(' '); while (w.length > 1 && GENERICO.test(w[0])) w.shift(); const k = (w.length >= 3 && LIGA.test(w[1])) ? 3 : 2; return w.slice(0, k).join(' '); };
+const slugify = (n) => n.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+const jsonTxt = (v) => JSON.stringify(v).slice(1, -1);
+function personalizar(p) {
+  const nome = limparNome(p.nome);
+  const trocar = nome && nome !== 'Equipe Horizons';
+  let txt = BASE;
+  if (trocar) txt = txt.split('Equipe Horizons').join(jsonTxt(nome)).split('Horizons').join(jsonTxt(curto(nome)));
+  const o = JSON.parse(txt);
+  if (trocar) { o.slug = o.id = slugify(nome) || 'horizons'; o.instagram = o.slug.replace(/-/g, ''); o.logo = null; }
+  const pr = hexOk(p.principal), de = hexOk(p.destaque);
+  o.cores = { ...o.cores };
+  if (pr) o.cores.principal = pr;
+  if (de) { o.cores.destaque = de; o.cores.botao = de; }
+  return o;
+}
+
 const m = await carregarTemplate(tpl);
-(m.render || m.renderHorizons)(s, { esc, url, VOCAB, LIDER, modalidadeBase: VOCAB[mod] ? mod : 'arena', modalidade: mod });
-document.title = `Prévia ${TEMPLATES[tpl].nome} · ${VOCAB[mod]?.nomeMod || mod}`;
-// barrinha de navegação da prévia
+const desenharTpl = m && (m.render || m.renderHorizons);
+const H = { esc, url, VOCAB, LIDER, modalidadeBase: VOCAB[mod] ? mod : 'arena', modalidade: mod };
+let atual = { nome: qs.get('nome') || '', principal: qs.get('principal') || '', destaque: qs.get('destaque') || '' };
+function desenhar() {
+  const y = scrollY;
+  desenharTpl(personalizar(atual), H);
+  if (y) scrollTo(0, y);
+  document.title = `Prévia ${TEMPLATES[tpl].nome} · ${VOCAB[mod]?.nomeMod || mod}`;
+}
+desenhar();
+if (qs.get('embed') === '1') document.getElementById('pv').hidden = true;
+addEventListener('message', (e) => {
+  if (e.origin !== location.origin || e.source !== parent) return;
+  const d = e.data;
+  if (!d || typeof d !== 'object' || d.tipo !== 'ap-vitrine') return;
+  atual = { nome: String(d.nome || '').slice(0, 80), principal: String(d.principal || ''), destaque: String(d.destaque || '') };
+  try { desenhar(); } catch (err) { console.warn('prévia: falha ao redesenhar', err); }
+});
+if (parent !== window) parent.postMessage({ tipo: 'ap-vitrine-pronta', tpl, mod }, location.origin);
+
+// barrinha de navegação da prévia (uso direto, fora da vitrine)
 const outros = Object.keys(TEMPLATES).filter((k) => TEMPLATES[k].modulo);
 document.getElementById('pvT').innerHTML = outros.map((k) => `<a href="?tpl=${k}&mod=${mod}"${k === tpl ? ' style="color:#fff;text-decoration:underline"' : ''}>${TEMPLATES[k].nome}</a>`).join('');
 document.getElementById('pvM').innerHTML = ['karate','capoeira','jiujitsu','muaythai','boxe','mma','kravmaga'].map((k) => `<a href="?tpl=${tpl}&mod=${k}"${k === mod ? ' style="color:#fff;text-decoration:underline"' : ''}>${VOCAB[k].nomeMod}</a>`).join('');
