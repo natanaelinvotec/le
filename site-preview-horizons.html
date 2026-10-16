@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prévia · template Horizons</title>
+<meta name="robots" content="noindex">
+<style>html,body{margin:0;background:#f3f0e8} #site{min-height:100vh} .pv{position:fixed;left:12px;bottom:12px;z-index:99;font:12px/1.4 system-ui,sans-serif;background:#131313;color:#fff;padding:8px 12px;border-radius:999px;opacity:.85}
+.pv a{color:#ffd37a;text-decoration:none;margin-left:6px}</style>
+</head>
+<body>
+<div id="site"></div>
+<div class="pv">Prévia com dados fictícios · modalidade:
+  <a href="?mod=karate">karatê</a><a href="?mod=capoeira">capoeira</a><a href="?mod=jiujitsu">jiu-jitsu</a><a href="?mod=muaythai">muay thai</a><a href="?mod=boxe">boxe</a><a href="?mod=mma">mma</a>
+</div>
+<script type="module">
+/* Prévia do template "horizons" SEM Firestore: monta um objeto `s` igual ao que
+   site-escola.js produz em mapEscola() e chama o módulo diretamente.
+   Fotos: stock (Pexels, uso livre) só para visualização — em produção vêm do cadastro da escola. */
+import { renderHorizons } from './js/site-tpl-horizons.js';
+
+const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const url = (u) => { const s = String(u == null ? '' : u).trim(); if(!s) return ''; if(/^https:\/\/[^\s"'<>\\]+$/i.test(s)) return s; if(/^[a-z0-9][a-z0-9._\/-]*$/i.test(s) && !s.includes('..')) return s; if(/^data:image\/svg\+xml[,;]/i.test(s)) return s; return ''; };
+const VOCAB = {
+  capoeira:{ saudacao:"Axé!", local:"roda", luta:"jogo", nomeMod:"Capoeira" },
+  jiujitsu:{ saudacao:"Oss!", local:"tatame", luta:"rola", nomeMod:"Jiu-jitsu" },
+  judo:{ saudacao:"Oss!", local:"tatame", luta:"randori", nomeMod:"Judô" },
+  karate:{ saudacao:"Oss!", local:"dojo", luta:"kumite", nomeMod:"Karatê" },
+  taekwondo:{ saudacao:"Taekwon!", local:"dojang", luta:"kyorugi", nomeMod:"Taekwondo" },
+  muaythai:{ saudacao:"Chók!", local:"ringue", luta:"sparring", nomeMod:"Muay Thai" },
+  boxe:{ saudacao:"Vamos!", local:"ringue", luta:"sparring", nomeMod:"Boxe" },
+  mma:{ saudacao:"Vamos!", local:"octógono", luta:"sparring", nomeMod:"MMA" },
+  arena:{ saudacao:"Bem-vindo", local:"academia", luta:"treino", nomeMod:"Artes marciais" }
+};
+const LIDER = { capoeira:"Mestre", jiujitsu:"Professor", judo:"Sensei", karate:"Sensei", taekwondo:"Sabom", muaythai:"Kru", boxe:"Treinador", mma:"Coach" };
+
+const mod = new URLSearchParams(location.search).get('mod') || 'karate';
+const P = (id, w=1200, h=null) => `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=${w}${h?`&h=${h}&fit=crop`:''}`;
+
+// Logo da Equipe Horizons (sol no horizonte) como se fosse o logo cadastrado pela escola.
+const logoSVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#131313"/><defs><clipPath id="c"><rect width="64" height="38"/></clipPath></defs><circle cx="32" cy="38" r="20" fill="#f3f0e8" clip-path="url(#c)"/><rect x="6" y="38" width="52" height="4.5" rx="2.25" fill="#f3f0e8"/><rect x="14" y="47" width="36" height="3.5" rx="1.75" fill="#f3f0e8" opacity=".75"/><rect x="22" y="55" width="20" height="3" rx="1.5" fill="#f3f0e8" opacity=".5"/></svg>');
+
+const FOTOS = {
+  karate:   { fachada:[P(9395507,2000)], treino:[P(7045474,900,1125),P(10655533,900,1125),P(9651851,900,1125),P(33396517,1000,1300),P(10655516,1000,1300),P(6005463,1000,1300)], equipe:[P(33396517,1600)] },
+  capoeira: { fachada:[P(11045334,2000)], treino:[P(4035671,900,1125),P(4804067,900,1125),P(7992146,900,1125)], equipe:[] },
+  jiujitsu: { fachada:[P(6253172,2000)], treino:[P(6253172,900,1125),P(8612527,900,1125),P(9651851,900,1125)], equipe:[] },
+  muaythai: { fachada:[P(2581662,2000)], treino:[P(19406132,900,1125),P(30567997,900,1125),P(7992146,900,1125),P(4401639,1000,1300),P(7991621,1000,1300),P(4804301,1000,1300)], equipe:[] },
+  boxe:     { fachada:[P(4401639,2000)], treino:[P(4804301,900,1125),P(7991621,900,1125),P(4804067,900,1125)], equipe:[] },
+  mma:      { fachada:[P(17892072,2000)], treino:[P(6295992,900,1125),P(17892069,900,1125),P(8612527,900,1125)], equipe:[] }
+};
+const CORES = {
+  karate:{ principal:'#e4432e', destaque:'#131313', botao:'#e4432e' },
+  capoeira:{ principal:'#1f7a4d', destaque:'#f2b705', botao:'#f2b705' },
+  jiujitsu:{ principal:'#1b3a8a', destaque:'#389E92', botao:'#00E676' },
+  muaythai:{ principal:'#8a1c1c', destaque:'#c8912e', botao:'#c8912e' },
+  boxe:{ principal:'#131313', destaque:'#d4a017', botao:'#d4a017' },
+  mma:{ principal:'#101418', destaque:'#00E676', botao:'#00E676' }
+};
+const PECA = { capoeira:"cordão", jiujitsu:"faixa", judo:"faixa", karate:"faixa", taekwondo:"faixa", muaythai:"prajied", boxe:"nível", mma:"nível" };
+
+const s = {
+  id:'horizons', slug:'horizons', nome:'Equipe Horizons', nomeCurto:'Horizons',
+  modalidade: mod, cidade:'Campo Grande', uf:'MS',
+  endereco:'Rua dos Horizontes, 1200 · Jardim dos Estados', instagram:'equipehorizons', dominio:'',
+  cores: CORES[mod] || CORES.karate,
+  lider:'Ricardo Nakamura', peca: PECA[mod] || 'graduação', logo: logoSVG,
+  escada: null, nucleos:['Horizons Centro', 'Horizons Norte'], template:'horizons',
+  fotoLider: P(15937400, 900, 1200),
+  fotos: FOTOS[mod] || FOTOS.karate,
+  graduacoes: ['Branca','Amarela','Laranja','Verde','Azul','Roxa','Marrom','Preta'],
+  responsavel: { nome:'Ricardo Nakamura', graduacao: (LIDER[mod]||'Professor') + ' · 5º Dan' },
+  // equipe[] opcional: quando o cadastro tiver mais pessoas, aparecem aqui (fotoRecorte = PNG com fundo transparente p/ efeito 3D)
+  equipe: [
+    { nome:'Ricardo Nakamura', graduacao:(LIDER[mod]||'Professor')+' · 5º Dan', bio:'Fundador da Equipe Horizons. Forma atletas há mais de duas décadas com uma regra só: técnica antes de força.', foto:P(15937400,900,1200) },
+    { nome:'Ana Beatriz Horta', graduacao:(LIDER[mod]||'Professora')+' · 3º Dan', bio:'Coordena as turmas femininas e o programa competitivo. Aulas conhecidas pela atenção ao detalhe.', foto:P(6005463,900,1200) },
+    { nome:'Caio Ferreira', graduacao:(LIDER[mod]||'Professor')+' · 2º Dan', bio:'Técnico da equipe de competição: estratégia, condicionamento e cabeça fria.', foto:P(10655538,900,1200) }
+  ],
+  geo: null
+};
+
+renderHorizons(s, { esc, url, VOCAB, LIDER, modalidadeBase: VOCAB[mod] ? mod : 'arena' });
+document.title = `Prévia Horizons · ${VOCAB[mod]?.nomeMod || mod}`;
+</script>
+</body>
+</html>

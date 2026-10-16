@@ -56,8 +56,12 @@ var LIDER = { capoeira:"Mestre", jiujitsu:"Professor", judo:"Sensei", karate:"Se
 var PECA = { capoeira:"cordão", jiujitsu:"faixa", judo:"faixa", karate:"faixa",
   taekwondo:"faixa", muaythai:"prajied", boxe:"nível", mma:"nível" };
 
+// Templates com LAYOUT próprio (módulo separado, carregado sob demanda). Os demais
+// são variações do layout "arena" (vocabulário + motivo). F4.3: biblioteca de templates.
+var LAYOUTS = { horizons: './site-tpl-horizons.js' };
+
 function templateDe(tpl, modalidade){
-  if(tpl && VOCAB[tpl]) return tpl;
+  if(tpl && (VOCAB[tpl] || LAYOUTS[tpl])) return tpl;
   return MOD_TEMPLATE[modalidade] || "arena";
 }
 
@@ -522,9 +526,23 @@ function mapEscola(pub, id, nucleos){
     logo: pub.logo || '',
     escada: mapEscada(pub.escada),
     nucleos: (nucleos && nucleos.length) ? nucleos : (pub.nucleoSede ? [pub.nucleoSede] : []),
-    template: templateDe(pub.template, modalidade)
+    template: templateDe(pub.template, modalidade),
+    // Campos extras usados pelos templates com layout próprio (ex.: horizons).
+    // Tudo é validado lá (url()/esc()); aqui só normalizamos o formato.
+    fotoLider: pub.fotoLider || '',
+    fotos: {
+      fachada: listaStr(pub.fotos && pub.fotos.fachada),
+      treino:  listaStr(pub.fotos && pub.fotos.treino),
+      equipe:  listaStr(pub.fotos && pub.fotos.equipe)
+    },
+    graduacoes: listaStr(pub.graduacoes),
+    responsavel: (pub.responsavel && typeof pub.responsavel === 'object')
+      ? { nome: String(pub.responsavel.nome || ''), graduacao: String(pub.responsavel.graduacao || '') } : null,
+    equipe: Array.isArray(pub.equipe) ? pub.equipe.filter(function(m){ return m && typeof m === 'object'; }).slice(0, 6) : [],
+    geo: (pub.geo && isFinite(pub.geo.lat) && isFinite(pub.geo.lng)) ? { lat: Number(pub.geo.lat), lng: Number(pub.geo.lng) } : null
   };
 }
+function listaStr(a){ return Array.isArray(a) ? a.filter(function(x){ return typeof x === 'string' && x.trim(); }).slice(0, 20) : []; }
 
 /* ========================================================================== */
 /*  SEO por escola (SPA renderizada no cliente)                               */
@@ -541,7 +559,8 @@ function setMetaProp(prop, content){
 }
 function aplicarSeo(s){
   var loc = (s.cidade && s.uf) ? (s.cidade + ' — ' + s.uf) : (s.cidade || s.uf || '');
-  var desc = (VOCAB[s.template] ? VOCAB[s.template].nomeMod : 'Artes marciais')
+  var vb = VOCAB[s.template] || VOCAB[MOD_TEMPLATE[s.modalidade]] || null;
+  var desc = (vb ? vb.nomeMod : 'Artes marciais')
     + (loc ? ' em ' + loc : '') + '. ' + s.nome
     + ' — treinos, graduação e inscrição pelo AtletaPay.';
   document.title = s.nome;
@@ -598,7 +617,20 @@ async function iniciar(){
 
   var s = mapEscola(pub, id, nucleos);
   try{ aplicarSeo(s); }catch(e){ /* SEO é cosmético: nunca derruba o render */ }
-  render(s, s.template);
+
+  // Template com layout próprio: carrega o módulo sob demanda. Se falhar (rede,
+  // erro no módulo), cai para o layout "arena" da modalidade — o site nunca fica em branco.
+  if(LAYOUTS[s.template]){
+    try{
+      var mod = await import(LAYOUTS[s.template]);
+      (mod.render || mod.renderHorizons)(s, { esc: esc, url: url, VOCAB: VOCAB, LIDER: LIDER, modalidadeBase: MOD_TEMPLATE[s.modalidade] || 'arena' });
+      return;
+    }catch(e){
+      console.warn('site-escola: template "'+s.template+'" falhou, usando arena', e);
+    }
+  }
+  // Layout "arena": respeita o template escolhido (ou o da modalidade, se o layout próprio falhou).
+  render(s, LAYOUTS[s.template] ? templateDe(null, s.modalidade) : s.template);
 }
 
 initTheme();
