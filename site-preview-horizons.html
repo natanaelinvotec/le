@@ -28,13 +28,14 @@ const VOCAB = {
   muaythai:{ saudacao:"Chók!", local:"ringue", luta:"sparring", nomeMod:"Muay Thai" },
   boxe:{ saudacao:"Vamos!", local:"ringue", luta:"sparring", nomeMod:"Boxe" },
   mma:{ saudacao:"Vamos!", local:"octógono", luta:"sparring", nomeMod:"MMA" },
+  kravmaga:{ saudacao:"Kida!", local:"tatame", luta:"simulação", nomeMod:"Krav Maga" },
   arena:{ saudacao:"Bem-vindo", local:"academia", luta:"treino", nomeMod:"Artes marciais" }
 };
-const LIDER = { capoeira:"Mestre", jiujitsu:"Professor", judo:"Sensei", karate:"Sensei", taekwondo:"Sabom", muaythai:"Kru", boxe:"Treinador", mma:"Coach" };
+const LIDER = { capoeira:"Mestre", jiujitsu:"Professor", judo:"Sensei", karate:"Sensei", taekwondo:"Sabom", muaythai:"Kru", boxe:"Treinador", mma:"Coach", kravmaga:"Instrutor" };
 
 const qs = new URLSearchParams(location.search);
 const tpl = TEMPLATES[qs.get('tpl')] && TEMPLATES[qs.get('tpl')].modulo ? qs.get('tpl') : 'horizons';
-const mod = qs.get('mod') || (tpl === 'luva' ? 'boxe' : 'karate');
+const mod = qs.get('mod') || (tpl === 'luva' ? 'boxe' : tpl === 'escudo' ? 'kravmaga' : 'karate');
 const P = (id, w=1200, h=null) => `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=${w}${h?`&h=${h}&fit=crop`:''}`;
 
 // Logo da Equipe Horizons (sol no horizonte) como se fosse o logo cadastrado pela escola.
@@ -47,6 +48,7 @@ const FOTOS = {
   jiujitsu: { fachada:[P(6253172,2000)], treino:[P(6253172,900,1125),P(8612527,900,1125),P(9651851,900,1125)], equipe:[] },
   muaythai: { fachada:[P(2581662,2000)], treino:[P(19406132,900,1125),P(30567997,900,1125),P(7992146,900,1125),P(4401639,1000,1300),P(7991621,1000,1300),P(4804301,1000,1300)], equipe:[] },
   boxe:     { fachada:[P(8745178,2000)], treino:[P(5750886,1400),P(6456308,1400),P(31403621,1400),P(5424583,900,1200),P(7991688,900,1200),P(6740342,900,1200),P(6699106,900,1200),P(4753898,2000)], equipe:[] },
+  kravmaga: { fachada:[P(7045491,1600)], treino:[P(7045584,1400),P(6455245,1400),P(32321639,1600),P(7045661,900,900),P(10823763,900,900),P(7045738,900,900),P(6296025,900,900),P(6295767,900,900),P(6296032,900,900)], equipe:[] },
   mma:      { fachada:[P(17892072,2000)], treino:[P(6295992,900,1125),P(17892069,900,1125),P(8612527,900,1125)], equipe:[] }
 };
 const CORES = {
@@ -55,9 +57,10 @@ const CORES = {
   jiujitsu:{ principal:'#1b3a8a', destaque:'#389E92', botao:'#00E676' },
   muaythai:{ principal:'#8a1c1c', destaque:'#c8912e', botao:'#c8912e' },
   boxe:{ principal:'#131313', destaque:'#d4a017', botao:'#d4a017' },
-  mma:{ principal:'#101418', destaque:'#00E676', botao:'#00E676' }
+  mma:{ principal:'#101418', destaque:'#00E676', botao:'#00E676' },
+  kravmaga:{ principal:'#0c1a2b', destaque:'#ffc400', botao:'#ffc400' }
 };
-const PECA = { capoeira:"cordão", jiujitsu:"faixa", judo:"faixa", karate:"faixa", taekwondo:"faixa", muaythai:"prajied", boxe:"nível", mma:"nível" };
+const PECA = { capoeira:"cordão", jiujitsu:"faixa", judo:"faixa", karate:"faixa", taekwondo:"faixa", muaythai:"prajied", boxe:"nível", mma:"nível", kravmaga:"nível" };
 
 // Escada fictícia da Equipe Horizons por modalidade (em produção vem de escolasPublicas.escada).
 const E = (...p) => p.map(([nome, cor]) => ({ nome, cor }));
@@ -67,11 +70,12 @@ const ESCADA = {
   jiujitsu: E(['Branca','#f4f4f4'],['Azul','#1c64c2'],['Roxa','#6f42c1'],['Marrom','#6b3e1e'],['Preta','#141414']),
   muaythai: E(['Branca','#f4f4f4'],['Amarela','#f2c524'],['Laranja','#ef7d1a'],['Verde','#2f9e44'],['Azul','#1c64c2'],['Marrom','#6b3e1e'],['Vermelha','#c62828'],['Preta','#141414']),
   boxe:     E(['Iniciante','#cfd8dc'],['Intermediário','#90a4ae'],['Avançado','#546e7a'],['Competição','#d4a017']),
+  kravmaga: E(['P1','#f4f4f4'],['P2','#f2c524'],['P3','#ef7d1a'],['P4','#2f9e44'],['P5','#1c64c2'],['G1','#6b3e1e']),
   mma:      E(['Iniciante','#cfd8dc'],['Intermediário','#90a4ae'],['Avançado','#546e7a'],['Competição','#00E676'])
 };
 
 // Fotos da equipe por modalidade (boxe tem o próprio trio; demais usam as de karatê).
-const EQF = mod === 'boxe' ? [P(38510608,900,1125), P(6740346,900,1125), P(8612588,900,1125)] : [P(15937400,900,1200), P(6005463,900,1200), P(10655538,900,1200)];
+const EQF = mod === 'boxe' ? [P(38510608,900,1125), P(6740346,900,1125), P(8612588,900,1125)] : mod === 'kravmaga' ? [P(7045757,900,1125), P(6455243,900,1125), P(7045658,900,1125)] : [P(15937400,900,1200), P(6005463,900,1200), P(10655538,900,1200)];
 const s = {
   id:'horizons', slug:'horizons', nome:'Equipe Horizons', nomeCurto:'Horizons',
   modalidade: mod, cidade:'Campo Grande', uf:'MS',
@@ -94,7 +98,7 @@ const s = {
   // fotoRecorte = PNG/WebP com fundo transparente (oval cru embutido) → efeito 3D "saindo" do bloco.
   // Na prévia vêm de assets/horizons/ (caminho local relativo, aceito por url()); em produção, da escola.
   equipe: [
-    { nome:'Ricardo Nakamura', graduacao:(LIDER[mod]||'Professor')+' · 5º Dan', bio:'Fundador da Equipe Horizons. Forma atletas há mais de duas décadas com uma regra só: técnica antes de força.', foto:EQF[0], fotoRecorte:'assets/horizons/ricardo.webp' },
+    { nome:'Ricardo Nakamura', graduacao: mod === 'kravmaga' ? 'Graduado · G2' : (LIDER[mod]||'Professor')+' · 5º Dan', bio:'Fundador da Equipe Horizons. Forma atletas há mais de duas décadas com uma regra só: técnica antes de força.', foto:EQF[0], fotoRecorte:'assets/horizons/ricardo.webp' },
     { nome:'Ana Beatriz Horta', graduacao:(LIDER[mod]||'Professora')+' · 3º Dan', bio:'Coordena as turmas femininas e o programa competitivo. Aulas conhecidas pela atenção ao detalhe.', foto:EQF[1], fotoRecorte:'assets/horizons/ana.webp' },
     { nome:'Caio Ferreira', graduacao:(LIDER[mod]||'Professor')+' · 2º Dan', bio:'Técnico da equipe de competição: estratégia, condicionamento e cabeça fria.', foto:EQF[2], fotoRecorte:'assets/horizons/caio.webp' }
   ],
@@ -103,7 +107,19 @@ const s = {
 };
 
 // Conteúdo fictício do painel (siteConteudo) só para o Luva mostrar horários e citação preenchidos.
-s.conteudo = tpl === 'luva' ? { secoes: {
+const HOR = [
+    { dia:'seg', aula:'Fundamentos', horario:'19:00–20:30', local:'Núcleo Centro' }, { dia:'seg', aula:'Feminino', horario:'20:30–21:30', local:'Núcleo Norte' },
+    { dia:'ter', aula:'Condicionamento', horario:'06:30–07:30', local:'Núcleo Centro' }, { dia:'ter', aula:'Jovens', horario:'17:30–18:30', local:'Núcleo Lagoa' },
+    { dia:'qua', aula:'Fundamentos', horario:'19:00–20:30', local:'Núcleo Centro' }, { dia:'qua', aula:'Avançado · cenários', horario:'20:30–22:00', local:'Núcleo Centro' },
+    { dia:'qui', aula:'Condicionamento', horario:'06:30–07:30', local:'Núcleo Norte' }, { dia:'sex', aula:'Fundamentos', horario:'19:00–20:30', local:'Núcleo Lagoa' },
+    { dia:'sab', aula:'Treinão aberto', horario:'08:00–09:30', local:'Parque das Nações' } ];
+s.conteudo = tpl === 'escudo' ? { secoes: {
+  contato: { whatsapp: '67999990000' },
+  graduacao: { itens: [{ etapa:'Iniciante', sigla:'P1' }, { etapa:'Básico', sigla:'P2' }, { etapa:'Intermediário', sigla:'P3' }, { etapa:'Intermediário', sigla:'P4' }, { etapa:'Avançado', sigla:'P5' }, { etapa:'Avançado', sigla:'G1' }] },
+  agenda: { itens: [{ dia:'08', mes:'11', titulo:'Exame de graduação', local:'Núcleo Centro · P1 a P3', hora:'09:00' }, { dia:'22', mes:'11', titulo:'Workshop defesa feminina', local:'Aberto ao público · Núcleo Norte', hora:'14:00' }, { dia:'06', mes:'12', titulo:'Seminário com instrutor convidado', local:'Núcleo Centro', hora:'10:00' }, { dia:'13', mes:'12', titulo:'Treinão de encerramento', local:'Todos os núcleos · Parque das Nações', hora:'08:00' }] },
+  horarios: { itens: HOR },
+  parceiros: { itens: [{ nome:'Nutri+' }, { nome:'Fisio Vida' }, { nome:'Tático Store' }, { nome:'Clube MS' }] }
+} } : tpl === 'luva' ? { secoes: {
   citacao: { autor: 'Ricardo Nakamura', cargo: 'Treinador-chefe · Equipe Horizons' },
   contato: { whatsapp: '67999990000' },
   horarios: { itens: [
@@ -115,12 +131,12 @@ s.conteudo = tpl === 'luva' ? { secoes: {
     { dia:'sab', aula:'Aula aberta', horario:'09:00–10:30', local:'Lagoa' } ] }
 } } : null;
 const m = await carregarTemplate(tpl);
-(m.render || m.renderHorizons)(s, { esc, url, VOCAB, LIDER, modalidadeBase: VOCAB[mod] ? mod : 'arena' });
+(m.render || m.renderHorizons)(s, { esc, url, VOCAB, LIDER, modalidadeBase: VOCAB[mod] ? mod : 'arena', modalidade: mod });
 document.title = `Prévia ${TEMPLATES[tpl].nome} · ${VOCAB[mod]?.nomeMod || mod}`;
 // barrinha de navegação da prévia
 const outros = Object.keys(TEMPLATES).filter((k) => TEMPLATES[k].modulo);
 document.getElementById('pvT').innerHTML = outros.map((k) => `<a href="?tpl=${k}&mod=${mod}"${k === tpl ? ' style="color:#fff;text-decoration:underline"' : ''}>${TEMPLATES[k].nome}</a>`).join('');
-document.getElementById('pvM').innerHTML = ['karate','capoeira','jiujitsu','muaythai','boxe','mma'].map((k) => `<a href="?tpl=${tpl}&mod=${k}"${k === mod ? ' style="color:#fff;text-decoration:underline"' : ''}>${VOCAB[k].nomeMod}</a>`).join('');
+document.getElementById('pvM').innerHTML = ['karate','capoeira','jiujitsu','muaythai','boxe','mma','kravmaga'].map((k) => `<a href="?tpl=${tpl}&mod=${k}"${k === mod ? ' style="color:#fff;text-decoration:underline"' : ''}>${VOCAB[k].nomeMod}</a>`).join('');
 </script>
 </body>
 </html>

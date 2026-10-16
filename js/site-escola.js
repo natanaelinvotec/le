@@ -45,6 +45,7 @@ var VOCAB = {
   muaythai:{ saudacao:"Chók!", local:"ringue", luta:"sparring", treino:"treino", artigo:"O", nomeMod:"Muay Thai" },
   boxe:{ saudacao:"Vamos!", local:"ringue", luta:"sparring", treino:"treino", artigo:"O", nomeMod:"Boxe" },
   mma:{ saudacao:"Vamos!", local:"octógono", luta:"sparring", treino:"treino", artigo:"O", nomeMod:"MMA" },
+  kravmaga:{ saudacao:"Kida!", local:"tatame", luta:"simulação", treino:"treino", artigo:"O", nomeMod:"Krav Maga" },
   arena:{ saudacao:"Bem-vindo", local:"academia", luta:"treino", treino:"treino", artigo:"A", nomeMod:"Artes marciais" }
 };
 
@@ -53,9 +54,9 @@ var MOD_TEMPLATE = {
   taekwondo:"taekwondo", muaythai:"muaythai", boxe:"boxe", mma:"mma"
 };
 var LIDER = { capoeira:"Mestre", jiujitsu:"Professor", judo:"Sensei", karate:"Sensei",
-  taekwondo:"Sabom", muaythai:"Kru", boxe:"Treinador", mma:"Coach" };
+  taekwondo:"Sabom", muaythai:"Kru", boxe:"Treinador", mma:"Coach", kravmaga:"Instrutor" };
 var PECA = { capoeira:"cordão", jiujitsu:"faixa", judo:"faixa", karate:"faixa",
-  taekwondo:"faixa", muaythai:"prajied", boxe:"nível", mma:"nível" };
+  taekwondo:"faixa", muaythai:"prajied", boxe:"nível", mma:"nível", kravmaga:"nível" };
 
 // Templates com LAYOUT próprio (módulo separado, carregado sob demanda). Os demais
 // são variações do layout "arena" (vocabulário + motivo). F4.3: biblioteca de templates.
@@ -667,7 +668,9 @@ async function montar(s, opts){
   if(LAYOUTS[s.template]){
     try{
       var mod = await import(LAYOUTS[s.template]);
-      (mod.render || mod.renderHorizons)(s, { esc: esc, url: url, VOCAB: VOCAB, LIDER: LIDER, modalidadeBase: MOD_TEMPLATE[s.modalidade] || 'arena' });
+      // modalidadeBase: a variante do arena (tabelas antigas); modalidade: a real do cadastro (kravmaga etc.),
+      // para os templates escolherem textos próprios mesmo quando a base é 'arena'.
+      (mod.render || mod.renderHorizons)(s, { esc: esc, url: url, VOCAB: VOCAB, LIDER: LIDER, modalidadeBase: MOD_TEMPLATE[s.modalidade] || 'arena', modalidade: s.modalidade });
       return;
     }catch(e){
       console.warn('site-escola: template "'+s.template+'" falhou, usando arena', e);

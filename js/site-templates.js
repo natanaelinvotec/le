@@ -46,6 +46,13 @@ export var TEMPLATES = {
     modalidades: ['boxe', 'muaythai', 'mma', 'todas'],
     modulo: './site-tpl-luva.js',
     miniatura: 'assets/templates/luva.svg'
+  },
+  escudo: {
+    nome: 'Escudo',
+    descricao: 'Academia esportiva clara: marinho com hachura, acento tático, paralelogramos, quadro de graduação em tabela, agenda, quadro semanal, parceiros e galeria.',
+    modalidades: ['kravmaga', 'judo', 'taekwondo', 'todas'],
+    modulo: './site-tpl-escudo.js',
+    miniatura: 'assets/templates/escudo.svg'
   }
 };
 
