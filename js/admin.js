@@ -902,6 +902,19 @@ html += `
 grid.innerHTML = html;
 }
 
+// Aba "Meu site" (F4.2): módulo carregado só quando o Admin abre a aba (não pesa o painel).
+async function abrirMeuSite() {
+const alvo = document.getElementById('meuSite');
+if (!alvo) return;
+try {
+const mod = await import('./site-gerenciar.js?v=20261016');
+await mod.montarMeuSite(alvo);
+} catch (e) {
+console.error(e);
+toast('Não foi possível abrir o gerenciador do site.', 'error');
+}
+}
+
 window.mudarAba = function (abaId, evt) {
 if (evt && evt.preventDefault) evt.preventDefault();
 document.querySelectorAll('.aba-content, .nav-item').forEach((el) => el.classList.remove('active'));
@@ -911,6 +924,7 @@ alvo.classList.add('active');
 if (abaId === 'financeiro') { preencherAlunosFinanceiro(); definirTipoLancamento(tipoLancamento); }
 if (['indicadores', 'graduacao', 'eventos', 'auditoria', 'lgpd'].includes(abaId)) abrirTelaGestao(abaId);
 if (abaId === 'aniversarios') { try { renderAniversarios(); } catch (e) { console.error(e); toast('Não foi possível abrir os aniversários.', 'error'); } }
+if (abaId === 'site') abrirMeuSite();
 if (evt && evt.currentTarget && evt.currentTarget.classList) {
 evt.currentTarget.classList.add('active');
 } else {

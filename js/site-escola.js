@@ -14,6 +14,7 @@
  */
 import { db, doc, getDoc, getDocs, collection, query, where } from './firebase.js';
 import { escolaIdDoEndereco, escolaIdDoDominio } from './escola-atual.js';
+import { layoutsComModulo, templateExiste } from './site-templates.js';
 
 /* ========================================================================== */
 /*  Utilidades seguras                                                        */
@@ -58,7 +59,9 @@ var PECA = { capoeira:"cordão", jiujitsu:"faixa", judo:"faixa", karate:"faixa",
 
 // Templates com LAYOUT próprio (módulo separado, carregado sob demanda). Os demais
 // são variações do layout "arena" (vocabulário + motivo). F4.3: biblioteca de templates.
-var LAYOUTS = { horizons: './site-tpl-horizons.js' };
+// Templates com layout próprio vêm do registro único (site-templates.js) — o mesmo que a aba
+// "Meu site" usa para o seletor. Acrescentar um template = uma linha lá.
+var LAYOUTS = layoutsComModulo();
 
 function templateDe(tpl, modalidade){
   if(tpl && (VOCAB[tpl] || LAYOUTS[tpl])) return tpl;
@@ -624,10 +627,43 @@ async function iniciar(){
 
   var s = mapEscola(pub, id, nucleos);
   s.nucleosInfo = nucleosInfo;
-  try{ aplicarSeo(s); }catch(e){ /* SEO é cosmético: nunca derruba o render */ }
 
-  // Template com layout próprio: carrega o módulo sob demanda. Se falhar (rede,
-  // erro no módulo), cai para o layout "arena" da modalidade — o site nunca fica em branco.
+  // Conteúdo editado no painel "Meu site" (siteConteudo/{escolaId}, leitura pública):
+  // textos/fotos por cima dos padrões do template e, se a escola trocou de template lá,
+  // o template escolhido. Sem o doc, o site é 100% o cadastro + padrões.
+  var conteudo = null;
+  try{
+    var cs = await getDoc(doc(db, 'siteConteudo', id));
+    conteudo = cs && cs.exists() ? cs.data() : null;
+  }catch(e){ conteudo = null; }
+  aplicarConteudo(s, conteudo);
+
+  // Prévia ao vivo da aba "Meu site" (iframe, mesma origem): recebe o rascunho por
+  // postMessage e re-renderiza SEM gravar nada. Só com ?previa=1 e só da própria origem.
+  if(new URLSearchParams(location.search).get('previa') === '1'){
+    addEventListener('message', function(e){
+      if(e.origin !== location.origin || !e.data || e.data.tipo !== 'ap-previa') return;
+      var dados = e.data.conteudo && typeof e.data.conteudo === 'object' ? e.data.conteudo : null;
+      var s2 = mapEscola(pub, id, nucleos); s2.nucleosInfo = nucleosInfo;
+      aplicarConteudo(s2, dados);
+      montar(s2, { seo:false });
+    });
+    try{ if(parent !== window) parent.postMessage({ tipo:'ap-previa-pronta', escola:id }, location.origin); }catch(e){ /* ok */ }
+  }
+
+  await montar(s, { seo:true });
+}
+
+function aplicarConteudo(s, conteudo){
+  if(!conteudo || typeof conteudo !== 'object'){ s.conteudo = null; return; }
+  s.conteudo = { secoes: (conteudo.secoes && typeof conteudo.secoes === 'object') ? conteudo.secoes : {} };
+  if(templateExiste(conteudo.template)) s.template = templateDe(conteudo.template, s.modalidade);
+}
+
+// Monta o site com o template de s. Layout próprio: módulo sob demanda; se falhar (rede, erro no
+// módulo), cai para o layout "arena" da modalidade — o site nunca fica em branco.
+async function montar(s, opts){
+  if(!opts || opts.seo !== false){ try{ aplicarSeo(s); }catch(e){ /* SEO é cosmético: nunca derruba o render */ } }
   if(LAYOUTS[s.template]){
     try{
       var mod = await import(LAYOUTS[s.template]);
@@ -637,6 +673,7 @@ async function iniciar(){
       console.warn('site-escola: template "'+s.template+'" falhou, usando arena', e);
     }
   }
+  var site = document.getElementById('site'); if(site){ site.className = ''; site.removeAttribute('style'); }
   // Layout "arena": respeita o template escolhido (ou o da modalidade, se o layout próprio falhou).
   render(s, LAYOUTS[s.template] ? templateDe(null, s.modalidade) : s.template);
 }

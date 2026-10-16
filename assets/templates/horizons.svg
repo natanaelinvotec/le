@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" role="img" aria-label="Template Horizons">
+  <rect width="320" height="200" fill="#f3f0e8"/>
+  <!-- hero em cartão com corte diagonal -->
+  <path d="M10 10h300v84l-150 0-3-6H10z" fill="#e4432e"/>
+  <rect x="24" y="22" width="34" height="5" rx="2.5" fill="#fff" opacity=".9"/>
+  <rect x="222" y="22" width="74" height="5" rx="2.5" fill="#fff" opacity=".5"/>
+  <rect x="98" y="40" width="124" height="12" rx="3" fill="#fff"/>
+  <rect x="86" y="56" width="148" height="14" rx="3" fill="#fff"/>
+  <rect x="122" y="76" width="34" height="9" rx="4.5" fill="#fff"/><rect x="164" y="76" width="34" height="9" rx="4.5" fill="none" stroke="#fff" stroke-width="1.5"/>
+  <!-- letreiro -->
+  <line x1="10" y1="104" x2="310" y2="104" stroke="#131313" stroke-width="1.5"/>
+  <line x1="10" y1="114" x2="310" y2="114" stroke="#131313" stroke-width="1.5"/>
+  <rect x="20" y="107" width="26" height="4" rx="2" fill="#131313"/><rect x="54" y="107" width="38" height="4" rx="2" fill="#131313"/><rect x="100" y="107" width="22" height="4" rx="2" fill="#131313"/><rect x="130" y="107" width="40" height="4" rx="2" fill="#131313"/><rect x="178" y="107" width="30" height="4" rx="2" fill="#131313"/><rect x="216" y="107" width="44" height="4" rx="2" fill="#131313"/>
+  <!-- vertentes -->
+  <rect x="20" y="126" width="86" height="50" rx="6" fill="#e9e5db"/><rect x="117" y="126" width="86" height="50" rx="6" fill="#e9e5db"/><rect x="214" y="126" width="86" height="50" rx="6" fill="#e9e5db"/>
+  <circle cx="30" cy="136" r="5" fill="#fff"/><circle cx="127" cy="136" r="5" fill="#fff"/><circle cx="224" cy="136" r="5" fill="#fff"/>
+  <rect x="42" y="182" width="42" height="5" rx="2.5" fill="#e4432e"/><rect x="139" y="182" width="42" height="5" rx="2.5" fill="#e4432e"/><rect x="236" y="182" width="42" height="5" rx="2.5" fill="#e4432e"/>
+</svg>

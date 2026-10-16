@@ -27,6 +27,59 @@
  */
 
 /* ========================================================================== */
+/*  Contrato da biblioteca (site-templates.js): meta + schema                  */
+/* ========================================================================== */
+export var meta = {
+  nome: 'Horizons',
+  descricao: 'Hero em cartão com corte diagonal, letreiro, vertentes, equipe em 3D, escada de graduação, núcleos e o bloco do app.',
+  modalidades: ['todas']
+};
+
+// O que a escola pode trocar na aba "Meu site". Tudo é OPCIONAL: campo vazio = padrão do
+// template (texto da modalidade / dado do cadastro). Fotos e pessoas do cadastro continuam
+// valendo quando a lista correspondente estiver vazia.
+var SELO = { c:'selo', r:'Etiqueta (letras pequenas acima do título)', max:50 };
+export var schema = { secoes: [
+  { id:'hero', r:'Topo', ajuda:'A primeira tela. Sem texto aqui, o título vem da modalidade e a foto de fundo é a fachada do cadastro.', campos:[
+    { c:'linha1', r:'Título — primeira linha', max:28, ph:'Onde nascem' },
+    { c:'linha2', r:'Título — segunda linha (fica em caixa alta)', max:20, ph:'faixas-pretas' },
+    { c:'sub', r:'Linha abaixo do título', max:80, ph:'Nome da escola · modalidade · cidade' },
+    { c:'botao', r:'Botão principal', max:24, ph:'Comece hoje' },
+    { c:'foto', r:'Foto de fundo', t:'foto' } ] },
+  { id:'letreiro', r:'Letreiro', ajuda:'As palavras que correm na faixa logo abaixo do topo.', campos:[
+    { c:'palavras', r:'Palavras (separe por vírgula, até 8)', max:140, ph:'Kata, Kumite, Kihon, Disciplina' } ] },
+  { id:'vertentes', r:'Vertentes', ajuda:'Três caminhos de treino. Sem fotos aqui, entram as fotos de treino do cadastro.', campos:[
+    SELO, { c:'titulo', r:'Título', max:40, ph:'Escolha sua vertente' },
+    { c:'itens', r:'Vertentes', t:'lista', max:3, resumo:'titulo', nomeItem:'Vertente', item:[
+      { c:'titulo', r:'Nome', max:30 }, { c:'texto', r:'Descrição', t:'area', max:160 }, { c:'foto', r:'Foto', t:'foto' } ] } ] },
+  { id:'equipe', r:'Equipe', ajuda:'Quem conduz os treinos. A foto recortada (PNG/WebP sem fundo) dá o efeito 3D; sem ela, a foto comum entra na moldura oval. Lista vazia = equipe do cadastro.', campos:[
+    { c:'selo', r:'Etiqueta', max:50, ph:'Quem conduz o dojo' }, { c:'titulo', r:'Palavra grande', max:14, ph:'Equipe' },
+    { c:'itens', r:'Pessoas', t:'lista', max:6, resumo:'nome', nomeItem:'Pessoa', item:[
+      { c:'nome', r:'Nome', max:60 }, { c:'graduacao', r:'Graduação / título', max:40, ph:'Sensei · 5º Dan' },
+      { c:'bio', r:'Apresentação', t:'area', max:240 }, { c:'foto', r:'Foto', t:'foto' },
+      { c:'fotoRecorte', r:'Foto recortada, sem fundo (efeito 3D)', t:'foto', png:true } ] } ] },
+  { id:'jornada', r:'Jornada', ajuda:'Os números (graduações, núcleos) vêm do cadastro.', campos:[
+    { c:'selo', r:'Etiqueta', max:50, ph:'Treinar. Evoluir. Vencer.' }, { c:'titulo', r:'Título', max:90 } ] },
+  { id:'graduacao', r:'Graduação', ajuda:'As faixas e cores vêm da escada cadastrada pela escola. Aqui só os textos.', campos:[
+    { c:'selo', r:'Etiqueta', max:50, ph:'Graduação real, direto do app' }, { c:'titulo', r:'Título', max:60 },
+    { c:'texto', r:'Texto ao lado do botão', t:'area', max:200 }, { c:'botao', r:'Botão', max:30, ph:'Ver minha graduação' } ] },
+  { id:'programas', r:'Programas', ajuda:'Três faixas de público. Sem fotos aqui, entram fotos do cadastro.', campos:[
+    { c:'selo', r:'Etiqueta', max:50, ph:'Habilidades para a vida toda' }, { c:'titulo', r:'Título', max:40, ph:'Programas' },
+    { c:'itens', r:'Programas', t:'lista', max:3, resumo:'titulo', nomeItem:'Programa', item:[
+      { c:'etiqueta', r:'Etiqueta no canto (ex.: Kids)', max:20 }, { c:'selo', r:'Linha pequena', max:30 },
+      { c:'titulo', r:'Título', max:40 }, { c:'texto', r:'Descrição', t:'area', max:160 }, { c:'foto', r:'Foto', t:'foto' } ] } ] },
+  { id:'nucleos', r:'Núcleos', ajuda:'Os núcleos vêm do cadastro da escola. Aqui só os textos.', campos:[
+    { c:'selo', r:'Etiqueta', max:50 }, { c:'titulo', r:'Título', max:40, ph:'Onde treinar' } ] },
+  { id:'app', r:'App e Rede', campos:[
+    { c:'selo', r:'Etiqueta', max:50 }, { c:'titulo', r:'Título', max:40, ph:'A equipe inteira no bolso' },
+    { c:'texto', r:'Texto', t:'area', max:220 } ] },
+  { id:'contato', r:'Contato', ajuda:'Endereço, mapa e Instagram vêm do cadastro. Com WhatsApp preenchido, aparece o botão "Falar no WhatsApp" (aula experimental).', campos:[
+    { c:'titulo', r:'Título', max:40, ph:'Fale com a gente' }, { c:'texto', r:'Texto', t:'area', max:160 },
+    { c:'whatsapp', r:'WhatsApp (só números, com DDD)', max:13, ph:'67999990000' },
+    { c:'msgWhatsapp', r:'Mensagem pronta do WhatsApp', max:140, ph:'Olá! Quero agendar uma aula experimental.' } ] }
+] };
+
+/* ========================================================================== */
 /*  Vocabulário por modalidade (defaults do template)                          */
 /* ========================================================================== */
 var HERO = {
@@ -275,6 +328,7 @@ function css(t){
 .hz .card .cc a:hover{color:var(--acc)}\
 .hz .card .bk{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:28px}\
 .hz .mapwrap .openmap{position:absolute;right:clamp(16px,3vw,40px);bottom:clamp(100px,13vw,180px);z-index:3}\
+.hz .card .btn.ghost::before{background:var(--ink)}.hz .card .btn.ghost:hover{color:var(--white);box-shadow:inset 0 0 0 2px var(--ink)}\
 \
 .hz .foot{position:relative;z-index:4;background:var(--ink);color:var(--cream);margin-top:clamp(-150px,-11vw,-80px);padding:clamp(150px,15vw,210px) var(--g) clamp(28px,3vw,44px);clip-path:polygon(0 46%,49% 0,50.5% 48%,100% 16%,100% 100%,0 100%)}\
 .hz .foot .in{max-width:1320px;margin-inline:auto;display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap}\
@@ -385,6 +439,7 @@ var I = {
   qr:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h3v3M20 14v6h-3"/></svg>',
   cal:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
   award: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M8.5 13.5L7 22l5-3 5 3-1.5-8.5"/></svg>',
+  zap:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1.3-3.9A8 8 0 1 1 8.2 19z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5l1.5-1.5-2-1-1 1a4 4 0 0 1-2.5-2.5l1-1-1-2z"/></svg>',
   net:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="M12 7.5v4M10.5 13l-4 3M13.5 13l4 3"/></svg>'
 };
 
@@ -474,16 +529,29 @@ export function renderHorizons(s, h){
   }
   nucs = nucs.slice(0, 12);
 
+  // Conteúdo editado no painel (siteConteudo/{escolaId}.secoes), POR CIMA dos padrões.
+  // Só strings/arrays no formato do schema são aceitos; o resto é ignorado em silêncio.
+  var C = (s.conteudo && s.conteudo.secoes && typeof s.conteudo.secoes === 'object') ? s.conteudo.secoes : {};
+  function cx(sec, campo, pad){ var v = C[sec] && C[sec][campo]; return (typeof v === 'string' && v.trim()) ? v.trim().slice(0, 400) : pad; }
+  function lista(sec, campo, max){ var v = C[sec] && C[sec][campo]; return Array.isArray(v) ? v.filter(function(x){ return x && typeof x === 'object'; }).slice(0, max || 6) : []; }
+  function cs(o, k){ return (o && typeof o[k] === 'string') ? o[k].trim().slice(0, 400) : ''; }
+
   var fotos = s.fotos || {};
   var treino = (fotos.treino || []).map(url).filter(Boolean);
   var fachada = (fotos.fachada || []).map(url).filter(Boolean);
   var equipeF = (fotos.equipe || []).map(url).filter(Boolean);
-  var heroFoto = fachada[0] || equipeF[0] || treino[0] || '';
+  var heroFoto = url(cx('hero', 'foto', '')) || fachada[0] || equipeF[0] || treino[0] || '';
   var logo = url(s.logo);
   var ini = initials(s.nomeCurto);
-  var heroT = HERO[modBase] || HERO.arena;
+  var heroPad = HERO[modBase] || HERO.arena;
+  var heroT = [cx('hero', 'linha1', heroPad[0]), cx('hero', 'linha2', heroPad[1])];
   var vert = VERTENTES[modBase] || VERTENTES.arena;
   var letreiro = LETREIRO[modBase] || LETREIRO.arena;
+  var palavras = cx('letreiro', 'palavras', '');
+  if(palavras){ var pl = palavras.split(',').map(function(p){ return p.trim(); }).filter(Boolean).slice(0, 8); if(pl.length) letreiro = pl; }
+  var zap = cx('contato', 'whatsapp', '').replace(/\D/g, '');
+  if(!/^\d{10,13}$/.test(zap)) zap = '';
+  var zapHref = zap ? 'https://wa.me/'+(zap.length <= 11 ? '55' : '')+zap+'?text='+encodeURIComponent(cx('contato', 'msgWhatsapp', 'Olá! Quero agendar uma aula experimental na '+s.nomeCurto+'.')) : '';
 
   var marca = '<a class="logo" href="#top"><span class="mk">'+(logo ? '<img src="'+esc(logo)+'" alt="'+esc('Logo '+s.nomeCurto)+'">' : esc(ini))+'</span>'
     + '<span>'+esc(s.nomeCurto)+'<small>'+esc(V.nomeMod)+'</small></span></a>';
@@ -504,8 +572,8 @@ export function renderHorizons(s, h){
     + '<div class="in"><h1 class="d">'
     +   '<span class="l"><span style="animation-delay:.05s">'+esc(heroT[0])+'</span></span><br>'
     +   '<span class="big l"><span style="animation-delay:.22s">'+esc(heroT[1])+'</span></span></h1>'
-    +   '<p class="sub k">'+esc(s.nome)+' · '+esc(V.nomeMod)+(s.cidade ? ' · '+esc(s.cidade) : '')+'</p>'
-    +   '<div class="cta"><a class="btn" href="'+esc(ins)+'" data-magnet>Comece hoje '+I.arrow+'</a>'
+    +   '<p class="sub k">'+esc(cx('hero', 'sub', s.nome+' · '+V.nomeMod+(s.cidade ? ' · '+s.cidade : '')))+'</p>'
+    +   '<div class="cta"><a class="btn" href="'+esc(ins)+'" data-magnet>'+esc(cx('hero', 'botao', 'Comece hoje'))+' '+I.arrow+'</a>'
     +   '<a class="btn ghost" href="'+esc(login)+'" data-magnet>Área do aluno</a></div></div>'
     + '<div class="hint" aria-hidden="true"><i></i>role</div>'
     + (s.cidade && s.uf ? '<div class="tag" aria-hidden="true">'+esc(s.cidade)+' · '+esc(s.uf)+'</div>' : '')
@@ -516,18 +584,22 @@ export function renderHorizons(s, h){
   var mq = '<div class="mq" aria-hidden="true"><div class="tr"><span>'+faixa+'</span><span>'+faixa+'</span></div></div>';
 
   // --- VERTENTES ---
-  var vcards = vert.map(function(v, i){
-    var f = treino[i] || '';
+  var vItens = lista('vertentes', 'itens', 3).filter(function(v){ return cs(v, 'titulo'); });
+  var vlist = vItens.length ? vItens.map(function(v, i){ return [cs(v, 'titulo'), cs(v, 'texto'), url(cs(v, 'foto')) || treino[i] || '']; })
+                            : vert.map(function(v, i){ return [v[0], v[1], treino[i] || '']; });
+  var vcards = vlist.map(function(v, i){
+    var f = v[2];
     return '<article class="vc rv" style="--i:'+i+'"><div class="ph"><span class="n">0'+(i+1)+'</span>'
       + (f ? '<img src="'+esc(f)+'" alt="'+esc(v[0]+' — '+s.nomeCurto)+'" loading="lazy">' : '<span class="ini">'+esc(initials(v[0]))+'</span>')
       + '</div><h3>'+esc(v[0])+'</h3><p>'+esc(v[1])+'</p></article>';
   }).join('');
-  var vertentes = '<section class="sec w" id="hz-vertentes"><div class="hd rv"><span class="k">Três caminhos, um '+esc(V.local)+'</span>'
-    + '<h2 class="d">Escolha sua vertente</h2></div><div class="vert st">'+vcards+'</div></section>';
+  var vertentes = '<section class="sec w" id="hz-vertentes"><div class="hd rv"><span class="k">'+esc(cx('vertentes', 'selo', 'Três caminhos, um '+V.local))+'</span>'
+    + '<h2 class="d">'+esc(cx('vertentes', 'titulo', 'Escolha sua vertente'))+'</h2></div><div class="vert st">'+vcards+'</div></section>';
 
-  // --- EQUIPE (mestres) --- só pessoas cadastradas; nunca inventadas.
+  // --- EQUIPE (mestres) --- painel (siteConteudo) → cadastro (equipe[]) → líder. Nunca inventadas.
   var mestres = [];
-  if(Array.isArray(s.equipe) && s.equipe.length){
+  lista('equipe', 'itens', 6).forEach(function(m){ if(cs(m, 'nome')) mestres.push({ nome:cs(m, 'nome'), grad:cs(m, 'graduacao'), bio:cs(m, 'bio'), foto:url(cs(m, 'foto')), cut:url(cs(m, 'fotoRecorte')) }); });
+  if(!mestres.length && Array.isArray(s.equipe) && s.equipe.length){
     s.equipe.forEach(function(m){ if(m && m.nome) mestres.push({ nome:m.nome, grad:m.graduacao||'', bio:m.bio||'', foto:url(m.foto), cut:url(m.fotoRecorte) }); });
   }
   if(!mestres.length){
@@ -544,8 +616,8 @@ export function renderHorizons(s, h){
       + (s.instagram ? '<a class="circ" href="https://instagram.com/'+esc(encodeURIComponent(s.instagram))+'" target="_blank" rel="noopener noreferrer" aria-label="Instagram">'+I.ig+'</a>' : '')
       + '</div></div></article>';
   }).join('');
-  var titEquipe = mestres.length > 1 ? 'Equipe' : (tituloLider.toUpperCase() === 'MESTRE' ? 'Mestre' : tituloLider);
-  var coach = '<section class="coach w" id="hz-mestres"><div class="gi rv" id="hz-gi"><span class="k">Quem conduz o '+esc(V.local)+'</span>'
+  var titEquipe = cx('equipe', 'titulo', mestres.length > 1 ? 'Equipe' : (tituloLider.toUpperCase() === 'MESTRE' ? 'Mestre' : tituloLider)).slice(0, 14);
+  var coach = '<section class="coach w" id="hz-mestres"><div class="gi rv" id="hz-gi"><span class="k">'+esc(cx('equipe', 'selo', 'Quem conduz o '+V.local))+'</span>'
     + '<h2 class="d" aria-label="'+esc(titEquipe)+'">'+esc(titEquipe)+'<span aria-hidden="true">'+esc(titEquipe)+'</span></h2></div>'+mcards+'</section>';
 
   // --- JORNADA --- números só os reais (núcleos, graduações); o resto é texto do template.
@@ -558,22 +630,26 @@ export function renderHorizons(s, h){
   ].map(function(f, i){
     return '<div class="ft rv" style="--i:'+i+'"><div class="ic">'+f.ic+'</div>'+(f.b ? '<b>'+esc(f.b)+'</b>' : '')+'<h3>'+f.h+'</h3><p>'+f.p+'</p></div>';
   }).join('');
-  var jornada = '<section class="sec jor" id="hz-jornada"><div class="w"><div class="hd rv"><span class="k">Treinar. Evoluir. Vencer.</span>'
-    + '<h2 class="d">O '+esc(V.nomeMod)+' leva o aluno numa jornada para a vida</h2></div><div class="feats st">'+feats+'</div></div></section>';
+  var jornada = '<section class="sec jor" id="hz-jornada"><div class="w"><div class="hd rv"><span class="k">'+esc(cx('jornada', 'selo', 'Treinar. Evoluir. Vencer.'))+'</span>'
+    + '<h2 class="d">'+esc(cx('jornada', 'titulo', 'O '+V.nomeMod+' leva o aluno numa jornada para a vida'))+'</h2></div><div class="feats st">'+feats+'</div></div></section>';
 
   // --- PROGRAMAS --- faixas de público genéricas (sem preço, sem horário inventado).
   var pfotos = [treino[3] || equipeF[0] || '', treino[4] || fachada[0] || '', treino[5] || treino[1] || ''];
-  var progs = [
+  var pPad = [
     ['Kids', 'Crianças', 'Infantil', 'Disciplina, coordenação e confiança em aulas pensadas para a idade.'],
     ['Todas as idades', 'Iniciantes bem-vindos', 'Treinamento progressivo', 'Turmas por graduação, do primeiro dia até o nível avançado.'],
     ['Adultos', 'Evolução', 'Treino avançado', 'Para quem já domina a base e quer ir além no '+V.luta+'.']
-  ].map(function(p, i){
-    var f = pfotos[i];
+  ];
+  var pItens = lista('programas', 'itens', 3).filter(function(p){ return cs(p, 'titulo'); });
+  var plist = pItens.length ? pItens.map(function(p, i){ return [cs(p, 'etiqueta'), cs(p, 'selo'), cs(p, 'titulo'), cs(p, 'texto'), url(cs(p, 'foto')) || pfotos[i] || '']; })
+                            : pPad.map(function(p, i){ return p.concat([pfotos[i] || '']); });
+  var progs = plist.map(function(p, i){
+    var f = p[4];
     return '<article class="pg rv'+(f ? '' : ' noimg')+'" style="--i:'+i+'">'+(f ? '<img src="'+esc(f)+'" alt="" loading="lazy">' : '')
-      + '<span class="pill">'+esc(p[0])+'</span><span class="k">'+esc(p[1])+'</span><h3>'+esc(p[2])+'</h3><p>'+esc(p[3])+'</p>'
+      + (p[0] ? '<span class="pill">'+esc(p[0])+'</span>' : '')+(p[1] ? '<span class="k">'+esc(p[1])+'</span>' : '')+'<h3>'+esc(p[2])+'</h3><p>'+esc(p[3])+'</p>'
       + '<a class="btn light" href="'+esc(ins)+'" data-magnet>Fazer inscrição</a></article>';
   }).join('');
-  var programas = '<section class="sec w" id="hz-programas"><div class="hd rv"><span class="k">Habilidades para a vida toda</span><h2 class="d">Programas</h2></div>'
+  var programas = '<section class="sec w" id="hz-programas"><div class="hd rv"><span class="k">'+esc(cx('programas', 'selo', 'Habilidades para a vida toda'))+'</span><h2 class="d">'+esc(cx('programas', 'titulo', 'Programas'))+'</h2></div>'
     + '<div class="progs st">'+progs+'</div></section>';
 
   // --- GRADUAÇÃO --- a escada real da escola (cores do cadastro). Botão leva ao app (login).
@@ -584,11 +660,11 @@ export function renderHorizons(s, h){
       return '<div class="blt rv" style="--i:'+j+(b.cor ? ';--c:'+esc(b.cor) : '')+'"><span class="num">'+(j < 9 ? '0' : '')+(j+1)+'</span>'
         + '<div class="band" aria-hidden="true"></div><h3>'+esc(b.nome)+'</h3><small>'+esc(pecaCap)+' · etapa '+(j+1)+'</small></div>';
     }).join('');
-    grad = '<section class="sec w grad" id="hz-graduacao"><div class="hd rv"><span class="k">Graduação real, direto do app</span>'
-      + '<h2 class="d">A escada de '+esc(pecaPl)+' da '+esc(s.nomeCurto)+'</h2></div>'
+    grad = '<section class="sec w grad" id="hz-graduacao"><div class="hd rv"><span class="k">'+esc(cx('graduacao', 'selo', 'Graduação real, direto do app'))+'</span>'
+      + '<h2 class="d">'+esc(cx('graduacao', 'titulo', 'A escada de '+pecaPl+' da '+s.nomeCurto))+'</h2></div>'
       + '<div class="belts st">'+tiles+'</div>'
-      + '<div class="gradcta rv"><p>Cada aluno acompanha no app o termômetro de prontidão rumo '+esc(proxPeca)+', com as avaliações feitas pela equipe.</p>'
-      + '<a class="btn" href="'+esc(login)+'" data-magnet>Ver minha graduação '+I.arrow+'</a></div></section>';
+      + '<div class="gradcta rv"><p>'+esc(cx('graduacao', 'texto', 'Cada aluno acompanha no app o termômetro de prontidão rumo '+proxPeca+', com as avaliações feitas pela equipe.'))+'</p>'
+      + '<a class="btn" href="'+esc(login)+'" data-magnet>'+esc(cx('graduacao', 'botao', 'Ver minha graduação'))+' '+I.arrow+'</a></div></section>';
   }
 
   // --- NÚCLEOS --- só os cadastrados (nucleosPublicos). Sem horário/endereço inventado.
@@ -601,8 +677,8 @@ export function renderHorizons(s, h){
         + '<p>'+(loc ? esc(loc)+'<br>' : '')+'Dias e horários na área do aluno.</p>'
         + '<a class="go" href="'+esc(ins)+'">Treinar aqui '+I.arrow+'</a></article>';
     }).join('');
-    nucleos = '<section class="sec w" id="hz-nucleos"><div class="hd rv"><span class="k">'+esc(plural(nucs.length, 'núcleo', 'núcleos'))+' sob a mesma bandeira</span>'
-      + '<h2 class="d">Onde treinar</h2></div><div class="nucs st">'+ncards+'</div></section>';
+    nucleos = '<section class="sec w" id="hz-nucleos"><div class="hd rv"><span class="k">'+esc(cx('nucleos', 'selo', plural(nucs.length, 'núcleo', 'núcleos')+' sob a mesma bandeira'))+'</span>'
+      + '<h2 class="d">'+esc(cx('nucleos', 'titulo', 'Onde treinar'))+'</h2></div><div class="nucs st">'+ncards+'</div></section>';
   }
 
   // --- APP E REDE --- funções do app de gestão (mesmas do site Liberdade), apontando para as rotas reais.
@@ -624,8 +700,8 @@ export function renderHorizons(s, h){
     + '<div class="row"><div class="tile">'+I.cal+'<span>Agenda</span></div><div class="tile">'+I.net+'<span>Rede</span></div></div>'
     + '</div></div></div>';
   var appSec = '<section class="appsec" id="hz-app"><div class="appgrid"><div class="rv">'
-    + '<span class="k">App AtletaPay · '+esc(s.nomeCurto)+'</span><h2 class="d">A equipe inteira no bolso</h2>'
-    + '<p class="lead">Sem loja de aplicativos: o aluno instala direto deste site. Graduação, carteirinha, check-in e agenda no mesmo lugar.</p>'
+    + '<span class="k">'+esc(cx('app', 'selo', 'App AtletaPay · '+s.nomeCurto))+'</span><h2 class="d">'+esc(cx('app', 'titulo', 'A equipe inteira no bolso'))+'</h2>'
+    + '<p class="lead">'+esc(cx('app', 'texto', 'Sem loja de aplicativos: o aluno instala direto deste site. Graduação, carteirinha, check-in e agenda no mesmo lugar.'))+'</p>'
     + '<ul class="rec">'+rec+'</ul>'
     + '<div class="ac"><a class="btn" href="'+esc(R('instalar'))+'" data-magnet><img src="assets/app-icon-192.png" alt="" width="26" height="26">Instalar o app</a>'
     + '<a class="btn ghost" href="'+esc(R('instalar-rede'))+'" data-magnet><img src="assets/rede-icon-192.png" alt="" width="26" height="26">Instalar a Rede</a></div>'
@@ -642,8 +718,8 @@ export function renderHorizons(s, h){
     : mapaGrade();
   var mapsHref = mapaQ ? 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(mapaQ) : '';
   var contato = '<section class="mapsec" id="hz-contato"><div class="cap" aria-hidden="true"></div><div class="mapwrap">'+mapa
-    + '<div class="card rv"><h2 class="d">Fale com a gente</h2>'
-    + '<p class="ds">Venha conhecer o '+esc(V.local)+'. A inscrição é feita pelo AtletaPay, rápida e segura.</p>'
+    + '<div class="card rv"><h2 class="d">'+esc(cx('contato', 'titulo', 'Fale com a gente'))+'</h2>'
+    + '<p class="ds">'+esc(cx('contato', 'texto', 'Venha conhecer o '+V.local+'. A inscrição é feita pelo AtletaPay, rápida e segura.'))+'</p>'
     + '<div class="cc">'
     +   '<div><h4>'+I.pin+'Local</h4><p>'+(s.endereco ? esc(s.endereco)+'<br>' : '')+esc(s.cidade)+(s.uf ? ' · '+esc(s.uf) : '')+'</p></div>'
     +   '<div><h4>'+I.clock+'Treinos</h4><p>'+(nNuc ? esc(plural(nNuc, 'núcleo ativo', 'núcleos ativos')) : 'Horários no painel do aluno')+'</p></div>'
@@ -652,7 +728,9 @@ export function renderHorizons(s, h){
     +     (s.dominio ? '<a href="https://'+esc(s.dominio)+'" target="_blank" rel="noopener noreferrer">'+esc(s.dominio)+'</a>' : '')
     +     '<a href="'+esc(login)+'">Área do aluno</a></div>'
     + '</div>'
-    + '<div class="bk"><a class="btn" href="'+esc(ins)+'" data-magnet>Fazer inscrição '+I.arrow+'</a></div></div>'
+    + '<div class="bk"><a class="btn" href="'+esc(ins)+'" data-magnet>Fazer inscrição '+I.arrow+'</a>'
+    + (zapHref ? '<a class="btn ghost" href="'+esc(zapHref)+'" target="_blank" rel="noopener noreferrer" data-magnet>'+I.zap+'Falar no WhatsApp</a>' : '')
+    + '</div></div>'
     + (mapsHref ? '<a class="btn light openmap" href="'+esc(mapsHref)+'" target="_blank" rel="noopener noreferrer" data-magnet>Abrir no Maps</a>' : '')
     + '</div></section>';
 

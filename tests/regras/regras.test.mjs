@@ -261,6 +261,17 @@ test('LGPD e coleções antigas', async () => {
   await assertFails(getDoc(doc(db(null), 'siteConteudo', 'site-anterior')));
   await assertFails(setDoc(doc(db('profeta'), 'siteConteudo', 'site'), { versao: 1 }));
   await assertFails(setDoc(doc(db('admin'), 'siteConteudo', 'qualquer'), { versao: 1 }));
+  // Site por escola (aba "Meu site", F4.2): o Admin Master grava só o doc da PRÓPRIA escola, no formato
+  // que o site lê (template/secoes/anterior/carimbos); leitura pública; mestre e outra escola não gravam.
+  const conteudoSite = { template: 'horizons', secoes: { hero: { linha1: 'Oss' } }, anterior: {}, atualizadoPor: 'admin', versao: 2 };
+  await assertSucceeds(setDoc(doc(db('admin'), 'siteConteudo', 'liberdade'), conteudoSite));
+  await assertSucceeds(getDoc(doc(db(null), 'siteConteudo', 'liberdade')));
+  await assertFails(setDoc(doc(db('admin'), 'siteConteudo', 'gracie-cg'), conteudoSite));
+  await assertFails(setDoc(doc(db('admin'), 'siteConteudo', 'liberdade'), { ...conteudoSite, extra: 1 }));
+  await assertFails(setDoc(doc(db('admin'), 'siteConteudo', 'liberdade'), { ...conteudoSite, atualizadoPor: 'outro' }));
+  await assertFails(setDoc(doc(db('admin'), 'siteConteudo', 'liberdade'), { ...conteudoSite, secoes: 'texto' }));
+  await assertFails(setDoc(doc(db('profeta'), 'siteConteudo', 'liberdade'), { ...conteudoSite, atualizadoPor: 'profeta' }));
+  await assertSucceeds(setDoc(doc(plat(), 'siteConteudo', 'gracie-cg'), { ...conteudoSite, atualizadoPor: 'plat' }));
   await assertFails(setDoc(doc(db('admin'), 'config', 'migracoes'), { m1: 'x' }));
   await assertSucceeds(addDoc(collection(db('admin'), 'comandos'), { tipo: 'excluirConta', uid: 'nat', porUid: 'admin', status: 'pendente' }));
   await assertFails(addDoc(collection(db('tay'), 'comandos'), { tipo: 'excluirConta', uid: 'nat', porUid: 'tay', status: 'pendente' }));

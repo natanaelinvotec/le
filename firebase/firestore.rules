@@ -929,8 +929,23 @@ allow write: if false;
 // grava (gerenciar.html), e só nos documentos que o site usa
 // (site = no ar, site-anterior = cópia para desfazer, landing = site antigo).
 match /siteConteudo/{id} {
+// Escola nº 1 (Liberdade): site / site-anterior / landing — como antes.
 allow read: if id == 'site' || id == 'landing' || admGeral();
 allow write: if admGeral() && id in ['site', 'site-anterior', 'landing'];
+// Site por escola (aba "Meu site" do painel, F4.2): siteConteudo/{escolaId}. Conteúdo público
+// (o site é lido por visitantes anônimos); grava só o Admin Master DA escola (claim escolaId)
+// ou a plataforma, e só no formato que o site lê: template (string curta), secoes (mapa),
+// anterior (cópia para desfazer), carimbos. Nada além disso entra.
+function slugEscola(i) { return i.matches('^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$') && !(i in ['site', 'site-anterior', 'landing']); }
+function conteudoSiteOk() {
+return request.resource.data.keys().hasOnly(['template', 'secoes', 'anterior', 'atualizadoEm', 'atualizadoPor', 'versao'])
+&& request.resource.data.get('template', '') is string && request.resource.data.get('template', '').size() <= 20
+&& request.resource.data.get('secoes', {}) is map
+&& request.resource.data.get('anterior', {}) is map
+&& request.resource.data.get('atualizadoPor', request.auth.uid) == request.auth.uid;
+}
+allow read: if slugEscola(id);
+allow write: if slugEscola(id) && (adminDa(id) || ehPlataforma()) && conteudoSiteOk();
 }
 
 // Coleções do sistema antigo (antes do Firebase Authentication). Nenhuma
