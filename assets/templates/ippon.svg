@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" role="img" aria-label="Template Ippon">
+  <rect width="320" height="200" fill="#f6f4ee"/>
+  <rect width="320" height="16" fill="#0f1b38"/><circle cx="12" cy="8" r="5" fill="#c8102e"/><rect x="22" y="5" width="26" height="5" rx="1" fill="#fff"/><rect x="262" y="4" width="48" height="9" rx="4.5" fill="#e6c75a"/>
+  <rect y="16" width="320" height="86" fill="#0f1b38"/>
+  <rect x="16" y="30" width="4" height="40" fill="#e6c75a"/><rect x="26" y="32" width="40" height="11" fill="#e6c75a"/><rect x="70" y="32" width="50" height="11" fill="#fff"/><rect x="26" y="47" width="96" height="11" fill="#fff"/>
+  <rect x="26" y="66" width="44" height="10" rx="5" fill="#e6c75a"/>
+  <circle cx="258" cy="56" r="28" fill="#c8102e" opacity=".92"/><text x="258" y="66" text-anchor="middle" font-family="serif" font-size="26" font-weight="900" fill="#fff">柔</text>
+  <path d="M0 102 L0 96 L20 93 L36 98 L52 92 L70 97 L90 91 L110 96 L130 92 L150 98 L172 93 L190 97 L212 91 L232 96 L254 92 L276 98 L296 93 L320 96 L320 102 Z" fill="#e6c75a"/>
+  <rect y="102" width="320" height="56" fill="#e6c75a"/>
+  <g opacity=".08" fill="#000"><rect x="0" y="102" width="2" height="56"/><rect x="7" y="102" width="2" height="56"/><rect x="14" y="102" width="2" height="56"/><rect x="21" y="102" width="2" height="56"/></g>
+  <rect x="16" y="94" width="138" height="26" rx="6" fill="#fff"/><rect x="16" y="94" width="20" height="26" rx="6" fill="#0f1b38"/><rect x="72" y="100" width="34" height="8" fill="#c8102e"/>
+  <rect x="166" y="94" width="138" height="26" rx="6" fill="#fff"/><rect x="166" y="94" width="20" height="26" rx="6" fill="#0f1b38"/><rect x="222" y="100" width="40" height="8" fill="#c8102e"/>
+  <rect x="16" y="128" width="90" height="24" rx="6" fill="#fff"/><rect x="115" y="128" width="90" height="24" rx="6" fill="#fff"/><rect x="214" y="128" width="90" height="24" rx="6" fill="#fff"/>
+  <rect x="16" y="166" width="288" height="28" rx="6" fill="#fff"/><rect x="16" y="166" width="288" height="7" fill="#0f1b38"/>
+  <rect x="40" y="177" width="30" height="12" rx="3" fill="#e6c75a"/><rect x="110" y="177" width="30" height="12" rx="3" fill="#f4d6db"/><rect x="180" y="177" width="30" height="12" rx="3" fill="#dfe3ee"/><rect x="250" y="177" width="30" height="12" rx="3" fill="#e6c75a"/>
+</svg>

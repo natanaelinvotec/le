@@ -15,7 +15,7 @@
 /* Prévia do template "horizons" SEM Firestore: monta um objeto `s` igual ao que
    site-escola.js produz em mapEscola() e chama o módulo diretamente.
    Fotos: stock (Pexels, uso livre) só para visualização — em produção vêm do cadastro da escola. */
-import { TEMPLATES, carregarTemplate } from './js/site-templates.js?v=48';
+import { TEMPLATES, carregarTemplate } from './js/site-templates.js?v=49';
 
 const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 const url = (u) => { const s = String(u == null ? '' : u).trim(); if(!s) return ''; if(/^https:\/\/[^\s"'<>\\]+$/i.test(s)) return s; if(/^[a-z0-9][a-z0-9._\/-]*$/i.test(s) && !s.includes('..')) return s; if(/^data:image\/svg\+xml[,;]/i.test(s)) return s; return ''; };
@@ -35,7 +35,7 @@ const LIDER = { capoeira:"Mestre", jiujitsu:"Professor", judo:"Sensei", karate:"
 
 const qs = new URLSearchParams(location.search);
 const tpl = TEMPLATES[qs.get('tpl')] && TEMPLATES[qs.get('tpl')].modulo ? qs.get('tpl') : 'horizons';
-const mod = qs.get('mod') || (tpl === 'luva' ? 'boxe' : tpl === 'escudo' ? 'kravmaga' : tpl === 'mongkon' ? 'muaythai' : tpl === 'ginga' ? 'capoeira' : tpl === 'dobok' ? 'taekwondo' : tpl === 'guarda' ? 'jiujitsu' : 'karate');
+const mod = qs.get('mod') || (tpl === 'luva' ? 'boxe' : tpl === 'escudo' ? 'kravmaga' : tpl === 'mongkon' ? 'muaythai' : tpl === 'ginga' ? 'capoeira' : tpl === 'dobok' ? 'taekwondo' : tpl === 'guarda' ? 'jiujitsu' : tpl === 'ippon' ? 'judo' : 'karate');
 const P = (id, w=1200, h=null) => `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=${w}${h?`&h=${h}&fit=crop`:''}`;
 
 // Logo da Equipe Horizons (sol no horizonte) como se fosse o logo cadastrado pela escola.
@@ -62,7 +62,7 @@ const CORES = {
   karate:{ principal:'#e4432e', destaque:'#131313', botao:'#e4432e' },
   capoeira:{ principal:'#1f7a4d', destaque:'#f2b705', botao:'#f2b705' },
   jiujitsu:{ principal:'#16161b', destaque:'#6d28d9', botao:'#6d28d9' },
-  judo:{ principal:'#123a7a', destaque:'#c8102e', botao:'#c8102e' },
+  judo:{ principal:'#0f1b38', destaque:'#e6c75a', botao:'#c8102e' },
   taekwondo:{ principal:'#0e2a66', destaque:'#e1262d', botao:'#e1262d' },
   muaythai:{ principal:'#8a1c1c', destaque:'#c8912e', botao:'#c8912e' },
   boxe:{ principal:'#131313', destaque:'#d4a017', botao:'#d4a017' },
@@ -201,6 +201,35 @@ if (tpl === 'guarda') {
   SEC.onde = { lista: [{ nome:'Sede Centro', endereco:'Rua dos Horizontes, 1200 — Campo Grande', whatsapp:'67999990001' }, { nome:'Norte', endereco:'Av. Norte, 450 — Vila Norte', whatsapp:'67999990002' }, { nome:'Lagoa', endereco:'Rua da Lagoa, 77 — Lagoa', whatsapp:'67999990003' }] };
   SEC.contato = { whatsapp:'67999990000', email:'contato@equipehorizons.com.br', youtube:'https://www.youtube.com/', parceiros: [{ nome:'Fisio Vida' }, { nome:'Açaí do Tatame' }, { nome:'Nutri+' }, { nome:'Clube MS' }] };
   if (bjj) SEC.programas = { itens: [{ titulo:'Jiu-jitsu com kimono', texto:'Fundamentos, pegadas e a base de cada graduação.', foto:PJ(15545733) }, { titulo:'No-gi', texto:'Ritmo, wrestling e finalizações sem pegada no pano.', foto:PJ(35030410) }, { titulo:'Kids', texto:'Coordenação, confiança e respeito, com graus por etapa.', foto:PJ(7988779) }, { titulo:'Feminino', texto:'Turma só de mulheres, do básico à competição.', foto:PJ(38732383) }] };
+}
+
+if (tpl === 'ippon') {
+  const jd = mod === 'judo';
+  const fx = (ESCADA[mod] || ESCADA.karate);
+  SEC.resultados = { itens: [
+    { dia:'30', mes:'10', atleta:'Marina Lopes', judogi:'azul', categoria: jd ? '-57 kg' : 'Adulto', adversario:'Júlia Rocha', equipeAdv:'Clube Leste', resultado: jd ? 'ippon' : 'decisao', tecnica: jd ? 'Uchi-mata · final' : 'Final', shidos:'0' },
+    { dia:'30', mes:'10', atleta:'Rafael Costa', judogi:'branco', categoria: jd ? '-73 kg' : 'Adulto', adversario:'Diego Alves', equipeAdv:'Associação Sul', resultado: jd ? 'waza-ari' : 'decisao', tecnica: jd ? 'Seoi-nage · semifinal' : 'Semifinal', shidos:'1' } ] };
+  SEC.videos = { itens: [
+    { titulo: jd ? 'Ippon de uchi-mata no estadual' : 'Final do estadual', categoria:'Competição', link:'https://www.youtube.com/' },
+    { titulo: jd ? 'Seoi-nage passo a passo' : 'Técnica passo a passo', categoria:'Técnica', link:'https://www.youtube.com/' },
+    { titulo:'Treino aberto de sábado', categoria:'Treino', link:'https://www.youtube.com/' },
+    { titulo:'Exame de graduação', categoria:'Exame', link:'https://www.youtube.com/' },
+    { titulo:'Dica do professor', categoria:'Dica', link:'https://www.youtube.com/' } ] };
+  SEC.formando = { numeros: [{ valor:'6', rotulo: jd ? 'Senseis' : 'Professores' }, { valor:'48', rotulo:'Medalhas em 2026' }] };
+  if (jd) SEC.graduacao = { itens: [{ grau:'7º kyu' }, { grau:'—' }, { grau:'6º kyu' }, { grau:'5º kyu' }, { grau:'4º kyu' }, { grau:'3º kyu' }, { grau:'2º kyu' }, { grau:'1º kyu' }, { grau:'1º dan' }] };
+  SEC.horarios = { itens: HOR.map((x) => ({ dia:x.dia, horario:x.horario.split('–')[0], aula:x.aula, local:x.local, tipo: x.publico === 'Infantil' ? 'infantil' : (x.publico === 'Avançado' ? 'competicao' : 'adulto') })) };
+  SEC.nucleos = { lista: [{ nome:'Sede Centro', endereco:'Rua dos Horizontes, 1200 — Jardim dos Estados', whatsapp:'67999990001' }, { nome:'Norte', endereco:'Av. Norte, 450 — Vila Norte', whatsapp:'67999990002' }, { nome:'Lagoa', endereco:'Rua da Lagoa, 77 — Lagoa', whatsapp:'67999990003' }] };
+  SEC.judoca = { nome:'Marina Lopes', grau: jd ? '1º' : '', texto:(jd ? 'Judoca do mês · faixa preta · -57 kg' : 'Atleta do mês · ' + fx[fx.length - 1].nome), foto:B.eq[1],
+    barras: jd ? [{ rotulo:'Ippons', valor:'62' }, { rotulo:'Pegada (kumikata)', valor:'84' }, { rotulo:'Ne-waza', valor:'71' }] : [{ rotulo:'Aproveitamento', valor:'78' }, { rotulo:'Presença nos treinos', valor:'92' }],
+    ano:'2026', lutas:'21', ippons: jd ? '13' : '', medalhas:'5' };
+  SEC.equipe = { itens: [
+    { nome:'Ricardo Nakamura', grau: jd ? '5º' : '', nivel: jd ? 'DAN' : '', funcao:(LIDER[mod] || 'Professor') + ' · fundador', foto:B.eq[0] },
+    { nome:'Ana Beatriz Horta', grau: jd ? '3º' : '', nivel: jd ? 'DAN' : '', funcao:(LIDER[mod] || 'Professora') + ' · infantil', foto:B.eq[1] },
+    { nome:'Caio Ferreira', grau: jd ? '2º' : '', nivel: jd ? 'DAN' : '', funcao:(LIDER[mod] || 'Professor') + ' · competição', foto:B.eq[2] },
+    { nome:'Rafael Costa', grau: jd ? '1º' : '', nivel: jd ? 'KYU' : '', funcao:'Atleta · ' + (jd ? '-73 kg' : 'adulto'), foto: jd ? P(35283723, 700) : B.treino[3] },
+    { nome:'Bia Santos', grau: jd ? '2º' : '', nivel: jd ? 'KYU' : '', funcao:'Atleta · ' + (jd ? '-52 kg' : 'adulto'), foto: jd ? P(6765025, 700) : B.treino[4] } ] };
+  SEC.redes = { hashtag:'#EquipeHorizons', instagramN:'18', youtube:'https://www.youtube.com/', youtubeN:'6', facebook:'https://www.facebook.com/', facebookN:'9', tiktok:'https://www.tiktok.com/', tiktokN:'3' };
+  SEC.contato = { whatsapp:'67999990000', email:'contato@equipehorizons.com.br', parceiros: [{ nome:'Fisio Vida' }, { nome:'Nutri+' }, { nome:'Clube MS' }, { nome:'Arena Sports' }, { nome:'Ótica Visão' }] };
 }
 
 // Ginga (clone do site da Liberdade): cordões com 3 cores, núcleos completos, loja, parceiro e agenda do app.
