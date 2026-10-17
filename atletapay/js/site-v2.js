@@ -1,4 +1,6 @@
-/* site-v2.js — atletapay.com.br v2 "Arena" (11/10/2026). Sem Firebase, sem coleta de dados.
+/* site-v2.js — atletapay.com.br v3 (17/10/2026; base v2 "Arena", 11/10/2026). Sem Firebase, sem coleta de dados.
+- v3: carrega também /app/js/site-loja.js e /app/js/site-templates.js e entrega tudo ao site-v3.js
+  (vitrine dos modelos de site, escada inteira e loja oficial), que reage ao chip "Qual é a sua arte?".
 
 - Vídeo do herói: só baixa depois do `load`; não toca sozinho com movimento reduzido ou economia
   de dados; pausa fora da tela; botão de pausa lembrado no aparelho.
@@ -9,7 +11,7 @@
 - Graduação interativa com a faixa desenhada pelo mesmo código do app (faixaSVG).
 - Simulador com o preço oficial (js/catalogo.js).
 - Movimento: entradas só para o que está abaixo da dobra quando o JS roda; sem JS tudo aparece. */
-import { valorDoMes, brl, slugDe } from './catalogo.js?v=20261011';
+import { valorDoMes, brl, slugDe } from './catalogo.js?v=20261017';
 
 document.documentElement.classList.add('js');
 
@@ -213,13 +215,14 @@ const ehFem = (p) => ['faixa', 'corda', 'graduação'].includes(p);
 const maiuscula = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 
 async function carregarApp() {
-  const [mod, esc, fx, br] = await Promise.all([
+  const [mod, esc, fx, br, loja, tpls, v3] = await Promise.all([
     import('/app/js/modalidades.js'), import('/app/js/escola.js'), import('/app/js/faixas.js'), import('/app/js/brasoes.js'),
+    import('/app/js/site-loja.js'), import('/app/js/site-templates.js'), import('./site-v3.js?v=20261017'),
   ]);
-  return { mod, esc, fx, br };
+  return { mod, esc, fx, br, loja, tpls, v3 };
 }
 
-new Promise((r) => (window.requestIdleCallback ? requestIdleCallback(r, { timeout: 1500 }) : setTimeout(r, 300))).then(carregarApp).then(({ mod, esc, fx, br }) => {
+new Promise((r) => (window.requestIdleCallback ? requestIdleCallback(r, { timeout: 1500 }) : setTimeout(r, 300))).then(carregarApp).then(({ mod, esc, fx, br, loja, tpls, v3 }) => {
   const estado = { arte: 'jiujitsu', escolhida: false, infantil: false, idx: 1, graus: 0, vermelhos: 0 };
   const escadaDe = (arte) => (arte === 'capoeira' ? esc.ESCADA_CAPOEIRA : mod.escadaPadrao(arte));
   const termos = (arte) => {
@@ -264,6 +267,7 @@ new Promise((r) => (window.requestIdleCallback ? requestIdleCallback(r, { timeou
     btInfantil.setAttribute('aria-disabled', String(!temKids));
     btAdulto.setAttribute('aria-pressed', String(!estado.infantil));
     btInfantil.setAttribute('aria-pressed', String(estado.infantil));
+    if (v3) v3.escada();
   }
   $('#addGrau').addEventListener('click', () => {
     const g = listaAtual()[estado.idx]; const max = Number(g.graus) || 0; const t = termos(estado.arte);
@@ -347,7 +351,7 @@ new Promise((r) => (window.requestIdleCallback ? requestIdleCallback(r, { timeou
       const b = document.createElement('b'); b.textContent = `${t.saudacao}!`;
       frase.append(b, document.createTextNode(` Pronto: a página agora fala ${t.arte === 'MMA' ? 'MMA' : t.arte.toLowerCase()} — ${plural(t.peca)}, ${t.local}, ${t.luta}. Role e veja a sua escola.`));
       elAviso.textContent = '';
-      aplicarTextos(); desenharFaixa(true); desenharBrasoes();
+      aplicarTextos(); desenharFaixa(true); desenharBrasoes(); v3.arte();
       gravarLocal('ap.arte', arte);
       const marca = $('.marca'); if (marca) { marca.classList.add('acende'); setTimeout(() => marca.classList.remove('acende'), 900); }
     };
@@ -356,6 +360,7 @@ new Promise((r) => (window.requestIdleCallback ? requestIdleCallback(r, { timeou
   chips.forEach((c) => c.addEventListener('click', () => escolher(c.dataset.arte)));
 
   aplicarTextos(); desenharFaixa(); desenharBrasoes();
+  try { v3.init({ mod, esc, fx, br, loja, tpls, estado, termos, escadaDe, listaAtual, desenharFaixa }); } catch (e) { console.warn('AtletaPay: site-v3', e); }
   const lembrada = lerLocal('ap.arte');
   if (lembrada && CORES_ARTE[lembrada]) escolher(lembrada);
 }).catch((e) => {

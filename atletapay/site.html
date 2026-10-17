@@ -1,4 +1,6 @@
-<!-- index.html — atletapay.com.br v2 "Arena" (11/10/2026).
+<!-- index.html — atletapay.com.br v3 "Arena + modelos de site" (17/10/2026). Base v2 "Arena" (11/10/2026).
+v3: vitrine dos 8 modelos de site (prints em assets/site/tpl, registro em /app/js/site-templates.js), escada inteira
+desenhada pelo app e loja oficial (js/site-v3.js). Tudo acompanha o chip "Qual é a sua arte?".
 Landing da plataforma: vídeo dos 4 lutadores no herói, "Qual é a sua arte?" (12 artes, o site muda de língua),
 o app no celular do aluno com o nome da escola, Sem/Com, graduação interativa (faixa real do app, js/faixas.js),
 turmas por arte + Painel do Fundador, brasões reais, campeonato, inclusão, simulador do plano (js/catalogo.js),
@@ -13,7 +15,7 @@ ou urgência inventados (CDC arts. 30/37/38/67; Decreto 7.962/2013). -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#060B16">
 <title>AtletaPay — o tatame é seu. O resto, a gente amarra.</title>
-<meta name="description" content="Site, app, carteirinha, graduação, campeonato e controle de mensalidades. Para capoeira, jiu-jitsu, judô, karatê, taekwondo, muay thai, boxe, MMA e mais. 14 dias grátis, sem cartão.">
+<meta name="description" content="Site da escola com 8 modelos prontos, app, carteirinha, graduação, campeonato, loja e controle de mensalidades. Para capoeira, jiu-jitsu, judô, karatê, taekwondo, muay thai, boxe, MMA e mais. 14 dias grátis, sem cartão.">
 <link rel="icon" type="image/svg+xml" href="assets/marca.svg">
 <link rel="apple-touch-icon" href="assets/marca-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,7 +24,7 @@ ou urgência inventados (CDC arts. 30/37/38/67; Decreto 7.962/2013). -->
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Archivo:wdth,wght@75..100,400..800&family=Sora:wght@800&display=swap"></noscript>
 <link rel="preload" as="image" href="assets/heroi/heroi-poster-960.webp" media="(min-width: 768px)" fetchpriority="high">
 <link rel="preload" as="image" href="assets/heroi/heroi-poster-640.webp" media="(max-width: 767px)" fetchpriority="high">
-<link rel="stylesheet" href="css/site.css?v=20261011">
+<link rel="stylesheet" href="css/site.css?v=20261017">
 <meta property="og:title" content="AtletaPay — o tatame é seu. O resto, a gente amarra.">
 <meta property="og:description" content="Site, app, carteirinha, graduação e campeonato para escolas de artes marciais. Abra o painel de demonstração sem login.">
 <meta property="og:type" content="website">
@@ -41,6 +43,7 @@ ou urgência inventados (CDC arts. 30/37/38/67; Decreto 7.962/2013). -->
       <span>atleta<span class="verde">pay</span></span>
     </a>
     <nav class="nav" aria-label="Principal">
+      <a href="#sites">Sites</a>
       <a href="#celular">O app</a>
       <a href="#graduacao">Graduação</a>
       <a href="#artes">Várias artes</a>
@@ -56,12 +59,13 @@ ou urgência inventados (CDC arts. 30/37/38/67; Decreto 7.962/2013). -->
   <div class="fio" aria-hidden="true"><div class="fio__faixa"></div><div class="fio__ponta"><i></i><i></i><i></i><i></i></div></div>
 </header>
 <nav class="menu" id="menu" aria-label="Menu">
-  <a href="#celular" style="--i:0">O app</a>
-  <a href="#graduacao" style="--i:1">Graduação</a>
-  <a href="#artes" style="--i:2">Várias artes</a>
-  <a href="#dinheiro" style="--i:3">Mensalidade</a>
-  <a href="#preco" style="--i:4">Preço</a>
-  <a href="painel.html" style="--i:5">Entrar</a>
+  <a href="#sites" style="--i:0">Sites</a>
+  <a href="#celular" style="--i:1">O app</a>
+  <a href="#graduacao" style="--i:2">Graduação</a>
+  <a href="#artes" style="--i:3">Várias artes</a>
+  <a href="#dinheiro" style="--i:4">Mensalidade</a>
+  <a href="#preco" style="--i:5">Preço</a>
+  <a href="painel.html" style="--i:6">Entrar</a>
   <a class="btn" href="cadastro.html"><span>Criar minha escola grátis</span><span class="ponta" aria-hidden="true"><i></i><i></i><i></i><i></i></span></a>
 </nav>
 
@@ -120,6 +124,50 @@ ou urgência inventados (CDC arts. 30/37/38/67; Decreto 7.962/2013). -->
         <button type="button" class="chip" data-arte="wrestling" aria-pressed="false"><span class="dot" style="background:#2F6FED"></span>Wrestling</button>
       </div>
       <p class="frase" id="fraseArte" aria-live="polite">Escolha a sua e a página passa a falar a língua do seu tatame.</p>
+      <div class="arte-sites" id="arteSites"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 1b. SITES DA ESCOLA (v3: os 8 pré-builds) ================= -->
+<section class="secao claro" id="sites" aria-labelledby="tituloSites">
+  <div class="wrap" style="display:flex;flex-direction:column;gap:40px">
+    <div style="display:flex;flex-wrap:wrap;gap:28px;align-items:flex-end;justify-content:space-between">
+      <div class="cabeca" style="flex:999 1 520px">
+        <span class="eyebrow" data-entra>Site da escola · 8 modelos prontos · troque quando quiser</span>
+        <h2 id="tituloSites" data-entra style="--d:1">Sua escola no ar. Com um site de verdade.</h2>
+        <p class="lead" data-entra style="--d:2">Escolha o modelo, as cores e o nome: o site nasce com a inscrição online, o app dos alunos e a agenda que sai do painel. Cada modelo foi desenhado para uma arte — e todos funcionam para qualquer uma.</p>
+      </div>
+      <div class="sites__filtro" role="group" aria-label="Filtrar modelos por arte" data-entra style="--d:3">
+        <button type="button" class="chip" data-filtro="todas" aria-pressed="true">Todos</button>
+        <button type="button" class="chip" data-filtro="arte" aria-pressed="false">Para <span data-t="arte">Jiu-jitsu</span></button>
+      </div>
+    </div>
+
+    <div class="sites" data-entra style="--d:2">
+      <div class="sites__destaque">
+        <div class="vitrine chanfro-lg" id="vitrine">
+          <div class="vitrine__barra" aria-hidden="true"><i></i><i></i><i></i>atletapay.com.br/<b id="vitSlug">suaescola</b><span class="live">no ar</span></div>
+          <div class="vitrine__selos" id="vitSelos"></div>
+          <div class="vitrine__tela" id="vitTela" role="img" aria-label="Prévia do modelo de site selecionado"></div>
+        </div>
+        <div class="sites__info" aria-live="polite">
+          <h3><span id="vitNome">Guarda</span><small id="vitPara">Desenhado para jiu-jitsu</small></h3>
+          <p id="vitDesc">Clube claro com faixas e graus: destaques e mural do app, cartões de luta, graduação com faixas desenhadas, horários por dia, equipe em abas, atleta do mês e loja oficial.</p>
+          <div class="tags" id="vitTags"></div>
+          <div class="acoes">
+            <a class="btn" id="vitEscolher" href="cadastro.html"><span>Quero este site</span><span class="ponta" aria-hidden="true"><i></i><i></i><i></i><i></i></span></a>
+            <a class="link-seta" id="vitAbrir" href="/app/vitrine?tpl=guarda&mod=jiujitsu" target="_blank" rel="noopener"><span>Ver em tela cheia, no computador e no celular<span class="sr"> (abre em nova aba)</span></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg></a>
+          </div>
+        </div>
+      </div>
+      <ul class="lista-tpl" id="listaTpl" aria-label="Modelos de site"></ul>
+    </div>
+
+    <div class="sync" data-entra style="--d:3">
+      <div><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/><circle cx="19" cy="17" r="2.5"/></svg><div><strong>Agenda e avisos saem do painel</strong><span>Eventos, horários e comunicados que o professor lança no app aparecem no site sozinhos. O site nunca fica velho.</span></div></div>
+      <div><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h4"/></svg><div><strong>Inscrição e app no mesmo endereço</strong><span>Quem chega pelo site faz a inscrição com foto e já instala o app da escola, com a logo e as cores dela.</span></div></div>
+      <div><svg viewBox="0 0 24 24"><path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.5L12 15.6 7.1 18.2l.9-5.5-4-3.9L9.5 8z"/></svg><div><strong>Um deles já está no ar</strong><span>O modelo Ginga é o site do Grupo Capoeira Liberdade e Expressão, em Campo Grande (MS): <a href="https://liberdadeeexpressao.com.br" target="_blank" rel="noopener">liberdadeeexpressao.com.br</a>.</span></div></div>
     </div>
   </div>
 </section>
@@ -212,7 +260,7 @@ ou urgência inventados (CDC arts. 30/37/38/67; Decreto 7.962/2013). -->
         <button type="button" class="chip" id="verInfantil" aria-pressed="false">Infantil</button>
       </div>
     </div>
-    <div class="grad chanfro-lg" data-entra style="--d:2">
+    <div class="grad chanfro-lg" id="grad" data-entra style="--d:2">
       <div class="grad__topo" aria-live="polite" aria-atomic="true"><span class="grad__nome" id="gradNome">Azul</span><span class="grad__graus" id="gradGraus">0 de 4 graus</span></div>
       <div class="grad__faixa" id="gradFaixa" role="img" aria-label="Faixa azul sem graus"></div>
       <div class="acoes">
@@ -225,6 +273,10 @@ ou urgência inventados (CDC arts. 30/37/38/67; Decreto 7.962/2013). -->
         <div><span>Presença</span><div class="barra"><b style="--v:64%;--d:1"></b></div></div>
         <div><span>Tempo de <span data-t="peca">faixa</span></span><div class="barra"><b style="--v:90%;--d:2"></b></div></div>
       </div>
+    </div>
+    <div data-entra style="--d:3;display:flex;flex-direction:column;gap:16px">
+      <div class="escada__cab"><h3 id="escadaTitulo">A escada inteira</h3><span class="nota">Desenhada pelo mesmo código do app. Toque numa graduação para vê-la em cima.</span></div>
+      <div class="escada" id="escada"></div>
     </div>
     <div class="acoes" data-entra style="--d:3">
       <a class="btn" href="cadastro.html"><span>Montar a escada da minha escola</span><span class="ponta" aria-hidden="true"><i></i><i></i><i></i><i></i></span></a>
@@ -257,6 +309,25 @@ ou urgência inventados (CDC arts. 30/37/38/67; Decreto 7.962/2013). -->
         <div class="janela__barra" aria-hidden="true"><i></i><i></i><i></i>atletapay.com.br/demo/fundador</div>
         <img src="assets/site/demo-fundador.webp" width="1152" height="800" loading="lazy" decoding="async" alt="Painel do Fundador da escola de demonstração: núcleos ativos, check-ins dos últimos 30 dias, pedidos pendentes e alunos ativos">
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 5b. LOJA OFICIAL (v3) ================= -->
+<section class="secao" id="loja" aria-labelledby="tituloLoja" style="background:radial-gradient(60% 70% at 85% 20%,rgba(56,158,146,.18),rgba(4,18,43,0) 70%),var(--c-navy-900)">
+  <div class="wrap" style="display:flex;flex-direction:column;gap:36px">
+    <div style="display:flex;flex-wrap:wrap;gap:28px;align-items:flex-end;justify-content:space-between">
+      <div class="cabeca" style="flex:999 1 520px">
+        <span class="eyebrow" data-entra>Loja oficial · no site e no app</span>
+        <h2 id="tituloLoja" data-entra style="--d:1">A lojinha da escola. Sem estoque, sem maquininha.</h2>
+        <p class="lead" data-entra style="--d:2"><span data-t="PecaMai">Faixa</span>, uniforme, equipamento e camiseta da escola: você cadastra o nome, o preço e o WhatsApp. O aluno pede com um toque, direto do site ou do app. Sem foto? A AtletaPay desenha o produto nas cores da escola.</p>
+      </div>
+      <div class="loja-nota" data-entra style="--d:3"><span class="selo">Pedido pelo WhatsApp</span><span class="selo">Ilustração automática</span><span class="selo">Nas cores da escola</span></div>
+    </div>
+    <div class="loja" id="lojaGrid" data-entra style="--d:2" aria-live="polite"></div>
+    <div style="display:flex;flex-wrap:wrap;gap:14px 28px;align-items:center" data-entra style="--d:3">
+      <a class="btn" href="cadastro.html"><span>Montar a loja da minha escola</span><span class="ponta" aria-hidden="true"><i></i><i></i><i></i><i></i></span></a>
+      <p class="nota">Produtos e preços são exemplos da Academia Horizonte, a escola fictícia da demonstração. Cada escola cadastra os seus.</p>
     </div>
   </div>
 </section>
@@ -363,10 +434,11 @@ ou urgência inventados (CDC arts. 30/37/38/67; Decreto 7.962/2013). -->
       <h2 id="tituloProva" data-entra style="--d:1;font-size:clamp(3rem,1.8rem + 5vw,6rem)">Não acredite no site. <span class="verde">Abra o painel.</span></h2>
       <p class="lead" data-entra style="--d:2">A Academia Horizonte é uma escola fictícia com o painel de verdade. Mexa à vontade; recarregou, voltou ao começo.</p>
     </div>
-    <div class="grade3">
+    <div class="grade4 prova4">
       <a class="card prova chanfro-lg" href="/demo" data-entra><h3>Painel de gestão</h3><span>Alunos, turmas, chamada, graduação, mensalidades.</span><span class="link-seta"><span>Abrir a demonstração</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg></span></a>
       <a class="card prova chanfro-lg" href="/demo/fundador" data-entra style="--d:1"><h3>Painel do Fundador</h3><span>Os números da escola inteira, turma por turma.</span><span class="link-seta"><span>Abrir o Painel do Fundador</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg></span></a>
       <div class="card prova chanfro-lg" data-entra style="--d:2"><h3>Uma escola real no ar</h3><span>Grupo de Capoeira Liberdade e Expressão, Campo Grande (MS) — onde a AtletaPay nasceu e é usada todo dia. Site com domínio próprio e app dos alunos.</span><span class="prova__links"><a class="link-seta" href="https://liberdadeeexpressao.com.br" target="_blank" rel="noopener"><span>Visitar o site<span class="sr"> (abre em nova aba)</span></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg></a><a class="link-seta" href="/liberdadeeexpressao"><span>Abrir o app da escola</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg></a></span></div>
+      <a class="card prova chanfro-lg" href="/app/vitrine" target="_blank" rel="noopener" data-entra style="--d:3"><h3>Vitrine de sites</h3><span>Os 8 modelos em tela cheia, no computador, no tablet e no celular, com o nome e as cores da sua escola.<span class="sr"> (abre em nova aba)</span></span><span class="link-seta"><span>Abrir a vitrine</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg></span></a>
     </div>
   </div>
 </section>
@@ -426,6 +498,7 @@ ou urgência inventados (CDC arts. 30/37/38/67; Decreto 7.962/2013). -->
       <details class="faq"><summary>Preciso instalar alguma coisa?<span aria-hidden="true">+</span></summary><p>Não. O app abre no navegador e se instala na tela inicial do celular.</p></details>
       <details class="faq"><summary>A chamada por reconhecimento facial é obrigatória?<span aria-hidden="true">+</span></summary><p>Não. Também dá para usar o QR da carteirinha ou marcar à mão.</p></details>
       <details class="faq"><summary>O que conta como aluno ativo?<span aria-hidden="true">+</span></summary><p>O aluno com cadastro na situação "Ativo". Quem saiu, trancou ou está inativo não conta. A contagem é automática e você acompanha o valor do mês no painel.</p></details>
+      <details class="faq"><summary>Posso trocar o modelo do site depois?<span aria-hidden="true">+</span></summary><p>Sim. Os modelos ficam disponíveis na aba "Meu site" do painel. Trocar não apaga nada: textos, fotos, horários e loja são os mesmos; muda só o desenho.</p></details>
       <details class="faq"><summary>Já tenho site e domínio. E agora?<span aria-hidden="true">+</span></summary><p>O endereço atletapay.com.br/suaescola vem incluso no plano. Para ter o site no seu domínio (www.suaescola.com.br), o serviço custa R$ 129,99 por ano, já com o registro do domínio .com.br (R$ 40,00/ano) e a hospedagem com HTTPS. Se você já tem um domínio, fale com a equipe pelo contato@atletapay.com.br.</p></details>
       <details class="faq"><summary>Serve para qualquer arte marcial?<span aria-hidden="true">+</span></summary><p>Capoeira, jiu-jitsu, judô, karatê, taekwondo, muay thai, boxe, kickboxing, MMA, kung fu, krav maga e wrestling, cada uma com a sua escada. A sua não está na lista? Você monta a escada no painel.</p></details>
       <details class="faq"><summary>E se eu quiser sair?<span aria-hidden="true">+</span></summary><p>Cancele quando quiser, sem multa, pelo e-mail contato@atletapay.com.br. Certificados e carteirinhas emitidos continuam válidos, e você exporta os dados dos alunos em um clique (LGPD).</p></details>
@@ -457,7 +530,7 @@ ou urgência inventados (CDC arts. 30/37/38/67; Decreto 7.962/2013). -->
       <p>Gestão, cobrança e competição para escolas de artes marciais. Feita no tatame, em Campo Grande — MS.</p>
     </div>
     <div class="rodape__colunas">
-      <nav aria-label="Plataforma"><strong>Plataforma</strong><a href="#celular">O app</a><a href="#graduacao">Graduação</a><a href="#site-escola">Site e domínio</a><a href="#preco">Preço</a><a href="/demo">Demonstração</a></nav>
+      <nav aria-label="Plataforma"><strong>Plataforma</strong><a href="#sites">Modelos de site</a><a href="#celular">O app</a><a href="#graduacao">Graduação</a><a href="#site-escola">Site e domínio</a><a href="#preco">Preço</a><a href="/demo">Demonstração</a></nav>
       <nav aria-label="Conta"><strong>Conta</strong><a href="cadastro.html">Criar escola</a><a href="painel.html">Entrar</a><a href="privacidade.html">Privacidade e termos</a><a href="mailto:contato@atletapay.com.br">contato@atletapay.com.br</a></nav>
     </div>
     <p class="rodape__fim">© 2026 AtletaPay. Todos os direitos reservados.</p>
@@ -469,6 +542,6 @@ ou urgência inventados (CDC arts. 30/37/38/67; Decreto 7.962/2013). -->
   <a class="btn" href="cadastro.html" tabindex="-1"><span>Criar grátis</span><span class="ponta" aria-hidden="true"><i></i><i></i><i></i><i></i></span></a>
 </div>
 
-<script type="module" src="js/site-v2.js?v=20261011"></script>
+<script type="module" src="js/site-v2.js?v=20261017"></script>
 </body>
 </html>
