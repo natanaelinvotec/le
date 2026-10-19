@@ -1,0 +1,98 @@
+/* ======================================================================
+   tema.css — "Céu Claro afinado" (mockup v2 aprovado em 19/10/2026).
+   Carregado por ÚLTIMO em todas as telas do app e do painel. Não cria
+   componente nem muda estrutura: só pesa menos a tipografia, afina as
+   linhas e liga o template do site (html[data-tema], vindo de
+   escolasPublicas.template via js/escola-atual.js) a três coisas —
+   raio dos cartões, gradiente do cartão principal e cor de acento.
+   Mesmas três fontes de sempre (Sora, Manrope, JetBrains Mono), em pesos
+   que as telas ainda não carregavam (Sora 200–500, Mono 300/400).
+   Sem template (escola nº 1 / Arena): tokens padrão = visual atual.
+   ====================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@200;300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;700&display=swap');
+
+:root {
+  --tema-r: var(--radius-xl, 24px);          /* raio dos cartões grandes */
+  --tema-r-md: var(--radius-lg, 20px);
+  --tema-a: var(--primary-blue, #002D72);    /* início do gradiente do cartão principal */
+  --tema-b: var(--primary-teal, #0B5C52);    /* fim do gradiente */
+  --tema-acento: var(--accent-green, #00E676);
+  --tema-fino: 300;                          /* peso dos títulos e números grandes */
+  --fonte-mono-fina: 'JetBrains Mono', ui-monospace, monospace;
+}
+/* Templates do site → ajustes pequenos (cor do cartão principal, raio, acento). Fundo e fontes NÃO mudam. */
+html[data-tema="ginga"]    { --tema-a: #002D72; --tema-b: #0B5C52; --tema-acento: #00E676; --tema-r: 22px; --tema-r-md: 18px; }
+html[data-tema="guarda"]   { --tema-a: #111116; --tema-b: #2a2a36; --tema-acento: #6d28d9; --tema-r: 16px; --tema-r-md: 14px; }
+html[data-tema="ippon"]    { --tema-a: #141a2c; --tema-b: #0a0f1e; --tema-acento: #e6c75a; --tema-r: 12px; --tema-r-md: 10px; }
+html[data-tema="dobok"]    { --tema-a: #0e2a66; --tema-b: #081a42; --tema-acento: #e1262d; --tema-r: 10px; --tema-r-md: 8px; }
+html[data-tema="luva"]     { --tema-a: #141414; --tema-b: #0b0b0b; --tema-acento: #f5b301; --tema-r: 6px;  --tema-r-md: 4px; }
+html[data-tema="mongkon"]  { --tema-a: #17140f; --tema-b: #0f0d0b; --tema-acento: #d4af37; --tema-r: 26px; --tema-r-md: 22px; }
+html[data-tema="escudo"]   { --tema-a: #0b1f3f; --tema-b: #071634; --tema-acento: #ffc400; --tema-r: 10px; --tema-r-md: 8px; }
+html[data-tema="horizons"] { --tema-a: #131313; --tema-b: #2a2a2a; --tema-r: 22px; --tema-r-md: 18px; }
+
+/* ---------- tipografia fina (painel, Rede, carteirinha, campeonatos, certificados, gerenciar) ---------- */
+h1, h2 { font-weight: var(--tema-fino) !important; letter-spacing: -0.02em; }
+h3 { font-weight: 500 !important; letter-spacing: -0.01em; }
+.secao-titulo, .section-header h2, .chart-titulo, .faq-titulo { font-weight: var(--tema-fino) !important; letter-spacing: -0.02em; }
+.eyebrow, .nav-grupo { font-weight: 600 !important; letter-spacing: 0.2em !important; }
+.nav-grupo { font-size: 0.62rem !important; color: var(--text-soft, #5f7079) !important; padding-top: 14px; }
+
+/* Números que se comparam: Mono leve, grandes. */
+.kpi-valor, .kpi-valor.mono, .financeiro-resumo strong, .presenca-stat-valor, .ec-numeros b, .valor b, .kpi-num, .stat-valor {
+  font-family: var(--fonte-mono-fina) !important; font-weight: var(--tema-fino) !important; letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums; font-size: 2rem; line-height: 1;
+}
+.kpi-tile i { color: var(--text-soft, #5f7079); }
+.kpi-tile small, .kpi-rotulo, .kpi-label { font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; font-size: 0.62rem; color: var(--text-soft, #5f7079); }
+
+/* Linhas de 1px no lugar de bordas pesadas; sombra quase invisível; raio do template. */
+.card-padrao, .kpi-tile, .chart-box, .cartao, .lista-simples > li, .card {
+  border-width: 1px !important; border-color: var(--border-color, #E8EEF4) !important;
+  box-shadow: 0 1px 2px rgba(13,33,29,.04), 0 8px 24px -16px rgba(13,33,29,.18) !important;
+}
+.card-padrao, .chart-box, .cartao { border-radius: var(--tema-r) !important; }
+.kpi-tile, .card { border-radius: var(--tema-r-md) !important; }
+
+/* Um cartão de destaque por tela: o navy vira o gradiente do template. */
+.card-navy, .hero-fundador-card, .card-destaque, .cartao-navy {
+  background-image: linear-gradient(135deg, var(--tema-a), var(--tema-b)) !important;
+}
+.card-navy .kpi-valor, .card-navy strong, .hero-fundador-card .kpi-valor { color: var(--tema-acento) !important; }
+.card-navy { border-radius: var(--tema-r) !important; }
+
+/* Pílulas e botões secundários: 1px, sem peso. */
+.pill, .btn-detalhes, .btn-mini, .chip { font-weight: 600 !important; letter-spacing: 0.04em; }
+.btn-detalhes.btn-soft, .btn-mini { border: 1px solid var(--border-color, #E8EEF4) !important; background: #fff !important; }
+
+/* Login: título fino, eyebrow tracking. */
+.header-login h2 { font-weight: var(--tema-fino) !important; font-size: 1.9rem !important; letter-spacing: -0.02em; }
+.login-container { border-radius: var(--tema-r) !important; }
+
+/* ---------- app do aluno (app.html é exportado com estilos inline: sobrepor por atributo) ---------- */
+/* nomes e títulos em Sora 800 → 500 (o peso vira hierarquia pelo tamanho, não pela gordura) */
+[data-tela] [style*="Sora"][style*="font-weight:800"],
+[data-tela] [style*="Sora"][style*="font-weight: 800"] { font-weight: 500 !important; letter-spacing: -0.01em; }
+/* h2 de seção dentro do app */
+[data-tela] h2[style*="Sora"] { font-weight: 400 !important; letter-spacing: -0.01em; }
+/* rótulos em Manrope 800 → 600 */
+[data-tela] [style*="font-weight:800"]:not([style*="Sora"]):not([style*="JetBrains"]),
+[data-tela] [style*="font-weight: 800"]:not([style*="Sora"]):not([style*="JetBrains"]) { font-weight: 600 !important; }
+/* o número do termômetro: Mono leve e grande */
+[data-tela] span[style*="Sora"][style*="font-size:1.4rem"] {
+  font-family: var(--fonte-mono-fina) !important; font-weight: var(--tema-fino) !important; font-size: 2.1rem !important; letter-spacing: -0.03em; line-height: 1;
+}
+/* percentuais pequenos em mono: peso médio, não negrito */
+[data-tela] [style*="JetBrains"][style*="font-weight:700"],
+[data-tela] [style*="JetBrains"][style*="font-weight: 700"] { font-weight: 500 !important; }
+/* cartões brancos do app: raio do template, borda fina */
+[data-tela] [style*="background:#fff"][style*="border:1px solid #E2E8E6"] { border-radius: var(--tema-r-md) !important; border-color: #E8EEF4 !important; }
+/* cartão principal (hero) e barra inferior: gradiente do template (sem template = navy→teal atual) */
+[data-dc-tpl="58"], [data-dc-tpl="378"] { background-image: linear-gradient(158deg, var(--tema-a) 0%, var(--tema-b) 100%) !important; }
+/* eyebrows do app em caixa alta: tracking e peso 600 */
+[data-tela] [style*="letter-spacing:.18em"], [data-tela] [style*="letter-spacing:.16em"] { font-weight: 600 !important; }
+
+/* Acento do template só onde já é verde-acento (barras de progresso, selos). */
+[data-tema]:not([data-tema="arena"]) [style*="background:#00E676"],
+[data-tema]:not([data-tema="arena"]) [style*="background: #00E676"] { background: var(--tema-acento) !important; }
+
+@media (prefers-reduced-motion: reduce) { * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }

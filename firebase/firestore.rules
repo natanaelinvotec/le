@@ -227,6 +227,37 @@ request.resource.data.status == 'pendente' && (
 allow update, delete: if false;
 }
 
+// Projeto Agentes (etapa 1): pedido "Gerar textos com IA" da aba Meu site. Só o Admin Master da
+// própria escola (claim escolaId) ou a plataforma cria, e só no formato que o servidor atende
+// (functions/src/ia-site.js); o autor lê o resultado (rascunho — nunca é publicado por aqui);
+// ninguém edita nem apaga pelo app. Dados de aluno não entram no pedido: só as 4 respostas.
+match /pedidosIA/{id} {
+function respostasOk(r) {
+return r is map && r.keys().hasOnly(['historia', 'diferencial', 'publico', 'tom', 'observacoes'])
+&& r.get('historia', '') is string && r.get('historia', '').size() <= 600
+&& r.get('diferencial', '') is string && r.get('diferencial', '').size() <= 600
+&& r.get('publico', '') is string && r.get('publico', '').size() <= 600
+&& r.get('observacoes', '') is string && r.get('observacoes', '').size() <= 600
+&& r.get('tom', '') in ['', 'acolhedor', 'tradicional', 'energico', 'profissional'];
+}
+function pedidoOk() {
+return request.resource.data.keys().hasOnly(['tipo', 'escolaId', 'template', 'respostas', 'porUid', 'status', 'criadoEm'])
+&& request.resource.data.tipo == 'textosSite' && request.resource.data.status == 'pendente'
+&& request.resource.data.porUid == request.auth.uid
+&& request.resource.data.escolaId is string && request.resource.data.escolaId.matches('^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$')
+&& request.resource.data.get('template', '') is string && request.resource.data.get('template', '').size() <= 20
+&& request.resource.data.get('criadoEm', '') is string && request.resource.data.get('criadoEm', '').size() <= 40
+&& respostasOk(request.resource.data.get('respostas', {}));
+}
+allow read: if logado() && (resource.data.porUid == request.auth.uid || ehPlataforma());
+allow create: if pedidoOk() && (ehPlataforma() || adminDa(request.resource.data.escolaId));
+allow update, delete: if false;
+}
+// Cota diária da IA (contadoresIA/{id}): só o servidor.
+match /contadoresIA/{id} {
+allow read, write: if false;
+}
+
 // Registro de auditoria (quem fez o quê). Só o servidor grava; ninguém edita.
 match /auditoria/{id} {
 allow read: if ehPlataforma() || fundadorDa(resource.data.escolaId);

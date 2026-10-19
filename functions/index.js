@@ -8,6 +8,7 @@ import {
   onDocumentWrittenWithAuthContext, onDocumentCreatedWithAuthContext, onDocumentCreated, onDocumentUpdated,
 } from 'firebase-functions/v2/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
+import { defineSecret } from 'firebase-functions/params';
 import { initializeApp, applicationDefault } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
@@ -24,6 +25,7 @@ import { comEscola, aoEscreverEscola, aoEscreverNucleoPublico } from './src/esco
 import { aoAtivarEscola } from './src/ativacao.js';
 import { atenderPedidoEmail, aoEscreverSegredo } from './src/emails.js';
 import { otimizarImagens } from './src/imagens.js';
+import { atenderPedidoIA } from './src/ia-site.js';
 
 // Região: a mesma do banco (o GitHub Actions descobre e grava em .env como REGIAO).
 setGlobalOptions({ region: process.env.REGIAO || 'southamerica-east1', maxInstances: 5, memory: '256MiB' });
@@ -114,6 +116,18 @@ export const segredoEscrito = onDocumentWrittenWithAuthContext('segredos/{id}', 
 // app não precisa saber em que região as funções estão.
 export const comandoCriado = onDocumentCreatedWithAuthContext({ document: 'comandos/{id}', timeoutSeconds: 540, memory: '512MiB' },
   seguro('comando', (e) => executarComando(ctxBase(), { ...evCriado(e), authId: e.authId || null, authType: e.authType || null })));
+
+// ---------- Projeto Agentes, etapa 1: "Gerar textos com IA" (aba Meu site) ----------
+// O Admin da escola grava um pedido em pedidosIA/{id}; o servidor confere o papel, aplica a cota
+// do dia, chama a API da Anthropic com o schema do template e devolve o RASCUNHO no pedido
+// (nada é publicado). A chave fica no Secret Manager (ANTHROPIC_API_KEY). O GitHub Actions só
+// liga a função ao segredo (IA_SITE=1 em functions/.env) quando o segredo já existe no projeto —
+// assim o deploy nunca quebra por falta dele; sem a chave, o pedido termina com um aviso claro.
+const IA_LIGADA = process.env.IA_SITE === '1';
+const CHAVE_ANTHROPIC = IA_LIGADA ? defineSecret('ANTHROPIC_API_KEY') : null;
+export const pedidoIACriado = onDocumentCreatedWithAuthContext({ document: 'pedidosIA/{id}', timeoutSeconds: 120, memory: '512MiB', secrets: CHAVE_ANTHROPIC ? [CHAVE_ANTHROPIC] : [] },
+  seguro('pedidoIA', (e) => atenderPedidoIA(ctxBase(), { ...evCriado(e), authId: e.authId || null, authType: e.authType || null },
+    { chave: CHAVE_ANTHROPIC ? CHAVE_ANTHROPIC.value() : '' })));
 
 // Regra única de imagens: reduz as fotos já enviadas (e as de versões antigas do app),
 // pasta por pasta, sem trocar os links. Continua de onde parou a cada 6 horas.

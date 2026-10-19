@@ -289,6 +289,34 @@ test('LGPD e coleções antigas', async () => {
   await assertFails(addDoc(collection(db('admin'), 'comandos'), { tipo: 'excluirConta', uid: 'nat', porUid: 'outro', status: 'pendente' }));
 });
 
+// ---------- Projeto Agentes (etapa 1): pedidos de textos do site por IA ----------
+test('IA do site: só o Admin da própria escola (ou a plataforma) pede, no formato exato; autor lê; ninguém edita', async () => {
+  const pedido = { tipo: 'textosSite', escolaId: 'liberdade', template: 'ginga', respostas: { historia: 'Fundada pelo Mestre.', tom: 'acolhedor' }, porUid: 'admin', status: 'pendente', criadoEm: AGORA };
+  await assertSucceeds(setDoc(doc(db('admin'), 'pedidosIA', 'ok1'), pedido));
+  await assertSucceeds(setDoc(doc(db('admin'), 'pedidosIA', 'ok2'), { ...pedido, respostas: {} }), 'sem respostas também vale');
+  await assertSucceeds(setDoc(doc(plat(), 'pedidosIA', 'ok3'), { ...pedido, escolaId: 'gracie-cg', porUid: 'plat' }), 'plataforma pede para qualquer escola');
+  await assertFails(setDoc(doc(db('tay'), 'pedidosIA', 'x1'), { ...pedido, porUid: 'tay' }), 'Mestre não é Admin');
+  await assertFails(setDoc(doc(db('rafa', { escolaId: 'gracie-cg' }), 'pedidosIA', 'x2'), { ...pedido, porUid: 'rafa' }), 'Fundador de outra escola não');
+  await assertFails(setDoc(doc(db('admin'), 'pedidosIA', 'x3'), { ...pedido, escolaId: 'gracie-cg' }), 'Admin não pede para OUTRA escola');
+  await assertFails(setDoc(doc(db('admin'), 'pedidosIA', 'x4'), { ...pedido, porUid: 'outro' }), 'porUid é quem grava');
+  await assertFails(setDoc(doc(db('admin'), 'pedidosIA', 'x5'), { ...pedido, status: 'ok', secoes: { topo: { titulo: 'x' } } }), 'não se cria já "pronto"');
+  await assertFails(setDoc(doc(db('admin'), 'pedidosIA', 'x6'), { ...pedido, respostas: { historia: 'h', alunos: 'João, Maria' } }), 'só as 4 perguntas; nada de aluno');
+  await assertFails(setDoc(doc(db('admin'), 'pedidosIA', 'x7'), { ...pedido, respostas: { historia: 'h'.repeat(601) } }), 'resposta longa demais');
+  await assertFails(setDoc(doc(db('admin'), 'pedidosIA', 'x8'), { ...pedido, respostas: { tom: 'gritando' } }), 'tom fora da lista');
+  await assertFails(setDoc(doc(db('admin'), 'pedidosIA', 'x9'), { ...pedido, tipo: 'apagarTudo' }), 'só textosSite');
+  await assertFails(setDoc(doc(db(null), 'pedidosIA', 'x10'), pedido), 'anônimo não');
+  // Leitura: só o autor (e a plataforma); edição/remoção: ninguém pelo app (o servidor responde no mesmo documento)
+  await assertSucceeds(getDoc(doc(db('admin'), 'pedidosIA', 'ok1')));
+  await assertSucceeds(getDoc(doc(plat(), 'pedidosIA', 'ok1')));
+  await assertFails(getDoc(doc(db('tay'), 'pedidosIA', 'ok1')));
+  await assertFails(getDoc(doc(db('rafa', { escolaId: 'gracie-cg' }), 'pedidosIA', 'ok1')));
+  await assertFails(updateDoc(doc(db('admin'), 'pedidosIA', 'ok1'), { status: 'ok', secoes: { topo: { titulo: 'x' } } }));
+  await assertFails(deleteDoc(doc(db('admin'), 'pedidosIA', 'ok1')));
+  await assertFails(deleteDoc(doc(plat(), 'pedidosIA', 'ok1')));
+  await assertFails(getDoc(doc(plat(), 'contadoresIA', 'site_liberdade')));
+  await assertFails(setDoc(doc(plat(), 'contadoresIA', 'site_liberdade'), { dia: '2026-01-01', n: 0 }));
+});
+
 // ---------- Carteirinha virtual ----------
 const BUCKET = 'atletapay-br.firebasestorage.app'; // links do Storage presos ao bucket do projeto (auditoria 08/10)
 const urlFoto = (uid, arq = '1.jpg', bucket = BUCKET) => `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/carteirinha%2F${uid}%2F${arq}?alt=media&token=t`;

@@ -169,6 +169,10 @@ export function termosDe(cfg = {}) {
 // Aplica as cores da escola nas variáveis CSS da página (quando a tela quiser).
 export function aplicarCores(cfg, raiz = document.documentElement) {
   const c = (cfg && cfg.cores) || {};
+  // Template do site (escolasPublicas.template) → html[data-tema]: css/tema.css ajusta raio, gradiente
+  // do cartão principal e acento. Id curto e alfabético; sem template fica 'arena' (visual padrão).
+  const tpl = String((cfg && cfg.template) || '').toLowerCase();
+  raiz.dataset.tema = /^[a-z]{3,20}$/.test(tpl) ? tpl : 'arena';
   const mapa = { teal: '--primary-teal', navy: '--primary-blue', verde: '--accent-green', fundo: '--bg-app' };
   Object.entries(mapa).forEach(([k, v]) => { if (/^#[0-9a-f]{6}$/i.test(String(c[k] || ''))) raiz.style.setProperty(v, c[k]); });
   // Botão principal das telas sem login (Entrar): cor da escola, não o verde da escola nº 1.

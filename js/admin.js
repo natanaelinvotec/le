@@ -907,7 +907,7 @@ async function abrirMeuSite() {
 const alvo = document.getElementById('meuSite');
 if (!alvo) return;
 try {
-const mod = await import('./site-gerenciar.js?v=20261016');
+const mod = await import('./site-gerenciar.js?v=20261019');
 await mod.montarMeuSite(alvo);
 } catch (e) {
 console.error(e);
