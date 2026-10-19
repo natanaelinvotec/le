@@ -47,7 +47,7 @@ jobs:
           distribution: temurin
           java-version: 21
       - name: Copiar os módulos que o app e o servidor compartilham
-        run: cp js/brasoes.js js/escola.js js/moderacao.js js/campeonato-motor.js functions/src/compartilhado/
+        run: cp js/brasoes.js js/escola.js js/moderacao.js js/campeonato-motor.js js/site-templates.js js/site-loja.js js/site-agenda.js js/site-tpl-*.js functions/src/compartilhado/
       - name: Testes da lógica das funções
         working-directory: functions
         run: node --test test/logica.test.mjs
@@ -69,7 +69,7 @@ jobs:
         with:
           node-version: 22
       - name: Copiar os módulos que o app e o servidor compartilham
-        run: cp js/brasoes.js js/escola.js js/moderacao.js js/campeonato-motor.js functions/src/compartilhado/
+        run: cp js/brasoes.js js/escola.js js/moderacao.js js/campeonato-motor.js js/site-templates.js js/site-loja.js js/site-agenda.js js/site-tpl-*.js functions/src/compartilhado/
       - name: Entrar no Google Cloud com a conta de serviço
         uses: google-github-actions/auth@v3
         with:
@@ -89,8 +89,17 @@ jobs:
         run: |
           gcloud services enable vision.googleapis.com cloudfunctions.googleapis.com run.googleapis.com \
             eventarc.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com \
-            cloudscheduler.googleapis.com pubsub.googleapis.com firebaserules.googleapis.com \
+            cloudscheduler.googleapis.com pubsub.googleapis.com firebaserules.googleapis.com secretmanager.googleapis.com \
             firebasestorage.googleapis.com fcm.googleapis.com --project "$PROJETO"
+      - name: IA do site (Projeto Agentes) — liga só se o segredo ANTHROPIC_API_KEY já existir
+        run: |
+          if gcloud secrets describe ANTHROPIC_API_KEY --project "$PROJETO" >/dev/null 2>&1; then
+            echo "IA_SITE=1" >> functions/.env
+            echo "Segredo ANTHROPIC_API_KEY encontrado: 'Gerar textos com IA' ligado."
+          else
+            echo "Sem o segredo ANTHROPIC_API_KEY no Secret Manager: as funções publicam normalmente e o botão avisa que a IA não está ligada."
+            echo "Para ligar: Console → Secret Manager → criar 'ANTHROPIC_API_KEY' (ou: firebase functions:secrets:set ANTHROPIC_API_KEY) e rodar este workflow de novo."
+          fi
       - name: Instalar dependências
         run: |
           npm install -g firebase-tools --no-audit --no-fund
