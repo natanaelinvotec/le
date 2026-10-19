@@ -30,6 +30,7 @@
 /*  Contrato da biblioteca (site-templates.js): meta + schema                  */
 /* ========================================================================== */
 import { SECAO_LOJA, produtosLoja, ilustracao, linkCompra } from './site-loja.js';
+import { SECAO_AGENDA, eventosDoApp, avisosDoApp } from './site-agenda.js';
 
 export var meta = {
   nome: 'Horizons',
@@ -72,6 +73,7 @@ export var schema = { secoes: [
       { c:'titulo', r:'Título', max:40 }, { c:'texto', r:'Descrição', t:'area', max:160 }, { c:'foto', r:'Foto', t:'foto' } ] } ] },
   { id:'nucleos', r:'Núcleos', ajuda:'Os núcleos vêm do cadastro da escola. Aqui só os textos.', campos:[
     { c:'selo', r:'Etiqueta', max:50 }, { c:'titulo', r:'Título', max:40, ph:'Onde treinar' } ] },
+  SECAO_AGENDA([ { c:'selo', r:'Etiqueta', max:50, ph:'Direto do app' } ]),
   SECAO_LOJA([ { c:'selo', r:'Etiqueta', max:50, ph:'Vista a equipe' }, { c:'titulo', r:'Título', max:40, ph:'Loja oficial' } ]),
   { id:'app', r:'App e Rede', campos:[
     { c:'selo', r:'Etiqueta', max:50 }, { c:'titulo', r:'Título', max:40, ph:'A equipe inteira no bolso' },
@@ -412,6 +414,20 @@ function css(t){
 .hz .phone .row .tile svg{width:22px;height:22px;color:var(--acc)}\
 .hz .phone .row .tile span{font-family:var(--display);font-weight:700;font-size:.78rem}\
 \
+.hz .agd-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:var(--m)}\
+.hz .agd-ev{background:var(--white);border-radius:var(--r-lg);padding:clamp(22px,3vw,40px);box-shadow:0 30px 60px -40px rgba(0,0,0,.25)}\
+.hz .agd-av{background:var(--ink);color:var(--cream);border-radius:var(--r-lg);padding:clamp(22px,3vw,40px)}.hz .agd-av .k{color:var(--acc)}\
+.hz .agd ul{list-style:none;margin:18px 0 0;padding:0}\
+.hz .agd li{display:grid;grid-template-columns:64px minmax(0,1fr);gap:18px;align-items:center;padding:14px 0;border-top:1px solid var(--cream-2)}\
+.hz .agd .dt{display:grid;place-items:center;width:64px;height:64px;border-radius:var(--r-md);background:var(--acc);color:var(--acc-ink);font-family:var(--display);line-height:1;text-align:center}\
+.hz .agd .dt b{font-size:1.5rem;display:block;font-weight:800}.hz .agd .dt small{font-size:.6rem;letter-spacing:.18em;display:block;margin-top:2px}\
+.hz .agd .dt.sem{background:var(--cream-2);color:var(--ink)}.hz .agd .dt svg{width:22px;height:22px}\
+.hz .agd li b.t{display:block;color:var(--ink);font-weight:700}.hz .agd li span{color:var(--muted);font-size:.9rem}\
+.hz .agd .av{display:flex;gap:14px;padding:14px 0;border-top:1px solid rgba(255,255,255,.12)}.hz .agd .av:first-of-type{margin-top:16px}\
+.hz .agd .av .ic{width:38px;height:38px;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--acc);color:var(--acc-ink)}.hz .agd .av .ic svg{width:18px;height:18px}\
+.hz .agd .av b{display:block}.hz .agd .av p{margin:4px 0 0;color:rgba(243,240,232,.7);font-size:.9rem;line-height:1.5}.hz .agd .av small{display:block;margin-top:6px;color:var(--acc);font-size:.72rem;letter-spacing:.14em}\
+.hz .agd .sync{display:inline-flex;align-items:center;gap:8px;margin-top:22px;color:var(--muted);font-size:.82rem}.hz .agd .sync i{width:8px;height:8px;border-radius:50%;background:var(--acc)}\
+@media (max-width:760px){.hz .agd-grid{grid-template-columns:1fr}}\
 @media (prefers-reduced-motion:reduce){.hz *,.hz *::before,.hz *::after{animation:none!important;transition:none!important}.hz.js .rv{opacity:1;transform:none}.hz .hero h1 .l span{transform:none}.hz .hero .sub,.hz .hero .cta{opacity:1}.hz .coach .gi h2 span{clip-path:none}.hz.js .card.rv{transform:translateY(-50%)}.hz .phone .therm i{transform:none}}\
 @media (max-width:1100px){.hz .nl{display:none}.hz .nl.open{display:flex;position:absolute;top:calc(100% + 6px);right:clamp(22px,3.4vw,52px);flex-direction:column;align-items:flex-start;gap:16px;background:var(--ink);color:var(--white);padding:22px 26px;border-radius:var(--r-md);box-shadow:0 24px 60px rgba(0,0,0,.4)}\
 .hz .burger{display:inline-flex}}\
@@ -578,6 +594,7 @@ export function renderHorizons(s, h){
     + '<div class="nl" id="hz-nl"><a href="#hz-vertentes">Vertentes</a><a href="#hz-mestres">Equipe</a>'
     + (escada.length ? '<a href="#hz-graduacao">Graduação</a>' : '<a href="#hz-programas">Programas</a>')
     + (nucs.length ? '<a href="#hz-nucleos">Núcleos</a>' : '')
+    + ((eventosDoApp(s, 1).length || avisosDoApp(s, 1).length) ? '<a href="#hz-agenda">Agenda</a>' : '')
     + (produtosLoja(C, 8).length ? '<a href="#hz-loja">Loja</a>' : '')
     + '<a href="#hz-app">App</a><a href="#hz-contato">Contato</a>'
     + '<a class="btn ghost" href="'+esc(login)+'">Área do aluno</a>'
@@ -762,6 +779,19 @@ export function renderHorizons(s, h){
 
   site.className = 'hz';
 
+  // --- AGENDA E AVISOS (só do app; sem dados, a seção não entra) ---
+  var evApp = eventosDoApp(s, 4), avApp = avisosDoApp(s, 3), agenda = '';
+  if(evApp.length || avApp.length){
+    agenda = '<section class="sec w agd" id="hz-agenda"><div class="hd rv"><span class="k">'+esc(cx('agenda', 'selo', 'Direto do app'))+'</span><h2 class="d">'+esc(cx('agenda', 'titulo', 'Agenda e avisos'))+'</h2></div><div class="agd-grid st">'
+      + '<div class="agd-ev rv" style="--i:0"><span class="k">Próximos eventos</span><ul>'+(evApp.length ? evApp.map(function(e){
+          return '<li><span class="dt'+(e.dia ? '' : ' sem')+'">'+(e.dia ? '<b>'+esc(e.dia)+'</b><small>'+esc(e.mes)+'</small>' : I.cal)+'</span><div><b class="t">'+esc(e.titulo)+'</b><span>'+esc([e.local, e.hora].filter(Boolean).join(' · '))+'</span></div></li>';
+        }).join('') : '<li><span class="dt sem">'+I.cal+'</span><div><b class="t">Sem eventos marcados</b><span>Os próximos aparecem aqui assim que forem publicados no app.</span></div></li>')+'</ul>'
+      + '<span class="sync"><i></i>Sincronizado com o app '+esc(s.nomeCurto)+'</span></div>'
+      + '<div class="agd-av rv" style="--i:1"><span class="k">Avisos</span>'+(avApp.length ? avApp.map(function(a){
+          return '<div class="av"><span class="ic">'+'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>'+'</span><div><b>'+esc(a.titulo)+'</b>'+(a.texto ? '<p>'+esc(a.texto)+'</p>' : '')+(a.quando ? '<small>'+esc(a.quando)+'</small>' : '')+'</div></div>';
+        }).join('') : '<div class="av"><span class="ic">'+'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>'+'</span><div><b>Nenhum aviso no momento</b><p>Avisos publicados no app aparecem aqui.</p></div></div>')+'</div></div></section>';
+  }
+
   // --- LOJA OFICIAL (só com produtos; sem foto = desenho pelo nome) ---
   var prods = produtosLoja(C, 8), loja = '';
   var zapLoja = cx('loja', 'whatsapp', '') || cx('contato', 'whatsapp', '');
@@ -774,7 +804,7 @@ export function renderHorizons(s, h){
       + prods.map(function(x, i){ return '<article class="lj rv" style="--i:'+i+'"><div class="lj-ph">'+ljMidia(x)+'</div><div class="lj-tx"><h3 class="d">'+esc(x.nome)+'</h3>'+(x.texto ? '<p>'+esc(x.texto)+'</p>' : '')
         + '<div class="lj-ft">'+(x.preco ? '<b class="d">'+esc(x.preco)+'</b>' : '<span></span>')+ljBotao(x, 'btn', 'Comprar '+I.arrow)+'</div></div></article>'; }).join('')+'</div></section>';
   }
-  site.innerHTML = hero + mq + vertentes + coach + jornada + grad + programas + nucleos + loja + appSec + contato + foot;
+  site.innerHTML = hero + mq + vertentes + coach + jornada + grad + programas + nucleos + agenda + loja + appSec + contato + foot;
   wire(site);
 }
 

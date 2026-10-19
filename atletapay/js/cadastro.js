@@ -1,13 +1,14 @@
 /* cadastro.js — assistente de criação da escola.
 
-Etapas: 1 Conta · 2 Escola · 3 Plano · 4 Logo e fotos · 5 Modelo.
+Etapas: 1 Conta · 2 Escola · 3 Plano · 4 Logo e fotos · 5 Modelo do site (templates reais do app, js/modelos-site.js).
 O rascunho fica em sessionStorage (recarregar não perde nada). A escola é
 gravada em escolas/{slug} já na etapa 2 (status 'rascunho') — é isso que
 libera o upload das fotos para escolas/{slug}/... no Storage — e vira 'fila'
 na etapa 5. escolasSlugs/{slug} garante que dois donos não peguem o mesmo
 subdomínio. donos/{uid} aponta a conta para a escola. */
 import { db, doc, getDoc, setDoc, updateDoc, writeBatch, observarSessao, criarConta, entrar, recuperarSenha, sair, erroAmigavel, comprimir, enviarImagem } from './firebase.js?v=20261011';
-import { PLANO, MODALIDADES, modalidadePorId, MODELOS, FOTOS, TRIAL_DIAS, brl, slugDe, slugValido, RESERVADOS, minimoDe, fotosFaltando, juntarFotos, contagemFotos } from './catalogo.js?v=20261010';
+import { PLANO, MODALIDADES, modalidadePorId, FOTOS, TRIAL_DIAS, brl, slugDe, slugValido, RESERVADOS, minimoDe, fotosFaltando, juntarFotos, contagemFotos } from './catalogo.js?v=20261010';
+import { listaModelos, sugeridoPara, nomeModelo, normalizarModelo, cartaoModelo } from './modelos-site.js?v=20261017';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const el = (id) => document.getElementById(id);
@@ -36,7 +37,7 @@ observarSessao(async (u) => {
           escolaDoc = { id: e.id, ...e.data() };
           if (escolaDoc.status !== 'rascunho') { location.replace('painel.html'); return; }
           r.escolaId = escolaDoc.id; r.escola = { nome: escolaDoc.nome, nomeCurto: escolaDoc.nomeCurto, modalidade: escolaDoc.modalidade, cidade: escolaDoc.cidade, uf: escolaDoc.uf, slug: escolaDoc.slug, endereco: escolaDoc.endereco || '', responsavel: escolaDoc.responsavel || null, instagram: escolaDoc.instagram || '' };
-          r.plano = escolaDoc.plano || r.plano; r.fotos = escolaDoc.fotos || r.fotos; r.modelo = escolaDoc.modelo || r.modelo;
+          r.plano = escolaDoc.plano || r.plano; r.fotos = escolaDoc.fotos || r.fotos; r.modelo = normalizarModelo(escolaDoc.template || escolaDoc.modelo) || r.modelo;
           if (r.etapa < 2) r.etapa = 2;
         }
       }
@@ -235,17 +236,20 @@ function passoFotos() {
 }
 
 /* ---------- 5 · modelo ---------- */
+// Os modelos são os templates reais do app (/app/js/site-templates.js), com print de cada um.
+// Grava `template` (o que o site lê) e `modelo` (mesmo id, campo histórico do checklist).
 function passoModelo() {
   const mod = modalidadePorId((r.escola || {}).modalidade);
-  const sugerido = r.modelo || ({ capoeira: 'roda', jiujitsu: 'tatame', judo: 'tatame', karate: 'tatame', taekwondo: 'dojo', kungfu: 'dojo', muaythai: 'arena', boxe: 'arena', mma: 'arena' }[mod.id] || 'roda');
+  const modelos = listaModelos(mod.id);
+  const sugerido = normalizarModelo(r.modelo) || sugeridoPara(mod.id);
   let modelo = sugerido;
-  const previa = (m) => `<div style="border-radius:12px;overflow:hidden;border:1px solid var(--borda);background:${m.cores[0]};aspect-ratio:16/10;display:grid;grid-template-rows:auto 1fr auto;padding:8px;gap:6px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="width:28px;height:6px;border-radius:3px;background:${m.cores[1]}"></span><span style="width:40px;height:10px;border-radius:5px;background:${m.cores[2]}"></span></div><div style="display:grid;grid-template-columns:1.2fr 1fr;gap:6px"><div style="border-radius:8px;background:${m.cores[1]};opacity:.9"></div><div style="display:grid;gap:4px"><span style="height:6px;border-radius:3px;background:${m.cores[1]};opacity:.5"></span><span style="height:6px;border-radius:3px;background:${m.cores[1]};opacity:.35;width:70%"></span><span style="height:6px;border-radius:3px;background:${m.cores[2]};width:40%"></span></div></div><div style="height:6px;border-radius:3px;background:repeating-linear-gradient(-45deg,${m.cores[1]} 0 6px,${m.cores[2]} 6px 12px)"></div></div>`;
   el('passo').innerHTML = `
     <span class="eyebrow">Etapa 5 de 5</span>
     <h2 style="margin-top:10px">Escolha o modelo do site</h2>
-    <p class="sub" style="margin-top:8px">Sugerimos o <b>${esc((MODELOS.find((m) => m.id === sugerido) || MODELOS[0]).nome)}</b> para ${esc(mod.nome.toLowerCase())}. Todos têm as mesmas seções; muda a cara. Troque quando quiser no painel.</p>
+    <p class="sub" style="margin-top:8px">Sugerimos o <b>${esc(nomeModelo(sugerido))}</b> para ${esc(mod.nome.toLowerCase())}. Todos têm inscrição online, o app dos alunos e a agenda sincronizada; muda o desenho. Troque quando quiser no painel, na aba "Meu site".</p>
     <div class="form"><div class="erro-caixa" id="erro" hidden></div>
-      <div class="opcoes" id="modelos" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr))">${MODELOS.map((m) => `<button type="button" class="opcao" data-modelo="${m.id}" aria-pressed="${m.id === modelo}">${previa(m)}<b>${esc(m.nome)}</b><small>${esc(m.para)}</small><small>${esc(m.resumo)}</small></button>`).join('')}</div>
+      <div class="opcoes opcoes-site" id="modelos">${modelos.map((m) => cartaoModelo(m, modelo)).join('')}</div>
+      <p class="sub" style="font-size:.85rem;margin-top:12px">Quer ver cada um em tela cheia, no computador e no celular, com o nome da sua escola? <a href="/app/vitrine?tpl=${encodeURIComponent(sugerido)}&mod=${encodeURIComponent(mod.id)}" target="_blank" rel="noopener">Abrir a vitrine de sites</a>.</p>
       <div class="acoes"><button type="button" class="bt bt-branco" id="btVoltar"><i class="fas fa-arrow-left"></i> Voltar</button><span class="espaco"></span><button type="button" class="bt bt-laranja" id="btOk"><i class="fas fa-rocket"></i> Criar a minha escola</button></div>
     </div>`;
   el('modelos').addEventListener('click', (ev) => { const b = ev.target.closest('[data-modelo]'); if (!b) return; modelo = b.dataset.modelo; el('modelos').querySelectorAll('.opcao').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); });
@@ -253,8 +257,9 @@ function passoModelo() {
   el('btOk').addEventListener('click', async () => {
     const bt = el('btOk'); bt.disabled = true; erro('');
     try {
+      if (!normalizarModelo(modelo)) throw new Error('Escolha um modelo de site.');
       const agora = new Date(); const fimTrial = new Date(agora.getTime() + TRIAL_DIAS * 86400000);
-      await updateDoc(doc(db, 'escolas', r.escolaId), { modelo, status: 'fila', enviadoEm: agora.toISOString(), trialAte: fimTrial.toISOString().slice(0, 10), atualizadoEm: agora.toISOString() });
+      await updateDoc(doc(db, 'escolas', r.escolaId), { template: modelo, modelo, status: 'fila', enviadoEm: agora.toISOString(), trialAte: fimTrial.toISOString().slice(0, 10), atualizadoEm: agora.toISOString() });
       try { sessionStorage.removeItem(CHAVE); } catch (e) { /* ok */ }
       location.replace('painel.html?nova=1');
     } catch (er) { console.error(er); erro(erroAmigavel(er)); bt.disabled = false; }

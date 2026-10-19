@@ -12,6 +12,7 @@ Segurança: a tela só abre para conta com papel 'plataforma' (usuarios/{uid}.pa
 banco — só a plataforma lista e muda escolas. */
 import { db, doc, getDoc, setDoc, addDoc, updateDoc, collection, onSnapshot, query, where, getCountFromServer, observarSessao, entrar, recuperarSenha, sair, erroAmigavel } from './firebase.js?v=20261011';
 import { modalidadePorId, porId, FOTOS, fotosFaltando } from './catalogo.js?v=20261010';
+import { nomeModelo } from './modelos-site.js?v=20261017';
 
 // Onde o app das escolas está publicado hoje (a inscrição de cada escola é ?escola=<id>).
 // Quando o app for servido em atletapay.com.br/<escola>, troca aqui.
@@ -257,7 +258,7 @@ function cartaoEscola(e) {
   const resp = e.responsavel || {};
   const checks = [
     [faltando.length ? `Fotos: falta ${faltando.map((x) => x.nome.toLowerCase()).join(', ')}` : `Fotos completas (${fotos.length})`, !faltando.length],
-    [e.modelo ? `Modelo do site: ${e.modelo}` : 'Modelo do site não escolhido', !!e.modelo],
+    [(e.template || e.modelo) ? `Modelo do site: ${nomeModelo(e.template || e.modelo)}` : 'Modelo do site não escolhido', !!(e.template || e.modelo)],
     [e.donoEmail ? 'Dono com e-mail' : 'Dono sem e-mail', !!e.donoEmail],
   ];
   let ativacao = '';

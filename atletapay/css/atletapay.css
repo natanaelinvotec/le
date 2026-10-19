@@ -434,3 +434,13 @@ input[type=range] { width: 100%; accent-color: var(--laranja); height: 34px; }
 .ec-editar { padding: 14px; border-radius: 14px; background: #F7F6F2; border: 1px dashed var(--borda); }
 .ec-editar .acoes { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 @media (max-width: 720px) { .ce-topo { grid-template-columns: 48px 1fr; } .ce-topo .status { grid-column: 1 / -1; justify-self: start; } }
+
+/* Seletor de modelo do site (cadastro etapa 5 e painel): prints reais dos templates. */
+.opcoes-site { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.opcao-site { padding: 10px 12px 14px; }
+.opcao-site__img { position: relative; display: block; aspect-ratio: 2 / 1; overflow: hidden; border-radius: 10px; background: #0B1528; border: 1px solid var(--borda); }
+.opcao-site__img img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+.opcao-site__selo { position: absolute; left: 8px; top: 8px; padding: 4px 8px; border-radius: 999px; background: var(--laranja); color: #fff; font: 700 .6rem/1 system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; font-style: normal; }
+.opcao-site__selo--ar { left: auto; right: 8px; background: #0B8F5B; }
+.opcao-site__desc { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.opcao-site[aria-pressed="true"] .opcao-site__img { border-color: var(--laranja); }

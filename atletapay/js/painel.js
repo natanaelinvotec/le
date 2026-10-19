@@ -2,7 +2,8 @@
 Mostra a situação (rascunho → fila → ativa), o checklist, os dados e o plano;
 deixa trocar o modelo e completar fotos. Sem escola: manda para o cadastro. */
 import { db, auth, doc, getDoc, updateDoc, onSnapshot, collection, query, where, getCountFromServer, observarSessao, entrar, recuperarSenha, sair, erroAmigavel, comprimir, enviarImagem } from './firebase.js?v=20261011';
-import { porId, alunosExtras, valorDoMes, modalidadePorId, MODELOS, modeloPorId, FOTOS, brl, minimoDe, fotosFaltando, juntarFotos, contagemFotos } from './catalogo.js?v=20261010';
+import { porId, alunosExtras, valorDoMes, modalidadePorId, FOTOS, brl, minimoDe, fotosFaltando, juntarFotos, contagemFotos } from './catalogo.js?v=20261010';
+import { listaModelos, nomeModelo, normalizarModelo, cartaoModelo } from './modelos-site.js?v=20261017';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const el = (id) => document.getElementById(id);
@@ -38,7 +39,7 @@ function renderLogin() {
 }
 
 function render() {
-  const e = escola; const plano = porId(e.plano); const mod = modalidadePorId(e.modalidade); const modelo = e.modelo ? modeloPorId(e.modelo) : null;
+  const e = escola; const plano = porId(e.plano); const mod = modalidadePorId(e.modalidade); const modeloId = normalizarModelo(e.template || e.modelo); const modeloNome = modeloId ? nomeModelo(modeloId) : '';
   const faltando = fotosFaltando(e.fotos);
   const obrigOk = !faltando.length;
   const totalFotos = FOTOS.reduce((s, f) => s + ((e.fotos && e.fotos[f.id]) || []).length, 0);
@@ -49,7 +50,7 @@ function render() {
     ['Conta criada e escola cadastrada', true],
     ['Plano escolhido', !!e.plano],
     [obrigOk ? `Logo, foto do responsável e galeria completos (${totalFotos} fotos)` : `Fotos: falta ${faltando.map((f) => (minimoDe(f) > 1 ? `${f.nome.toLowerCase()} (${((e.fotos && e.fotos[f.id]) || []).length} de ${minimoDe(f)})` : f.nome.toLowerCase())).join(', ')}`, obrigOk],
-    ['Modelo do site escolhido', !!e.modelo],
+    ['Modelo do site escolhido', !!modeloId],
     ['Ativação pela AtletaPay (site, app e painel no ar)', ativa],
     ['Pagamento cadastrado (depois do período de teste)', e.assinatura && e.assinatura.status === 'ativa'],
   ];
@@ -68,7 +69,7 @@ function render() {
         <article class="cartao"><h3>Dados da escola</h3><dl class="kv"><dt>Nome curto</dt><dd>${esc(e.nomeCurto || '')}</dd><dt>Modalidade</dt><dd>${esc(mod.nome)}</dd><dt>Graduações</dt><dd>${esc((e.graduacoes || []).join(' › '))}</dd><dt>Responsável</dt><dd>${esc((e.responsavel && e.responsavel.nome) || e.donoNome || '')}${e.responsavel && e.responsavel.graduacao ? ` · ${esc(e.responsavel.graduacao)}` : ''}</dd>${e.endereco ? `<dt>Local de treino</dt><dd>${esc(e.endereco)}</dd>` : ''}${e.instagram ? `<dt>Instagram</dt><dd>${esc(e.instagram)}</dd>` : ''}<dt>Contato</dt><dd>${esc(e.donoEmail || '')}${e.donoCelular ? ` · ${esc(e.donoCelular)}` : ''}</dd></dl></article>
         <article class="cartao"><h3>Endereço do site</h3><dl class="kv"><dt>Endereço</dt><dd>${esc(url.replace('https://', ''))}</dd></dl><p class="sub" style="font-size:.85rem;margin-top:12px">${e.dominio ? 'Domínio próprio ligado pela AtletaPay.' : `Quer usar um domínio próprio (www.suaescola.com.br)? <a href="mailto:contato@atletapay.com.br?subject=${encodeURIComponent(`Domínio próprio — ${e.slug}`)}">Fale com o suporte da AtletaPay</a>: nós ligamos o domínio e o HTTPS para você.`}</p></article>
         <article class="cartao" style="grid-column:1/-1"><h3>Logo e fotos</h3><p class="sub" style="font-size:.9rem;margin-bottom:12px">Trocar ou completar. Logo, foto do responsável e pelo menos 10 fotos de membros, treinos e eventos destravam a montagem do site.</p><div class="fotos" id="fotos"></div></article>
-        <article class="cartao" style="grid-column:1/-1"><h3>Modelo do site</h3><p class="sub" style="font-size:.9rem;margin-bottom:12px">Atual: <b>${modelo ? esc(modelo.nome) : 'não escolhido'}</b>. Trocar é um clique; o conteúdo continua o mesmo.</p><div class="opcoes" id="modelos">${MODELOS.map((m) => `<button type="button" class="opcao" data-modelo="${m.id}" aria-pressed="${m.id === e.modelo}"><span class="cores">${m.cores.map((c) => `<i style="background:${c}"></i>`).join('')}</span><b>${esc(m.nome)}</b><small>${esc(m.para)}</small></button>`).join('')}</div></article>
+        <article class="cartao" style="grid-column:1/-1"><h3>Modelo do site</h3><p class="sub" style="font-size:.9rem;margin-bottom:12px">Atual: <b>${modeloNome ? esc(modeloNome) : 'não escolhido'}</b>. ${ativa ? `Com a escola no ar, a troca é feita na aba <b>Meu site</b> do painel da escola — lá você vê a prévia ao vivo e publica.` : `Trocar é um clique; o conteúdo continua o mesmo. <a href="/app/vitrine?tpl=${encodeURIComponent(modeloId || 'horizons')}&mod=${encodeURIComponent(e.modalidade || '')}" target="_blank" rel="noopener">Ver todos em tela cheia</a>.`}</p>${ativa ? '' : `<div class="opcoes opcoes-site" id="modelos">${listaModelos(e.modalidade).map((m) => cartaoModelo(m, modeloId)).join('')}</div>`}</article>
       </div>
       <p class="sub" style="font-size:.8rem;margin:24px 0 48px;color:var(--texto-3)">Escola criada em ${dataBR(e.criadoEm)}${e.enviadoEm ? ` · enviada para ativação em ${dataBR(e.enviadoEm)}` : ''}. Para excluir a conta e os dados, escreva para contato@atletapay.com.br (LGPD).</p>
     </div>`;
@@ -76,7 +77,8 @@ function render() {
   if (ativa && e.ativacao && e.ativacao.status === 'ok') numerosDaEscola(e.id);
   const btLink = el('btCopiarLink');
   if (btLink) btLink.addEventListener('click', async () => { try { await navigator.clipboard.writeText(`${APP_URL}/${enderecoDe(e)}/inscricao`); toast('Link copiado'); } catch (er) { toast('Copie o link acima.'); } });
-  el('modelos').addEventListener('click', async (ev) => { const b = ev.target.closest('[data-modelo]'); if (!b) return; try { await updateDoc(doc(db, 'escolas', e.id), { modelo: b.dataset.modelo, atualizadoEm: new Date().toISOString() }); toast('Modelo atualizado'); } catch (er) { toast(erroAmigavel(er)); } });
+  const selModelos = el('modelos');
+  if (selModelos) selModelos.addEventListener('click', async (ev) => { const b = ev.target.closest('[data-modelo]'); if (!b || !normalizarModelo(b.dataset.modelo)) return; try { await updateDoc(doc(db, 'escolas', e.id), { template: b.dataset.modelo, modelo: b.dataset.modelo, atualizadoEm: new Date().toISOString() }); toast('Modelo atualizado'); } catch (er) { toast(erroAmigavel(er)); } });
 }
 function desenharFotos() {
   const e = escola;

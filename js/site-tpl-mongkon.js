@@ -21,6 +21,7 @@
  */
 
 import { SECAO_LOJA, produtosLoja, ilustracao, linkCompra } from './site-loja.js';
+import { SECAO_AGENDA, eventosDoApp, avisosDoApp } from './site-agenda.js';
 
 /* ========================================================================== */
 /*  Contrato da biblioteca: meta + schema                                      */
@@ -62,6 +63,7 @@ export var schema = { secoes: [
   { id:'horarios', r:'Horários', ajuda:'Quadro da semana. Sem itens, a seção não aparece.', campos:[
     { c:'titulo', r:'Título da seção (palavra entre *asteriscos* em destaque)', max:50, ph:'Semana no *ringue*' }, { c:'nota', r:'Observação abaixo do quadro', max:140, ph:'Horários sujeitos a alteração — o app avisa.' },
     { c:'itens', r:'Aulas', t:'lista', max:30, resumo:'aula', nomeItem:'Aula', item:[ { c:'dia', r:'Dia', t:'select', opcoes:DIAS, ph:'Dia da semana' }, { c:'aula', r:'Aula', max:40, ph:'Sparring' }, { c:'horario', r:'Horário', max:20, ph:'19:30–21:00' }, { c:'local', r:'Local / núcleo', max:40 } ] } ] },
+  SECAO_AGENDA(),
   SECAO_LOJA([ { c:'titulo', r:'Título da seção (palavra entre *asteriscos* em destaque)', max:50, ph:'Loja *oficial*' } ]),
   { id:'app', r:'App e Rede', campos:[ SELO, { c:'titulo', r:'Título', max:40, ph:'O clube inteiro no bolso' }, { c:'texto', r:'Texto', t:'area', max:220 } ] },
   { id:'contato', r:'Contato', ajuda:'Endereço, mapa e Instagram vêm do cadastro. Com WhatsApp preenchido aparece "Falar no WhatsApp" (aula experimental).', campos:[
@@ -363,6 +365,20 @@ var CSS_BASE = '\
 .mg.js .rv{opacity:0;transform:translateY(26px);transition:opacity .8s var(--ease),transform .8s var(--ease)}\
 .mg.js .rv.in{opacity:1;transform:none}\
 .mg .st>*{transition-delay:calc(var(--i,0)*90ms)}\
+.mg .agd-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:var(--m)}\
+.mg .agd-ev{background:var(--carbon-2);border:1px solid var(--line);border-radius:var(--r2);padding:clamp(22px,3vw,40px)}\
+.mg .agd-av{background:var(--cream);color:var(--ink);border-radius:var(--r2);padding:clamp(22px,3vw,40px)}.mg .agd-av .k{color:var(--ink)}\
+.mg .agd ul{list-style:none;margin:18px 0 0;padding:0}\
+.mg .agd li{display:grid;grid-template-columns:64px minmax(0,1fr);gap:18px;align-items:center;padding:14px 0;border-top:1px solid var(--line)}\
+.mg .agd .dt{display:grid;place-items:center;width:64px;height:64px;border-radius:50%;background:var(--gold);color:var(--gold-ink);font-family:var(--display);line-height:1;text-align:center}\
+.mg .agd .dt b{font-size:1.4rem;display:block}.mg .agd .dt small{font-size:.58rem;letter-spacing:.18em;display:block;margin-top:2px}\
+.mg .agd .dt.sem{background:var(--carbon);color:var(--cream);border:1px solid var(--line)}.mg .agd .dt svg{width:22px;height:22px}\
+.mg .agd li b.t{display:block;color:var(--cream);font-weight:700}.mg .agd li span{color:var(--mute);font-size:.9rem}\
+.mg .agd .av{display:flex;gap:14px;padding:14px 0;border-top:1px solid rgba(15,13,11,.12)}.mg .agd .av:first-of-type{margin-top:16px}\
+.mg .agd .av .ic{width:38px;height:38px;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--ink);color:var(--gold)}.mg .agd .av .ic svg{width:18px;height:18px}\
+.mg .agd .av b{display:block}.mg .agd .av p{margin:4px 0 0;color:#5a4e42;font-size:.9rem;line-height:1.5}.mg .agd .av small{display:block;margin-top:6px;color:#5a4e42;font-size:.72rem;letter-spacing:.14em}\
+.mg .agd .sync{display:inline-flex;align-items:center;gap:8px;margin-top:22px;color:var(--mute);font-size:.82rem}.mg .agd .sync i{width:8px;height:8px;border-radius:50%;background:var(--gold)}\
+@media (max-width:760px){.mg .agd-grid{grid-template-columns:1fr}}\
 @media (prefers-reduced-motion:reduce){.mg *,.mg *::before,.mg *::after{animation:none!important;transition:none!important}.mg.js .rv{opacity:1;transform:none}.mg .hero h1 .l span{transform:none}.mg .hero .side,.mg .hero .chip{opacity:1}.mg .phone .therm i{transform:none}}\
 @media (max-width:1280px){.mg .nl{display:none}.mg .nl.open{display:flex;position:absolute;top:calc(100% + 6px);right:clamp(22px,3.4vw,52px);flex-direction:column;align-items:flex-start;gap:8px;background:var(--carbon);padding:18px;border:1px solid var(--line);border-radius:var(--r2)}.mg .burger{display:inline-flex}}\
 @media (max-width:1100px){.mg .hero .ct{grid-template-columns:1fr}.mg .hero .chips,.mg .hero .tag{display:none}.mg .tiles{grid-template-columns:1fr 1fr}.mg .sched{grid-template-columns:repeat(4,1fr)}.mg .appsec .ct,.mg .intro,.mg .poster{grid-template-columns:1fr}.mg .poster .ph{min-height:0;aspect-ratio:1.1}}\
@@ -525,7 +541,7 @@ export function render(s, h){
 
   // --- NAV + HERO ---
   var nav = '<nav class="nav">'+marca
-    + '<div class="nl" id="mg-nl"><a href="#mg-programas">Programas</a>'+(escada.length ? '<a href="#mg-niveis">Níveis</a>' : '')+'<a href="#mg-equipe">Equipe</a>'+(temHor ? '<a href="#mg-horarios">Horários</a>' : '')+(produtosLoja(C, 8).length ? '<a href="#mg-loja">Loja</a>' : '')+'<a href="#mg-app">App</a><a href="#mg-contato">Contato</a>'
+    + '<div class="nl" id="mg-nl"><a href="#mg-programas">Programas</a>'+(escada.length ? '<a href="#mg-niveis">Níveis</a>' : '')+'<a href="#mg-equipe">Equipe</a>'+(temHor ? '<a href="#mg-horarios">Horários</a>' : '')+((eventosDoApp(s, 1).length || avisosDoApp(s, 1).length) ? '<a href="#mg-agenda">Agenda</a>' : '')+(produtosLoja(C, 8).length ? '<a href="#mg-loja">Loja</a>' : '')+'<a href="#mg-app">App</a><a href="#mg-contato">Contato</a>'
     + '<a class="btn ghost" href="'+esc(login)+'">Área do aluno</a><a class="btn" href="'+esc(ins)+'" data-magnet>Fazer inscrição</a></div>'
     + '<button class="burger" id="mg-burger" type="button" aria-expanded="false" aria-controls="mg-nl">Menu</button></nav>';
   var hp = tab(HERO);
@@ -692,6 +708,19 @@ export function render(s, h){
 
   site.className = 'mg';
 
+  // --- AGENDA E AVISOS (só do app; sem dados, a seção não entra) ---
+  var evApp = eventosDoApp(s, 4), avApp = avisosDoApp(s, 3), agenda = '';
+  if(evApp.length || avApp.length){
+    agenda = '<section class="w agd" id="mg-agenda" style="padding-bottom:clamp(70px,9vw,130px)"><div class="ct"><div class="hd rv"><span class="k ring">Direto do app</span><h2 class="d">'+tit(cx('agenda', 'titulo', 'Agenda e *avisos*'))+'</h2></div><div class="agd-grid st">'
+      + '<div class="agd-ev rv" style="--i:0"><span class="k">Próximos eventos</span><ul>'+(evApp.length ? evApp.map(function(e){
+          return '<li><span class="dt'+(e.dia ? '' : ' sem')+'">'+(e.dia ? '<b>'+esc(e.dia)+'</b><small>'+esc(e.mes)+'</small>' : I.cal)+'</span><div><b class="t">'+esc(e.titulo)+'</b><span>'+esc([e.local, e.hora].filter(Boolean).join(' · '))+'</span></div></li>';
+        }).join('') : '<li><span class="dt sem">'+I.cal+'</span><div><b class="t">Sem eventos marcados</b><span>Os próximos aparecem aqui assim que forem publicados no app.</span></div></li>')+'</ul>'
+      + '<span class="sync"><i></i>Sincronizado com o app '+esc(s.nomeCurto)+'</span></div>'
+      + '<div class="agd-av rv" style="--i:1"><span class="k">Avisos</span>'+(avApp.length ? avApp.map(function(a){
+          return '<div class="av"><span class="ic">'+'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>'+'</span><div><b>'+esc(a.titulo)+'</b>'+(a.texto ? '<p>'+esc(a.texto)+'</p>' : '')+(a.quando ? '<small>'+esc(a.quando)+'</small>' : '')+'</div></div>';
+        }).join('') : '<div class="av"><span class="ic">'+'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>'+'</span><div><b>Nenhum aviso no momento</b><p>Avisos publicados no app aparecem aqui.</p></div></div>')+'</div></div></div></section>';
+  }
+
   // --- LOJA OFICIAL (só com produtos; sem foto = desenho pelo nome) ---
   var prods = produtosLoja(C, 8), loja = '';
   var zapLoja = cx('loja', 'whatsapp', '') || cx('contato', 'whatsapp', '');
@@ -704,7 +733,7 @@ export function render(s, h){
       + prods.map(function(x, i){ return '<article class="lj rv" style="--i:'+i+'"><div class="lj-ph">'+ljMidia(x)+'</div><h3>'+esc(x.nome)+'</h3>'+(x.texto ? '<p>'+esc(x.texto)+'</p>' : '')
         + '<div class="lj-ft">'+(x.preco ? '<b>'+esc(x.preco)+'</b>' : '<span></span>')+ljBotao(x, 'btn', 'Comprar '+I.arrow)+'</div></article>'; }).join('')+'</div></div></section>';
   }
-  site.innerHTML = hero + mq + destaques + intro + split + programas + niveis + poster + equipe + horarios + loja + appSec + contato + foot;
+  site.innerHTML = hero + mq + destaques + intro + split + programas + niveis + poster + equipe + horarios + agenda + loja + appSec + contato + foot;
   wire(site);
 }
 

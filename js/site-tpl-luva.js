@@ -23,6 +23,7 @@
 /*  Contrato da biblioteca: meta + schema                                      */
 /* ========================================================================== */
 import { SECAO_LOJA, produtosLoja, ilustracao, linkCompra } from './site-loja.js';
+import { SECAO_AGENDA, eventosDoApp, avisosDoApp } from './site-agenda.js';
 
 export var meta = {
   nome: 'Luva',
@@ -60,6 +61,7 @@ export var schema = { secoes: [
   { id:'horarios', r:'Horários', ajuda:'Quadro da semana. Sem itens, a seção não aparece.', campos:[
     { c:'titulo', r:'Título da seção', max:50, ph:'Semana no ringue' }, { c:'nota', r:'Observação abaixo do quadro', max:140, ph:'Horários sujeitos a alteração — o app avisa.' },
     { c:'itens', r:'Aulas', t:'lista', max:30, resumo:'aula', nomeItem:'Aula', item:[ { c:'dia', r:'Dia', t:'select', opcoes:DIAS, ph:'Dia da semana' }, { c:'aula', r:'Aula', max:40, ph:'Sparring' }, { c:'horario', r:'Horário', max:20, ph:'19:30–21:00' }, { c:'local', r:'Local / núcleo', max:40 } ] } ] },
+  SECAO_AGENDA(),
   SECAO_LOJA([ { c:'titulo', r:'Título da seção', max:50, ph:'Loja oficial' } ]),
   { id:'app', r:'App e Rede', campos:[ SELO, { c:'titulo', r:'Título', max:40, ph:'O clube inteiro no bolso' }, { c:'texto', r:'Texto', t:'area', max:220 } ] },
   { id:'contato', r:'Contato', ajuda:'Endereço, mapa e Instagram vêm do cadastro. Com WhatsApp preenchido aparece "Falar no WhatsApp" (aula experimental).', campos:[
@@ -368,6 +370,19 @@ var CSS_BASE = '\
 .lv.js .rv{opacity:0;transform:translateY(26px);transition:opacity .8s var(--ease),transform .8s var(--ease)}\
 .lv.js .rv.in{opacity:1;transform:none}\
 .lv .st>*{transition-delay:calc(var(--i,0)*90ms)}\
+.lv .agd-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:2px;background:var(--line)}\
+.lv .agd-ev,.lv .agd-av{background:var(--carbon);padding:clamp(22px,3vw,40px)}\
+.lv .agd ul{list-style:none;margin:18px 0 0;padding:0}\
+.lv .agd li{display:grid;grid-template-columns:64px minmax(0,1fr);gap:18px;align-items:center;padding:16px 0;border-top:1px solid var(--line)}\
+.lv .agd .dt{display:grid;place-items:center;width:64px;height:64px;background:var(--gold);color:var(--ink);font-family:var(--display);line-height:1;text-align:center}\
+.lv .agd .dt b{font-size:1.7rem;display:block}.lv .agd .dt small{font-size:.62rem;letter-spacing:.2em;display:block;margin-top:2px}\
+.lv .agd .dt.sem{background:var(--steel);color:var(--cream)}\
+.lv .agd li b.t{display:block;color:var(--cream);font-size:1.05rem;font-weight:700}.lv .agd li span{color:var(--mute);font-size:.9rem}\
+.lv .agd .av{display:flex;gap:14px;padding:16px 0;border-top:1px solid var(--line)}.lv .agd .av:first-of-type{margin-top:18px}\
+.lv .agd .av .ic{width:38px;height:38px;flex:none;display:grid;place-items:center;border:1px solid var(--gold);color:var(--gold)}.lv .agd .av .ic svg{width:18px;height:18px}\
+.lv .agd .av b{display:block;color:var(--cream)}.lv .agd .av p{margin:4px 0 0;color:var(--mute);font-size:.9rem;line-height:1.5}.lv .agd .av small{display:block;margin-top:6px;color:var(--gold);font-size:.72rem;letter-spacing:.14em}\
+.lv .agd .sync{display:inline-flex;align-items:center;gap:8px;margin-top:22px;color:var(--mute);font-size:.82rem}.lv .agd .sync i{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px rgba(255,255,255,.06)}\
+@media (max-width:760px){.lv .agd-grid{grid-template-columns:1fr}}\
 @media (prefers-reduced-motion:reduce){.lv *,.lv *::before,.lv *::after{animation:none!important;transition:none!important}.lv.js .rv{opacity:1;transform:none}.lv .hero h1 .l span{transform:none}.lv .hero .side{opacity:1}.lv .phone .therm i{transform:none}}\
 @media (max-width:1280px){.lv .nl{display:none}.lv .nl.open{display:flex;position:absolute;top:calc(100% + 6px);right:var(--g);flex-direction:column;align-items:flex-start;gap:16px;background:var(--carbon);padding:22px 26px;border:1px solid var(--line)}.lv .burger{display:inline-flex}}\
 @media (max-width:1100px){.lv .nl.open{display:flex;position:absolute;top:calc(100% + 6px);right:var(--g);flex-direction:column;align-items:flex-start;gap:16px;background:var(--carbon);padding:22px 26px;border:1px solid var(--line)}.lv .burger{display:inline-flex}.lv .tiles,.lv .niveis{grid-template-columns:1fr 1fr}.lv .sched{grid-template-columns:repeat(4,1fr)}.lv .appsec .ct{grid-template-columns:1fr}}\
@@ -518,7 +533,7 @@ export function render(s, h){
 
   // --- NAV + HERO ---
   var nav = '<nav class="nav">'+marca
-    + '<div class="nl" id="lv-nl"><a href="#lv-programas">Programas</a>'+(escada.length ? '<a href="#lv-niveis">Níveis</a>' : '')+'<a href="#lv-equipe">Equipe</a>'+(temHor ? '<a href="#lv-horarios">Horários</a>' : '')+(produtosLoja(C, 8).length ? '<a href="#lv-loja">Loja</a>' : '')+'<a href="#lv-app">App</a><a href="#lv-contato">Contato</a>'
+    + '<div class="nl" id="lv-nl"><a href="#lv-programas">Programas</a>'+(escada.length ? '<a href="#lv-niveis">Níveis</a>' : '')+'<a href="#lv-equipe">Equipe</a>'+(temHor ? '<a href="#lv-horarios">Horários</a>' : '')+((eventosDoApp(s, 1).length || avisosDoApp(s, 1).length) ? '<a href="#lv-agenda">Agenda</a>' : '')+(produtosLoja(C, 8).length ? '<a href="#lv-loja">Loja</a>' : '')+'<a href="#lv-app">App</a><a href="#lv-contato">Contato</a>'
     + '<a class="btn ghost" href="'+esc(login)+'">Área do aluno</a><a class="btn" href="'+esc(ins)+'" data-magnet>Fazer inscrição</a></div>'
     + '<button class="burger" id="lv-burger" type="button" aria-expanded="false" aria-controls="lv-nl">Menu</button></nav>';
   var hp = HERO[modBase] || HERO.arena;
@@ -631,6 +646,20 @@ export function render(s, h){
       + '<div class="note rv"><span>'+esc(cx('horarios', 'nota', 'Horários sujeitos a alteração — o app avisa. Check-in de presença em um toque.'))+'</span><a class="btn ghost" href="'+esc(zapHref || ins)+'"'+(zapHref ? ' target="_blank" rel="noopener noreferrer"' : '')+'>Agendar aula experimental</a></div></div></section>';
   }
 
+
+  // --- AGENDA E AVISOS (só do app; sem dados, a seção não entra) ---
+  var evApp = eventosDoApp(s, 4), avApp = avisosDoApp(s, 3), agenda = '';
+  if(evApp.length || avApp.length){
+    agenda = '<section class="w agd" id="lv-agenda" style="padding-bottom:clamp(84px,10vw,150px)"><div class="ct"><div class="ropes rv"><h2 class="d">'+esc(cx('agenda', 'titulo', 'Agenda e avisos'))+'</h2></div><div class="agd-grid st">'
+      + '<div class="agd-ev rv" style="--i:0"><span class="k">Próximos eventos</span><ul>'+(evApp.length ? evApp.map(function(e){
+          return '<li><span class="dt'+(e.dia ? '' : ' sem')+'">'+(e.dia ? '<b>'+esc(e.dia)+'</b><small>'+esc(e.mes)+'</small>' : I.cal)+'</span><div><b class="t">'+esc(e.titulo)+'</b><span>'+esc([e.local, e.hora].filter(Boolean).join(' · '))+'</span></div></li>';
+        }).join('') : '<li><span class="dt sem">'+I.cal+'</span><div><b class="t">Sem eventos marcados</b><span>Os próximos aparecem aqui assim que forem publicados no app.</span></div></li>')+'</ul>'
+      + '<span class="sync"><i></i>Sincronizado com o app '+esc(s.nomeCurto)+'</span></div>'
+      + '<div class="agd-av rv" style="--i:1"><span class="k">Avisos</span>'+(avApp.length ? avApp.map(function(a){
+          return '<div class="av"><span class="ic">'+I.bell+'</span><div><b>'+esc(a.titulo)+'</b>'+(a.texto ? '<p>'+esc(a.texto)+'</p>' : '')+(a.quando ? '<small>'+esc(a.quando)+'</small>' : '')+'</div></div>';
+        }).join('') : '<div class="av"><span class="ic">'+I.bell+'</span><div><b>Nenhum aviso no momento</b><p>Avisos publicados no app aparecem aqui.</p></div></div>')+'</div></div></div></section>';
+  }
+
   // --- APP E REDE ---
   var rec = [
     [I.gauge, 'Termômetro de prontidão', 'Avaliações da equipe e o caminho '+proxPeca, login],
@@ -691,7 +720,7 @@ export function render(s, h){
       + prods.map(function(x, i){ return '<article class="lj rv" style="--i:'+i+'"><div class="lj-ph">'+ljMidia(x)+'<span class="tape" aria-hidden="true"></span></div><div class="lj-tx"><h3>'+esc(x.nome)+'</h3>'+(x.texto ? '<p>'+esc(x.texto)+'</p>' : '')
         + '<div class="lj-ft">'+(x.preco ? '<b class="d">'+esc(x.preco)+'</b>' : '<span></span>')+ljBotao(x, 'btn', 'Comprar '+I.arrow)+'</div></div></article>'; }).join('')+'</div></div></section>';
   }
-  site.innerHTML = hero + mq + destaques + intro + split + programas + niveis + quote + equipe + horarios + loja + appSec + contato + foot;
+  site.innerHTML = hero + mq + destaques + intro + split + programas + niveis + quote + equipe + horarios + agenda + loja + appSec + contato + foot;
   wire(site);
 }
 
