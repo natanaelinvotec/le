@@ -8,6 +8,7 @@
 // copia para escolasPublicas e o site passa a abrir no Ginga, com o conteúdo migrado).
 
 import { ESCOLA_PADRAO } from './escolas.js';
+import { CORDOES_ADULTO, CORDOES_KIDS, CRITERIOS } from './compartilhado/escola.js';
 
 const MAX_TEXTO = 400;
 const MAX_ITENS = 12;
@@ -122,4 +123,22 @@ export async function migrarLogoLiberdade(ctx) {
   if (Array.isArray(f.logo) && f.logo.some((u) => typeof u === 'string' && /^https:\/\//.test(u))) return 'já tinha logo';
   await ref.set({ fotos: { ...f, logo: [LOGO_LIBERDADE] } }, { merge: true });
   return 1;
+}
+
+// Escada de cordões da Liberdade no cadastro: o app da escola nº 1 usa as constantes de js/escola.js
+// (aplicarEscola ignora a escada quando a escola é a própria Liberdade), mas o SITE lê a escada do
+// cartão público (escolasPublicas.escada) — sem ela a seção "Graduação" do Ginga não aparece.
+export function escadaLiberdade() {
+  const limpa = (l) => l.map((c) => ({ nome: c.nome, cor: c.cor.slice(0, 3) }));
+  return { modalidade: 'capoeira', peca: 'cordão', lider: 'Mestre', idadeKids: 12, adulto: limpa(CORDOES_ADULTO), kids: limpa(CORDOES_KIDS), criterios: CRITERIOS.map((c) => c.txt) };
+}
+export async function migrarEscadaLiberdade(ctx) {
+  const ref = ctx.db.doc(`escolas/${ESCOLA_PADRAO}`);
+  const s = await ref.get();
+  if (!s.exists) return 'sem escolas/liberdade';
+  const e = s.data();
+  if (e.escada && Array.isArray(e.escada.adulto) && e.escada.adulto.length) return 'já tinha escada';
+  const escada = escadaLiberdade();
+  await ref.set({ escada, graduacoes: escada.adulto.map((c) => c.nome) }, { merge: true });
+  return escada.adulto.length;
 }

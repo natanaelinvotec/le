@@ -193,7 +193,7 @@ var CSS_BASE = '\
 .gi .marquee:hover{animation-play-state:paused}\
 .gi .marquee i{color:var(--marinho);font-style:normal}\
 @keyframes gi-marquee{to{transform:translateX(-50%)}}\
-.gi .sec{padding:120px var(--gutter);max-width:1440px;margin:0 auto}\
+.gi .sec{padding:72px var(--gutter);max-width:1440px;margin:0 auto}\
 .gi .sec.branco{max-width:none;background:#fff}\
 .gi .sec.branco>*{max-width:1248px;margin-left:auto;margin-right:auto}\
 .gi .selo{display:block;font-size:13px;letter-spacing:.22em;font-weight:800;color:var(--teal);margin-bottom:14px}\
@@ -216,7 +216,7 @@ var CSS_BASE = '\
 .gi.js .revela{opacity:0;transform:translateY(28px)}\
 .gi.js .revela.visto{opacity:1;transform:none;transition:opacity .9s var(--ease),transform .9s var(--ease),box-shadow .45s var(--ease)}\
 .gi.js .revela.visto:hover{transform:translateY(-6px)}\
-.gi .bloco-escuro{position:relative;overflow:hidden;margin:0 clamp(12px,2.8vw,40px);border-radius:40px;color:#fff;padding:96px clamp(20px,4vw,56px)}\
+.gi .bloco-escuro{position:relative;overflow:hidden;margin:0 clamp(12px,2.8vw,40px);border-radius:40px;color:#fff;padding:72px clamp(20px,4vw,56px)}\
 .gi .bloco-escuro .tit{color:#fff}\
 .gi .bloco-escuro .tit em{color:var(--menta)}\
 .gi .bloco-escuro .selo{color:var(--teal-claro)}\
@@ -348,7 +348,7 @@ var CSS_BASE = '\
 .gi .parc-bts{display:flex;gap:10px;flex-wrap:wrap}\
 @media (prefers-reduced-motion:reduce){.gi .parc-aura{animation:none}}\
 @media (max-width:860px){.gi .parceiro,.gi .so-um .parceiro{grid-template-columns:1fr}.gi .parc-logo{padding:30px 24px 18px}.gi .parc-img{width:min(210px,70%)}.gi .parc-txt{padding:24px 20px 28px;border-left:0;border-top:1px solid var(--linha)}.gi .parc-oferta{flex-wrap:wrap;gap:8px 14px}}\
-.gi .rodape{padding:88px var(--gutter) 40px;max-width:1440px;margin:0 auto;display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:40px;font-size:14px;color:var(--texto)}\
+.gi .rodape{padding:64px var(--gutter) 40px;max-width:1440px;margin:0 auto;display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:40px;font-size:14px;color:var(--texto)}\
 .gi .rodape>div{display:flex;flex-direction:column;gap:10px}\
 .gi .rod-marca img{width:56px;height:56px;border-radius:50%;background:#fff}\
 .gi .rod-marca b{font-family:\'Sora\',sans-serif;font-size:20px;color:var(--marinho);line-height:1.1}\
@@ -356,7 +356,7 @@ var CSS_BASE = '\
 .gi .copy{grid-column:1/-1;border-top:1px solid var(--linha);padding-top:24px;font-size:13px;color:var(--suave)}\
 @media (max-width:1100px){.gi .links{gap:18px;font-size:14px}.gi .esconde-celular{display:none}.gi .hero-grade{grid-template-columns:1fr .8fr;gap:32px}.gi .cordoes{gap:10px}.gi .cordao b{font-size:11.5px}.gi .app{grid-template-columns:1fr}.gi .app-prints{min-height:560px}.gi .grade-3{grid-template-columns:repeat(2,minmax(0,1fr))}}\
 @media (max-width:860px){.gi .nav{height:68px}.gi .marca img{width:40px;height:40px}.gi .marca small{display:none}.gi .hamb{display:flex}.gi .acoes .bt-verde{display:none}.gi .links{position:fixed;inset:68px 0 auto 0;flex-direction:column;gap:0;padding:12px 20px 24px;background:rgba(@NOITE@,.98);backdrop-filter:blur(14px);transform:translateY(-120%);transition:transform .5s var(--ease);box-shadow:0 30px 40px -20px rgba(0,0,0,.6)}.gi.menu-aberto .links{transform:none}.gi .links .nl{padding:14px 4px;font-size:17px;border-bottom:1px solid rgba(255,255,255,.08)}.gi .so-celular{display:block}.gi .hero{padding-top:88px;min-height:0}.gi .hero-grade{grid-template-columns:1fr;gap:26px}.gi .hero-foto{order:-1}.gi .palco{width:min(300px,78vw)}.gi .legenda{display:none}.gi .hero-texto{padding-bottom:130px;gap:20px}.gi .hero-bts .bt{flex:1 1 100%}.gi .anel-a{right:-420px;top:-40px}.gi .anel-b{display:none}.gi .onda{right:-60px;top:40px;width:340px;height:340px}.gi .numeros{height:96px}.gi .numeros b{font-size:26px}.gi .numeros span{font-size:10px;letter-spacing:.1em}.gi .sec{padding:72px 16px}.gi .cab{margin-bottom:32px}.gi .cab.dupla{grid-template-columns:1fr;gap:18px}.gi .grade-3{grid-template-columns:1fr}.gi .zoom .foto{height:220px}.gi .bloco-escuro{padding:56px 18px;border-radius:28px}.gi .cordoes{gap:6px}.gi .corda{width:22px;height:calc(var(--h) * .7)}.gi .cordao b{font-size:11px;min-height:0;height:82px;writing-mode:vertical-rl;transform:rotate(180deg);text-align:left;letter-spacing:.02em}.gi .agenda{grid-template-columns:1fr}.gi .destaque{min-height:440px}.gi .dest-txt{left:20px;right:20px;bottom:22px}.gi .recursos{grid-template-columns:1fr}.gi .app-prints{min-height:420px}.gi .print{width:48%}.gi .p1{left:0;top:40px}.gi .p2{left:50%;top:0}.gi .produto{grid-template-columns:110px minmax(0,1fr)}.gi .produto .foto{height:140px}.gi .chamada{min-height:0}.gi .chamada-grade{grid-template-columns:minmax(0,1fr);padding:44px 18px;gap:28px}.gi .veu-lado{background:linear-gradient(180deg,rgba(@NOITE@,.95),rgba(@NOITE@,.8))}.gi .rodape{grid-template-columns:1fr 1fr;padding:56px 16px 28px}.gi .rod-marca{grid-column:1/-1}.gi .mestres{grid-template-columns:repeat(2,minmax(0,1fr))}}\
-@media (max-width:860px){.gi .orbita,.gi .rastro{inset:-26px}}\
+@media (max-width:860px){.gi .orbita,.gi .rastro{inset:-26px}.gi .sec{padding:52px var(--gutter)}.gi .bloco-escuro{padding:52px clamp(20px,4vw,56px)}}\
 @media (max-width:380px){.gi .hero h1{font-size:50px}}\
 .gi .parc-bts .bt{height:48px;flex:1 1 210px;justify-content:center;gap:8px}\
 .gi .parc-bt-site svg{color:var(--teal)}\

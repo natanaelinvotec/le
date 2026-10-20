@@ -1603,7 +1603,7 @@ test('IA do site: pedido confere papel e escola, respeita a cota do dia e grava 
 });
 
 // ---------- Site antigo da Liberdade → template Ginga (site-liberdade.js) ----------
-import { converterSiteAntigo, limparPeloSchema, migrarSiteLiberdade, migrarLogoLiberdade, contarTextos, LOGO_LIBERDADE } from '../src/site-liberdade.js';
+import { converterSiteAntigo, limparPeloSchema, migrarSiteLiberdade, migrarLogoLiberdade, migrarEscadaLiberdade, contarTextos, LOGO_LIBERDADE } from '../src/site-liberdade.js';
 
 test('site da Liberdade: conteúdo antigo vira seções do Ginga sem inventar nada; roda uma vez e não sobrescreve edição', async () => {
   const antigo = {
@@ -1658,4 +1658,14 @@ test('logo da Liberdade entra no cadastro (cartão público) só se não houver 
   const outra = ctxDe(base({ escolas: { liberdade: { nome: 'L', fotos: { logo: ['https://cdn/x.png'] } } } }));
   assert.equal(await migrarLogoLiberdade(outra.ctx), 'já tinha logo');
   assert.equal(outra.f.ler('escolas/liberdade').fotos.logo[0], 'https://cdn/x.png');
+});
+
+test('escada de cordões da Liberdade entra no cadastro (para o site) só se faltar', async () => {
+  const { f, ctx } = ctxDe(base({ escolas: { liberdade: { nome: 'Liberdade', status: 'ativa' } } }));
+  assert.equal(await migrarEscadaLiberdade(ctx), 10);
+  const e = f.ler('escolas/liberdade');
+  assert.equal(e.escada.adulto[0].nome, 'Iniciante'); assert.equal(e.escada.adulto[9].nome, 'Mestre/Presidente'); assert.equal(e.escada.kids.length, 4);
+  assert.deepEqual(e.escada.adulto[2].cor, ['#4F4F4F', '#DAA520', '#4F4F4F']); assert.equal(e.escada.criterios.length, 15);
+  assert.equal(e.graduacoes.length, 10); assert.equal(e.status, 'ativa');
+  assert.equal(await migrarEscadaLiberdade(ctx), 'já tinha escada');
 });
