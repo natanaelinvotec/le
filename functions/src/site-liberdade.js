@@ -163,3 +163,19 @@ export async function migrarOcultarCordoesLiberdade(ctx) {
   await ref.set({ ...d, secoes: { ...secoes, graduacao: { ...grad, ocultar } } });
   return ocultar;
 }
+
+// v56: o site antigo era laranja (#ff7a1a) nos botões/selos/legenda; o pedido é o verde esmeralda
+// da logo em tudo (o Ginga usa cores.verde do cadastro para botões, selos, anel da logo giratória,
+// números). Só troca se ainda for o laranja de origem — se o Admin escolheu outra cor, fica.
+export const LARANJA_ANTIGO = '#ff7a1a';
+export const VERDE_LIBERDADE = '#00c853';
+export async function migrarVerdeLiberdade(ctx) {
+  const ref = ctx.db.doc(`escolas/${ESCOLA_PADRAO}`);
+  const snap = await ref.get();
+  if (!snap.exists) return 'sem escolas/liberdade';
+  const cores = snap.data().cores && typeof snap.data().cores === 'object' ? snap.data().cores : {};
+  const atual = String(cores.verde || '').toLowerCase();
+  if (atual && atual !== LARANJA_ANTIGO) return `já era ${atual}`;
+  await ref.set({ cores: { ...cores, verde: VERDE_LIBERDADE } }, { merge: true });
+  return VERDE_LIBERDADE;
+}

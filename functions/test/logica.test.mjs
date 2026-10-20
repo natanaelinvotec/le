@@ -1603,7 +1603,7 @@ test('IA do site: pedido confere papel e escola, respeita a cota do dia e grava 
 });
 
 // ---------- Site antigo da Liberdade → template Ginga (site-liberdade.js) ----------
-import { converterSiteAntigo, limparPeloSchema, migrarSiteLiberdade, migrarLogoLiberdade, migrarEscadaLiberdade, migrarOcultarCordoesLiberdade, OCULTAR_PADRAO_LIBERDADE, contarTextos, LOGO_LIBERDADE } from '../src/site-liberdade.js';
+import { converterSiteAntigo, limparPeloSchema, migrarSiteLiberdade, migrarLogoLiberdade, migrarEscadaLiberdade, migrarOcultarCordoesLiberdade, OCULTAR_PADRAO_LIBERDADE, migrarVerdeLiberdade, VERDE_LIBERDADE, contarTextos, LOGO_LIBERDADE } from '../src/site-liberdade.js';
 
 test('site da Liberdade: conteúdo antigo vira seções do Ginga sem inventar nada; roda uma vez e não sobrescreve edição', async () => {
   const antigo = {
@@ -1687,4 +1687,16 @@ test('v56: cordões ocultos da escada entram no conteúdo do Ginga só se o Admi
   assert.equal(await migrarOcultarCordoesLiberdade(c.ctx), 'já tinha ocultar'); assert.equal(c.f.ler('siteConteudo/liberdade').secoes.graduacao.ocultar, 'Crua');
   const e = ctxDe(base({ siteConteudo: { liberdade: { template: 'luva', secoes: {} } } }));
   assert.match(await migrarOcultarCordoesLiberdade(e.ctx), /luva/);
+});
+
+test('v56: laranja do site antigo vira o verde esmeralda da logo (só se ainda for o laranja)', async () => {
+  const a = ctxDe(base({ escolas: { liberdade: { nome: 'L', cores: { navy: '#1e2a78', teal: '#389e92', verde: '#FF7A1A' }, status: 'ativa' } } }));
+  assert.equal(await migrarVerdeLiberdade(a.ctx), VERDE_LIBERDADE);
+  assert.deepEqual(a.f.ler('escolas/liberdade').cores, { navy: '#1e2a78', teal: '#389e92', verde: '#00c853' }); assert.equal(a.f.ler('escolas/liberdade').status, 'ativa');
+  assert.equal(await migrarVerdeLiberdade(a.ctx), 'já era #00c853');
+  const b = ctxDe(base({ escolas: { liberdade: { nome: 'L', cores: { verde: '#123456' } } } }));
+  assert.equal(await migrarVerdeLiberdade(b.ctx), 'já era #123456');
+  const c = ctxDe(base({ escolas: { liberdade: { nome: 'L' } } }));
+  assert.equal(await migrarVerdeLiberdade(c.ctx), VERDE_LIBERDADE);
+  assert.equal(ctxDe(base({})).ctx && await migrarVerdeLiberdade(ctxDe(base({})).ctx), 'sem escolas/liberdade');
 });
