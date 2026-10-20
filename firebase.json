@@ -281,7 +281,9 @@
         "**/*.rar",
         "**/*.psd",
         "dist/**",
-        "apresentacoes/**"
+        "apresentacoes/**",
+        "index.html",
+        "index.old.html"
       ],
       "cleanUrls": false,
       "trailingSlash": false,
@@ -355,6 +357,184 @@
               "value": "camera=(self), microphone=(), geolocation=(self)"
             }
           ]
+        }
+      ],
+      "rewrites": [
+        {
+          "source": "/",
+          "destination": "/site-escola.html"
+        },
+        {
+          "source": "/index.html",
+          "destination": "/site-escola.html"
+        },
+        {
+          "source": "/liberdadeeexpressao",
+          "destination": "/site-escola.html"
+        },
+        {
+          "source": "/liberdade",
+          "destination": "/site-escola.html"
+        },
+        {
+          "source": "/admin",
+          "destination": "/admin.html"
+        },
+        {
+          "source": "/app",
+          "destination": "/app.html"
+        },
+        {
+          "source": "/brasoes",
+          "destination": "/brasoes.html"
+        },
+        {
+          "source": "/campeonatos",
+          "destination": "/campeonatos.html"
+        },
+        {
+          "source": "/carteirinha",
+          "destination": "/carteirinha.html"
+        },
+        {
+          "source": "/carteirinhas",
+          "destination": "/carteirinhas.html"
+        },
+        {
+          "source": "/certificado",
+          "destination": "/certificado.html"
+        },
+        {
+          "source": "/certificados",
+          "destination": "/certificados.html"
+        },
+        {
+          "source": "/checkin",
+          "destination": "/checkin.html"
+        },
+        {
+          "source": "/gerenciar",
+          "destination": "/gerenciar.html"
+        },
+        {
+          "source": "/inscricao",
+          "destination": "/inscricao.html"
+        },
+        {
+          "source": "/instalar-rede",
+          "destination": "/instalar-rede.html"
+        },
+        {
+          "source": "/instalar",
+          "destination": "/instalar.html"
+        },
+        {
+          "source": "/login",
+          "destination": "/login.html"
+        },
+        {
+          "source": "/master",
+          "destination": "/master.html"
+        },
+        {
+          "source": "/offline",
+          "destination": "/offline.html"
+        },
+        {
+          "source": "/privacidade",
+          "destination": "/privacidade.html"
+        },
+        {
+          "source": "/rede",
+          "destination": "/rede.html"
+        },
+        {
+          "source": "/v",
+          "destination": "/v.html"
+        },
+        {
+          "source": "/vitrine",
+          "destination": "/vitrine.html"
+        },
+        {
+          "source": "/liberdadeeexpressao/admin",
+          "destination": "/admin.html"
+        },
+        {
+          "source": "/liberdadeeexpressao/app",
+          "destination": "/app.html"
+        },
+        {
+          "source": "/liberdadeeexpressao/brasoes",
+          "destination": "/brasoes.html"
+        },
+        {
+          "source": "/liberdadeeexpressao/campeonatos",
+          "destination": "/campeonatos.html"
+        },
+        {
+          "source": "/liberdadeeexpressao/carteirinha",
+          "destination": "/carteirinha.html"
+        },
+        {
+          "source": "/liberdadeeexpressao/carteirinhas",
+          "destination": "/carteirinhas.html"
+        },
+        {
+          "source": "/liberdadeeexpressao/certificado",
+          "destination": "/certificado.html"
+        },
+        {
+          "source": "/liberdadeeexpressao/certificados",
+          "destination": "/certificados.html"
+        },
+        {
+          "source": "/liberdadeeexpressao/checkin",
+          "destination": "/checkin.html"
+        },
+        {
+          "source": "/liberdadeeexpressao/gerenciar",
+          "destination": "/gerenciar.html"
+        },
+        {
+          "source": "/liberdadeeexpressao/inscricao",
+          "destination": "/inscricao.html"
+        },
+        {
+          "source": "/liberdadeeexpressao/instalar-rede",
+          "destination": "/instalar-rede.html"
+        },
+        {
+          "source": "/liberdadeeexpressao/instalar",
+          "destination": "/instalar.html"
+        },
+        {
+          "source": "/liberdadeeexpressao/login",
+          "destination": "/login.html"
+        },
+        {
+          "source": "/liberdadeeexpressao/master",
+          "destination": "/master.html"
+        },
+        {
+          "source": "/liberdadeeexpressao/offline",
+          "destination": "/offline.html"
+        },
+        {
+          "source": "/liberdadeeexpressao/privacidade",
+          "destination": "/privacidade.html"
+        },
+        {
+          "source": "/liberdadeeexpressao/rede",
+          "destination": "/rede.html"
+        },
+        {
+          "source": "/liberdadeeexpressao/v",
+          "destination": "/v.html"
+        },
+        {
+          "source": "/liberdadeeexpressao/vitrine",
+          "destination": "/vitrine.html"
         }
       ]
     }
