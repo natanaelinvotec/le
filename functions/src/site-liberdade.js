@@ -110,3 +110,16 @@ export async function migrarSiteLiberdade(ctx, { importar = (id) => import(`./co
   if (esc.exists && esc.data().template !== 'ginga') await ctx.db.doc(`escolas/${id}`).set({ template: 'ginga', modelo: 'ginga' }, { merge: true });
   return n;
 }
+
+// Logo da Liberdade no cartão público: o site antigo usava assets/logo-liberdade150.png (js/escola.js);
+// o cartão público só aceita URL https — aponta para o próprio domínio do grupo. Não mexe se já houver logo.
+export const LOGO_LIBERDADE = 'https://liberdadeeexpressao.com.br/assets/logo-liberdade150.png';
+export async function migrarLogoLiberdade(ctx) {
+  const ref = ctx.db.doc(`escolas/${ESCOLA_PADRAO}`);
+  const s = await ref.get();
+  if (!s.exists) return 'sem escolas/liberdade';
+  const f = s.data().fotos || {};
+  if (Array.isArray(f.logo) && f.logo.some((u) => typeof u === 'string' && /^https:\/\//.test(u))) return 'já tinha logo';
+  await ref.set({ fotos: { ...f, logo: [LOGO_LIBERDADE] } }, { merge: true });
+  return 1;
+}

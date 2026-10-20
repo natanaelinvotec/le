@@ -39,35 +39,35 @@ export var TEMPLATES = {
     nome: 'Horizons',
     descricao: 'Hero em cartão com corte diagonal, letreiro, vertentes, equipe em 3D, escada de graduação, núcleos e o bloco do app.',
     modalidades: ['todas'],
-    modulo: './site-tpl-horizons.js?v=52',
+    modulo: './site-tpl-horizons.js?v=54',
     miniatura: 'assets/templates/horizons.svg'
   },
   luva: {
     nome: 'Luva',
     descricao: 'Clube de luta em alto contraste: carvão com grão de filme, um acento forte, tipografia condensada, cordas do ringue, níveis, horários da semana e o bloco do app.',
     modalidades: ['boxe', 'muaythai', 'mma', 'todas'],
-    modulo: './site-tpl-luva.js?v=52',
+    modulo: './site-tpl-luva.js?v=54',
     miniatura: 'assets/templates/luva.svg'
   },
   escudo: {
     nome: 'Escudo',
     descricao: 'Academia esportiva clara: marinho com hachura, acento tático, paralelogramos, quadro de graduação em tabela, agenda, quadro semanal, parceiros e galeria.',
     modalidades: ['kravmaga', 'judo', 'taekwondo', 'todas'],
-    modulo: './site-tpl-escudo.js?v=52',
+    modulo: './site-tpl-escudo.js?v=54',
     miniatura: 'assets/templates/escudo.svg'
   },
   mongkon: {
     nome: 'Mongkon',
     descricao: 'Formas redondas: preto quente com dourado, fotos em anéis giratórios, níveis como cordas (prajieds), botões-pílula, pôster do atleta em destaque, horários e o bloco do app em cartão creme.',
     modalidades: ['muaythai', 'boxe', 'mma', 'todas'],
-    modulo: './site-tpl-mongkon.js?v=52',
+    modulo: './site-tpl-mongkon.js?v=54',
     miniatura: 'assets/templates/mongkon.svg'
   },
   ginga: {
     nome: 'Ginga',
     descricao: 'O site da Liberdade e Expressão para a sua escola: fotos em arco, cordões que crescem, núcleos com WhatsApp, corpo docente, agenda e avisos do app, loja e aula experimental.',
     modalidades: ['capoeira', 'todas'],
-    modulo: './site-tpl-ginga.js?v=52',
+    modulo: './site-tpl-ginga.js?v=54',
     miniatura: 'assets/templates/ginga.svg',
     // Sites já no ar com este visual (a vitrine mostra "Conheça quem já usa"). Os de escolas da
     // plataforma entram sozinhos quando a AtletaPay liga "Mostrar na vitrine" no painel Master.
@@ -77,21 +77,21 @@ export var TEMPLATES = {
     nome: 'Dobok',
     descricao: 'Clube esportivo em azul e vermelho: destaques e mural ligados ao app, placar de medalhas, graduação em tabela, horários em acordeão, conquistas, vídeos e loja oficial.',
     modalidades: ['taekwondo', 'todas'],
-    modulo: './site-tpl-dobok.js?v=52',
+    modulo: './site-tpl-dobok.js?v=54',
     miniatura: 'assets/templates/dobok.svg'
   },
   guarda: {
     nome: 'Guarda',
     descricao: 'Clube claro com faixas e graus: destaques e mural do app, cartões de luta, graduação com faixas desenhadas, horários por dia, equipe em abas, atleta do mês e loja oficial.',
     modalidades: ['jiujitsu', 'todas'],
-    modulo: './site-tpl-guarda.js?v=52',
+    modulo: './site-tpl-guarda.js?v=54',
     miniatura: 'assets/templates/guarda.svg'
   },
   ippon: {
     nome: 'Ippon',
     descricao: 'Dojô em índigo e tatame: destaques e mural do app, placar de judô (ippon, waza-ari), graduação por kyu, quadro semanal em grade, judoca do mês, equipe em carrossel e loja oficial.',
     modalidades: ['judo', 'todas'],
-    modulo: './site-tpl-ippon.js?v=52',
+    modulo: './site-tpl-ippon.js?v=54',
     miniatura: 'assets/templates/ippon.svg'
   }
 };

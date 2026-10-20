@@ -9,7 +9,7 @@ O que fica gravado em escolas/{id}: `template` (id do registro; o servidor copia
 escolasPublicas e o site lê) e `modelo` (mesmo id — campo histórico do checklist do painel e do
 Master). Ids antigos do catálogo (roda, tatame, arena, dojo, quintal) continuam válidos para
 leitura: LEGADO diz qual template corresponde a cada um. */
-import { TEMPLATES, TEMPLATE_PADRAO, templateExiste } from '/app/js/site-templates.js?v=50';
+import { TEMPLATES, TEMPLATE_PADRAO, templateExiste } from '/app/js/site-templates.js?v=54';
 
 const ORDEM = ['guarda', 'ippon', 'dobok', 'ginga', 'mongkon', 'luva', 'escudo', 'horizons', 'arena'];
 const LEGADO = { roda: 'ginga', tatame: 'guarda', dojo: 'dobok', quintal: 'horizons', arena: 'arena' };

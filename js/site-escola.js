@@ -704,6 +704,8 @@ function aplicarConteudo(s, conteudo){
 // módulo), cai para o layout "arena" da modalidade — o site nunca fica em branco.
 async function montar(s, opts){
   if(!opts || opts.seo !== false){ try{ aplicarSeo(s); }catch(e){ /* SEO é cosmético: nunca derruba o render */ } }
+  // body.tpl-modulo: o CSS base do Arena (site-escola.html) sabe que um template próprio está no comando.
+  try{ document.body.classList.toggle('tpl-modulo', !!LAYOUTS[s.template]); }catch(e){ /* ok */ }
   if(LAYOUTS[s.template]){
     try{
       var mod = await import(LAYOUTS[s.template]);
@@ -715,6 +717,7 @@ async function montar(s, opts){
       console.warn('site-escola: template "'+s.template+'" falhou, usando arena', e);
     }
   }
+  try{ document.body.classList.remove('tpl-modulo'); }catch(e){ /* ok */ }
   var site = document.getElementById('site'); if(site){ site.className = ''; site.removeAttribute('style'); }
   // Layout "arena": respeita o template escolhido (ou o da modalidade, se o layout próprio falhou).
   render(s, LAYOUTS[s.template] ? templateDe(null, s.modalidade) : s.template);

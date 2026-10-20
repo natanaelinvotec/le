@@ -1603,7 +1603,7 @@ test('IA do site: pedido confere papel e escola, respeita a cota do dia e grava 
 });
 
 // ---------- Site antigo da Liberdade → template Ginga (site-liberdade.js) ----------
-import { converterSiteAntigo, limparPeloSchema, migrarSiteLiberdade, contarTextos } from '../src/site-liberdade.js';
+import { converterSiteAntigo, limparPeloSchema, migrarSiteLiberdade, migrarLogoLiberdade, contarTextos, LOGO_LIBERDADE } from '../src/site-liberdade.js';
 
 test('site da Liberdade: conteúdo antigo vira seções do Ginga sem inventar nada; roda uma vez e não sobrescreve edição', async () => {
   const antigo = {
@@ -1648,4 +1648,14 @@ test('site da Liberdade: conteúdo antigo vira seções do Ginga sem inventar na
   assert.equal(await migrarSiteLiberdade(ctx, { importar }), 'já tinha conteúdo (não sobrescrito)');
   const vazio = ctxDe(base({ escolas: { liberdade: { nome: 'L' } } }));
   assert.equal(await migrarSiteLiberdade(vazio.ctx, { importar }), 'sem siteConteudo/site');
+});
+
+test('logo da Liberdade entra no cadastro (cartão público) só se não houver logo', async () => {
+  const { f, ctx } = ctxDe(base({ escolas: { liberdade: { nome: 'Liberdade', status: 'ativa', fotos: { treino: ['https://x/1.jpg'] } } } }));
+  assert.equal(await migrarLogoLiberdade(ctx), 1);
+  assert.deepEqual(f.ler('escolas/liberdade').fotos, { treino: ['https://x/1.jpg'], logo: [LOGO_LIBERDADE] });
+  assert.equal(await migrarLogoLiberdade(ctx), 'já tinha logo');
+  const outra = ctxDe(base({ escolas: { liberdade: { nome: 'L', fotos: { logo: ['https://cdn/x.png'] } } } }));
+  assert.equal(await migrarLogoLiberdade(outra.ctx), 'já tinha logo');
+  assert.equal(outra.f.ler('escolas/liberdade').fotos.logo[0], 'https://cdn/x.png');
 });

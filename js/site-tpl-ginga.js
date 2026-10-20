@@ -6,9 +6,10 @@
  * cordões que crescem, núcleos com filtros e WhatsApp, corpo docente com aro animado, agenda com
  * o próximo evento em destaque, bloco do app, loja, chamada com formulário e parceiros.
  *
- * EXCLUSIVO DA LIBERDADE E EXPRESSÃO (não entra aqui): o brasão girando em órbita da foto do
- * topo e o giro da logo no menu; a escada de cordões dela; os prints do app (têm dados pessoais
- * — aqui as telas do app são desenhadas em HTML com dados de exemplo).
+ * O logo da escola orbita a foto do topo ao passar o mouse / tocar (como no site original da
+ * Liberdade — aqui vale para qualquer escola com logo no cadastro). EXCLUSIVO DA LIBERDADE
+ * (não entra aqui): a escada de cordões dela; os prints do app (têm dados pessoais — aqui as
+ * telas do app são desenhadas em HTML com dados de exemplo).
  *
  * Integração com o app: s.agenda (site-escola.js lê agendaPublica/{id}, espelho que o SERVIDOR
  * grava quando um evento ou aviso é publicado no app com "Mostrar no site") entra na agenda e no
@@ -119,7 +120,8 @@ var CSS_BASE = '\
 .gi .bt-icone{width:46px;padding:0;border-radius:14px;background:var(--fundo);color:var(--marinho)}\
 .gi .pulsa{animation:gi-pulsa 2.6s var(--ease) infinite}\
 @keyframes gi-pulsa{0%{box-shadow:0 0 0 0 rgba(@VERDE@,.55)}70%{box-shadow:0 0 0 16px rgba(@VERDE@,0)}100%{box-shadow:0 0 0 0 rgba(@VERDE@,0)}}\
-.gi .nav{position:fixed;top:0;left:0;right:0;z-index:50;height:84px;padding:0 var(--gutter);display:flex;align-items:center;justify-content:space-between;gap:24px;transition:background .45s var(--ease),height .45s var(--ease),box-shadow .45s}\
+.gi section{margin-top:0}\
+.gi .nav{background:transparent;border-bottom:0;backdrop-filter:none;-webkit-backdrop-filter:none;position:fixed;top:0;left:0;right:0;z-index:50;height:84px;padding:0 var(--gutter);display:flex;align-items:center;justify-content:space-between;gap:24px;transition:background .45s var(--ease),height .45s var(--ease),box-shadow .45s}\
 .gi.rolou .nav{background:rgba(@NOITE@,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);height:70px;box-shadow:0 12px 30px -18px rgba(0,0,0,.6)}\
 .gi .marca{display:flex;align-items:center;gap:12px;color:#fff;flex-shrink:0}\
 .gi .marca:hover{color:#fff}\
@@ -160,6 +162,11 @@ var CSS_BASE = '\
 .gi .hero-texto>p{max-width:560px;color:rgba(255,255,255,.78);font-size:clamp(16px,1.4vw,20px);line-height:1.6}\
 .gi .hero-bts{display:flex;gap:14px;flex-wrap:wrap}\
 .gi .hero-foto{position:relative;display:flex;justify-content:center;align-items:flex-end}\
+.gi .orbita{position:absolute;inset:-46px;border-radius:50%;animation:gi-gira 7s linear infinite;animation-play-state:paused;pointer-events:none;z-index:3}\
+.gi .orbita .sat{position:absolute;right:4%;top:6%;width:25%;aspect-ratio:1;border-radius:50%;background:#fff;object-fit:cover;box-shadow:0 0 0 8px rgba(@VERDE@,.18),0 20px 40px -12px rgba(0,0,0,.5);animation:gi-gira 7s linear infinite reverse;animation-play-state:paused}\
+.gi .girando .orbita,.gi .girando .orbita .sat{animation-play-state:running}\
+.gi .rastro{position:absolute;inset:-46px;border-radius:50%;border:2px dashed rgba(@VERDE@,0);transition:border-color .6s;pointer-events:none}\
+.gi .girando .rastro{border-color:rgba(@VERDE@,.45)}\
 .gi .palco{position:relative;width:min(470px,100%);aspect-ratio:47/70;outline:none}\
 .gi .janela{position:absolute;inset:0;border-radius:999px 999px 0 0;overflow:hidden;background:var(--noite-2)}\
 .gi .slide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.2s var(--ease)}\
@@ -349,6 +356,7 @@ var CSS_BASE = '\
 .gi .copy{grid-column:1/-1;border-top:1px solid var(--linha);padding-top:24px;font-size:13px;color:var(--suave)}\
 @media (max-width:1100px){.gi .links{gap:18px;font-size:14px}.gi .esconde-celular{display:none}.gi .hero-grade{grid-template-columns:1fr .8fr;gap:32px}.gi .cordoes{gap:10px}.gi .cordao b{font-size:11.5px}.gi .app{grid-template-columns:1fr}.gi .app-prints{min-height:560px}.gi .grade-3{grid-template-columns:repeat(2,minmax(0,1fr))}}\
 @media (max-width:860px){.gi .nav{height:68px}.gi .marca img{width:40px;height:40px}.gi .marca small{display:none}.gi .hamb{display:flex}.gi .acoes .bt-verde{display:none}.gi .links{position:fixed;inset:68px 0 auto 0;flex-direction:column;gap:0;padding:12px 20px 24px;background:rgba(@NOITE@,.98);backdrop-filter:blur(14px);transform:translateY(-120%);transition:transform .5s var(--ease);box-shadow:0 30px 40px -20px rgba(0,0,0,.6)}.gi.menu-aberto .links{transform:none}.gi .links .nl{padding:14px 4px;font-size:17px;border-bottom:1px solid rgba(255,255,255,.08)}.gi .so-celular{display:block}.gi .hero{padding-top:88px;min-height:0}.gi .hero-grade{grid-template-columns:1fr;gap:26px}.gi .hero-foto{order:-1}.gi .palco{width:min(300px,78vw)}.gi .legenda{display:none}.gi .hero-texto{padding-bottom:130px;gap:20px}.gi .hero-bts .bt{flex:1 1 100%}.gi .anel-a{right:-420px;top:-40px}.gi .anel-b{display:none}.gi .onda{right:-60px;top:40px;width:340px;height:340px}.gi .numeros{height:96px}.gi .numeros b{font-size:26px}.gi .numeros span{font-size:10px;letter-spacing:.1em}.gi .sec{padding:72px 16px}.gi .cab{margin-bottom:32px}.gi .cab.dupla{grid-template-columns:1fr;gap:18px}.gi .grade-3{grid-template-columns:1fr}.gi .zoom .foto{height:220px}.gi .bloco-escuro{padding:56px 18px;border-radius:28px}.gi .cordoes{gap:6px}.gi .corda{width:22px;height:calc(var(--h) * .7)}.gi .cordao b{font-size:11px;min-height:0;height:82px;writing-mode:vertical-rl;transform:rotate(180deg);text-align:left;letter-spacing:.02em}.gi .agenda{grid-template-columns:1fr}.gi .destaque{min-height:440px}.gi .dest-txt{left:20px;right:20px;bottom:22px}.gi .recursos{grid-template-columns:1fr}.gi .app-prints{min-height:420px}.gi .print{width:48%}.gi .p1{left:0;top:40px}.gi .p2{left:50%;top:0}.gi .produto{grid-template-columns:110px minmax(0,1fr)}.gi .produto .foto{height:140px}.gi .chamada{min-height:0}.gi .chamada-grade{grid-template-columns:minmax(0,1fr);padding:44px 18px;gap:28px}.gi .veu-lado{background:linear-gradient(180deg,rgba(@NOITE@,.95),rgba(@NOITE@,.8))}.gi .rodape{grid-template-columns:1fr 1fr;padding:56px 16px 28px}.gi .rod-marca{grid-column:1/-1}.gi .mestres{grid-template-columns:repeat(2,minmax(0,1fr))}}\
+@media (max-width:860px){.gi .orbita,.gi .rastro{inset:-26px}}\
 @media (max-width:380px){.gi .hero h1{font-size:50px}}\
 .gi .parc-bts .bt{height:48px;flex:1 1 210px;justify-content:center;gap:8px}\
 .gi .parc-bt-site svg{color:var(--teal)}\
@@ -602,10 +610,11 @@ export function render(s, h){
     + '<h1>'+esc(cx('topo', 'titulo', tp[0]))+'<br><em>'+esc(cx('topo', 'destaque', tp[1]))+'</em></h1><p>'+esc(cx('topo', 'texto', tp[2]))+'</p>'
     + '<div class="hero-bts"><a class="bt bt-verde bt-grande pulsa" href="#aula">'+esc(cx('topo', 'botao', 'Agende uma aula experimental'))+' '+I.seta+'</a>'
     + (nucs.length ? '<a class="bt bt-linha bt-grande" href="#nucleos">'+I.pino+' '+esc(cx('topo', 'botao2', 'Ache o núcleo mais perto'))+'</a>' : '')+'</div></div>'
-    + '<div class="hero-foto"><div class="palco" data-palco tabindex="0" aria-label="Fotos do grupo"><div class="janela">'
+    + '<div class="hero-foto"><div class="palco" data-palco tabindex="0" aria-label="'+(logo ? 'Fotos do grupo — toque para girar o logo' : 'Fotos do grupo')+'">'+(logo ? '<span class="rastro" aria-hidden="true"></span>' : '')+'<div class="janela">'
     + slides.map(function(x, i){ return '<img class="slide'+(i === 0 ? ' on' : '')+'" src="'+esc(x.foto)+'" alt="'+esc(x.titulo || 'Foto do grupo')+'" data-selo="'+esc(x.selo)+'" data-titulo="'+esc(x.titulo)+'" data-texto="'+esc(x.texto)+'"'+(i === 0 ? ' fetchpriority="high"' : ' loading="lazy"')+'>'; }).join('')
     + (slides.length ? '' : '<span class="sem-foto" role="img" aria-label="'+esc(s.nome)+'"></span>')
     + '<span class="sombra" aria-hidden="true"></span></div>'
+    + (logo ? '<div class="orbita" aria-hidden="true"><img class="sat" src="'+esc(logo)+'" alt=""></div>' : '')
     + (slides.length > 1 ? '<div class="pontos">'+slides.map(function(_, i){ return '<button type="button" class="ponto'+(i === 0 ? ' on' : '')+'" data-ir="'+i+'" aria-label="Ver foto '+(i+1)+'"></button>'; }).join('')+'</div>' : '')
     + '</div>'+(s0.titulo ? '<div class="legenda" aria-live="polite"><span class="l-selo">'+esc(s0.selo)+'</span><b class="l-tit">'+esc(s0.titulo)+'</b><span class="l-txt">'+esc(s0.texto)+'</span></div>' : '')+'</div></div>'
     + (numeros.length ? '<div class="numeros" style="grid-template-columns:repeat('+numeros.length+',minmax(0,1fr))">'+numeros.map(function(n){ return '<div><b>'+esc(n.valor)+'</b><span>'+esc(n.rotulo)+'</span></div>'; }).join('')+'</div>' : '')
@@ -784,7 +793,7 @@ function wire(site, nomeCurto, nomeMod){
     var sl = slides[atual];
     if(leg){ leg.classList.remove('troca'); void leg.offsetWidth; leg.classList.add('troca'); leg.querySelector('.l-selo').textContent = sl.dataset.selo || ''; leg.querySelector('.l-tit').textContent = sl.dataset.titulo || ''; leg.querySelector('.l-txt').textContent = sl.dataset.texto || ''; }
   }
-  function iniciar(){ clearInterval(timerSlide); if(slides.length > 1 && !reduce) timerSlide = setInterval(function(){ ir(atual + 1); }, 5500); }
+  function iniciar(){ clearInterval(timerSlide); if(slides.length > 1) timerSlide = setInterval(function(){ ir(atual + 1); }, 5500); }
   pontos.forEach(function(p){ p.addEventListener('click', function(){ ir(Number(p.dataset.ir) || 0); iniciar(); }); });
   var janela = site.querySelector('.janela');
   if(janela && slides.length > 1){ var x0 = null; janela.addEventListener('touchstart', function(e){ x0 = e.touches[0].clientX; }, { passive:true }); janela.addEventListener('touchend', function(e){ if(x0 === null) return; var dx = e.changedTouches[0].clientX - x0; if(Math.abs(dx) > 40){ ir(atual + (dx < 0 ? 1 : -1)); iniciar(); } x0 = null; }); }
@@ -793,9 +802,15 @@ function wire(site, nomeCurto, nomeMod){
   var itens = [].slice.call(site.querySelectorAll('.revela'));
   if(!('IntersectionObserver' in window) || reduce) itens.forEach(function(el){ el.classList.add('visto'); });
   else { var obs = new IntersectionObserver(function(es){ es.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('visto'); obs.unobserve(en.target); } }); }, { rootMargin:'0px 0px -8% 0px' }); itens.forEach(function(el, i){ el.style.transitionDelay = ((i % 3) * 90) + 'ms'; obs.observe(el); }); }
-  // Anéis aceleram com o mouse/toque nas fotos (sem brasão: esse é exclusivo da Liberdade e Expressão)
+  // Mouse, foco, toque ou Enter nas fotos: o logo orbita a foto e os anéis aceleram.
   var hero = site.querySelector('[data-hero]'), palco = site.querySelector('[data-palco]');
-  if(hero && palco){ palco.addEventListener('mouseenter', function(){ hero.classList.add('girando'); }); palco.addEventListener('mouseleave', function(){ hero.classList.remove('girando'); }); }
+  if(hero && palco){
+    var ligaGiro = function(){ hero.classList.add('girando'); }, desligaGiro = function(){ hero.classList.remove('girando'); };
+    palco.addEventListener('mouseenter', ligaGiro); palco.addEventListener('mouseleave', desligaGiro);
+    palco.addEventListener('focus', ligaGiro); palco.addEventListener('blur', desligaGiro);
+    palco.addEventListener('touchstart', function(){ hero.classList.toggle('girando'); }, { passive:true });
+    palco.addEventListener('keydown', function(e){ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); hero.classList.toggle('girando'); } });
+  }
   // Cliques e envio: ouvintes ligados UMA vez no #site (a prévia do painel redesenha várias vezes).
   site._gi = { nomeCurto:nomeCurto, nomeMod:nomeMod };
   if(!site._giLigado){ site._giLigado = true; ligarCliques(site); }

@@ -15,7 +15,7 @@
 /* Prévia do template "horizons" SEM Firestore: monta um objeto `s` igual ao que
    site-escola.js produz em mapEscola() e chama o módulo diretamente.
    Fotos: stock (Pexels, uso livre) só para visualização — em produção vêm do cadastro da escola. */
-import { TEMPLATES, carregarTemplate } from './js/site-templates.js?v=52';
+import { TEMPLATES, carregarTemplate } from './js/site-templates.js?v=54';
 
 const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 const url = (u) => { const s = String(u == null ? '' : u).trim(); if(!s) return ''; if(/^https:\/\/[^\s"'<>\\]+$/i.test(s)) return s; if(/^[a-z0-9][a-z0-9._\/-]*$/i.test(s) && !s.includes('..')) return s; if(/^data:image\/svg\+xml[,;]/i.test(s)) return s; return ''; };
