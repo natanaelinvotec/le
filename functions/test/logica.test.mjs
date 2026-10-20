@@ -1601,3 +1601,51 @@ test('IA do site: pedido confere papel e escola, respeita a cota do dia e grava 
   // Dia novo zera
   assert.equal((await reservarCota(ctx, 'cteste', { agora: new Date(Date.now() + DIA) })).ok, true);
 });
+
+// ---------- Site antigo da Liberdade → template Ginga (site-liberdade.js) ----------
+import { converterSiteAntigo, limparPeloSchema, migrarSiteLiberdade, contarTextos } from '../src/site-liberdade.js';
+
+test('site da Liberdade: conteúdo antigo vira seções do Ginga sem inventar nada; roda uma vez e não sobrescreve edição', async () => {
+  const antigo = {
+    versao: 1,
+    topo: { selo: 'CAMPO GRANDE · ROCHEDO', titulo: 'A roda', destaque: 'não para.', texto: 'Capoeira é cultura.', botao: 'Agende sua aula grátis', botao2: 'Ache o núcleo', slides: [{ foto: 'assets/profeta-roda.jpg', posicao: '50% 20%', selo: 'FUNDADOR', titulo: 'Mestre Profeta', texto: 'Mais de 30 anos.' }] },
+    numeros: [{ valor: '30+', rotulo: 'Anos de história' }, { valor: '10', rotulo: 'Núcleos' }, { valor: 'R$ 0', rotulo: 'Aula experimental' }, { valor: 'x', rotulo: 'sobra' }],
+    faixa: ['Infantil, juvenil e adulto', 'Berimbau, pandeiro e atabaque'],
+    arte: { selo: 'A ARTE', titulo: 'Três coisas acontecem', destaque: 'ao mesmo tempo', texto: 'Na roda…', pilares: [{ titulo: 'A ginga', texto: 'Base.', foto: 'assets/profeta-roda.jpg', posicao: '50% 30%' }] },
+    graduacao: { selo: 'GRADUAÇÃO', titulo: 'O caminho', destaque: 'do cordão', texto: 'A troca…', ocultar: ['Iniciante'], infantil: 'Trilha infantil.', botao: 'Ver meu termômetro no app' },
+    nucleos: { selo: 'ONDE TREINAR', titulo: 'Ache o núcleo', destaque: 'mais perto', nota: 'Nota.', convite: 'Olá!', lista: [{ nome: 'Mestre Profeta', bairro: 'Buriti', dias: 'Seg, qua e sex', horario: '19h00 às 20h30', endereco: 'R. Jaime Costa, 589', whatsapp: '(67) 99129-3269', foto: 'assets/retrato-profeta.jpg', infantil: false, noite: true }] },
+    mestres: { selo: 'CORPO DOCENTE', titulo: 'Quem ensina', destaque: 'na roda', texto: 'Mestres.', lista: [{ nome: 'Mestre Profeta', cargo: 'Fundador', foto: 'assets/retrato-profeta.jpg', instagram: 'https://www.instagram.com/mestreprofeta/' }, { nome: 'Prof. Maick', cargo: 'Rochedo', foto: 'assets/retrato-maick.jpg', instagram: '' }] },
+    agenda: { selo: 'AGENDA', titulo: 'Batizados, rodas', destaque: 'e apresentações', foto: 'assets/batizado.jpg', aviso: 'Pode mudar.', lista: [{ titulo: 'Batizado do Mestre Omar', data: '2026-11-15', dataTexto: 'a confirmar', local: 'Guanandi', horario: '19h00', mapa: 'Rua Arapuã, 650', fotos: '' }, { titulo: 'Sem data', data: '', local: 'X' }] },
+    app: { selo: 'APP DO GRUPO', titulo: 'O grupo inteiro', destaque: 'no bolso', texto: 'Sem loja.', recursos: [{ titulo: 'x' }], printApp: 'assets/print-app.png', printRede: 'assets/print-rede.png' },
+    loja: { selo: 'LOJA OFICIAL', titulo: 'O uniforme', destaque: 'e os instrumentos', texto: 'Abadá.', whatsapp: '67991293269', produtos: [{ nome: 'Abadá Oficial', texto: 'Bordado.', preco: 'R$ 90,00', foto: 'assets/equipe.jpg' }] },
+    chamada: { titulo: 'Sua vaga na roda', destaque: 'já está aberta', texto: 'Traga roupa leve.', foto: 'assets/grupo-buriti.jpg', formTitulo: 'Agende sua aula grátis', formAjuda: 'O professor responde.' },
+    parceiros: { selo: 'PARCEIROS', titulo: 'Quem treina', destaque: 'ganha mais', texto: 'Benefícios.', lista: [{ nome: 'Laboratório Célula MS', logo: 'assets/parceiros/celula-20anos.png', frase: 'Sua saúde começa no movimento!', destaque: 'até 50%', beneficio: 'de desconto', como: 'Peça o perfil Atleta.', whatsapp: '5567981240201', mensagem: 'Olá', rotuloWhats: 'x', link: 'https://celulams.com.br', rotuloLink: 'y' }] },
+    rodape: { texto: 'Grupo Mestre Profeta.', telefone: '(67) 99129-3269', endereco: 'R. Jaime Costa', instagram: '@capoeira', instagramUrl: 'https://www.instagram.com/x/', facebook: 'capoeiraliberdade', facebookUrl: 'https://www.facebook.com/capoeiraliberdade' },
+  };
+  const sec = limparPeloSchema(converterSiteAntigo(antigo), TPL_GINGA.schema);
+  assert.equal(sec.topo.titulo, 'A roda'); assert.equal(sec.topo.slides[0].foto, 'assets/profeta-roda.jpg'); assert.equal(sec.topo.slides[0].posicao, undefined);
+  assert.equal(sec.numeros.itens.length, 3, 'máximo do schema'); assert.equal(sec.numeros.itens[0].valor, '30+');
+  assert.equal(sec.faixa.palavras, 'Infantil, juvenil e adulto, Berimbau, pandeiro e atabaque');
+  assert.equal(sec.graduacao.ocultar, undefined); assert.equal(sec.graduacao.infantil, 'Trilha infantil.');
+  assert.deepEqual(sec.nucleos.lista[0], { nome: 'Mestre Profeta', bairro: 'Buriti', dias: 'Seg, qua e sex', horario: '19h00 às 20h30', endereco: 'R. Jaime Costa, 589', whatsapp: '67991293269', foto: 'assets/retrato-profeta.jpg', noite: '1' });
+  assert.equal(sec.mestres.lista.length, 2); assert.equal(sec.mestres.lista[1].instagram, undefined);
+  assert.deepEqual(sec.agenda.lista[0], { titulo: 'Batizado do Mestre Omar', dia: '15', mes: '11', ano: '2026', horario: '19h00', local: 'Guanandi', mapa: 'Rua Arapuã, 650' });
+  assert.deepEqual(sec.agenda.lista[1], { titulo: 'Sem data', local: 'X' });
+  assert.deepEqual(sec.app, { selo: 'APP DO GRUPO', titulo: 'O grupo inteiro', destaque: 'no bolso', texto: 'Sem loja.' }, 'prints e recursos não existem no Ginga');
+  assert.equal(sec.loja.produtos[0].preco, 'R$ 90,00');
+  assert.equal(sec.parceiros.lista[0].rotuloWhats, undefined); assert.equal(sec.parceiros.lista[0].link, 'https://celulams.com.br');
+  assert.deepEqual(sec.rodape, { texto: 'Grupo Mestre Profeta.', telefone: '(67) 99129-3269', facebook: 'https://www.facebook.com/capoeiraliberdade' });
+  assert.ok(contarTextos(sec) > 40);
+
+  // Migração: grava siteConteudo/liberdade + template da escola; segunda vez não mexe; conteúdo editado não é sobrescrito
+  const { f, ctx } = ctxDe(base({ siteConteudo: { site: antigo }, escolas: { liberdade: { nome: 'Liberdade', status: 'ativa', template: 'arena' } } }));
+  const importar = async () => TPL_GINGA;
+  const r = await migrarSiteLiberdade(ctx, { importar });
+  assert.ok(typeof r === 'number' && r > 40, String(r));
+  const d = f.ler('siteConteudo/liberdade');
+  assert.equal(d.template, 'ginga'); assert.equal(d.versao, 1); assert.equal(d.secoes.topo.titulo, 'A roda'); assert.deepEqual(d.anterior, {});
+  assert.equal(f.ler('escolas/liberdade').template, 'ginga');
+  assert.equal(await migrarSiteLiberdade(ctx, { importar }), 'já tinha conteúdo (não sobrescrito)');
+  const vazio = ctxDe(base({ escolas: { liberdade: { nome: 'L' } } }));
+  assert.equal(await migrarSiteLiberdade(vazio.ctx, { importar }), 'sem siteConteudo/site');
+});

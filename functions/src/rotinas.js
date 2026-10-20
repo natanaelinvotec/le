@@ -8,6 +8,7 @@ import { responsaveisDe, apagarSubcolecao, apagarArquivosDoStorage } from './gat
 import { migrarEscolaId, migrarClaims, migrarEscolasPublicas, migrarEscolaId1c, migrarNucleosPublicos, ESCOLA_PADRAO, ESCOLA_PLATAFORMA, normalizarDominio } from './escolas.js';
 import { testarEmail } from './emails.js';
 import { ehOutraEscola, idAvisoGraduacao } from './graduacao-escola.js';
+import { migrarSiteLiberdade } from './site-liberdade.js';
 
 const DIA = 86400000;
 
@@ -151,6 +152,8 @@ export const MIGRACOES = [
   ['m12_nucleos_publicos', migrarNucleosPublicos],
   // 1c parte 3: auditoria, conversas e fotos de carteirinha ganham escola (o Fundador vê só a dele).
   ['m11_escola_id_1c', migrarEscolaId1c],
+  // Site antigo da Liberdade (siteConteudo/site) vira conteúdo do template Ginga (siteConteudo/liberdade).
+  ['m13_site_liberdade_ginga', migrarSiteLiberdade],
   // Login de cada pessoa com escola e papéis (custom claims). Por último: se faltar permissão, só ela fica pendente.
   ['m9_claims_escola', migrarClaims],
 ];
