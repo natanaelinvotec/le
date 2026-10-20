@@ -50,12 +50,11 @@ agrupados; a visibilidade por papel continua por data-papel (admin.js). -->
 <img src="assets/logo-liberdade150.png" alt="" class="admin-avatar nav-eu-foto" id="navEuFoto">
 <span><b id="navEuNome">—</b><small id="navEuPapel">Painel</small></span>
 </div>
-<!-- Turma ativa (v37): uma arte marcial dentro do núcleo. Montado por admin.js
-com seletorTurmaHTML() de js/turmas.js; trocar a turma filtra o painel inteiro. -->
-<div id="turmaSeletor" data-papel="all"></div>
+<!-- Turmas (v56): o bloco "Turma ativa" saiu daqui. As turmas de cada arte ficam na aba
+Núcleos (cartão do núcleo) e o filtro "Turma" fica nos Filtros Avançados (js/turmas.js). -->
 <span class="nav-grupo" id="navGrupoNucleo" data-papel="all">Núcleo</span>
 <a href="#" class="nav-item active" data-papel="all" onclick="mudarAba('alunos', event)"><i class="fas fa-users"></i><span>Alunos</span></a>
-<a href="#" class="nav-item" data-papel="admin" onclick="mudarAba('nucleos', event)"><i class="fas fa-location-dot"></i><span>Núcleos</span></a>
+<a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('nucleos', event)"><i class="fas fa-location-dot"></i><span>Núcleos</span></a>
 <a href="#" class="nav-item" data-papel="admin" onclick="mudarAba('site', event)" title="Site público da escola: visual, textos e fotos"><i class="fas fa-globe"></i><span>Meu site</span></a>
 <a href="#" class="nav-item" data-papel="gestor" onclick="mudarAba('solicitacoes', event)"><i class="fas fa-clipboard-check"></i><span>Solicitações</span></a>
 <!-- Avisos e Materiais são do núcleo inteiro (não filtram por turma). O rótulo
@@ -261,8 +260,9 @@ e expande a ramificação, que fica aberta até ser recolhida. -->
 </section>
 
 <section id="aba-nucleos" class="aba-content">
-<div class="section-header"><div><span class="eyebrow">Admin Master</span><h2><i class="fas fa-building"></i> Núcleos e Permissões</h2></div></div>
-<div class="card-padrao" style="margin-bottom: 20px;">
+<div class="section-header"><div><span class="eyebrow" data-papel="admin">Admin Master</span><span class="eyebrow" data-papel="mestre">Meu núcleo</span><h2><i class="fas fa-building"></i> <span data-papel="admin">Núcleos e Permissões</span><span data-papel="mestre">Núcleo e turmas</span></h2></div></div>
+<p class="texto-ajuda" data-papel="mestre" style="margin:-6px 0 16px;color:var(--text-muted);font-size:.9rem">As turmas do seu núcleo, uma por arte marcial. Criar uma turma abre a escada de graduação e a avaliação daquela arte para os seus alunos.</p>
+<div class="card-padrao" data-papel="admin" style="margin-bottom: 20px;">
 <h3>Criar Núcleo / Conceder Academia Própria</h3>
 <p style="font-size:0.85rem; color:var(--text-muted); margin:8px 0 15px;">
 Escolha um aluno já cadastrado para virar responsável por este núcleo
@@ -288,7 +288,7 @@ Escolha um aluno já cadastrado para virar responsável por este núcleo
 <button type="submit" class="btn-detalhes" style="width: 280px;">Criar Núcleo</button>
 </form>
 </div>
-<div class="secao-titulo"><h3>Núcleos cadastrados</h3></div>
+<div class="secao-titulo" data-papel="admin"><h3>Núcleos cadastrados</h3></div>
 <div class="academias-grid" id="listaNucleosPainel"></div>
 </section>
 
@@ -614,14 +614,23 @@ enviada nem guardada — só as presenças confirmadas (origem 'faceid-foto'). -
 </section>
 </main>
 
-<aside class="sidebar" data-papel="admin">
-<div class="widget">
+<aside class="sidebar" data-papel="gestor">
+<div class="widget" data-papel="admin">
 <h3>Filtros Avançados</h3>
 <p style="font-size: 0.8rem; color: #666; margin-bottom: 10px;">Ao filtrar, os gráficos e o financeiro mostrarão apenas os dados do núcleo selecionado.</p>
 <label for="filtroAcademia" style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0);">Filtrar por núcleo</label>
 <select class="input-padrao" id="filtroAcademia" style="margin-bottom: 10px;">
 <option value="">Todos os Núcleos</option>
 </select>
+</div>
+<!-- Turma (v56): só aparece quando o núcleo em foco tem turmas. Escolher uma turma troca a
+escada e os critérios de avaliação para os dela e filtra alunos, presenças, graduação e financeiro. -->
+<div class="widget" id="widgetTurma" hidden>
+<h3>Turma</h3>
+<p style="font-size: 0.8rem; color: #666; margin-bottom: 10px;">O painel olha uma turma por vez: a padrão é a arte principal do núcleo. Escolhendo outra, a escada e a avaliação passam a ser as daquela arte.</p>
+<label for="filtroTurma" style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0);">Filtrar por turma</label>
+<select class="input-padrao" id="filtroTurma" data-sem-trocas style="margin-bottom: 4px;"></select>
+<a href="#" style="font-size:.8rem" onclick="mudarAba('nucleos', event)">Gerenciar turmas na aba Núcleos →</a>
 </div>
 </aside>
 </div>
@@ -810,8 +819,21 @@ admin.js preenche #formTurmaWrap ao abrir e lê com lerFormTurma() ao criar. -->
 </div>
 </div>
 </div>
+<!-- Excluir turma (v56): só Admin Master, só turma sem aluno; confirmação em duas etapas. -->
+<div class="modal-overlay" id="modalExcluirTurma" role="dialog" aria-modal="true" aria-labelledby="tituloExcluirTurma">
+<div class="modal-content modal-turma" style="max-width:460px">
+<button class="close-modal" onclick="fecharModalExcluirTurma()" aria-label="Fechar"><i class="fas fa-times"></i></button>
+<span class="eyebrow">Turmas</span>
+<h2 id="tituloExcluirTurma">Excluir a turma?</h2>
+<p class="modal-turma-sub" id="modalExcluirTurmaSub">Nenhum aluno está inscrito nela. A escada de graduação e os horários desta turma serão apagados. Isso não pode ser desfeito.</p>
+<div class="modal-turma-rodape">
+<button type="button" class="btn-detalhes btn-soft" onclick="fecharModalExcluirTurma()">Cancelar</button>
+<button type="button" class="btn-salvar-modal" id="btnConfirmarExcluirTurma" style="background:#C62828;border-color:#C62828"><i class="fas fa-trash"></i> Excluir turma</button>
+</div>
+</div>
+</div>
 </div>
 
-<script type="module" src="js/admin.js?v=20261019"></script>
+<script type="module" src="js/admin.js?v=56"></script>
 </body>
 </html>

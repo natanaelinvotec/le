@@ -67,7 +67,7 @@ export var TEMPLATES = {
     nome: 'Ginga',
     descricao: 'O site da Liberdade e Expressão para a sua escola: fotos em arco, cordões que crescem, núcleos com WhatsApp, corpo docente, agenda e avisos do app, loja e aula experimental.',
     modalidades: ['capoeira', 'todas'],
-    modulo: './site-tpl-ginga.js?v=55',
+    modulo: './site-tpl-ginga.js?v=56',
     miniatura: 'assets/templates/ginga.svg',
     // Sites já no ar com este visual (a vitrine mostra "Conheça quem já usa"). Os de escolas da
     // plataforma entram sozinhos quando a AtletaPay liga "Mostrar na vitrine" no painel Master.

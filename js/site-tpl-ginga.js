@@ -1,4 +1,5 @@
-/* site-tpl-ginga.js — Template "ginga" do site público por escola (F4.3, pré-build #5).
+/* site-tpl-ginga.js — Template "ginga" do site público por escola (F4.3, pré-build #5). v56: campo
+ * graduacao.ocultar (cordões que não aparecem na escada, como o antigo site da Liberdade).
  *
  * Clone, para outras escolas, do site do Grupo Capoeira Liberdade e Expressão
  * (liberdadeeexpressao.com.br: js/site-render.js + css/site.css). Mesma estrutura e os mesmos
@@ -48,7 +49,8 @@ export var schema = { secoes: [
   { id:'faixa', r:'Faixa corrida', campos:[ { c:'palavras', r:'Frases (separe por vírgula, até 8)', max:240, ph:'Infantil, juvenil e adulto, Batizado e troca de cordas' } ] },
   { id:'arte', r:'A arte', ajuda:'Três pilares com foto.', campos:[ SELO, TIT, DEST, { c:'texto', r:'Texto', t:'area', max:300 },
     { c:'pilares', r:'Pilares', t:'lista', max:3, resumo:'titulo', nomeItem:'Pilar', item:[ { c:'titulo', r:'Título', max:30 }, { c:'texto', r:'Texto', t:'area', max:180 }, { c:'foto', r:'Foto', t:'foto' } ] } ] },
-  { id:'graduacao', r:'Graduação', ajuda:'Os cordões e as cores vêm da escada cadastrada da escola.', campos:[ SELO, TIT, DEST, { c:'texto', r:'Texto', t:'area', max:300 },
+  { id:'graduacao', r:'Graduação', ajuda:'Os cordões e as cores vêm da escada cadastrada da escola. Para esconder algum (ex.: o de iniciante ou o do fundador), escreva o nome dele em "Cordões que não aparecem".', campos:[ SELO, TIT, DEST, { c:'texto', r:'Texto', t:'area', max:300 },
+    { c:'ocultar', r:'Cordões que não aparecem (separe por vírgula)', max:200, ph:'Ex.: Iniciante, Mestre/Presidente' },
     { c:'infantil', r:'Nota da trilha infantil', max:140 }, { c:'botao', r:'Botão', max:32, ph:'Ver meu termômetro no app' } ] },
   { id:'nucleos', r:'Núcleos', ajuda:'Cada núcleo com dias, horário, endereço e WhatsApp. Lista vazia = os núcleos do cadastro (só o nome).', campos:[ SELO, TIT, DEST,
     { c:'nota', r:'Observação abaixo dos cartões', t:'area', max:240 }, { c:'convite', r:'Mensagem pronta do WhatsApp', max:140, ph:'Olá! Quero agendar uma aula experimental.' },
@@ -547,8 +549,11 @@ export function render(s, h){
   var hoje = hojeLocal();
 
   // Escada (3 faixas de cor por cordão quando o cadastro tem; senão a cor única repetida).
+  // "Cordões que não aparecem": nomes separados por vírgula na aba Meu site (sem acento/caixa).
+  var norm = function(t){ return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim(); };
+  var ocultos = cx('graduacao', 'ocultar', '').split(',').map(norm).filter(Boolean);
   var escada = (Array.isArray(s.escada3) && s.escada3.length ? s.escada3 : (Array.isArray(s.escada) ? s.escada.map(function(b){ return { nome:b.nome, cor:[b.cor, b.cor, b.cor] }; }) : []))
-    .filter(function(b){ return b && b.nome; }).slice(0, 14)
+    .filter(function(b){ return b && b.nome && ocultos.indexOf(norm(b.nome)) < 0; }).slice(0, 14)
     .map(function(b){ var c = (Array.isArray(b.cor) ? b.cor : [b.cor]).map(hex6); var a = c[0] || '#9aa7b4'; return { nome:String(b.nome), cor:[a, c[1] || a, c[2] || a] }; });
 
   // Núcleos: painel (completos) → cadastro (só nome/cidade).

@@ -14,7 +14,7 @@
  */
 import { db, doc, getDoc, getDocs, collection, query, where, limit } from './firebase.js';
 import { escolaIdDoEndereco, escolaIdDoDominio } from './escola-atual.js';
-import { layoutsComModulo, templateExiste } from './site-templates.js';
+import { layoutsComModulo, templateExiste } from './site-templates.js?v=56';
 
 /* ========================================================================== */
 /*  Utilidades seguras                                                        */

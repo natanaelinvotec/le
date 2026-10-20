@@ -17,7 +17,7 @@ um aluno sequer: a turma padrão é virtual até alguém criar a primeira turma 
 Turma ativa no painel: guardada por núcleo em localStorage ('le.turma.<academiaId>').
 '' (vazio) = turma padrão. Trocar a turma ativa troca a escada em uso
 (aplicarEscadaDaTurma) e TODO o painel filtra por ela (filtrarPorTurma). */
-import { db, collection, doc, getDoc, getDocs, addDoc, updateDoc, query, where, minhaEscolaId } from './firebase.js';
+import { db, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, minhaEscolaId } from './firebase.js';
 import { MODALIDADES, escadaPadrao, escadaLimpa } from './modalidades.js';
 import { ESCOLA, aplicarEscadaDaTurma, escadaDaEscola, ESCADA_CAPOEIRA } from './escola.js';
 
@@ -170,6 +170,47 @@ export async function atualizarTurma(id, academiaId, dados) {
   limpo.atualizadoEm = new Date().toISOString();
   await updateDoc(doc(db, 'turmas', id), limpo);
   cache.delete(academiaId);
+}
+
+// Excluir turma (só o Admin Master, e só sem alunos — o painel confere a contagem antes; a regra
+// do Firestore deixa o Admin da escola apagar). Alunos com turmaId apontando para ela não existem
+// nesse caso, então nada fica órfão.
+export async function excluirTurma(id, academiaId) {
+  if (!id) throw new Error('Turma inválida.');
+  await deleteDoc(doc(db, 'turmas', id));
+  cache.delete(academiaId);
+}
+
+// Bloco "Turmas deste núcleo" dentro do cartão do núcleo (aba Núcleos): chips com cor, arte,
+// sistema de graduação e nº de alunos; "+ Nova turma" para quem pode criar; "Excluir" só para o
+// Admin Master e só na turma sem aluno. A turma padrão (sem turmaId) aparece como a arte do núcleo.
+export function turmasDoNucleoHTML({ turmas = [], contagem = {}, academia, podeCriar = false, podeExcluir = false }) {
+  const padrao = turmaPadrao(academia);
+  const todas = [padrao, ...turmas];
+  const chip = (t) => {
+    const n = Number(contagem[t.id || ''] || 0);
+    const sistema = SISTEMAS[t.graduacao] ? SISTEMAS[t.graduacao].rotulo.toLowerCase() : pecaDoSistema(t.graduacao, t.arte);
+    const vazia = !t.padrao && n === 0;
+    return `<div class="turma-chip${vazia ? ' vazia' : ''}" data-turma="${X(t.id || '')}">
+      <span class="turma-cor" style="background:${X(corOk(t.cor))}"></span>
+      <span class="turma-chip-txt"><b>${X(t.nome)}</b><small>${X(nomeArte(t.arte))}${sistema ? ' · ' + X(sistema) : ''}${t.padrao ? ' · turma do núcleo' : ''}</small><span class="turma-qtd">${n} aluno${n === 1 ? '' : 's'}</span></span>
+      ${podeExcluir && vazia ? `<button type="button" class="turma-excluir" data-excluir="${X(t.id)}" data-nome="${X(t.nome)}" title="Excluir esta turma (sem alunos)"><i class="fas fa-trash" aria-hidden="true"></i> Excluir</button>` : ''}
+    </div>`;
+  };
+  return `<div class="turma-chips" data-sem-trocas data-nucleo="${X(academia && academia.id || '')}">
+    <span class="turma-chips-titulo"><i class="fas fa-layer-group" aria-hidden="true"></i> Turmas deste núcleo</span>
+    <div class="turma-chips-lista">${todas.map(chip).join('')}${podeCriar ? `<button type="button" class="turma-nova turma-nova-chip" data-nova="${X(academia && academia.id || '')}"><i class="fas fa-plus" aria-hidden="true"></i> Nova turma</button>` : ''}</div>
+    <p class="turma-chips-nota">Cada turma é uma arte marcial com a própria escada de graduação e avaliação.${podeExcluir ? ' Excluir só aparece na turma sem nenhum aluno.' : ''}</p>
+  </div>`;
+}
+
+// Filtro "Turma" (barra lateral direita): opções da turma padrão + turmas do núcleo em foco.
+export function opcoesFiltroTurmaHTML({ turmas = [], ativaId = '', contagem = {}, academia }) {
+  const padrao = turmaPadrao(academia);
+  const op = (t, rotulo) => `<option value="${X(t.id || '')}"${(t.id || '') === (ativaId || '') ? ' selected' : ''}>${X(rotulo)}</option>`;
+  // Sem opção "todas": cada turma tem a própria escada de graduação, então o painel sempre olha UMA turma
+  // (a padrão = a arte principal do núcleo, alunos sem turmaId).
+  return [padrao, ...turmas].map((t) => op(t, `${t.nome} · ${nomeArte(t.arte)} (${Number(contagem[t.id || ''] || 0)})${t.padrao ? ' · padrão' : ''}`)).join('');
 }
 
 // ---------- turma ativa (por núcleo, neste aparelho) ----------
@@ -354,6 +395,20 @@ export function garantirEstilosTurma() {
   const s = document.createElement('style'); s.id = 'css-turmas';
   s.textContent = `
 .turma-bloco{display:flex;flex-direction:column;gap:6px;margin:6px 0 10px}
+.turma-chips{display:flex;flex-direction:column;gap:10px;margin:14px 0 6px;padding-top:12px;border-top:1px solid var(--border-color,#E8EEF4)}
+.turma-chips-titulo{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:var(--text-muted,#5B6B7F);display:flex;align-items:center;gap:8px}
+.turma-chips-lista{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch}
+.turma-chip{display:flex;align-items:center;gap:10px;border:1px solid var(--border-color,#E8EEF4);border-radius:14px;padding:8px 12px 8px 10px;background:#fff;min-width:0}
+.turma-chip.vazia{border-style:dashed;background:#fbfdfd}
+.turma-chip .turma-cor{width:12px;height:12px;border-radius:50%;flex:none}
+.turma-chip-txt{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.turma-chip-txt b{font-size:.9rem;font-weight:700}
+.turma-chip-txt small{font-size:.72rem;color:var(--text-muted,#5B6B7F)}
+.turma-chip-txt .turma-qtd{font-size:.74rem;color:var(--text-muted,#5B6B7F);font-variant-numeric:tabular-nums}
+.turma-excluir{margin-left:6px;border:1px solid #f3d6d6;background:#fff;color:#C62828;border-radius:8px;padding:5px 9px;font:600 .74rem inherit;font-family:inherit;cursor:pointer}
+.turma-excluir:hover{background:#FDECEC}
+.turma-nova-chip{padding:10px 14px;margin:0;align-self:center}
+@media (max-width:600px){.turma-chip{width:100%}.turma-nova-chip{width:100%}}
 .turma-atual{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:2px solid var(--primary-teal,#389E92);border-radius:12px;background:#fff;text-align:left;cursor:pointer;font:inherit;color:inherit;transition:box-shadow .25s cubic-bezier(.16,1,.3,1)}
 .turma-atual:hover{box-shadow:0 6px 18px -10px rgba(0,45,114,.5)}
 .turma-atual .turma-txt{display:flex;flex-direction:column;flex:1;min-width:0}

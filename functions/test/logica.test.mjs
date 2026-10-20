@@ -1603,7 +1603,7 @@ test('IA do site: pedido confere papel e escola, respeita a cota do dia e grava 
 });
 
 // ---------- Site antigo da Liberdade → template Ginga (site-liberdade.js) ----------
-import { converterSiteAntigo, limparPeloSchema, migrarSiteLiberdade, migrarLogoLiberdade, migrarEscadaLiberdade, contarTextos, LOGO_LIBERDADE } from '../src/site-liberdade.js';
+import { converterSiteAntigo, limparPeloSchema, migrarSiteLiberdade, migrarLogoLiberdade, migrarEscadaLiberdade, migrarOcultarCordoesLiberdade, OCULTAR_PADRAO_LIBERDADE, contarTextos, LOGO_LIBERDADE } from '../src/site-liberdade.js';
 
 test('site da Liberdade: conteúdo antigo vira seções do Ginga sem inventar nada; roda uma vez e não sobrescreve edição', async () => {
   const antigo = {
@@ -1626,7 +1626,7 @@ test('site da Liberdade: conteúdo antigo vira seções do Ginga sem inventar na
   assert.equal(sec.topo.titulo, 'A roda'); assert.equal(sec.topo.slides[0].foto, 'assets/profeta-roda.jpg'); assert.equal(sec.topo.slides[0].posicao, undefined);
   assert.equal(sec.numeros.itens.length, 3, 'máximo do schema'); assert.equal(sec.numeros.itens[0].valor, '30+');
   assert.equal(sec.faixa.palavras, 'Infantil, juvenil e adulto, Berimbau, pandeiro e atabaque');
-  assert.equal(sec.graduacao.ocultar, undefined); assert.equal(sec.graduacao.infantil, 'Trilha infantil.');
+  assert.equal(sec.graduacao.ocultar, 'Iniciante', 'lista do site antigo vira texto separado por vírgula'); assert.equal(sec.graduacao.infantil, 'Trilha infantil.');
   assert.deepEqual(sec.nucleos.lista[0], { nome: 'Mestre Profeta', bairro: 'Buriti', dias: 'Seg, qua e sex', horario: '19h00 às 20h30', endereco: 'R. Jaime Costa, 589', whatsapp: '67991293269', foto: 'assets/retrato-profeta.jpg', noite: '1' });
   assert.equal(sec.mestres.lista.length, 2); assert.equal(sec.mestres.lista[1].instagram, undefined);
   assert.deepEqual(sec.agenda.lista[0], { titulo: 'Batizado do Mestre Omar', dia: '15', mes: '11', ano: '2026', horario: '19h00', local: 'Guanandi', mapa: 'Rua Arapuã, 650' });
@@ -1668,4 +1668,23 @@ test('escada de cordões da Liberdade entra no cadastro (para o site) só se fal
   assert.deepEqual(e.escada.adulto[2].cor, ['#4F4F4F', '#DAA520', '#4F4F4F']); assert.equal(e.escada.criterios.length, 15);
   assert.equal(e.graduacoes.length, 10); assert.equal(e.status, 'ativa');
   assert.equal(await migrarEscadaLiberdade(ctx), 'já tinha escada');
+});
+
+test('v56: cordões ocultos da escada entram no conteúdo do Ginga só se o Admin não escreveu nada', async () => {
+  // sem conteúdo do site → nada a fazer
+  const vazio = ctxDe(base({}));
+  assert.equal(await migrarOcultarCordoesLiberdade(vazio.ctx), 'sem siteConteudo/liberdade');
+  // com o site antigo: copia a lista dele
+  const a = ctxDe(base({ siteConteudo: { site: { graduacao: { ocultar: ['Iniciante', 'Mestre/Presidente', ''] } }, liberdade: { template: 'ginga', secoes: { topo: { titulo: 'A roda' }, graduacao: { titulo: 'O caminho' } }, versao: 3 } } }));
+  assert.equal(await migrarOcultarCordoesLiberdade(a.ctx), 'Iniciante, Mestre/Presidente');
+  const d = a.f.ler('siteConteudo/liberdade');
+  assert.equal(d.secoes.graduacao.ocultar, 'Iniciante, Mestre/Presidente'); assert.equal(d.secoes.graduacao.titulo, 'O caminho'); assert.equal(d.secoes.topo.titulo, 'A roda'); assert.equal(d.versao, 3);
+  assert.equal(await migrarOcultarCordoesLiberdade(a.ctx), 'já tinha ocultar');
+  // sem site antigo: padrão da Liberdade; Admin já escreveu → não mexe; outro template → não mexe
+  const b = ctxDe(base({ siteConteudo: { liberdade: { template: 'ginga', secoes: {} } } }));
+  assert.equal(await migrarOcultarCordoesLiberdade(b.ctx), OCULTAR_PADRAO_LIBERDADE);
+  const c = ctxDe(base({ siteConteudo: { liberdade: { template: 'ginga', secoes: { graduacao: { ocultar: 'Crua' } } } } }));
+  assert.equal(await migrarOcultarCordoesLiberdade(c.ctx), 'já tinha ocultar'); assert.equal(c.f.ler('siteConteudo/liberdade').secoes.graduacao.ocultar, 'Crua');
+  const e = ctxDe(base({ siteConteudo: { liberdade: { template: 'luva', secoes: {} } } }));
+  assert.match(await migrarOcultarCordoesLiberdade(e.ctx), /luva/);
 });

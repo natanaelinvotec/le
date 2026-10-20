@@ -1,9 +1,13 @@
 /* site-gerenciar.js — aba "Meu site" do painel (admin.html), F4.2.
  *
- * O Admin Master da escola escolhe o template do site público e edita textos e fotos
- * SEM programar nada: o formulário é montado a partir do `schema` que cada template
- * exporta (js/site-tpl-<nome>.js, registro em js/site-templates.js). Template novo na
- * biblioteca = gerenciador novo de graça.
+ * O Admin Master da escola edita textos e fotos do site público SEM programar nada: o
+ * formulário é montado a partir do `schema` que cada template exporta (js/site-tpl-<nome>.js,
+ * registro em js/site-templates.js). Template novo na biblioteca = gerenciador novo de graça.
+ *
+ * Layout (v56, igual ao antigo "Gerenciar o site"): seções à esquerda, formulário da seção
+ * ativa no meio, prévia ao vivo à direita. O VISUAL (template) NÃO se troca aqui — fica fixo no
+ * que a escola escolheu no cadastro / painel AtletaPay e aparece só como etiqueta "Visual: X".
+ * No celular a lista de seções vira um seletor e a prévia abre pelo botão "Ver prévia".
  *
  * Onde fica: Firestore siteConteudo/{escolaId} — { template, secoes, anterior, atualizadoEm,
  * atualizadoPor, versao }. Leitura pública (é o conteúdo do site); gravação só do Admin da
@@ -27,7 +31,7 @@
  */
 import { db, doc, getDoc, setDoc, addDoc, collection, onSnapshot, storage, storageRef, uploadBytes, getDownloadURL, minhaEscolaId, meuUid } from './firebase.js';
 import { prepararImagem } from './imagem.js';
-import { TEMPLATES, TEMPLATE_PADRAO, templateExiste, carregarTemplate } from './site-templates.js';
+import { TEMPLATES, TEMPLATE_PADRAO, templateExiste, carregarTemplate } from './site-templates.js?v=56';
 
 const MAX_TEXTO = 400;
 const MAX_ITENS = 12;
@@ -101,21 +105,21 @@ function estilos() {
 #meuSite .ms-btn:disabled{opacity:.5;cursor:default;transform:none;box-shadow:none}
 #meuSite .ms-btn.pri{background:var(--ms-ac);color:#fff;border-color:var(--ms-ac)}
 #meuSite .ms-btn.peq{padding:6px 12px;font-size:.8rem}
-#meuSite .ms-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,44%);gap:20px;align-items:start}
-#meuSite .ms-tpls{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin:8px 0 20px}
-#meuSite .ms-tpl{position:relative;text-align:left;border:2px solid var(--ms-b);border-radius:16px;background:var(--ms-bg);padding:12px;cursor:pointer;font:inherit;color:inherit;transition:border-color .3s,transform .35s var(--ms-ease),box-shadow .35s var(--ms-ease)}
-#meuSite .ms-tpl:hover{transform:translateY(-2px);box-shadow:0 14px 30px -18px rgba(0,0,0,.35)}
-#meuSite .ms-tpl.on{border-color:var(--ms-ac);box-shadow:0 0 0 3px color-mix(in srgb,var(--ms-ac) 18%,transparent)}
-#meuSite .ms-tpl .mini{aspect-ratio:16/10;border-radius:10px;background:#EAF2F1;overflow:hidden;margin-bottom:10px;display:grid;place-items:center;color:var(--ms-mut);font-size:.8rem}
-#meuSite .ms-tpl .mini img{width:100%;height:100%;object-fit:cover;display:block}
-#meuSite .ms-tpl b{display:block;font-size:.98rem}
-#meuSite .ms-tpl small{display:block;color:var(--ms-mut);font-size:.8rem;line-height:1.4;margin-top:4px}
-#meuSite .ms-tpl .sel{position:absolute;top:10px;right:10px;background:var(--ms-ac);color:#fff;border-radius:999px;font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:4px 8px}
-#meuSite details.ms-sec{border:1px solid var(--ms-b);border-radius:14px;background:var(--ms-bg);margin-bottom:10px;overflow:hidden}
-#meuSite details.ms-sec>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;font-weight:800}
-#meuSite details.ms-sec>summary::-webkit-details-marker{display:none}
-#meuSite details.ms-sec>summary i{transition:transform .35s var(--ms-ease);color:var(--ms-mut)}
-#meuSite details.ms-sec[open]>summary i{transform:rotate(180deg)}
+#meuSite .ms-visual{display:inline-flex;align-items:center;gap:8px;font-size:.8rem;color:var(--ms-mut);border:1px solid var(--ms-b);border-radius:999px;padding:7px 12px;background:var(--ms-bg)}
+#meuSite .ms-visual i{width:14px;height:14px;border-radius:4px;background:linear-gradient(135deg,#002D72,#389E92);flex:none}
+#meuSite .ms-grid{display:grid;grid-template-columns:210px minmax(0,1fr) minmax(340px,38%);gap:0;align-items:stretch;border:1px solid var(--ms-b);border-radius:16px;background:var(--ms-bg);overflow:hidden;min-height:560px}
+#meuSite .ms-nav{display:grid;gap:4px;align-content:start;padding:14px 10px;border-right:1px solid var(--ms-b);background:color-mix(in srgb,var(--ms-bg) 80%,#EAF2F1)}
+#meuSite .ms-nav button{display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;border:0;background:transparent;color:inherit;font:inherit;font-size:.88rem;padding:9px 12px;border-radius:12px;cursor:pointer;transition:background .3s,color .3s,transform .35s var(--ms-ease)}
+#meuSite .ms-nav button:hover{background:color-mix(in srgb,var(--ms-ac) 10%,transparent)}
+#meuSite .ms-nav button.on{background:var(--primary-blue,#002D72);color:#fff;font-weight:600}
+#meuSite .ms-nav button .pt{width:7px;height:7px;border-radius:50%;background:var(--accent-green,#00E676);flex:none;opacity:0}
+#meuSite .ms-nav button.novo .pt{opacity:1}
+#meuSite .ms-navsel{display:none;padding:12px 16px 0}
+#meuSite .ms-navsel select{width:100%;font:inherit;font-size:.95rem;color:inherit;border:1px solid var(--ms-b);border-radius:10px;padding:9px 12px;background:var(--ms-bg)}
+#meuSite .ms-form{padding:20px 22px 24px;display:grid;gap:12px;align-content:start;min-width:0}
+#meuSite .ms-form h3{margin:0;font-size:1.25rem;font-weight:500;letter-spacing:-.01em}
+#meuSite .ms-form .ms-passos{display:flex;justify-content:space-between;gap:8px;margin-top:8px;padding-top:12px;border-top:1px solid var(--ms-b)}
+#meuSite .ms-verprevia{display:none}
 #meuSite .ms-corpo{padding:0 16px 16px;display:grid;gap:12px}
 #meuSite .ms-ajuda{margin:0;color:var(--ms-mut);font-size:.86rem;line-height:1.5}
 #meuSite .ms-campo{display:grid;gap:5px;font-size:.84rem;font-weight:600;color:var(--ms-mut)}
@@ -134,12 +138,13 @@ function estilos() {
 #meuSite .ms-item .cab{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:700;font-size:.9rem}
 #meuSite .ms-item .cab span{display:flex;gap:4px}
 #meuSite .ms-item .cab button{border:1px solid var(--ms-b);background:var(--ms-bg);border-radius:8px;width:30px;height:30px;cursor:pointer;color:inherit}
-#meuSite .ms-previa{position:sticky;top:16px;border:1px solid var(--ms-b);border-radius:16px;background:var(--ms-bg);overflow:hidden}
+#meuSite .ms-previa{border-left:1px solid var(--ms-b);background:var(--ms-bg);display:grid;grid-template-rows:auto 1fr;min-width:0}
 #meuSite .ms-previa .bar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid var(--ms-b);font-size:.84rem;color:var(--ms-mut)}
 #meuSite .ms-previa .bar .seg{display:inline-flex;border:1px solid var(--ms-b);border-radius:999px;overflow:hidden}
 #meuSite .ms-previa .bar .seg button{border:0;background:transparent;padding:5px 10px;cursor:pointer;color:inherit;font:inherit;font-size:.8rem}
 #meuSite .ms-previa .bar .seg button.on{background:var(--ms-ac);color:#fff}
-#meuSite .ms-frame{display:grid;place-items:center;background:#EAF2F1;padding:12px;min-height:420px}
+#meuSite .ms-frame{display:grid;place-items:start center;background:#EAF2F1;padding:12px;min-height:420px}
+#meuSite .ms-frame>div{position:sticky;top:12px;width:100%;display:grid;justify-items:center}
 #meuSite .ms-frame iframe{border:0;background:#fff;width:100%;height:min(78vh,900px);border-radius:10px;box-shadow:0 20px 50px -30px rgba(0,0,0,.4);transition:width .4s var(--ms-ease)}
 #meuSite .ms-frame.mobile iframe{width:390px;max-width:100%}
 #meuSite .ms-aviso{border-radius:12px;padding:12px 14px;font-size:.9rem;margin-bottom:14px;display:none}
@@ -164,7 +169,8 @@ dialog.ms-ia .ms-ia-st{display:none;align-items:center;gap:10px;font-size:.9rem;
 dialog.ms-ia .ms-ia-st.on{display:flex}
 dialog.ms-ia .ms-ia-st.erro{background:#FDECEC;color:#8A1C1C}
 dialog.ms-ia .ms-ia-st i.fa-spin{color:inherit}
-@media (max-width:1100px){#meuSite .ms-grid{grid-template-columns:1fr}#meuSite .ms-previa{position:static}}
+@media (max-width:1100px){#meuSite .ms-grid{grid-template-columns:200px minmax(0,1fr)}#meuSite .ms-previa{grid-column:1/-1;border-left:0;border-top:1px solid var(--ms-b)}}
+@media (max-width:760px){#meuSite .ms-grid{grid-template-columns:1fr;min-height:0}#meuSite .ms-nav{display:none}#meuSite .ms-navsel{display:block}#meuSite .ms-form{padding:16px}#meuSite .ms-previa{display:none}#meuSite.ms-com-previa .ms-previa{display:grid}#meuSite.ms-com-previa .ms-form,#meuSite.ms-com-previa .ms-navsel{display:none}#meuSite .ms-verprevia{display:inline-flex}#meuSite .ms-frame iframe{height:70vh}}
 `;
   document.head.appendChild(st);
 }
@@ -297,46 +303,49 @@ function campo(def, get, set) {
   return campoTexto(def, get, set);
 }
 
-function secaoHTML(sec, aberta) {
-  const corpo = el('div', { class: 'ms-corpo' });
-  if (sec.ajuda) corpo.append(el('p', { class: 'ms-ajuda', text: sec.ajuda }));
+// Formulário de UMA seção (a ativa). Antes eram <details> empilhados; agora a navegação é por seção.
+function secaoHTML(sec) {
+  const form = el('div', { class: 'ms-form', 'data-secao': sec.id });
+  form.append(el('div', {}, el('h3', { text: sec.r }), sec.ajuda ? el('p', { class: 'ms-ajuda', style: 'margin-top:4px', text: sec.ajuda }) : null));
   sec.campos.forEach((def) => {
-    if (def.t === 'lista') corpo.append(campoLista(def, sec.id));
-    else corpo.append(campo(def, () => valor(sec.id, def.c), (v) => definir(sec.id, def.c, limparTexto(v, def.max || MAX_TEXTO))));
+    if (def.t === 'lista') form.append(campoLista(def, sec.id));
+    else form.append(campo(def, () => valor(sec.id, def.c), (v) => definir(sec.id, def.c, limparTexto(v, def.max || MAX_TEXTO))));
   });
-  return el('details', { class: 'ms-sec', open: aberta }, el('summary', {}, el('span', { text: sec.r }), el('i', { class: 'fas fa-chevron-down' })), corpo);
+  const lista = estado.schema.secoes; const i = lista.findIndex((x) => x.id === sec.id);
+  form.append(el('div', { class: 'ms-passos' },
+    i > 0 ? el('button', { type: 'button', class: 'ms-btn peq', onclick: () => irParaSecao(lista[i - 1].id) }, el('i', { class: 'fas fa-arrow-left' }), lista[i - 1].r) : el('span'),
+    i < lista.length - 1 ? el('button', { type: 'button', class: 'ms-btn peq', onclick: () => irParaSecao(lista[i + 1].id) }, lista[i + 1].r, el('i', { class: 'fas fa-arrow-right' })) : el('span')));
+  return form;
 }
 
 /* ------------------------------------------------------------------ editor */
-async function trocarTemplate(id) {
-  if (!templateExiste(id)) return;
-  estado.template = id;
-  const mod = await carregarTemplate(id);
-  estado.schema = mod && mod.schema && Array.isArray(mod.schema.secoes) ? mod.schema : null;
+function irParaSecao(id) {
+  if (!estado.schema || !estado.schema.secoes.some((x) => x.id === id)) return;
+  estado.secaoAtiva = id;
+  estado.novas?.delete(id);
   pintarEditor();
-  marcarSujo();
-}
-
-function pintarTemplates() {
-  const box = estado.root.querySelector('.ms-tpls');
-  box.replaceChildren(...Object.entries(TEMPLATES).map(([id, t]) => {
-    const on = id === estado.template;
-    const mini = el('div', { class: 'mini' });
-    if (t.miniatura) { const img = el('img', { src: t.miniatura, alt: '' }); img.onerror = () => mini.replaceChildren(el('span', { text: t.nome })); mini.append(img); } else mini.append(el('span', { text: t.nome }));
-    return el('button', { type: 'button', class: `ms-tpl${on ? ' on' : ''}`, 'aria-pressed': on ? 'true' : 'false', onclick: () => trocarTemplate(id) },
-      on ? el('span', { class: 'sel', text: 'Em uso' }) : null, mini, el('b', { text: t.nome }), el('small', { text: t.descricao }));
-  }));
+  try { estado.root.querySelector('.ms-form')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) { /* ok */ }
 }
 
 function pintarEditor() {
-  pintarTemplates();
-  const box = estado.root.querySelector('.ms-secoes');
+  const nav = estado.root.querySelector('.ms-nav');
+  const sel = estado.root.querySelector('.ms-navsel select');
+  const box = estado.root.querySelector('.ms-formbox');
+  if (!nav || !box) return;
   if (!estado.schema) {
-    box.replaceChildren(el('div', { class: 'ms-vazio' },
-      `O template "${TEMPLATES[estado.template]?.nome || estado.template}" ainda não tem campos editáveis: ele monta o site só com os dados do cadastro da escola (nome, cores, logo, fotos, líder, graduação, núcleos, endereço). Publique para usá-lo, ou escolha um template com edição.`));
+    nav.replaceChildren(); if (sel) sel.replaceChildren();
+    box.replaceChildren(el('div', { class: 'ms-form' }, el('div', { class: 'ms-vazio' },
+      `O visual "${TEMPLATES[estado.template]?.nome || estado.template}" ainda não tem textos editáveis: ele monta o site só com os dados do cadastro da escola (nome, cores, logo, fotos, líder, graduação, núcleos, endereço). Publique para colocá-lo no ar.`)));
     return;
   }
-  box.replaceChildren(...estado.schema.secoes.map((sec, i) => secaoHTML(sec, i === 0)));
+  const lista = estado.schema.secoes;
+  if (!lista.some((x) => x.id === estado.secaoAtiva)) estado.secaoAtiva = lista[0].id;
+  nav.replaceChildren(...lista.map((sec) => el('button', { type: 'button', class: `${sec.id === estado.secaoAtiva ? 'on' : ''}${estado.novas?.has(sec.id) ? ' novo' : ''}`, 'aria-current': sec.id === estado.secaoAtiva ? 'true' : null, title: estado.novas?.has(sec.id) ? 'Tem rascunho novo da IA' : null, onclick: () => irParaSecao(sec.id) }, el('span', { text: sec.r }), el('span', { class: 'pt' }))));
+  if (sel) {
+    sel.replaceChildren(...lista.map((sec) => el('option', { value: sec.id, text: `${sec.r}${estado.novas?.has(sec.id) ? ' •' : ''}` })));
+    sel.value = estado.secaoAtiva;
+  }
+  box.replaceChildren(secaoHTML(lista.find((x) => x.id === estado.secaoAtiva)));
 }
 
 /* ------------------------------------------------------------------ publicar */
@@ -370,10 +379,8 @@ async function desfazer() {
   const ant = estado.doc?.anterior;
   if (!ant || !Object.keys(ant).length) return;
   if (!confirm('Voltar o site para a versão publicada antes desta? A versão atual passa a ser a "anterior".')) return;
-  estado.template = templateExiste(ant.template) ? ant.template : estado.template;
+  // O visual não se troca nesta aba: volta só os textos/fotos; o template fica o da escola.
   estado.secoes = JSON.parse(JSON.stringify(ant.secoes || {}));
-  const mod = await carregarTemplate(estado.template);
-  estado.schema = mod && mod.schema ? mod.schema : null;
   pintarEditor();
   marcarSujo();
   await publicar();
@@ -407,8 +414,11 @@ function aplicarRascunho(secoes, soVazios) {
     }
   }
   if (n) {
+    estado.novas = tocadas; // bolinha verde na lista de seções: "tem rascunho novo aqui"
+    const primeira = (estado.schema.secoes.find((sec) => tocadas.has(sec.id)) || {}).id;
+    if (primeira && !tocadas.has(estado.secaoAtiva)) estado.secaoAtiva = primeira;
+    tocadas.delete(estado.secaoAtiva);
     pintarEditor();
-    estado.root.querySelectorAll('details.ms-sec').forEach((d, i) => { const sid = estado.schema.secoes[i]?.id; d.open = tocadas.has(sid) || (i === 0 && !tocadas.size); });
     marcarSujo();
   }
   return n;
@@ -424,7 +434,7 @@ function statusIA(msg, tipo = 'info', girando = false) {
 async function gerarIA(form) {
   const uid = meuUid();
   if (!uid) { statusIA('Sessão expirada — entre de novo.', 'erro'); return; }
-  if (!estado.schema) { statusIA('Este template não tem textos editáveis. Escolha outro em "Visual do site".', 'erro'); return; }
+  if (!estado.schema) { statusIA('O visual desta escola ainda não tem textos editáveis.', 'erro'); return; }
   const respostas = {};
   IA_PERGUNTAS.forEach((q) => { const v = limparTexto(form.elements[q.c]?.value || '', q.max); if (v) respostas[q.c] = v; });
   const tom = String(form.elements.tom?.value || ''); if (IA_TONS.some(([v]) => v === tom)) respostas.tom = tom;
@@ -482,7 +492,7 @@ function abrirIA() {
     estado.root.appendChild(iaDialog);
   }
   const st = iaDialog.querySelector('.ms-ia-st'); st.className = 'ms-ia-st'; st.replaceChildren();
-  if (!estado.schema) statusIA('Este template não tem textos editáveis. Escolha outro em "Visual do site".', 'erro');
+  if (!estado.schema) statusIA('O visual desta escola ainda não tem textos editáveis.', 'erro');
   iaDialog.showModal();
 }
 
@@ -509,31 +519,38 @@ export async function montarMeuSite(root) {
     previaPronta: false, sujo: false,
   };
 
-  const urlSite = `${location.origin}/${encodeURIComponent(slug)}`;
+  estado.secaoAtiva = estado.schema ? estado.schema.secoes[0].id : null;
+  estado.novas = new Set();
+
+  const dominio = (pub.dominio && /^[a-z0-9.-]+$/i.test(pub.dominio)) ? pub.dominio : '';
+  const urlSite = dominio ? `https://${dominio}` : `${location.origin}/${encodeURIComponent(slug)}`;
   const urlPrevia = `${PREVIA_PAGINA}?escola=${encodeURIComponent(slug)}&previa=1&t=${Date.now()}`;
-  const frame = el('div', { class: 'ms-frame' }, el('iframe', { src: urlPrevia, title: 'Prévia do site', loading: 'lazy' }));
+  const frame = el('div', { class: 'ms-frame' }, el('div', {}, el('iframe', { src: urlPrevia, title: 'Prévia do site', loading: 'lazy' })));
   const seg = el('span', { class: 'seg' },
-    el('button', { type: 'button', class: 'on', onclick: (e) => { frame.classList.remove('mobile'); seg.querySelectorAll('button').forEach((b) => b.classList.remove('on')); e.currentTarget.classList.add('on'); } }, el('i', { class: 'fas fa-desktop' })),
-    el('button', { type: 'button', onclick: (e) => { frame.classList.add('mobile'); seg.querySelectorAll('button').forEach((b) => b.classList.remove('on')); e.currentTarget.classList.add('on'); } }, el('i', { class: 'fas fa-mobile-screen' })));
+    el('button', { type: 'button', class: 'on', onclick: (e) => { frame.classList.remove('mobile'); seg.querySelectorAll('button').forEach((b) => b.classList.remove('on')); e.currentTarget.classList.add('on'); } }, el('i', { class: 'fas fa-desktop' }), ' Computador'),
+    el('button', { type: 'button', onclick: (e) => { frame.classList.add('mobile'); seg.querySelectorAll('button').forEach((b) => b.classList.remove('on')); e.currentTarget.classList.add('on'); } }, el('i', { class: 'fas fa-mobile-screen' }), ' Celular'));
+  const quando = docAtual?.atualizadoEm ? new Date(docAtual.atualizadoEm) : null;
+  const publicadoEm = quando && !Number.isNaN(quando.getTime()) ? ` · publicado em ${quando.toLocaleDateString('pt-BR')} às ${quando.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : ' · ainda com os dados do cadastro';
+  const nomeVisual = TEMPLATES[template]?.nome || template;
+  const selNav = el('select', { 'aria-label': 'Seção do site', onchange: (e) => irParaSecao(e.target.value) });
+  const btnVerPrevia = el('button', { type: 'button', class: 'ms-btn peq ms-verprevia', onclick: () => { root.classList.toggle('ms-com-previa'); btnVerPrevia.lastChild.textContent = root.classList.contains('ms-com-previa') ? 'Voltar a editar' : 'Ver prévia'; if (root.classList.contains('ms-com-previa')) enviarPrevia(); } }, el('i', { class: 'fas fa-eye' }), 'Ver prévia');
 
   root.replaceChildren(
     el('div', { class: 'ms-top' },
-      el('div', {}, el('h2', { text: 'Meu site' }), el('p', { text: `O site público da ${pub.nomeCurto || pub.nome || 'escola'}: escolha o visual, troque textos e fotos e publique. Endereço: ${urlSite}` })),
+      el('div', {}, el('h2', { text: 'Meu site' }), el('p', { text: `${dominio || `${location.host}/${slug}`}${publicadoEm}` })),
       el('div', { class: 'ms-acoes' },
+        el('span', { class: 'ms-visual', title: 'O visual é definido no cadastro da escola; aqui você edita só o conteúdo' }, el('i'), `Visual: ${nomeVisual}`),
         el('a', { class: 'ms-btn', href: urlSite, target: '_blank', rel: 'noopener' }, el('i', { class: 'fas fa-arrow-up-right-from-square' }), 'Abrir o site'),
         el('button', { type: 'button', class: 'ms-btn ia', 'data-ms': 'ia', title: 'Rascunho de textos a partir das suas respostas — nada é publicado sem você revisar', onclick: abrirIA }, el('i', { class: 'fas fa-wand-magic-sparkles' }), 'Gerar textos com IA'),
         el('button', { type: 'button', class: 'ms-btn', 'data-ms': 'desfazer', disabled: !Object.keys(docAtual?.anterior || {}).length, onclick: desfazer }, el('i', { class: 'fas fa-rotate-left' }), 'Voltar à versão anterior'),
+        btnVerPrevia,
         el('button', { type: 'button', class: 'ms-btn pri', 'data-ms': 'publicar', disabled: true, onclick: publicar }, el('i', { class: 'fas fa-paper-plane' }), 'Publicar'))),
     el('div', { class: 'ms-aviso' }),
     el('div', { class: 'ms-grid' },
-      el('div', {},
-        el('h3', { text: 'Visual do site', style: 'margin:0 0 4px;font-size:1rem' }),
-        el('p', { class: 'ms-ajuda', text: 'Trocar o template muda só o visual: o que você escreveu aqui continua guardado.' }),
-        el('div', { class: 'ms-tpls' }),
-        el('h3', { text: 'Textos e fotos', style: 'margin:16px 0 8px;font-size:1rem' }),
-        el('div', { class: 'ms-secoes' })),
+      el('nav', { class: 'ms-nav', 'aria-label': 'Seções do site' }),
+      el('div', { style: 'min-width:0' }, el('div', { class: 'ms-navsel' }, selNav), el('div', { class: 'ms-formbox' })),
       el('div', { class: 'ms-previa' },
-        el('div', { class: 'bar' }, el('span', { text: 'Prévia ao vivo — o que você muda aparece aqui antes de publicar' }), seg), frame)));
+        el('div', { class: 'bar' }, el('span', { text: 'Prévia ao vivo' }), seg), frame)));
 
   pintarEditor();
   if (!docAtual) aviso('Seu site já está no ar com os dados do cadastro. Tudo aqui é opcional: o que ficar em branco usa o padrão.', 'info');

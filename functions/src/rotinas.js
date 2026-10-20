@@ -8,7 +8,7 @@ import { responsaveisDe, apagarSubcolecao, apagarArquivosDoStorage } from './gat
 import { migrarEscolaId, migrarClaims, migrarEscolasPublicas, migrarEscolaId1c, migrarNucleosPublicos, ESCOLA_PADRAO, ESCOLA_PLATAFORMA, normalizarDominio } from './escolas.js';
 import { testarEmail } from './emails.js';
 import { ehOutraEscola, idAvisoGraduacao } from './graduacao-escola.js';
-import { migrarSiteLiberdade, migrarLogoLiberdade, migrarEscadaLiberdade } from './site-liberdade.js';
+import { migrarSiteLiberdade, migrarLogoLiberdade, migrarEscadaLiberdade, migrarOcultarCordoesLiberdade } from './site-liberdade.js';
 
 const DIA = 86400000;
 
@@ -156,6 +156,7 @@ export const MIGRACOES = [
   ['m13_site_liberdade_ginga', migrarSiteLiberdade],
   ['m14_logo_liberdade', migrarLogoLiberdade],
   ['m15_escada_liberdade', migrarEscadaLiberdade],
+  ['m16_ocultar_cordoes_liberdade', migrarOcultarCordoesLiberdade],
   // Login de cada pessoa com escola e papéis (custom claims). Por último: se faltar permissão, só ela fica pendente.
   ['m9_claims_escola', migrarClaims],
 ];

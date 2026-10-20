@@ -24,7 +24,7 @@ publicarMaterial, listarMateriais, removerMaterial, excluirUsuarioPermanente,
 publicarMaterialFormacao, listarMateriaisFormacao, removerMaterialFormacao,
 lancarPagamento, listarPagamentosDoNucleo, marcarPagamento,
 lancarDespesaComRateio, todosRateios, marcarRateioPago,
-  presencasDoNucleo, presencasVisitantesDoNucleo, salvarFotoPerfil, comMinhaEscola,
+  presencasDoNucleo, presencasVisitantesDoNucleo, salvarFotoPerfil, comMinhaEscola, minhaEscolaId,
 } from './firebase.js';
 import { iniciarGestao, abrirTela as abrirTelaGestao, renderRelatoriosGerais, exportarExcel, exportarPDF } from './gestao.js?v=20261011b';
 import { iniciarAniversarios, renderAniversarios, lembrete48h } from './aniversarios.js?v=20261001';
@@ -40,7 +40,7 @@ import { configurarFaceId, atualizarContextoFaceId, pararFaceId } from './faceid
 import { conferirTempo } from './modalidades.js';
 import { ESCOLA, ORDEM_CORDOES as ORDEM_ESCOLA, CORDOES_ADULTO as ADULTO_ESCOLA, CORDOES_KIDS as KIDS_ESCOLA, CRITERIOS as CRITERIOS_ESCOLA, linkMapa as linkMapaEscola, IDADE_KIDS, rotuloGrad, META_PRONTIDAO } from './escola.js';
 import { faixaSVG } from './faixas.js';
-import { turmaPadrao, carregarTurmas, criarTurma, turmaAtivaId, definirTurmaAtiva, turmaIdDe, turmaDe, filtrarPorTurma, contarPorTurma, usarEscadaDa, seletorTurmaHTML, escolherNucleoTurmaHTML, formTurmaHTML, lerFormTurma, ligarFormTurma, etiquetaTurmaHTML, garantirEstilosTurma } from './turmas.js';
+import { turmaPadrao, carregarTurmas, turmasPublicas, criarTurma, excluirTurma, turmaAtivaId, definirTurmaAtiva, turmaIdDe, turmaDe, filtrarPorTurma, contarPorTurma, usarEscadaDa, turmasDoNucleoHTML, opcoesFiltroTurmaHTML, formTurmaHTML, lerFormTurma, ligarFormTurma, etiquetaTurmaHTML, garantirEstilosTurma } from './turmas.js';
 // Escada infantil: idade da escola (Liberdade 12; Jiu-Jitsu 16; sem escada infantil = nunca).
 // Mesmo critério de antes (idade não informada conta como infantil quando a escola tem infantil).
 const ehKids = (idade) => (Number(idade) || 0) < IDADE_KIDS;
@@ -53,6 +53,7 @@ let sessaoAtual = null; // { uid, nome, email, papeis, academiaId, academiaGeren
    (usarEscadaDa) e filtra alunos, presenças, financeiro, árvore, KPIs e gráficos.
    Sem turmaId = turma PADRÃO (a que sempre existiu) — a Liberdade não muda nada. */
 let turmasDoNucleo = []; // turmas do núcleo em foco (sem a padrão)
+let todasTurmas = [];    // todas as turmas da escola (aba Núcleos: chips por núcleo)
 let turmaAtiva = null;   // objeto da turma ativa (padrão → turmaPadrao(academia))
 
 // Núcleo em foco para as turmas: o gerenciado pelo gestor; Admin Master usa o
@@ -118,50 +119,37 @@ async function carregarTurmasDoPainel(opts = {}) {
 }
 
 // Quem pode criar turma: Fundador, Admin Master ou o gestor do núcleo. Instrutor solo não.
-function podeCriarTurma() {
-  if (!sessaoAtual) return false;
-  if (ehAdmin() || souFundador(sessaoAtual)) return !!nucleoDaTurma();
-  return ehGestor() && !!sessaoAtual.academiaGerenciadaId && nucleoDaTurma() === sessaoAtual.academiaGerenciadaId;
+function podeCriarTurma(nucleoId = nucleoDaTurma()) {
+  if (!sessaoAtual || !nucleoId) return false;
+  if (ehAdmin() || souFundador(sessaoAtual)) return true;
+  return ehGestor() && !!sessaoAtual.academiaGerenciadaId && nucleoId === sessaoAtual.academiaGerenciadaId;
 }
+// Só o Admin Master exclui turma (e só sem aluno — conferido na hora).
+const podeExcluirTurma = () => ehAdmin();
+function academiaDe(id) {
+  if (!id) return null;
+  const n = (todosNucleos || []).find((x) => x.id === id);
+  return n ? { id: n.id, nome: n.nome || '', mensalidade: n.mensalidadeValor } : { id, nome: '' };
+}
+const alunosDoNucleo = (id) => todosUsuarios.filter((u) => (u.papeis || []).includes('aluno') && u.academiaId === id);
 
-// Bloco "Turma ativa" da barra lateral + rótulos dos grupos do menu.
+// Filtro "Turma" (Filtros Avançados, v56): aparece só quando o núcleo em foco tem turmas.
+// O bloco da barra lateral e o rótulo "Turma · X" do menu saíram (as turmas moram na aba Núcleos).
 function montarSeletorTurma() {
-  const wrap = document.getElementById('turmaSeletor');
-  if (!wrap) return;
-  garantirEstilosTurma();
-  const id = nucleoDaTurma();
+  const widget = document.getElementById('widgetTurma');
+  const sel = document.getElementById('filtroTurma');
   const grupoNucleo = document.getElementById('navGrupoNucleo');
   const grupoComp = document.getElementById('navGrupoCompartilhado');
-  if (!id) {
-    const html = sessaoAtual && (ehAdmin() || souFundador(sessaoAtual)) ? escolherNucleoTurmaHTML(todosNucleos) : '';
-    wrap.innerHTML = html; wrap.hidden = !html;
-    const sel = wrap.querySelector('#turmaNucleoEscolha');
-    const filtro = document.getElementById('filtroAcademia');
-    if (sel && filtro) sel.addEventListener('change', () => {
-      if (!sel.value || ![...filtro.options].some((o) => o.value === sel.value)) return;
-      filtro.value = sel.value;
-      filtro.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-    if (grupoNucleo) grupoNucleo.textContent = 'Núcleo';
-    if (grupoComp) grupoComp.hidden = true;
-    return;
-  }
-  const academia = academiaAtual();
+  if (grupoNucleo) grupoNucleo.textContent = 'Núcleo';
+  if (grupoComp) grupoComp.hidden = true;
+  if (!widget || !sel) return;
+  garantirEstilosTurma();
+  const id = nucleoDaTurma();
+  if (!id || !turmasDoNucleo.length) { widget.hidden = true; sel.innerHTML = ''; return; }
   turmaAtiva = turmaAtivaObj();
-  const contagem = contarPorTurma(todosUsuarios.filter((u) => (u.papeis || []).includes('aluno') && u.academiaId === id), turmasDoNucleo);
-  wrap.hidden = false;
-  wrap.innerHTML = seletorTurmaHTML({ turmas: turmasDoNucleo, ativaId: turmaAtiva.padrao ? '' : turmaAtiva.id, contagem, academia, podeCriar: podeCriarTurma() });
-  const btn = wrap.querySelector('#turmaAtualBtn');
-  const lista = wrap.querySelector('#turmaLista');
-  if (btn && lista) {
-    btn.addEventListener('click', () => { const aberto = btn.getAttribute('aria-expanded') === 'true'; btn.setAttribute('aria-expanded', String(!aberto)); lista.hidden = aberto; });
-    lista.querySelectorAll('.turma-item').forEach((item) => item.addEventListener('click', () => { trocarTurmaAtiva(item.dataset.turma || ''); }));
-  }
-  const nova = wrap.querySelector('#turmaNovaBtn');
-  if (nova) nova.addEventListener('click', () => abrirModalTurma());
-  // Contexto no menu: "Turma · Boxe" quando a ativa não é a padrão; Avisos e Materiais ficam em "Núcleo · todas as turmas".
-  if (grupoNucleo) grupoNucleo.textContent = turmaAtiva.padrao ? 'Núcleo' : `Turma · ${turmaAtiva.nome || ''}`;
-  if (grupoComp) grupoComp.hidden = !!turmaAtiva.padrao;
+  const contagem = contarPorTurma(alunosDoNucleo(id), turmasDoNucleo);
+  sel.innerHTML = opcoesFiltroTurmaHTML({ turmas: turmasDoNucleo, ativaId: turmaAtiva.padrao ? '' : turmaAtiva.id, contagem, academia: academiaAtual() });
+  widget.hidden = false;
 }
 
 // Troca a turma ativa e redesenha tudo que depende dela.
@@ -189,11 +177,13 @@ async function redesenharPorTurma() {
 
 /* Modal "Nova turma" */
 let modalTurmaLigado = false;
-function abrirModalTurma() {
+let turmaModalNucleo = null; // núcleo da turma sendo criada (aba Núcleos passa o id do cartão)
+function abrirModalTurma(nucleoId = nucleoDaTurma()) {
   const modal = document.getElementById('modalNovaTurma');
   const wrap = document.getElementById('formTurmaWrap');
-  const academia = academiaAtual();
-  if (!modal || !wrap || !academia || !podeCriarTurma()) return;
+  const academia = academiaDe(nucleoId);
+  if (!modal || !wrap || !academia || !podeCriarTurma(nucleoId)) return;
+  turmaModalNucleo = academia.id;
   garantirEstilosTurma();
   const professores = todosUsuarios
     .filter((u) => (u.papeis || []).some((p) => p === 'mestre' || p === 'instrutor') && (u.academiaId === academia.id || u.academiaGerenciadaId === academia.id))
@@ -218,8 +208,8 @@ window.fecharModalTurma = () => { const m = document.getElementById('modalNovaTu
 async function salvarNovaTurma() {
   const btn = document.getElementById('btnCriarTurma');
   const wrap = document.getElementById('formTurmaWrap');
-  const academia = academiaAtual();
-  if (!btn || !wrap || !academia || !podeCriarTurma()) return;
+  const academia = academiaDe(turmaModalNucleo);
+  if (!btn || !wrap || !academia || !podeCriarTurma(academia.id)) return;
   btn.disabled = true;
   try {
     const dados = lerFormTurma(wrap);
@@ -227,9 +217,9 @@ async function salvarNovaTurma() {
     const turma = await criarTurma(academia, dados, sessaoAtual);
     toast(`Turma "${turma.nome}" criada!`);
     window.fecharModalTurma();
-    turmasDoNucleo = await carregarTurmas(academia.id, { forcar: true });
-    definirTurmaAtiva(academia.id, turma.id);
-    await redesenharPorTurma();
+    await recarregarTurmasDaEscola();
+    if (academia.id === nucleoDaTurma()) { turmasDoNucleo = await carregarTurmas(academia.id, { forcar: true }); await redesenharPorTurma(); }
+    else renderizarNucleosUI();
   } catch (e) {
     console.error(e);
     toast(e && e.message && !/permission|insufficient/i.test(e.message) ? e.message : 'Não foi possível criar a turma (confira a permissão do núcleo).', 'error', 6000);
@@ -237,6 +227,43 @@ async function salvarNovaTurma() {
     btn.disabled = false;
   }
 }
+
+/* Excluir turma (v56): só Admin Master, só sem aluno, com confirmação. */
+let turmaExcluindo = null;
+async function recarregarTurmasDaEscola() {
+  const e = (sessaoAtual && sessaoAtual.escolaId) || (await minhaEscolaId().catch(() => null)) || 'liberdade';
+  try { todasTurmas = await turmasPublicas(e); } catch (err) { console.warn('turmas da escola', err); todasTurmas = []; }
+}
+function pedirExcluirTurma(turmaId, nome) {
+  const t = todasTurmas.find((x) => x.id === turmaId);
+  if (!t || !podeExcluirTurma()) return;
+  const n = contarPorTurma(alunosDoNucleo(t.academiaId), [t])[t.id] || 0;
+  if (n > 0) { toast(`A turma "${t.nome}" tem ${n} aluno${n === 1 ? '' : 's'}. Transfira os alunos antes de excluir.`, 'error', 6000); return; }
+  turmaExcluindo = t;
+  const modal = document.getElementById('modalExcluirTurma');
+  const tit = document.getElementById('tituloExcluirTurma');
+  if (tit) tit.textContent = `Excluir a turma ${nome || t.nome}?`;
+  if (modal) modal.style.display = 'flex';
+}
+window.fecharModalExcluirTurma = () => { turmaExcluindo = null; const m = document.getElementById('modalExcluirTurma'); if (m) m.style.display = 'none'; };
+async function confirmarExcluirTurma() {
+  const t = turmaExcluindo; if (!t) return;
+  const btn = document.getElementById('btnConfirmarExcluirTurma'); if (btn) btn.disabled = true;
+  try {
+    await excluirTurma(t.id, t.academiaId);
+    if (turmaAtivaId(t.academiaId) === t.id) definirTurmaAtiva(t.academiaId, '');
+    toast(`Turma "${t.nome}" excluída.`);
+    window.fecharModalExcluirTurma();
+    await recarregarTurmasDaEscola();
+    if (t.academiaId === nucleoDaTurma()) { turmasDoNucleo = await carregarTurmas(t.academiaId, { forcar: true }); await redesenharPorTurma(); }
+    else renderizarNucleosUI();
+  } catch (e) {
+    console.error(e);
+    toast(/permission|insufficient/i.test(String(e && (e.code || e.message))) ? 'Só o Admin Master pode excluir turmas.' : 'Não foi possível excluir a turma.', 'error', 6000);
+  } finally { if (btn) btn.disabled = false; }
+}
+{ const b = document.getElementById('btnConfirmarExcluirTurma'); if (b) b.addEventListener('click', confirmarExcluirTurma); }
+{ const m = document.getElementById('modalExcluirTurma'); if (m) m.addEventListener('click', (ev) => { if (ev.target === m) window.fecharModalExcluirTurma(); }); }
 
 const ehAdmin = () => !!sessaoAtual && (sessaoAtual.papeis || []).includes('admin');
 const ehMestre = () => !!sessaoAtual && (sessaoAtual.papeis || []).includes('mestre');
@@ -907,7 +934,7 @@ async function abrirMeuSite() {
 const alvo = document.getElementById('meuSite');
 if (!alvo) return;
 try {
-const mod = await import('./site-gerenciar.js?v=20261019');
+const mod = await import('./site-gerenciar.js?v=56');
 await mod.montarMeuSite(alvo);
 } catch (e) {
 console.error(e);
@@ -947,6 +974,7 @@ setTimeout(() => { document.getElementById('secao-graficos').scrollIntoView({ be
 async function carregarNucleos() {
 try {
 todosNucleos = await listar('nucleos');
+await recarregarTurmasDaEscola();
 renderizarNucleosUI();
 } catch (e) {
 console.error(e);
@@ -981,10 +1009,14 @@ avisoAcademia.innerHTML = '<option value="">Todos os núcleos</option>' +
 todosNucleos.map((n) => `<option value="${escapeHTML(n.id)}">${escapeHTML(n.nome)}</option>`).join('');
 }
 
-if (!ehAdmin()) return;
+if (!ehGestor()) return;
 
 const lista = document.getElementById('listaNucleosPainel');
-if (todosNucleos.length === 0) {
+if (!lista) return;
+// Admin Master: todos os núcleos. Professor/mestre responsável: só o dele (com as turmas).
+const nucleosVisiveis = ehAdmin() ? todosNucleos : todosNucleos.filter((n) => n.id === sessaoAtual.academiaGerenciadaId);
+if (!ehAdmin() && nucleosVisiveis.length === 0) { lista.innerHTML = '<div class="empty-state"><i class="fas fa-school"></i>Você ainda não é responsável por um núcleo.</div>'; return; }
+if (nucleosVisiveis.length === 0) {
 lista.innerHTML = '<div class="empty-state"><i class="fas fa-school"></i>Nenhum núcleo cadastrado ainda.</div>';
 } else {
 // Cartão de núcleo no padrão do mockup (p.3/p.6): ícone, nome, responsável ·
@@ -992,8 +1024,11 @@ lista.innerHTML = '<div class="empty-state"><i class="fas fa-school"></i>Nenhum 
 // Tudo real: alunos ativos e estrela viva vêm de todosUsuarios; mensalidade
 // e endereço do próprio documento do núcleo — o que não existe fica "—".
 const cores = ['', 'verde', 'dourado'];
-lista.innerHTML = todosNucleos.map((n, i) => {
+garantirEstilosTurma();
+lista.innerHTML = nucleosVisiveis.map((n, i) => {
 const estrelas = calcularEstrelaViva(n.id, todosUsuarios);
+const turmasN = todasTurmas.filter((t) => t.academiaId === n.id).sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || '')));
+const blocoTurmas = turmasDoNucleoHTML({ turmas: turmasN, contagem: contarPorTurma(alunosDoNucleo(n.id), turmasN), academia: { id: n.id, nome: n.nome || '', mensalidade: n.mensalidadeValor }, podeCriar: podeCriarTurma(n.id), podeExcluir: podeExcluirTurma() });
 const resp = todosUsuarios.find((u) => u.id === n.professorUid);
 const alunosAtivos = todosUsuarios.filter((u) => (u.papeis || []).includes('aluno') && u.academiaId === n.id && u.statusAtual !== 'Inativo').length;
 const ehSede = !!(resp && souFundador(resp));
@@ -1021,11 +1056,20 @@ ${resp ? `<div class="nucleo-responsavel"><img src="${escapeHTML(urlImagem(resp.
 <div><strong>${estrelas} ${estrelas === 1 ? 'estrela' : 'estrelas'}</strong><small>${cordaoMaisAlta ? `corda mais alta: ${escapeHTML(cordaoMaisAlta)}` : 'nenhuma corda formada ainda'}</small></div>
 <span class="estrelas"><span class="on">${'★'.repeat(estrelas)}</span><span class="off">${'★'.repeat(7 - estrelas)}</span></span>
 </div>
-<div class="academia-actions">
+${blocoTurmas}
+${ehAdmin() ? `<div class="academia-actions">
 <button class="btn-edit-ac" onclick="abrirEditarNucleo(${argJS(n.id)})"><i class="fas fa-pen"></i> Editar núcleo</button>
-</div>
+</div>` : ''}
 </div>`;
 }).join('');
+}
+// Cliques dos chips de turma (um ouvinte só, delegado): "+ Nova turma" e "Excluir".
+if (!lista._turmasLigado) {
+lista._turmasLigado = true;
+lista.addEventListener('click', (ev) => {
+const nova = ev.target.closest('[data-nova]'); if (nova) { abrirModalTurma(nova.dataset.nova); return; }
+const ex = ev.target.closest('[data-excluir]'); if (ex) pedirExcluirTurma(ex.dataset.excluir, ex.dataset.nome);
+});
 }
 
 // Select "responsável" do form de novo núcleo: qualquer usuário que ainda não administra núcleo próprio
@@ -1250,6 +1294,9 @@ if (grid) grid.innerHTML = '<div class="empty-state"><i class="fas fa-triangle-e
 const selectFiltroAcademia = document.getElementById('filtroAcademia');
 // Admin trocou o núcleo do filtro: as turmas (e a escada da turma ativa) são as desse núcleo.
 if (selectFiltroAcademia) selectFiltroAcademia.addEventListener('change', async () => { await carregarTurmasDoPainel(); montarSeletorTurma(); aplicarFiltros(); carregarFinanceiro(); });
+
+const selectFiltroTurma = document.getElementById('filtroTurma');
+if (selectFiltroTurma) selectFiltroTurma.addEventListener('change', () => trocarTurmaAtiva(selectFiltroTurma.value || ''));
 
 const inputBusca = document.getElementById('buscaGeral');
 if (inputBusca) inputBusca.addEventListener('input', debounce(aplicarFiltros, 200));

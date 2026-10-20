@@ -31,7 +31,8 @@ export function converterSiteAntigo(site) {
     faixa: { palavras: Array.isArray(site.faixa) ? site.faixa.filter((x) => typeof x === 'string' && x.trim()).slice(0, 8).join(', ') : site.faixa },
     arte: { selo: arte.selo, titulo: arte.titulo, destaque: arte.destaque, texto: arte.texto,
       pilares: arr(arte.pilares).map((x) => ({ titulo: x.titulo, texto: x.texto, foto: x.foto })) },
-    graduacao: { selo: grad.selo, titulo: grad.titulo, destaque: grad.destaque, texto: grad.texto, infantil: grad.infantil, botao: grad.botao },
+    graduacao: { selo: grad.selo, titulo: grad.titulo, destaque: grad.destaque, texto: grad.texto, infantil: grad.infantil, botao: grad.botao,
+      ocultar: Array.isArray(grad.ocultar) ? grad.ocultar.filter((x) => typeof x === 'string' && x.trim()).join(', ') : grad.ocultar },
     nucleos: { selo: nuc.selo, titulo: nuc.titulo, destaque: nuc.destaque, nota: nuc.nota, convite: nuc.convite,
       lista: arr(nuc.lista).map((x) => ({ nome: x.nome, bairro: x.bairro, dias: x.dias, horario: x.horario, endereco: x.endereco,
         whatsapp: String(x.whatsapp ?? '').replace(/\D/g, ''), foto: x.foto, infantil: sim(x.infantil), noite: sim(x.noite) })) },
@@ -141,4 +142,24 @@ export async function migrarEscadaLiberdade(ctx) {
   const escada = escadaLiberdade();
   await ref.set({ escada, graduacoes: escada.adulto.map((c) => c.nome) }, { merge: true });
   return escada.adulto.length;
+}
+
+// v56: o site antigo escondia da escada "Iniciante" e "Mestre/Presidente" (site-padrao.js: graduacao.ocultar).
+// O Ginga ganhou o campo graduacao.ocultar (texto, nomes separados por vírgula). Esta migração só preenche
+// se o Admin ainda não escreveu nada nesse campo — e copia a lista do site antigo quando ela existir.
+export const OCULTAR_PADRAO_LIBERDADE = 'Iniciante, Mestre/Presidente';
+export async function migrarOcultarCordoesLiberdade(ctx) {
+  const ref = ctx.db.doc(`siteConteudo/${ESCOLA_PADRAO}`);
+  const atual = await ref.get();
+  if (!atual.exists) return 'sem siteConteudo/liberdade';
+  const d = atual.data();
+  if (d.template && d.template !== 'ginga') return `template ${d.template} (não é o Ginga)`;
+  const secoes = d.secoes && typeof d.secoes === 'object' ? d.secoes : {};
+  const grad = secoes.graduacao && typeof secoes.graduacao === 'object' ? secoes.graduacao : {};
+  if (typeof grad.ocultar === 'string' && grad.ocultar.trim()) return 'já tinha ocultar';
+  const antigo = await ctx.db.doc('siteConteudo/site').get();
+  const lista = antigo.exists && Array.isArray(antigo.data().graduacao?.ocultar) ? antigo.data().graduacao.ocultar.filter((x) => typeof x === 'string' && x.trim()) : [];
+  const ocultar = s(lista.length ? lista.join(', ') : OCULTAR_PADRAO_LIBERDADE, 200);
+  await ref.set({ ...d, secoes: { ...secoes, graduacao: { ...grad, ocultar } } });
+  return ocultar;
 }
