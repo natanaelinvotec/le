@@ -142,6 +142,10 @@ button { font-family: var(--font-body); }
 .admin-profile { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 0.88rem; color: var(--text-dark); white-space: nowrap; max-width: 220px; }
 .admin-profile span { overflow: hidden; text-overflow: ellipsis; }
 .admin-avatar { width: 38px; height: 38px; border-radius: var(--radius-pill); border: 2px solid var(--teal-light); background: var(--card-bg); object-fit: cover; }
+/* v57: avatar de quem está logado = foto do cadastro ou as INICIAIS (nunca mais a logo da escola como "foto"). */
+.avatar-ini { display: inline-grid; place-items: center; overflow: hidden; background: var(--primary-blue); color: #fff; font-family: var(--font-display, 'Sora', sans-serif); font-weight: 700; font-size: 0.78rem; letter-spacing: 0.02em; flex: none; }
+.avatar-ini img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block; }
+.login-logo.marca-atletapay { border-radius: 0; box-shadow: none; object-fit: contain; }
 .menu-toggle { display: none; font-size: 1.35rem; cursor: pointer; color: var(--primary-blue); background: var(--bg-app); border: 1px solid var(--border-color); width: 44px; height: 44px; border-radius: 14px; }
 .menu-toggle:hover { background: var(--teal-soft); }
 

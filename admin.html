@@ -17,7 +17,7 @@ por Firebase Authentication (usuarios/{uid}.papeis). -->
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js">
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js">
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js">
-<link rel="stylesheet" href="css/admin.css?v=20261012d">
+<link rel="stylesheet" href="css/admin.css?v=57">
 <link rel="stylesheet" href="css/tema.css?v=20261019">
 </head>
 <body>
@@ -30,7 +30,7 @@ enquanto a sessão do Firebase é conferida; quem não estiver logado é
 redirecionado pra login.html por admin.js (ver checarSessaoOuRedirecionar). -->
 <div class="tela-login" id="telaCarregando">
 <div class="card-padrao login-card" style="text-align:center;">
-<img src="assets/logo-liberdade150.png" alt="Logo Capoeira Liberdade" class="login-logo">
+<img src="assets/marca-atletapay.svg" alt="AtletaPay" class="login-logo marca-atletapay" width="72" height="72">
 <p class="login-sub"><i class="fas fa-spinner fa-spin"></i> Verificando sua sessão...</p>
 </div>
 </div>
@@ -47,7 +47,7 @@ agrupados; a visibilidade por papel continua por data-papel (admin.js). -->
 <button type="button" class="nav-fechar" id="nav-fechar" aria-label="Fechar menu"><i class="fas fa-xmark"></i></button>
 </div>
 <div class="nav-eu" data-papel="all">
-<img src="assets/logo-liberdade150.png" alt="" class="admin-avatar nav-eu-foto" id="navEuFoto">
+<span class="admin-avatar nav-eu-foto avatar-ini" id="navEuFoto" aria-hidden="true"></span>
 <span><b id="navEuNome">—</b><small id="navEuPapel">Painel</small></span>
 </div>
 <!-- Turmas (v56): o bloco "Turma ativa" saiu daqui. As turmas de cada arte ficam na aba
@@ -89,7 +89,6 @@ do grupo só aparece quando há uma turma ativa diferente da padrão. -->
 <header class="top-nav">
 <button class="menu-toggle" id="mobile-menu-btn" aria-label="Abrir menu" aria-controls="nav-links" aria-expanded="false"><i class="fas fa-bars"></i></button>
 <div class="logo-area">
-<img src="assets/logo-liberdade150.png" alt="Logo Capoeira Liberdade" class="nav-logo topo-logo">
 <span id="faixaAdminMaster" class="faixa-admin-master oculto"><i class="fas fa-shield-halved"></i> Admin Master</span>
 <span id="faixaFundador" class="faixa-fundador oculto"><i class="fas fa-star"></i> Acesso Geral · Fundador</span>
 </div>
@@ -103,7 +102,7 @@ do grupo só aparece quando há uma turma ativa diferente da padrão. -->
 <a href="master.html" class="btn-fundador-link" data-papel="admin-fundador" title="Área exclusiva do Admin Master / Fundador"><i class="fas fa-crown"></i> <span class="btn-fundador-label">Painel do Fundador</span></a>
 <button type="button" class="btn-sino" id="btnSinoPainel" onclick="__abrirNotificacoes()" title="Notificações" aria-label="Notificações"><i class="far fa-bell"></i><span class="sino-cont oculto" id="sinoContPainel">0</span></button>
 <button type="button" class="admin-profile admin-profile-btn" onclick="__abrirMinhaConta()" title="Minha conta: celular, senha e apresentação" aria-label="Minha conta">
-<img src="assets/logo-liberdade150.png" alt="" class="admin-avatar">
+<span class="admin-avatar avatar-ini" aria-hidden="true"></span>
 <span id="nomePerfilLogado">—</span>
 <i class="fas fa-gear admin-profile-gear" aria-hidden="true"></i>
 </button>
@@ -834,6 +833,6 @@ admin.js preenche #formTurmaWrap ao abrir e lê com lerFormTurma() ao criar. -->
 </div>
 </div>
 
-<script type="module" src="js/admin.js?v=56"></script>
+<script type="module" src="js/admin.js?v=57"></script>
 </body>
 </html>

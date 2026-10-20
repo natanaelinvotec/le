@@ -119,6 +119,17 @@ async function carregarTurmasDoPainel(opts = {}) {
 }
 
 // Quem pode criar turma: Fundador, Admin Master ou o gestor do núcleo. Instrutor solo não.
+// Iniciais para o avatar (Taynara Alves → TA; e-mail → primeira letra).
+function iniciaisDe(nome) {
+  const p = String(nome || '').trim().split('@')[0].split(/[\s._-]+/).filter(Boolean);
+  if (!p.length) return '•';
+  return ((p[0][0] || '') + (p.length > 1 ? (p[p.length - 1][0] || '') : '')).toUpperCase();
+}
+function pintarAvatar(el, nome, foto) {
+  if (!el) return;
+  if (foto) { el.replaceChildren(Object.assign(document.createElement('img'), { src: foto, alt: '' })); el.classList.add('com-foto'); }
+  else { el.textContent = iniciaisDe(nome); el.classList.remove('com-foto'); }
+}
 function podeCriarTurma(nucleoId = nucleoDaTurma()) {
   if (!sessaoAtual || !nucleoId) return false;
   if (ehAdmin() || souFundador(sessaoAtual)) return true;
@@ -657,7 +668,8 @@ const n = document.getElementById('navEuNome'); const pp = document.getElementBy
 if (n) n.textContent = sessaoAtual.nome || sessaoAtual.email || '—';
 if (pp) pp.textContent = ehAdmin() ? 'Admin Master' : souFundador(sessaoAtual) ? 'Fundador · Acesso Geral' : nomeNucleoProprio ? nomeNucleoProprio.replace(/^\s*(academia|núcleo|nucleo)\s+(d[oa]s?\s+)?/i, '') : (ehInstrutorLogado() ? 'Instrutor(a)' : 'Painel');
 const foto = sessaoAtual.fotoUrl && /^https:/.test(sessaoAtual.fotoUrl) ? sessaoAtual.fotoUrl : '';
-if (foto) { if (f) f.src = foto; document.querySelectorAll('.admin-profile .admin-avatar').forEach((img) => { img.src = foto; }); }
+// v57: foto do cadastro ou iniciais do nome — a logo da escola fica só no menu lateral.
+[f, ...document.querySelectorAll('.admin-profile .admin-avatar')].forEach((el) => pintarAvatar(el, sessaoAtual.nome || sessaoAtual.email, foto));
 }
 const instrutorSolo = !ehGestor() && ehInstrutorLogado();
 // Cabeçalho no padrão do mockup: eyebrow em caixa alta + título forte

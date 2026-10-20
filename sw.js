@@ -11,7 +11,7 @@
 // Offline: sem internet o app abre com o que já foi carregado e o Firestore
 // mostra os dados do cache local dele. Fotos já vistas ficam guardadas (até 800).
 // Push: o Firebase Cloud Messaging entrega a notificação mesmo com o app fechado.
-const VERSAO = 'le-app-v56'; // ← mude SÓ isto a cada atualização publicada (ver quadro abaixo)
+const VERSAO = 'le-app-v57'; // ← mude SÓ isto a cada atualização publicada (ver quadro abaixo)
 const CACHE_TELAS = `${VERSAO}-telas`;
 const CACHE_FOTOS = `${VERSAO}-fotos`;
 const CACHE_LIBS = 'le-libs-v1'; // não depende da VERSAO: endereços versionados não mudam
@@ -56,7 +56,7 @@ const ESSENCIAIS = [
   'manifest.webmanifest', 'rede.webmanifest',
 ];
 // Imagens essenciais vão para o cache de fotos (é lá que as imagens são procuradas).
-const IMAGENS_ESSENCIAIS = ['assets/app-icon-192.png', 'assets/rede-icon-192.png', 'assets/logo-liberdade.png', 'assets/logo-liberdade150.png', 'assets/marca/brasao-1024.png', 'assets/parceiros/celula-20anos.png'];
+const IMAGENS_ESSENCIAIS = ['assets/marca-atletapay.svg', 'assets/app-icon-192.png', 'assets/rede-icon-192.png', 'assets/logo-liberdade.png', 'assets/logo-liberdade150.png', 'assets/marca/brasao-1024.png', 'assets/parceiros/celula-20anos.png'];
 // Bibliotecas externas que o painel e o app usam sempre: já ficam guardadas na
 // instalação (endereço com versão = nunca mudam = nunca baixam de novo).
 const LIBS_ESSENCIAIS = [
